@@ -1,0 +1,12 @@
+[package]
+name = "kalman"
+version = "0.1.0"
+edition = "2021"
+
+[[bench]]
+name = "inversion"
+harness = false
+
+[dev-dependencies]
+assert_float_eq = "1.1.3"
+criterion = "0.4.0"
