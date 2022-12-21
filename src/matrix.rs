@@ -43,13 +43,11 @@ impl<'a> Matrix<'a> {
         let a = inverse.data.as_mut();
 
         for i in 0..n {
-            let el_ii = t[(i * n + i) as usize];
-            let inv_el_ii = 1.0 / el_ii;
+            let inv_el_ii = 1.0 / t[(i * n + i) as usize];
             for j in 0..i {
-                let mut sum = 0.0;
-                for k in j..i {
-                    sum -= t[(i * n + k) as usize] * a[(k * n + j) as usize];
-                }
+                let sum = (j..i).fold(0.0, |sum, k| {
+                    sum - t[(i * n + k) as usize] * a[(k * n + j) as usize]
+                });
                 a[(i * n + j) as usize] = sum * inv_el_ii;
             }
             a[(i * n + i) as usize] = inv_el_ii;
