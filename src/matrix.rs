@@ -116,9 +116,36 @@ impl<'a> Matrix<'a> {
      *
      * Kudos: https://code.google.com/p/efficient-java-matrix-library
      */
-    pub fn mult_rowvector(/*const matrix_t *RESTRICT const a, const matrix_t *RESTRICT const x, matrix_t *RESTRICT const c */
-    ) {
-        todo!()
+    pub fn mult_rowvector(a: &Self, x: &Self, c: &mut Self) {
+        let arows = a.rows;
+        let acols = a.cols;
+
+        let adata = a.data.as_ref();
+        let xdata = x.data.as_ref();
+        let cdata = c.data.as_mut();
+
+        // test dimensions of a and b
+        debug_assert_eq!(a.cols, x.rows);
+
+        // test dimension of c
+        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(c.cols, 1);
+
+        let mut index_a: uint_fast16_t = 0;
+        let mut index_c: uint_fast16_t = 0;
+        let b0 = xdata[0];
+
+        for _ in 0..arows {
+            let mut total = adata[idx!(index_a)] * b0;
+            index_a += 1;
+
+            for j in 1..acols {
+                total += adata[idx!(index_a)] * xdata[idx!(j)];
+                index_a += 1;
+            }
+            cdata[idx!(index_c)] = total;
+            index_c += 1;
+        }
     }
 
     /**
@@ -130,9 +157,36 @@ impl<'a> Matrix<'a> {
      *
      * Kudos: https://code.google.com/p/efficient-java-matrix-library
      */
-    pub fn multadd_rowvector(/* const matrix_t *RESTRICT const a, const matrix_t *RESTRICT const x, matrix_t *RESTRICT const c */
-    ) {
-        todo!()
+    pub fn multadd_rowvector(a: &Self, x: &Self, c: &mut Self) {
+        let arows = a.rows;
+        let acols = a.cols;
+
+        let adata = a.data.as_ref();
+        let xdata = x.data.as_ref();
+        let cdata = c.data.as_mut();
+
+        // test dimensions of a and b
+        debug_assert_eq!(a.cols, x.rows);
+
+        // test dimension of c
+        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(c.cols, 1);
+
+        let mut index_a: uint_fast16_t = 0;
+        let mut index_c: uint_fast16_t = 0;
+        let b0 = xdata[0];
+
+        for _ in 0..arows {
+            let mut total = adata[idx!(index_a)] * b0;
+            index_a += 1;
+
+            for j in 1..acols {
+                total += adata[idx!(index_a)] * xdata[idx!(j)];
+                index_a += 1;
+            }
+            cdata[idx!(index_c)] += total;
+            index_c += 1;
+        }
     }
 
     /**
@@ -597,5 +651,47 @@ mod tests {
         assert_f32_near!(c_buf[1], 2.0 * (1. * 11. + 2. * 21. + 3. * 31.)); // 292
         assert_f32_near!(c_buf[2], 2.0 * (4. * 10. + 5. * 20. + 6. * 30.)); // 640
         assert_f32_near!(c_buf[3], 2.0 * (4. * 11. + 5. * 21. + 6. * 31.)); // 670
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn mult_rowvector() {
+        let mut a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let mut b_buf = [
+            10.0,
+            20.0,
+            30.0];
+        let a = Matrix::new(2, 3, &mut a_buf);
+        let b = Matrix::new(3, 1, &mut b_buf);
+
+        let mut c_buf = [0f32; 2 * 1];
+        let mut c = Matrix::new(2, 1, &mut c_buf);
+
+        Matrix::mult_rowvector(&a, &b, &mut c);
+        assert_f32_near!(c_buf[0], 1. * 10. + 2. * 20. + 3. * 30.); // 140
+        assert_f32_near!(c_buf[1], 4. * 10. + 5. * 20. + 6. * 30.); // 320
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn multadd_rowvector() {
+        let mut a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let mut b_buf = [
+            10.0,
+            20.0,
+            30.0];
+        let a = Matrix::new(2, 3, &mut a_buf);
+        let b = Matrix::new(3, 1, &mut b_buf);
+
+        let mut c_buf = [1000., 2000.];
+        let mut c = Matrix::new(2, 1, &mut c_buf);
+
+        Matrix::multadd_rowvector(&a, &b, &mut c);
+        assert_f32_near!(c_buf[0], 1000. + 1. * 10. + 2. * 20. + 3. * 30.); // 1140
+        assert_f32_near!(c_buf[1], 2000. + 4. * 10. + 5. * 20. + 6. * 30.); // 2320
     }
 }
