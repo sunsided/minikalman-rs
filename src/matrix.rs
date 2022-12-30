@@ -163,11 +163,11 @@ impl<'a> Matrix<'a> {
         let mut c_index: uint_fast16_t = 0;
         let mut a_index_start: uint_fast16_t = 0;
 
-        for xA in 0..arows {
+        for _ in 0..arows {
             let end = a_index_start + bcols as uint_fast16_t;
             let mut index_b: uint_fast16_t = 0;
 
-            for xB in 0..brows {
+            for _ in 0..brows {
                 let mut index_a = a_index_start;
                 let mut total: matrix_data_t = 0.;
                 while index_a < end {
@@ -190,9 +190,43 @@ impl<'a> Matrix<'a> {
      *
      * Kudos: https://code.google.com/p/efficient-java-matrix-library
      */
-    pub fn multadd_transb(/*const matrix_t *const a, const matrix_t *const b, const matrix_t *RESTRICT c*/
-    ) {
-        todo!()
+    pub fn multadd_transb(a: &Self, b: &Self, c: &mut Self) {
+        let bcols = b.cols;
+        let brows = b.rows;
+        let arows = a.rows;
+        let acols = a.cols;
+
+        let adata = a.data.as_ref();
+        let bdata = b.data.as_ref();
+        let cdata = c.data.as_mut();
+
+        // test dimensions of a and b
+        debug_assert_eq!(a.cols, b.cols);
+
+        // test dimension of c
+        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(b.rows, c.cols);
+
+        let mut c_index: uint_fast16_t = 0;
+        let mut a_index_start: uint_fast16_t = 0;
+
+        for _ in 0..arows {
+            let end = a_index_start + bcols as uint_fast16_t;
+            let mut index_b: uint_fast16_t = 0;
+
+            for _ in 0..brows {
+                let mut index_a = a_index_start;
+                let mut total: matrix_data_t = 0.;
+                while index_a < end {
+                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
+                    index_a += 1;
+                    index_b += 1;
+                }
+                cdata[idx!(c_index)] += total;
+                c_index += 1;
+            }
+            a_index_start += acols as uint_fast16_t;
+        }
     }
 
     /**
@@ -483,5 +517,29 @@ mod tests {
         assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.); // 146
         assert_f32_near!(c_buf[2], 4. * 10. + 5. * 20. + 6. * 30.); // 320
         assert_f32_near!(c_buf[3], 4. * 11. + 5. * 21. + 6. * 31.); // 335
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn multadd_transb() {
+        let mut a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let mut b_buf = [
+            10.0, 20.0, 30.0,
+            11.0, 21.0, 31.0];
+        let a = Matrix::new(2, 3, &mut a_buf);
+        let b = Matrix::new(2, 3, &mut b_buf);
+
+        let mut c_buf = [
+            1000., 2000.,
+            3000., 4000.];
+        let mut c = Matrix::new(2, 2, &mut c_buf);
+
+        Matrix::multadd_transb(&a, &b, &mut c);
+        assert_f32_near!(c_buf[0], 1000. + 1. * 10. + 2. * 20. + 3. * 30.); // 1140
+        assert_f32_near!(c_buf[1], 2000. + 1. * 11. + 2. * 21. + 3. * 31.); // 2146
+        assert_f32_near!(c_buf[2], 3000. + 4. * 10. + 5. * 20. + 6. * 30.); // 3320
+        assert_f32_near!(c_buf[3], 4000. + 4. * 11. + 5. * 21. + 6. * 31.); // 4335
     }
 }
