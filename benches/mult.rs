@@ -45,6 +45,39 @@ fn criterion_benchmark(c: &mut Criterion) {
             )
         })
     });
+
+    c.bench_function("mult_transb 2x3 x 2x3'", |bencher| {
+        let mut a_buf = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let a = Matrix::new(2, 3, &mut a_buf);
+
+        let mut b_buf = [1.0, 4.0, 2.0, 5.0, 3.0, 6.0];
+        let b = Matrix::new(2, 3, &mut b_buf);
+
+        let mut c_buf = [0f32; 3 * 3];
+        let mut c = Matrix::new(3, 3, &mut c_buf);
+
+        bencher.iter(|| Matrix::mult_transb(black_box(&a), black_box(&b), black_box(&mut c)))
+    });
+
+    c.bench_function("multscale_transb 2x3 x 2x3' * 1.0", |bencher| {
+        let mut a_buf = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let a = Matrix::new(2, 3, &mut a_buf);
+
+        let mut b_buf = [1.0, 4.0, 2.0, 5.0, 3.0, 6.0];
+        let b = Matrix::new(2, 3, &mut b_buf);
+
+        let mut c_buf = [0f32; 3 * 3];
+        let mut c = Matrix::new(3, 3, &mut c_buf);
+
+        bencher.iter(|| {
+            Matrix::multscale_transb(
+                black_box(&a),
+                black_box(&b),
+                black_box(1.0),
+                black_box(&mut c),
+            )
+        })
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);
