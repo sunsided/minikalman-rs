@@ -95,12 +95,12 @@ impl<'a> Matrix<'a> {
             // create a copy of the column in B to avoid cache issues
             Self::get_column_copy(&b, j, baux);
 
-            let mut indexA: uint_fast16_t = 0;
+            let mut index_a: uint_fast16_t = 0;
             for i in 0..arows {
                 let mut total = 0 as matrix_data_t;
                 for k in 0..brows {
-                    total += adata[idx!(indexA)] * baux[idx!(k)];
-                    indexA += 1;
+                    total += adata[idx!(index_a)] * baux[idx!(k)];
+                    index_a += 1;
                 }
                 cdata[idx!(i * ccols + j)] = total;
             }
@@ -143,9 +143,43 @@ impl<'a> Matrix<'a> {
      *
      * Kudos: https://code.google.com/p/efficient-java-matrix-library
      */
-    pub fn mult_transb(/*const matrix_t *const a, const matrix_t *const b, const matrix_t *RESTRICT c*/
-    ) {
-        todo!()
+    pub fn mult_transb(a: &Self, b: &Self, c: &mut Self) {
+        let bcols = b.cols;
+        let brows = b.rows;
+        let arows = a.rows;
+        let acols = a.cols;
+
+        let adata = a.data.as_ref();
+        let bdata = b.data.as_ref();
+        let cdata = c.data.as_mut();
+
+        // test dimensions of a and b
+        debug_assert_eq!(a.cols, b.cols);
+
+        // test dimension of c
+        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(b.rows, c.cols);
+
+        let mut c_index: uint_fast16_t = 0;
+        let mut a_index_start: uint_fast16_t = 0;
+
+        for xA in 0..arows {
+            let end = a_index_start + bcols as uint_fast16_t;
+            let mut index_b: uint_fast16_t = 0;
+
+            for xB in 0..brows {
+                let mut index_a = a_index_start;
+                let mut total: matrix_data_t = 0.;
+                while index_a < end {
+                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
+                    index_a += 1;
+                    index_b += 1;
+                }
+                cdata[idx!(c_index)] = total;
+                c_index += 1;
+            }
+            a_index_start += acols as uint_fast16_t;
+        }
     }
 
     /**
@@ -251,13 +285,15 @@ impl<'a> Matrix<'a> {
         let stride: int_fast16_t = mat.cols as _;
         let mut source_index = (target_index as int_fast16_t) * stride + (column as int_fast16_t);
 
+        let src = mat.data.as_ref();
+
         // fetch data
-        row_data[idx!(target_index)] = mat.data[idx!(source_index)];
+        row_data[idx!(target_index)] = src[idx!(source_index)];
         while target_index != 0 {
             target_index -= 1;
             source_index -= stride;
 
-            row_data[idx!(target_index)] = mat.data[idx!(source_index)];
+            row_data[idx!(target_index)] = src[idx!(source_index)];
         }
     }
 
@@ -405,7 +441,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn mult_ident() {
+    fn mult() {
         let mut a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
@@ -421,9 +457,31 @@ mod tests {
 
         let mut aux = [0f32; 3 * 1];
         Matrix::mult(&a, &b, &mut c, &mut aux);
-        assert_f32_near!(c_buf[0], 1. * 10. + 2. * 20. + 3. * 30.);
-        assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.);
-        assert_f32_near!(c_buf[2], 4. * 10. + 5. * 20. + 6. * 30.);
-        assert_f32_near!(c_buf[3], 4. * 11. + 5. * 21. + 6. * 31.);
+        assert_f32_near!(c_buf[0], 1. * 10. + 2. * 20. + 3. * 30.); // 140
+        assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.); // 146
+        assert_f32_near!(c_buf[2], 4. * 10. + 5. * 20. + 6. * 30.); // 320
+        assert_f32_near!(c_buf[3], 4. * 11. + 5. * 21. + 6. * 31.); // 335
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn mult_transb() {
+        let mut a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let mut b_buf = [
+            10.0, 20.0, 30.0,
+            11.0, 21.0, 31.0];
+        let a = Matrix::new(2, 3, &mut a_buf);
+        let b = Matrix::new(2, 3, &mut b_buf);
+
+        let mut c_buf = [0f32; 2 * 2];
+        let mut c = Matrix::new(2, 2, &mut c_buf);
+
+        Matrix::mult_transb(&a, &b, &mut c);
+        assert_f32_near!(c_buf[0], 1. * 10. + 2. * 20. + 3. * 30.); // 140
+        assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.); // 146
+        assert_f32_near!(c_buf[2], 4. * 10. + 5. * 20. + 6. * 30.); // 320
+        assert_f32_near!(c_buf[3], 4. * 11. + 5. * 21. + 6. * 31.); // 335
     }
 }
