@@ -56,13 +56,10 @@ impl<'a> Matrix<'a> {
         let mat = self.data.as_ref(); // t
         let inv = inverse.data.as_mut(); // a
 
-        let t = mat;
-        let a = inv;
-
         // Inverts the lower triangular system and saves the result
         // in the upper triangle to minimize cache misses.
         for i in 0..n {
-            let el_ii = t[idx!(i * n + i)];
+            let el_ii = mat[idx!(i * n + i)];
             let inv_el_ii = 1.0 / el_ii;
             for j in 0..=i {
                 let mut sum = if i == j {
@@ -72,33 +69,34 @@ impl<'a> Matrix<'a> {
                 };
 
                 if i > 0 {
-                    for k in (j..=(i - 1)).rev() {
-                        sum -= t[idx!(i * n + k)] * a[idx!(j * n + k)];
-                    }
+                    sum += (j..=(i - 1))
+                        .map(|k| -mat[idx!(i * n + k)] * inv[idx!(j * n + k)])
+                        .sum::<matrix_data_t>();
                 }
 
-                a[idx!(j * n + i)] = sum * inv_el_ii;
+                inv[idx!(j * n + i)] = sum * inv_el_ii;
             }
         }
 
         // Solve the system and handle the previous solution being in the upper triangle
         // takes advantage of symmetry.
         for i in (0..=(n - 1)).rev() {
-            let el_ii = t[idx!(i * n + i)];
+            let el_ii = mat[idx!(i * n + i)];
             let inv_el_ii = 1.0 / el_ii;
             for j in 0..=i {
                 let mut sum = if i < j {
                     0 as matrix_data_t
                 } else {
-                    a[idx!(j * n + i)]
+                    inv[idx!(j * n + i)]
                 };
-                for k in (i + 1)..n {
-                    sum -= t[idx!(k * n + i)] * a[idx!(j * n + k)];
-                }
+
+                sum += ((i + 1)..n)
+                    .map(|k| -mat[idx!(k * n + i)] * inv[idx!(j * n + k)])
+                    .sum::<matrix_data_t>();
 
                 let value = sum * inv_el_ii;
-                a[idx!(i * n + j)] = value;
-                a[idx!(j * n + i)] = value;
+                inv[idx!(i * n + j)] = value;
+                inv[idx!(j * n + i)] = value;
             }
         }
     }
