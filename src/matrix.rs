@@ -44,7 +44,7 @@ impl<'a> Matrix<'a> {
     /// with `m` being prepared through `chol(m)`.
     ///
     /// ## Arguments
-    /// * `lower` - The lower triangular matrix to be inverted.
+    /// * `self` - The lower triangular matrix to be inverted.
     /// * `inverse` - The calculated inverse of the lower triangular matrix.
     ///
     /// ## Example
@@ -140,7 +140,7 @@ impl<'a> Matrix<'a> {
     /// Performs a matrix multiplication such that `C = A * B`.
     ///
     /// ## Arguments
-    /// * `a` - Matrix A
+    /// * `self` - Matrix A
     /// * `b` - Matrix B
     /// * `c` - Resulting matrix C (will be overwritten)
     /// * `aux` -  Auxiliary vector that can hold a column of `b`.
@@ -164,7 +164,7 @@ impl<'a> Matrix<'a> {
     /// let mut c = Matrix::new(2, 2, &mut c_buf);
     ///
     /// let mut aux = [0f32; 3 * 1];
-    /// Matrix::mult(&a, &b, &mut c, &mut aux);
+    /// a.mult(&b, &mut c, &mut aux);
     ///
     /// assert!((c_buf[0] - (1. * 10. + 2. * 20. + 3. * 30.)).abs() < 0.01); // 140
     /// assert!((c_buf[1] - (1. * 11. + 2. * 21. + 3. * 31.)).abs() < 0.01); // 146
@@ -174,29 +174,29 @@ impl<'a> Matrix<'a> {
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_mult")]
-    pub fn mult(a: &Self, b: &Self, c: &mut Self, baux: &mut [matrix_data_t]) {
+    pub fn mult(&self, b: &Self, c: &mut Self, baux: &mut [matrix_data_t]) {
         let bcols = b.cols;
         let ccols = c.cols;
         let brows = b.rows;
-        let arows = a.rows;
+        let arows = self.rows;
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let cdata = c.data.as_mut();
 
         // test dimensions of a and b
-        debug_assert_eq!(a.cols, b.rows);
+        debug_assert_eq!(self.cols, b.rows);
 
         // test dimension of c
-        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(self.rows, c.rows);
         debug_assert_eq!(b.cols, c.cols);
 
         // Test aux dimensions.
-        debug_assert_eq!(baux.len(), a.cols as _);
+        debug_assert_eq!(baux.len(), self.cols as _);
         debug_assert_eq!(baux.len(), b.rows as _);
 
         for j in (0..bcols).rev() {
             // create a copy of the column in B to avoid cache issues
-            Self::get_column_copy(&b, j, baux);
+            b.get_column_copy(j, baux);
 
             let mut index_a: uint_fast16_t = 0;
             for i in 0..arows {
@@ -213,25 +213,25 @@ impl<'a> Matrix<'a> {
     /// Performs a matrix multiplication such that `C = A * x`.
     ///
     /// ## Arguments
-    /// * `a` - Matrix A
+    /// * `self` - Matrix A
     /// * `x` - Vector x
     /// * `c` - Resulting vector C (will be overwritten)
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_mult_rowvector")]
-    pub fn mult_rowvector(a: &Self, x: &Self, c: &mut Self) {
-        let arows = a.rows;
-        let acols = a.cols;
+    pub fn mult_rowvector(&self, x: &Self, c: &mut Self) {
+        let arows = self.rows;
+        let acols = self.cols;
 
-        let adata = a.data.as_ref();
+        let adata = &self.data.as_ref();
         let xdata = x.data.as_ref();
         let cdata = c.data.as_mut();
 
         // test dimensions of a and b
-        debug_assert_eq!(a.cols, x.rows);
+        debug_assert_eq!(self.cols, x.rows);
 
         // test dimension of c
-        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(self.rows, c.rows);
         debug_assert_eq!(c.cols, 1);
 
         let mut index_a: uint_fast16_t = 0;
@@ -254,26 +254,26 @@ impl<'a> Matrix<'a> {
     /// Performs a matrix-vector multiplication and addition such that `C = C + A * x`.
     ///
     /// ## Arguments
-    /// * `a` - Matrix A
+    /// * `self` - Matrix A
     /// * `x` - Vector x
     /// * `c` - Resulting vector C (will be added to)
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
 
     #[doc(alias = "matrix_multadd_rowvector")]
-    pub fn multadd_rowvector(a: &Self, x: &Self, c: &mut Self) {
-        let arows = a.rows;
-        let acols = a.cols;
+    pub fn multadd_rowvector(&self, x: &Self, c: &mut Self) {
+        let arows = self.rows;
+        let acols = self.cols;
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let xdata = x.data.as_ref();
         let cdata = c.data.as_mut();
 
         // test dimensions of a and b
-        debug_assert_eq!(a.cols, x.rows);
+        debug_assert_eq!(self.cols, x.rows);
 
         // test dimension of c
-        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(self.rows, c.rows);
         debug_assert_eq!(c.cols, 1);
 
         let mut index_a: uint_fast16_t = 0;
@@ -296,27 +296,27 @@ impl<'a> Matrix<'a> {
     /// Performs a matrix multiplication with transposed `B` such that `C = A * B'`.
     ///
     /// ## Arguments
-    /// * `a` - Matrix A
+    /// * `self` - Matrix A
     /// * `b` - Matrix B
     /// * `c` - Resulting matrix C (will be overwritten)
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_mult_transb")]
-    pub fn mult_transb(a: &Self, b: &Self, c: &mut Self) {
+    pub fn mult_transb(&self, b: &Self, c: &mut Self) {
         let bcols = b.cols;
         let brows = b.rows;
-        let arows = a.rows;
-        let acols = a.cols;
+        let arows = self.rows;
+        let acols = self.cols;
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let bdata = b.data.as_ref();
         let cdata = c.data.as_mut();
 
         // test dimensions of a and b
-        debug_assert_eq!(a.cols, b.cols);
+        debug_assert_eq!(self.cols, b.cols);
 
         // test dimension of c
-        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(self.rows, c.rows);
         debug_assert_eq!(b.rows, c.cols);
 
         let mut c_index: uint_fast16_t = 0;
@@ -345,27 +345,27 @@ impl<'a> Matrix<'a> {
     /// `C` such that `C = C + A * B'`.
     ///
     /// ## Arguments
-    /// * `a` - Matrix A
+    /// * `self` - Matrix A
     /// * `b` - Matrix B
     /// * `c` - Resulting matrix C (will be added to)
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_multadd_transb")]
-    pub fn multadd_transb(a: &Self, b: &Self, c: &mut Self) {
+    pub fn multadd_transb(&self, b: &Self, c: &mut Self) {
         let bcols = b.cols;
         let brows = b.rows;
-        let arows = a.rows;
-        let acols = a.cols;
+        let arows = self.rows;
+        let acols = self.cols;
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let bdata = b.data.as_ref();
         let cdata = c.data.as_mut();
 
         // test dimensions of a and b
-        debug_assert_eq!(a.cols, b.cols);
+        debug_assert_eq!(self.cols, b.cols);
 
         // test dimension of c
-        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(self.rows, c.rows);
         debug_assert_eq!(b.rows, c.cols);
 
         let mut c_index: uint_fast16_t = 0;
@@ -496,19 +496,19 @@ impl<'a> Matrix<'a> {
     /// Gets a copy of a matrix column
     ///
     /// ## Arguments
-    /// * `mat` - The matrix to initialize
+    /// * `self` - The matrix to initialize
     /// * `column` - The column
     /// * `col_data` - Pointer to an array of the correct length to hold a column of matrix `mat`.
     #[doc(alias = "matrix_get_column_copy")]
-    pub fn get_column_copy(mat: &Self, column: uint_fast8_t, col_data: &mut [matrix_data_t]) {
+    pub fn get_column_copy(&self, column: uint_fast8_t, col_data: &mut [matrix_data_t]) {
         // start from the back, so target index is equal to the index of the last row.
-        let mut target_index: int_fast16_t = (mat.rows - 1) as _;
+        let mut target_index: int_fast16_t = (self.rows - 1) as _;
 
         // also, the source index is the column..th index
-        let stride: int_fast16_t = mat.cols as _;
+        let stride: int_fast16_t = self.cols as _;
         let mut source_index = (target_index as int_fast16_t) * stride + (column as int_fast16_t);
 
-        let src = mat.data.as_ref();
+        let src = self.data.as_ref();
 
         // fetch data
         col_data[idx!(target_index)] = src[idx!(source_index)];
@@ -523,37 +523,37 @@ impl<'a> Matrix<'a> {
     /// Gets a copy of a matrix row
     ///
     /// ## Arguments
-    /// * `mat` - The matrix to initialize
+    /// * `self` - The matrix to initialize
     /// * `rows` - The row
     /// * `row_data` - Pointer to an array of the correct length to hold a row of matrix `mat`.
     #[doc(alias = "matrix_get_row_copy")]
-    pub fn get_row_copy(mat: &Self, row: uint_fast8_t, row_data: &mut [matrix_data_t]) {
-        let mut target_index: uint_fast16_t = (mat.cols - 1) as _;
+    pub fn get_row_copy(&self, row: uint_fast8_t, row_data: &mut [matrix_data_t]) {
+        let mut target_index: uint_fast16_t = (self.cols - 1) as _;
         let mut source_index: uint_fast16_t =
-            (row as uint_fast16_t + 1) * (mat.cols - 1) as uint_fast16_t;
+            (row as uint_fast16_t + 1) * (self.cols - 1) as uint_fast16_t;
 
-        row_data[idx!(target_index)] = mat.data[idx!(source_index)];
+        row_data[idx!(target_index)] = self.data[idx!(source_index)];
         while target_index != 0 {
             target_index -= 1;
             source_index -= 1;
-            row_data[idx!(target_index)] = mat.data[idx!(source_index)];
+            row_data[idx!(target_index)] = self.data[idx!(source_index)];
         }
     }
 
     /// Copies the matrix from `mat` to `target`.
     ///
     /// ## Arguments
-    /// * `mat` - The matrix to copy
+    /// * `self` - The matrix to copy
     /// * `target` - The matrix to copy to
     #[inline]
     #[doc(alias = "matrix_copy")]
-    pub fn copy(mat: &Self, target: &mut Self) {
-        debug_assert_eq!(mat.rows, target.rows);
-        debug_assert_eq!(mat.cols, target.cols);
+    pub fn copy(&self, target: &mut Self) {
+        debug_assert_eq!(self.rows, target.rows);
+        debug_assert_eq!(self.cols, target.cols);
 
-        let count: uint_fast16_t = (mat.cols as uint_fast16_t) * (mat.rows as uint_fast16_t);
+        let count: uint_fast16_t = (self.cols as uint_fast16_t) * (self.rows as uint_fast16_t);
 
-        let adata = mat.data.as_ref();
+        let adata = self.data.as_ref();
         let bdata = target.data.as_mut();
 
         for index in (0..=(count - 1)).rev() {
@@ -564,24 +564,24 @@ impl<'a> Matrix<'a> {
     /// Subtracts two matrices, using `C = A - B`.
     ///
     /// ## Arguments
-    /// * `a` - The matrix to subtract from
+    /// * `self` - The matrix to subtract from
     /// * `b` - The values to subtract
     /// * `c` - The output
     #[inline]
     #[doc(alias = "matrix_sub")]
-    pub fn sub(a: &Self, b: &Self, c: &mut Self) {
-        debug_assert_eq!(a.rows, b.rows);
-        debug_assert_eq!(a.cols, b.cols);
-        debug_assert_eq!(a.rows, c.rows);
-        debug_assert_eq!(a.cols, c.cols);
+    pub fn sub(&self, b: &Self, c: &mut Self) {
+        debug_assert_eq!(self.rows, b.rows);
+        debug_assert_eq!(self.cols, b.cols);
+        debug_assert_eq!(self.rows, c.rows);
+        debug_assert_eq!(self.cols, c.cols);
 
-        let count: uint_fast16_t = (a.cols as uint_fast16_t) * (a.rows as uint_fast16_t);
+        let count: uint_fast16_t = (self.cols as uint_fast16_t) * (self.rows as uint_fast16_t);
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let bdata = b.data.as_ref();
         let cdata = c.data.as_mut();
 
-        for index in (0..=(count - 1)).rev() {
+        for index in (0..count).rev() {
             cdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
         }
     }
@@ -589,20 +589,20 @@ impl<'a> Matrix<'a> {
     /// Subtracts two matrices in place, using `B = A - B`.
     ///
     /// ## Arguments
-    /// * `a` - The matrix to subtract from
+    /// * `self` - The matrix to subtract from
     /// * `b` - The values to subtract, also the output
     #[inline]
     #[doc(alias = "matrix_sub_inplace_b")]
-    pub fn sub_inplace_b(a: &Self, b: &mut Self) {
-        debug_assert_eq!(a.rows, b.rows);
-        debug_assert_eq!(a.cols, b.cols);
+    pub fn sub_inplace_b(&self, b: &mut Self) {
+        debug_assert_eq!(self.rows, b.rows);
+        debug_assert_eq!(self.cols, b.cols);
 
-        let count: uint_fast16_t = (a.cols as uint_fast16_t) * (a.rows as uint_fast16_t);
+        let count: uint_fast16_t = (self.cols as uint_fast16_t) * (self.rows as uint_fast16_t);
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let bdata = b.data.as_mut();
 
-        for index in (0..=(count - 1)).rev() {
+        for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
         }
     }
@@ -610,20 +610,20 @@ impl<'a> Matrix<'a> {
     /// Adds two matrices in place, using `B = A + B`
     ///
     /// ## Arguments
-    /// * `a` - The matrix to add to, also the output
-    /// * `b` - The values to add
+    /// * `self` - The matrix to add to
+    /// * `b` - The values to add, also the output
     #[inline]
     #[doc(alias = "matrix_add_inplace_b")]
-    pub fn add_inplace_b(a: &Self, b: &mut Self) {
-        debug_assert_eq!(a.rows, b.rows);
-        debug_assert_eq!(a.cols, b.cols);
+    pub fn add_inplace_b(&self, b: &mut Self) {
+        debug_assert_eq!(self.rows, b.rows);
+        debug_assert_eq!(self.cols, b.cols);
 
-        let count: uint_fast16_t = (a.cols as uint_fast16_t) * (a.rows as uint_fast16_t);
+        let count: uint_fast16_t = (self.cols as uint_fast16_t) * (self.rows as uint_fast16_t);
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let bdata = b.data.as_mut();
 
-        for index in (0..=(count - 1)).rev() {
+        for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] + bdata[idx![index]];
         }
     }
