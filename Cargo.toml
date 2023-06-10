@@ -13,7 +13,7 @@ harness = false
 
 [dev-dependencies]
 assert_float_eq = "1.1.3"
-criterion = "0.4.0"
+criterion = "0.5.1"
 
 [dependencies]
 stdint = "0.2.0"

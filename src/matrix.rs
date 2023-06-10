@@ -3,6 +3,7 @@ use stdint::{int_fast16_t, uint_fast16_t, uint_fast8_t};
 #[allow(non_camel_case_types)]
 type matrix_data_t = f32;
 
+/// A matrix wrapping a data buffer.
 pub struct Matrix<'a> {
     pub rows: uint_fast8_t,
     pub cols: uint_fast8_t,
@@ -46,6 +47,45 @@ impl<'a> Matrix<'a> {
     /// * `lower` - The lower triangular matrix to be inverted.
     /// * `inverse` - The calculated inverse of the lower triangular matrix.
     ///
+    /// ## Example
+    ///
+    /// ```
+    /// use kalman::Matrix;
+    ///
+    /// // data buffer for the original and decomposed matrix
+    /// let mut d = [
+    ///     1.0, 0.5, 0.0,
+    ///     0.5, 1.0, 0.0,
+    ///     0.0, 0.0, 1.0];
+    /// let mut m = Matrix::new(3, 3, &mut d);
+    ///
+    /// // data buffer for the inverted matrix
+    /// let mut di = [0.0; 3 * 3];
+    /// let mut mi = Matrix::new(3, 3, &mut di);
+    ///
+    /// // Decompose matrix to lower triangular.
+    /// m.cholesky_decompose_lower();
+    ///
+    /// // Invert matrix using lower triangular.
+    /// m.invert_l_cholesky(&mut mi);
+    ///
+    /// let test = mi.get(1, 1);
+    /// assert!(test.is_finite());
+    /// assert!(test >= 1.3);
+    ///
+    /// assert!((di[0] - 1.33333325).abs() < 0.001);
+    /// assert!((di[1] - -0.666666627).abs() < 0.001);
+    /// assert!((di[2] - -0.0).abs() < 0.001);
+    ///
+    /// assert!((di[3] - -0.666666627).abs() < 0.001);
+    /// assert!((di[4] - 1.33333325).abs() < 0.001);
+    /// assert!((di[5] - 0.0).abs() < 0.001);
+    ///
+    /// assert!((di[6] - 0.0).abs() < 0.001);
+    /// assert!((di[7] - 0.0).abs() < 0.001);
+    /// assert!((di[8] - 1.0).abs() < 0.001);
+    /// ```
+    ///
     /// ## Copyright
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_invert_lower")]
@@ -62,17 +102,14 @@ impl<'a> Matrix<'a> {
             let el_ii = mat[idx!(i * n + i)];
             let inv_el_ii = 1.0 / el_ii;
             for j in 0..=i {
-                let mut sum = if i == j {
-                    1.0 as matrix_data_t
-                } else {
-                    0 as matrix_data_t
+                let mut sum = 0 as matrix_data_t;
+                if i == j {
+                    sum = 1.0 as matrix_data_t;
                 };
 
-                if i > 0 {
-                    sum += (j..=(i - 1))
-                        .map(|k| -mat[idx!(i * n + k)] * inv[idx!(j * n + k)])
-                        .sum::<matrix_data_t>();
-                }
+                sum += (j..i)
+                    .map(|k| -mat[idx!(i * n + k)] * inv[idx!(j * n + k)])
+                    .sum::<matrix_data_t>();
 
                 inv[idx!(j * n + i)] = sum * inv_el_ii;
             }
@@ -84,10 +121,9 @@ impl<'a> Matrix<'a> {
             let el_ii = mat[idx!(i * n + i)];
             let inv_el_ii = 1.0 / el_ii;
             for j in 0..=i {
-                let mut sum = if i < j {
-                    0 as matrix_data_t
-                } else {
-                    inv[idx!(j * n + i)]
+                let mut sum = inv[idx!(j * n + i)];
+                if i < j {
+                    sum = 0 as matrix_data_t;
                 };
 
                 sum += ((i + 1)..n)
@@ -108,6 +144,33 @@ impl<'a> Matrix<'a> {
     /// * `b` - Matrix B
     /// * `c` - Resulting matrix C (will be overwritten)
     /// * `aux` -  Auxiliary vector that can hold a column of `b`.
+    ///
+    /// ## Example
+    /// ```
+    /// use kalman::Matrix;
+    ///
+    /// let mut a_buf = [
+    ///      1.0, 2.0, 3.0,
+    ///      4.0, 5.0, 6.0];
+    /// let a = Matrix::new(2, 3, &mut a_buf);
+    ///
+    /// let mut b_buf = [
+    ///     10.0, 11.0,
+    ///     20.0, 21.0,
+    ///     30.0, 31.0];
+    /// let b = Matrix::new(3, 2, &mut b_buf);
+    ///
+    /// let mut c_buf = [0f32; 2 * 2];
+    /// let mut c = Matrix::new(2, 2, &mut c_buf);
+    ///
+    /// let mut aux = [0f32; 3 * 1];
+    /// Matrix::mult(&a, &b, &mut c, &mut aux);
+    ///
+    /// assert!((c_buf[0] - (1. * 10. + 2. * 20. + 3. * 30.)).abs() < 0.01); // 140
+    /// assert!((c_buf[1] - (1. * 11. + 2. * 21. + 3. * 31.)).abs() < 0.01); // 146
+    /// assert!((c_buf[2] - (4. * 10. + 5. * 20. + 6. * 30.)).abs() < 0.01); // 320
+    /// assert!((c_buf[3] - (4. * 11. + 5. * 21. + 6. * 31.)).abs() < 0.01); // 335
+    /// ```
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_mult")]
@@ -571,10 +634,38 @@ impl<'a> Matrix<'a> {
     /// * `mat` - The matrix to decompose in place into a lower triangular matrix.
     ///
     /// ## Returns
-    /// Zero in case of success, nonzero if the matrix is not positive semi-definite.
+    /// `true` in case of success, `false` if the matrix is not positive semi-definite.
+    ///
+    /// ## Example
+    /// ```
+    /// use kalman::Matrix;
+    ///
+    /// // data buffer for the original and decomposed matrix
+    /// let mut d = [
+    ///     1.0, 0.5, 0.0,
+    ///     0.5, 1.0, 0.0,
+    ///     0.0, 0.0, 1.0];
+    ///
+    /// let mut m = Matrix::new(3, 3, &mut d);
+    ///
+    /// // Decompose matrix to lower triangular.
+    /// m.cholesky_decompose_lower();
+    ///
+    /// assert!((d[0] - 1.0).abs() < 0.001);
+    /// assert!((d[1] - 0.0).abs() < 0.001);
+    /// assert!((d[2] - 0.0).abs() < 0.001);
+    ///
+    /// assert!((d[3] - 0.5).abs() < 0.001);
+    /// assert!((d[4] - 0.866025388).abs() < 0.001);
+    /// assert!((d[5] - 0.0).abs() < 0.001);
+    ///
+    /// assert!((d[6] - 0.0).abs() < 0.001);
+    /// assert!((d[7] - 0.0).abs() < 0.001);
+    /// assert!((d[8] - 1.0).abs() < 0.001);
+    /// ```
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
-    fn cholesky_decompose_lower(&mut self) -> i32 {
+    pub fn cholesky_decompose_lower(&mut self) -> bool {
         let n = self.rows;
         let t: &mut [matrix_data_t] = self.data;
 
@@ -590,10 +681,7 @@ impl<'a> Matrix<'a> {
                 let mut i_el = i * n;
                 let mut j_el = j * n;
                 let end = i_el + i;
-                // k = 0:i-1
-                // for( ; i_el<end; ++i_el,++j_el )
                 while i_el < end {
-                    // sum -= el[i*n+k]*el[j*n+k];
                     sum -= t[idx!(i_el)] * t[idx!(j_el)];
 
                     i_el += 1;
@@ -603,7 +691,7 @@ impl<'a> Matrix<'a> {
                 if i == j {
                     // is it positive-definite?
                     if sum <= 0.0 {
-                        return 1;
+                        return false;
                     }
 
                     let el_ii = sum.sqrt() as matrix_data_t;
@@ -622,7 +710,7 @@ impl<'a> Matrix<'a> {
             }
         }
 
-        return 0;
+        return true;
     }
 }
 
@@ -862,7 +950,7 @@ mod tests {
         //          0         0    1.0000
 
         // When cross-checking with e.g. Octave keep in mind that
-        // this is `transpose(chol(d))` since we have a longer triangular.
+        // this is `chol(d, 'lower')` since we have a longer triangular.
         assert_f32_near!(d[0], 1.0);
         assert_f32_near!(d[1], 0.0);
         assert_f32_near!(d[2], 0.0);
