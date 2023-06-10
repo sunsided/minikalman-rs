@@ -137,7 +137,10 @@ impl<'a> Matrix<'a> {
         }
     }
 
-    /// Performs a matrix multiplication such that `C = A * B`.
+    /// Performs a matrix multiplication such that `C = A * B`. This method
+    /// uses an auxiliary buffer for keeping one row of `B` cached. This might
+    /// improve performance on very wide matrices but is generally slower than
+    /// [`Matrix::mult`].
     ///
     /// ## Arguments
     /// * `self` - Matrix A
@@ -164,7 +167,7 @@ impl<'a> Matrix<'a> {
     /// let mut c = Matrix::new(2, 2, &mut c_buf);
     ///
     /// let mut aux = [0f32; 3 * 1];
-    /// a.mult(&b, &mut c, &mut aux);
+    /// a.mult_buffered(&b, &mut c, &mut aux);
     ///
     /// assert!((c_buf[0] - (1. * 10. + 2. * 20. + 3. * 30.)).abs() < 0.01); // 140
     /// assert!((c_buf[1] - (1. * 11. + 2. * 21. + 3. * 31.)).abs() < 0.01); // 146
@@ -173,8 +176,8 @@ impl<'a> Matrix<'a> {
     /// ```
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
-    #[doc(alias = "matrix_mult")]
-    pub fn mult(&self, b: &Self, c: &mut Self, baux: &mut [matrix_data_t]) {
+    #[doc(alias = "matrix_mult_buffered")]
+    pub fn mult_buffered(&self, b: &Self, c: &mut Self, baux: &mut [matrix_data_t]) {
         let bcols = b.cols;
         let ccols = c.cols;
         let brows = b.rows;
@@ -210,6 +213,72 @@ impl<'a> Matrix<'a> {
         }
     }
 
+    /// Performs a matrix multiplication such that `C = A * B`.
+    ///
+    /// ## Arguments
+    /// * `self` - Matrix A
+    /// * `b` - Matrix B
+    /// * `c` - Resulting matrix C (will be overwritten)
+    /// * `aux` -  Auxiliary vector that can hold a column of `b`.
+    ///
+    /// ## Example
+    /// ```
+    /// use kalman::Matrix;
+    ///
+    /// let mut a_buf = [
+    ///      1.0, 2.0, 3.0,
+    ///      4.0, 5.0, 6.0];
+    /// let a = Matrix::new(2, 3, &mut a_buf);
+    ///
+    /// let mut b_buf = [
+    ///     10.0, 11.0,
+    ///     20.0, 21.0,
+    ///     30.0, 31.0];
+    /// let b = Matrix::new(3, 2, &mut b_buf);
+    ///
+    /// let mut c_buf = [0f32; 2 * 2];
+    /// let mut c = Matrix::new(2, 2, &mut c_buf);
+    ///
+    /// a.mult(&b, &mut c);
+    ///
+    /// assert!((c_buf[0] - (1. * 10. + 2. * 20. + 3. * 30.)).abs() < 0.01); // 140
+    /// assert!((c_buf[1] - (1. * 11. + 2. * 21. + 3. * 31.)).abs() < 0.01); // 146
+    /// assert!((c_buf[2] - (4. * 10. + 5. * 20. + 6. * 30.)).abs() < 0.01); // 320
+    /// assert!((c_buf[3] - (4. * 11. + 5. * 21. + 6. * 31.)).abs() < 0.01); // 335
+    /// ```
+    ///
+    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    #[doc(alias = "matrix_mult")]
+    pub fn mult(&self, b: &Self, c: &mut Self) {
+        let bcols = b.cols;
+        let ccols = c.cols;
+        let brows = b.rows;
+        let arows = self.rows;
+
+        let adata = self.data.as_ref();
+        let bdata = b.data.as_ref();
+        let cdata = c.data.as_mut();
+
+        // test dimensions of a and b
+        debug_assert_eq!(self.cols, b.rows);
+
+        // test dimension of c
+        debug_assert_eq!(self.rows, c.rows);
+        debug_assert_eq!(b.cols, c.cols);
+
+        for j in (0..bcols).rev() {
+            let mut index_a: uint_fast16_t = 0;
+            for i in 0..arows {
+                let mut total = 0 as matrix_data_t;
+                for k in 0..brows {
+                    total += adata[idx!(index_a)] * bdata[idx!(k * b.cols + j)];
+                    index_a += 1;
+                }
+                cdata[idx!(i * ccols + j)] = total;
+            }
+        }
+    }
+
     /// Performs a matrix multiplication such that `C = A * x`.
     ///
     /// ## Arguments
@@ -223,7 +292,7 @@ impl<'a> Matrix<'a> {
         let arows = self.rows;
         let acols = self.cols;
 
-        let adata = &self.data.as_ref();
+        let adata = self.data.as_ref();
         let xdata = x.data.as_ref();
         let cdata = c.data.as_mut();
 
@@ -688,6 +757,7 @@ impl<'a> Matrix<'a> {
                     j_el += 1;
                 }
 
+                t[idx!(j * n + i)] = sum * div_el_ii;
                 if i == j {
                     // is it positive-definite?
                     if sum <= 0.0 {
@@ -697,8 +767,6 @@ impl<'a> Matrix<'a> {
                     let el_ii = sum.sqrt() as matrix_data_t;
                     t[idx!(i * n + i)] = el_ii;
                     div_el_ii = (1.0 as matrix_data_t) / el_ii;
-                } else {
-                    t[idx!(j * n + i)] = sum * div_el_ii;
                 }
             }
         }
@@ -721,7 +789,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn mult() {
+    fn mult_buffered() {
         let mut a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
@@ -736,7 +804,30 @@ mod tests {
         let mut c = Matrix::new(2, 2, &mut c_buf);
 
         let mut aux = [0f32; 3 * 1];
-        Matrix::mult(&a, &b, &mut c, &mut aux);
+        a.mult_buffered(&b, &mut c, &mut aux);
+        assert_f32_near!(c_buf[0], 1. * 10. + 2. * 20. + 3. * 30.); // 140
+        assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.); // 146
+        assert_f32_near!(c_buf[2], 4. * 10. + 5. * 20. + 6. * 30.); // 320
+        assert_f32_near!(c_buf[3], 4. * 11. + 5. * 21. + 6. * 31.); // 335
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn mult() {
+        let mut a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let mut b_buf = [
+            10.0, 11.0,
+            20.0, 21.0,
+            30.0, 31.0];
+        let a = Matrix::new(2, 3, &mut a_buf);
+        let b = Matrix::new(3, 2, &mut b_buf);
+
+        let mut c_buf = [0f32; 2 * 2];
+        let mut c = Matrix::new(2, 2, &mut c_buf);
+
+        a.mult(&b, &mut c);
         assert_f32_near!(c_buf[0], 1. * 10. + 2. * 20. + 3. * 30.); // 140
         assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.); // 146
         assert_f32_near!(c_buf[2], 4. * 10. + 5. * 20. + 6. * 30.); // 320
