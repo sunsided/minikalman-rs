@@ -33,10 +33,14 @@ impl<'a> Matrix<'a> {
         }
     }
 
-    /// Inverts a lower triangular matrix.
+    /// Inverts a square lower triangular matrix. Meant to be used with
+    /// [`Matrix::cholesky_decompose_lower`].
     ///
     /// This does not validate that the matrix is indeed of
-    /// lower triangular form.
+    /// lower triangular form. Note that this does not calculate the inverse
+    /// of the lower triangular matrix itself, but the inverse of the matrix
+    /// that was triangularized. In other words, this is not `inv(chol(m))`, but `inv(m)`
+    /// with `m` being prepared through `chol(m)`.
     ///
     /// ## Arguments
     /// * `lower` - The lower triangular matrix to be inverted.
@@ -45,56 +49,54 @@ impl<'a> Matrix<'a> {
     /// ## Copyright
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_invert_lower")]
-    pub fn invert_lower(&self, inverse: &mut Self) {
+    pub fn invert_l_cholesky(&self, inverse: &mut Self) {
         debug_assert_eq!(self.rows, self.cols);
 
         let n = self.rows;
-        let t = self.data.as_ref();
-        let a = inverse.data.as_mut();
+        let mat = self.data.as_ref(); // t
+        let inv = inverse.data.as_mut(); // a
 
-        for i in 0..n {
-            let inv_el_ii = 1.0 / t[idx!(i * n + i)];
-            for j in 0..=i {
-                let sum = (j..i).fold(0.0, |sum, k| sum - t[idx!(i * n + k)] * a[idx!(k * n + j)]);
-                a[idx!(i * n + j)] = sum * inv_el_ii;
-            }
-            a[idx!(i * n + i)] = inv_el_ii;
-        }
+        let t = mat;
+        let a = inv;
 
-        /*
-        // inverts the lower triangular system and saves the result
-        // in the upper triangle to minimize cache misses
+        // Inverts the lower triangular system and saves the result
+        // in the upper triangle to minimize cache misses.
         for i in 0..n {
             let el_ii = t[idx!(i * n + i)];
+            let inv_el_ii = 1.0 / el_ii;
             for j in 0..=i {
                 let mut sum = if i == j {
                     1.0 as matrix_data_t
                 } else {
                     0 as matrix_data_t
                 };
-                for k in (j..=(i - 1)).rev() {
-                    sum -= t[idx!(i * n + k)] * a[idx!(j * n + k)];
+
+                if i > 0 {
+                    for k in (j..=(i - 1)).rev() {
+                        sum -= t[idx!(i * n + k)] * a[idx!(j * n + k)];
+                    }
                 }
-                a[idx!(j * n + i)] = sum / el_ii;
+
+                a[idx!(j * n + i)] = sum * inv_el_ii;
             }
         }
-        */
 
-        // solve the system and handle the previous solution being in the upper triangle
-        // takes advantage of symmetry
+        // Solve the system and handle the previous solution being in the upper triangle
+        // takes advantage of symmetry.
         for i in (0..=(n - 1)).rev() {
             let el_ii = t[idx!(i * n + i)];
+            let inv_el_ii = 1.0 / el_ii;
             for j in 0..=i {
                 let mut sum = if i < j {
                     0 as matrix_data_t
                 } else {
-                    a[idx!(j * n + i)] as matrix_data_t
+                    a[idx!(j * n + i)]
                 };
                 for k in (i + 1)..n {
                     sum -= t[idx!(k * n + i)] * a[idx!(j * n + k)];
                 }
 
-                let value = sum / el_ii;
+                let value = sum * inv_el_ii;
                 a[idx!(i * n + j)] = value;
                 a[idx!(j * n + i)] = value;
             }
@@ -853,6 +855,14 @@ mod tests {
         // Decompose matrix to lower triangular.
         m.cholesky_decompose_lower();
 
+        // >> chol(m, 'lower')
+        //
+        // ans =
+        //
+        //     1.0000         0         0
+        //     0.5000    0.8660         0
+        //          0         0    1.0000
+
         // When cross-checking with e.g. Octave keep in mind that
         // this is `transpose(chol(d))` since we have a longer triangular.
         assert_f32_near!(d[0], 1.0);
@@ -866,30 +876,6 @@ mod tests {
         assert_f32_near!(d[6], 0.0);
         assert_f32_near!(d[7], 0.0);
         assert_f32_near!(d[8], 1.0);
-    }
-
-    #[test]
-    #[rustfmt::skip]
-    fn invert_lower() {
-        let mut a_buf = [
-            1.0,  0.0,  0.0,
-            -2.0,  1.0,  0.0,
-            3.5, -2.5,  1.0];
-        let a = Matrix::new(3, 3, &mut a_buf);
-
-        let mut inv_buf = [0f32; 3 * 3];
-        let mut inv = Matrix::new(3, 3, &mut inv_buf);
-
-        a.invert_lower(&mut inv);
-
-        assert_f32_near!(inv_buf[0], 1.0);
-
-        assert_f32_near!(inv_buf[3], 2.0);
-        assert_f32_near!(inv_buf[4], 1.0);
-
-        assert_f32_near!(inv_buf[6], 1.5);
-        assert_f32_near!(inv_buf[7], 2.5);
-        assert_f32_near!(inv_buf[8], 1.0);
     }
 
     /// Tests matrix inversion using Cholesky decomposition
@@ -910,11 +896,48 @@ mod tests {
         // Decompose matrix to lower triangular.
         m.cholesky_decompose_lower();
 
+        // >> chol(m, 'lower')
+        //
+        // ans =
+        //
+        //     1.0000         0         0
+        //     0.5000    0.8660         0
+        //          0         0    1.0000
+
         // Invert matrix using lower triangular.
-        m.invert_lower(&mut mi);
+        m.invert_l_cholesky(&mut mi);
+
+        // >> inv(chol(m, 'lower'))
+        //
+        // ans =
+        //
+        //     1.0000         0         0
+        //    -0.5774    1.1547         0
+        //          0         0    1.0000
+
+        // Expected result:
+        // >> inv(m)
+        //
+        // ans =
+        //
+        //     1.3333   -0.6667         0
+        //    -0.6667    1.3333         0
+        //          0         0    1.0000
 
         let test = mi.get(1, 1);
         assert!(test.is_finite());
         assert!(test >= 1.3);
+
+        assert_f32_near!(di[0], 1.33333325);
+        assert_f32_near!(di[1], -0.666666627);
+        assert_f32_near!(di[2], -0.0);
+
+        assert_f32_near!(di[3], -0.666666627);
+        assert_f32_near!(di[4], 1.33333325);
+        assert_f32_near!(di[5], 0.0);
+
+        assert_f32_near!(di[6], 0.0);
+        assert_f32_near!(di[7], 0.0);
+        assert_f32_near!(di[8], 1.0);
     }
 }
