@@ -54,11 +54,50 @@ impl<'a> Matrix<'a> {
 
         for i in 0..n {
             let inv_el_ii = 1.0 / t[idx!(i * n + i)];
-            for j in 0..i {
+            for j in 0..=i {
                 let sum = (j..i).fold(0.0, |sum, k| sum - t[idx!(i * n + k)] * a[idx!(k * n + j)]);
                 a[idx!(i * n + j)] = sum * inv_el_ii;
             }
             a[idx!(i * n + i)] = inv_el_ii;
+        }
+
+        /*
+        // inverts the lower triangular system and saves the result
+        // in the upper triangle to minimize cache misses
+        for i in 0..n {
+            let el_ii = t[idx!(i * n + i)];
+            for j in 0..=i {
+                let mut sum = if i == j {
+                    1.0 as matrix_data_t
+                } else {
+                    0 as matrix_data_t
+                };
+                for k in (j..=(i - 1)).rev() {
+                    sum -= t[idx!(i * n + k)] * a[idx!(j * n + k)];
+                }
+                a[idx!(j * n + i)] = sum / el_ii;
+            }
+        }
+        */
+
+        // solve the system and handle the previous solution being in the upper triangle
+        // takes advantage of symmetry
+        for i in (0..=(n - 1)).rev() {
+            let el_ii = t[idx!(i * n + i)];
+            for j in 0..=i {
+                let mut sum = if i < j {
+                    0 as matrix_data_t
+                } else {
+                    a[idx!(j * n + i)] as matrix_data_t
+                };
+                for k in (i + 1)..n {
+                    sum -= t[idx!(k * n + i)] * a[idx!(j * n + k)];
+                }
+
+                let value = sum / el_ii;
+                a[idx!(i * n + j)] = value;
+                a[idx!(j * n + i)] = value;
+            }
         }
     }
 
@@ -525,36 +564,72 @@ impl<'a> Matrix<'a> {
             bdata[idx!(index)] = adata[idx!(index)] + bdata[idx![index]];
         }
     }
+
+    /// Decomposes a matrix into lower triangular form using Cholesky decomposition.
+    ///
+    /// ## Arguments
+    /// * `mat` - The matrix to decompose in place into a lower triangular matrix.
+    ///
+    /// ## Returns
+    /// Zero in case of success, nonzero if the matrix is not positive semi-definite.
+    ///
+    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    fn cholesky_decompose_lower(&mut self) -> i32 {
+        let n = self.rows;
+        let t: &mut [matrix_data_t] = self.data;
+
+        let mut div_el_ii = 0 as matrix_data_t;
+
+        debug_assert_eq!(self.rows, self.cols);
+        debug_assert!(self.rows > 0);
+
+        for i in 0..n {
+            for j in i..n {
+                let mut sum = t[idx!(i * n + j)];
+
+                let mut i_el = i * n;
+                let mut j_el = j * n;
+                let end = i_el + i;
+                // k = 0:i-1
+                // for( ; i_el<end; ++i_el,++j_el )
+                while i_el < end {
+                    // sum -= el[i*n+k]*el[j*n+k];
+                    sum -= t[idx!(i_el)] * t[idx!(j_el)];
+
+                    i_el += 1;
+                    j_el += 1;
+                }
+
+                if i == j {
+                    // is it positive-definite?
+                    if sum <= 0.0 {
+                        return 1;
+                    }
+
+                    let el_ii = sum.sqrt() as matrix_data_t;
+                    t[idx!(i * n + i)] = el_ii;
+                    div_el_ii = (1.0 as matrix_data_t) / el_ii;
+                } else {
+                    t[idx!(j * n + i)] = sum * div_el_ii;
+                }
+            }
+        }
+
+        // zero out the top right corner.
+        for i in 0..n {
+            for j in (i + 1)..n {
+                t[idx!(i * n + j)] = 0.0;
+            }
+        }
+
+        return 0;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::matrix::Matrix;
     use assert_float_eq::*;
-
-    #[test]
-    #[rustfmt::skip]
-    fn invert_lower() {
-        let mut a_buf = [
-             1.0,  0.0,  0.0,
-            -2.0,  1.0,  0.0,
-             3.5, -2.5,  1.0];
-        let a = Matrix::new(3, 3, &mut a_buf);
-
-        let mut inv_buf = [0f32; 3 * 3];
-        let mut inv = Matrix::new(3, 3, &mut inv_buf);
-
-        a.invert_lower(&mut inv);
-
-        assert_f32_near!(inv_buf[0], 1.0);
-
-        assert_f32_near!(inv_buf[3], 2.0);
-        assert_f32_near!(inv_buf[4], 1.0);
-
-        assert_f32_near!(inv_buf[6], 1.5);
-        assert_f32_near!(inv_buf[7], 2.5);
-        assert_f32_near!(inv_buf[8], 1.0);
-    }
 
     #[test]
     #[rustfmt::skip]
@@ -761,5 +836,85 @@ mod tests {
         assert_eq!(b_buf, [
             1. + 10., 2. + 20., 3. + 30.,
             4. + 11., 5. + 21., 6. + 31.]);
+    }
+
+    /// Tests matrix inversion using Cholesky decomposition
+    #[test]
+    #[rustfmt::skip]
+    fn choleski_decomposition() {
+        // data buffer for the original and decomposed matrix
+        let mut d = [
+            1.0, 0.5, 0.0,
+            0.5, 1.0, 0.0,
+            0.0, 0.0, 1.0];
+
+        let mut m = Matrix::new(3, 3, &mut d);
+
+        // Decompose matrix to lower triangular.
+        m.cholesky_decompose_lower();
+
+        // When cross-checking with e.g. Octave keep in mind that
+        // this is `transpose(chol(d))` since we have a longer triangular.
+        assert_f32_near!(d[0], 1.0);
+        assert_f32_near!(d[1], 0.0);
+        assert_f32_near!(d[2], 0.0);
+
+        assert_f32_near!(d[3], 0.5);
+        assert_f32_near!(d[4], 0.866025388);
+        assert_f32_near!(d[5], 0.0);
+
+        assert_f32_near!(d[6], 0.0);
+        assert_f32_near!(d[7], 0.0);
+        assert_f32_near!(d[8], 1.0);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn invert_lower() {
+        let mut a_buf = [
+            1.0,  0.0,  0.0,
+            -2.0,  1.0,  0.0,
+            3.5, -2.5,  1.0];
+        let a = Matrix::new(3, 3, &mut a_buf);
+
+        let mut inv_buf = [0f32; 3 * 3];
+        let mut inv = Matrix::new(3, 3, &mut inv_buf);
+
+        a.invert_lower(&mut inv);
+
+        assert_f32_near!(inv_buf[0], 1.0);
+
+        assert_f32_near!(inv_buf[3], 2.0);
+        assert_f32_near!(inv_buf[4], 1.0);
+
+        assert_f32_near!(inv_buf[6], 1.5);
+        assert_f32_near!(inv_buf[7], 2.5);
+        assert_f32_near!(inv_buf[8], 1.0);
+    }
+
+    /// Tests matrix inversion using Cholesky decomposition
+    #[test]
+    #[rustfmt::skip]
+    fn matrix_inverse() {
+        // data buffer for the original and decomposed matrix
+        let mut d = [
+            1.0, 0.5, 0.0,
+            0.5, 1.0, 0.0,
+            0.0, 0.0, 1.0];
+        let mut m = Matrix::new(3, 3, &mut d);
+
+        // data buffer for the inverted matrix
+        let mut di = [0.0; 3 * 3];
+        let mut mi = Matrix::new(3, 3, &mut di);
+
+        // Decompose matrix to lower triangular.
+        m.cholesky_decompose_lower();
+
+        // Invert matrix using lower triangular.
+        m.invert_lower(&mut mi);
+
+        let test = mi.get(1, 1);
+        assert!(test.is_finite());
+        assert!(test >= 1.3);
     }
 }
