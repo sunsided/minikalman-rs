@@ -74,7 +74,7 @@ fn main() {
     let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
     let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 
-    let mut filter = Kalman::new(
+    let mut filter = Kalman::new_from_buffers(
         NUM_STATES,
         NUM_INPUTS,
         &mut gravity_A,

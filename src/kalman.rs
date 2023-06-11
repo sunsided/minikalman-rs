@@ -65,7 +65,7 @@ impl<'a> Kalman<'a> {
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`num_states` × `num_inputs`).
     #[allow(non_snake_case)]
     #[doc(alias = "kalman_filter_initialize")]
-    pub fn new(
+    pub fn new_from_buffers(
         num_states: uint_fast8_t,
         num_inputs: uint_fast8_t,
         A: &'a mut [matrix_data_t],
@@ -91,6 +91,150 @@ impl<'a> Kalman<'a> {
                 predicted_x: Matrix::new(num_states, 1, predictedX),
                 P: Matrix::new(num_states, num_states, temp_P),
                 BQ: Matrix::new(num_states, num_inputs, temp_BQ),
+            },
+        }
+    }
+
+    /// Initializes a Kalman filter instance.
+    ///
+    /// ## Arguments
+    /// * `num_states` - The number of states tracked by this filter.
+    /// * `num_inputs` - The number of inputs available to the filter.
+    /// * `A` - The state transition matrix (`num_states` × `num_states`).
+    /// * `x` - The state vector (`num_states` × `1`).
+    /// * `B` - The input transition matrix (`num_states` × `num_inputs`).
+    /// * `u` - The input vector (`num_inputs` × `1`).
+    /// * `P` - The state covariance matrix (`num_states` × `num_states`).
+    /// * `Q` - The input covariance matrix (`num_inputs` × `num_inputs`).
+    /// * `predictedX` - The temporary vector for predicted states (`num_states` × `1`).
+    /// * `temp_P` - The temporary vector for P calculation (`num_states` × `num_states`).
+    /// * `temp_BQ` - The temporary vector for B×Q calculation (`num_states` × `num_inputs`).
+    #[allow(non_snake_case)]
+    pub fn new(
+        num_states: uint_fast8_t,
+        num_inputs: uint_fast8_t,
+        A: Matrix<'a>,
+        x: Matrix<'a>,
+        B: Matrix<'a>,
+        u: Matrix<'a>,
+        P: Matrix<'a>,
+        Q: Matrix<'a>,
+        predictedX: Matrix<'a>,
+        temp_P: Matrix<'a>,
+        temp_BQ: Matrix<'a>,
+    ) -> Self {
+        debug_assert_eq!(
+            A.rows, num_states,
+            "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
+            num_states, num_states
+        );
+        debug_assert_eq!(
+            A.cols, num_states,
+            "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
+            num_states, num_states
+        );
+
+        debug_assert_eq!(
+            P.rows, num_states,
+            "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
+            num_states, num_states
+        );
+        debug_assert_eq!(
+            P.cols, num_states,
+            "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
+            num_states, num_states
+        );
+
+        debug_assert_eq!(
+            x.rows, num_states,
+            "The state vector x requires {} rows and 1 column (i.e. states × 1)",
+            num_states
+        );
+        debug_assert_eq!(
+            x.cols, 1,
+            "The state vector x requires {} rows and 1 column (i.e. states × 1)",
+            num_states
+        );
+
+        debug_assert_eq!(
+            B.rows, num_states,
+            "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
+            num_states, num_inputs
+        );
+        debug_assert_eq!(
+            B.cols, num_inputs,
+            "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
+            num_states, num_inputs
+        );
+
+        debug_assert_eq!(
+            Q.rows, num_inputs,
+            "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
+            num_inputs, num_inputs
+        );
+        debug_assert_eq!(
+            Q.cols, num_inputs,
+            "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
+            num_inputs, num_inputs
+        );
+
+        debug_assert_eq!(
+            u.rows, num_inputs,
+            "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
+            num_inputs
+        );
+        debug_assert_eq!(
+            u.cols, 1,
+            "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
+            num_inputs
+        );
+
+        debug_assert_eq!(
+            predictedX.rows, num_states,
+            "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
+            num_states
+        );
+        debug_assert_eq!(
+            predictedX.cols, 1,
+            "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
+            num_states
+        );
+
+        debug_assert_eq!(
+            temp_P.rows, num_states,
+            "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
+            num_states, num_states
+        );
+        debug_assert_eq!(
+            temp_P.cols, num_states,
+            "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
+            num_states, num_states
+        );
+
+        debug_assert_eq!(
+            temp_BQ.rows, num_states,
+            "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
+            num_states, num_inputs
+        );
+        debug_assert_eq!(
+            temp_BQ.cols, num_inputs,
+            "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
+            num_states, num_inputs
+        );
+
+        Self {
+            num_states,
+            num_inputs,
+            A,
+            P,
+            x,
+            B,
+            Q,
+            u,
+            temporary: KalmanTemporary {
+                predicted_x: predictedX,
+                P: temp_P,
+                BQ: temp_BQ,
             },
         }
     }
