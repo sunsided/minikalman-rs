@@ -1,8 +1,12 @@
-# Kalman Filters in Rust
+# Kalman Filters for Embedded Targets (in Rust)
 
 This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
 a microcontroller targeted Kalman filter implementation. Uses [`micromath`](https://docs.rs/micromath)
 for square root calculations on `no_std`.
+
+This implementation uses statically allocated buffers for all matrix operations. Due to lack
+of `const` generics for array allocations in Rust, this crate also provides helper macros
+to create the required arrays. See [`examples/gravity.rs`](examples/gravity.rs) for a worked example.
 
 ## `no_std` vs `std`
 
