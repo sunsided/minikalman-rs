@@ -593,8 +593,7 @@ impl<'a> Matrix<'a> {
     /// Sets a matrix element
     ///
     /// ## Arguments
-    /// * `mat` - The matrix to set
-    /// * `rows` - The row
+    /// * `mat` - The matrix to set    /// * `rows` - The row
     /// * `cols` - The column
     /// * `value` - The value to set
     #[inline(always)]
@@ -990,6 +989,42 @@ mod tests {
         assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.); // 146
         assert_f32_near!(c_buf[2], 4. * 10. + 5. * 20. + 6. * 30.); // 320
         assert_f32_near!(c_buf[3], 4. * 11. + 5. * 21. + 6. * 31.); // 335
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn mult_abat_reference() {
+        let mut a_buf = [
+            1.0, 2.0,  3.0,
+            4.0, 5.0,  6.0,
+            7.0, 8.0, -9.0];
+        let a = Matrix::new(3, 3, &mut a_buf);
+
+        let mut b_buf = [
+            -4.0, -1.0,  0.0,
+             2.0,  3.0,  4.0,
+             5.0,  9.0, -10.0];
+        let b = Matrix::new(3, 3, &mut b_buf);
+
+        let mut c_buf = [0f32; 3 * 3];
+        let mut c = Matrix::new(3, 3, &mut c_buf);
+
+        let mut d_buf = [0f32; 3 * 3];
+        let mut d = Matrix::new(3, 3, &mut d_buf);
+
+        // Example P = A*P*A'
+        a.mult(&b, &mut c); // temp = A*P
+        c.mult_transb(&a, &mut d); // P = temp*A'
+
+        assert_f32_near!(d_buf[0], 13.0);
+        assert_f32_near!(d_buf[1], 88.0);
+        assert_f32_near!(d_buf[2], 559.0);
+        assert_f32_near!(d_buf[3], 34.0);
+        assert_f32_near!(d_buf[4], 181.0);
+        assert_f32_near!(d_buf[5], 1048.0);
+        assert_f32_near!(d_buf[6], 181.0);
+        assert_f32_near!(d_buf[7], 184.0);
+        assert_f32_near!(d_buf[8], -2009.0);
     }
 
     #[test]

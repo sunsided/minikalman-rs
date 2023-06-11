@@ -295,7 +295,6 @@ impl<'a> Kalman<'a> {
         //* P = A*P*A' + B*Q*B'
 
         // P = A*P*A'
-        // TODO: Add an P = A*P*A' "in place" method to get rid of the scratch buffer.
         A.mult(P, P_temp); // temp = A*P
         P_temp.mult_transb(A, P); // P = temp*A'
 

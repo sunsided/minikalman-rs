@@ -13,6 +13,8 @@
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
+extern crate alloc;
+
 mod kalman;
 mod matrix;
 mod measurement;
