@@ -1,5 +1,5 @@
 use crate::measurement::Measurement;
-use crate::{matrix_data_t, Matrix};
+use crate::{matrix_data_t, Matrix, ScratchBuffer};
 use stdint::uint_fast8_t;
 
 /// Kalman Filter structure.
@@ -31,21 +31,7 @@ pub struct Kalman<'a> {
     Q: Matrix<'a>,
 
     /// Temporary storage.
-    temporary: KalmanTemporary<'a>,
-}
-
-#[allow(non_snake_case)]
-struct KalmanTemporary<'a> {
-    /// x-sized temporary vector.
-    predicted_x: Matrix<'a>,
-    /// P-Sized temporary matrix (number of states × number of states).
-    ///
-    /// The backing field for this temporary MAY be aliased with temporary BQ.
-    P: Matrix<'a>,
-    /// B×Q-sized temporary matrix (number of states × number of inputs).
-    ///
-    /// The backing field for this temporary MAY be aliased with temporary P.
-    BQ: Matrix<'a>,
+    temporary: ScratchBuffer<'a>,
 }
 
 impl<'a> Kalman<'a> {
@@ -74,10 +60,24 @@ impl<'a> Kalman<'a> {
         u: &'a mut [matrix_data_t],
         P: &'a mut [matrix_data_t],
         Q: &'a mut [matrix_data_t],
-        predictedX: &'a mut [matrix_data_t],
-        temp_P: &'a mut [matrix_data_t],
-        temp_BQ: &'a mut [matrix_data_t],
+        scratch: ScratchBuffer<'a>,
     ) -> Self {
+        debug_assert!(
+            scratch.fits(num_states, 1), // predictedX
+            "The scratch buffer requires room for at least {} rows and 1 column (i.e. states × 1)",
+            num_states
+        );
+        debug_assert!(
+            scratch.fits(num_states, num_states), // temp_P
+            "The scratch buffer requires room for at least {} rows and {} columns (i.e. states × states)",
+            num_states, num_states
+        );
+        debug_assert!(
+            scratch.fits(num_states, num_inputs), // temp_BQ
+            "The scratch buffer requires room for at least {} rows and {} columns (i.e. states × inputs)",
+            num_states, num_inputs
+        );
+
         Self {
             num_states,
             num_inputs,
@@ -87,11 +87,7 @@ impl<'a> Kalman<'a> {
             B: Matrix::new(num_states, num_inputs, B),
             Q: Matrix::new(num_inputs, num_inputs, Q),
             u: Matrix::new(num_inputs, 1, u),
-            temporary: KalmanTemporary {
-                predicted_x: Matrix::new(num_states, 1, predictedX),
-                P: Matrix::new(num_states, num_states, temp_P),
-                BQ: Matrix::new(num_states, num_inputs, temp_BQ),
-            },
+            temporary: scratch,
         }
     }
 
@@ -119,9 +115,7 @@ impl<'a> Kalman<'a> {
         u: Matrix<'a>,
         P: Matrix<'a>,
         Q: Matrix<'a>,
-        predictedX: Matrix<'a>,
-        temp_P: Matrix<'a>,
-        temp_BQ: Matrix<'a>,
+        scratch: ScratchBuffer<'a>,
     ) -> Self {
         debug_assert_eq!(
             A.rows, num_states,
@@ -189,36 +183,19 @@ impl<'a> Kalman<'a> {
             num_inputs
         );
 
-        debug_assert_eq!(
-            predictedX.rows, num_states,
-            "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
+        debug_assert!(
+            scratch.fits(num_states, 1), // predictedX
+            "The scratch buffer requires room for at least {} rows and 1 column (i.e. states × 1)",
             num_states
         );
-        debug_assert_eq!(
-            predictedX.cols, 1,
-            "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
-            num_states
-        );
-
-        debug_assert_eq!(
-            temp_P.rows, num_states,
-            "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
+        debug_assert!(
+            scratch.fits(num_states, num_states), // temp_P
+            "The scratch buffer requires room for at least {} rows and {} columns (i.e. states × states)",
             num_states, num_states
         );
-        debug_assert_eq!(
-            temp_P.cols, num_states,
-            "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
-            num_states, num_states
-        );
-
-        debug_assert_eq!(
-            temp_BQ.rows, num_states,
-            "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
-            num_states, num_inputs
-        );
-        debug_assert_eq!(
-            temp_BQ.cols, num_inputs,
-            "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
+        debug_assert!(
+            scratch.fits(num_states, num_inputs), // temp_BQ
+            "The scratch buffer requires room for at least {} rows and {} columns (i.e. states × inputs)",
             num_states, num_inputs
         );
 
@@ -231,11 +208,7 @@ impl<'a> Kalman<'a> {
             B,
             Q,
             u,
-            temporary: KalmanTemporary {
-                predicted_x: predictedX,
-                P: temp_P,
-                BQ: temp_BQ,
-            },
+            temporary: scratch,
         }
     }
 
@@ -411,14 +384,14 @@ impl<'a> Kalman<'a> {
         let A = &self.A;
         let x = &mut self.x;
 
-        // temporaries
-        let x_predicted = &mut self.temporary.predicted_x;
+        self.temporary
+            .borrow_predicted_x(self.num_states, |x_predicted| {
+                //* Predict next state using system dynamics
+                //* x = A*x
 
-        //* Predict next state using system dynamics
-        //* x = A*x
-
-        A.mult_rowvector(x, x_predicted);
-        x_predicted.copy(x);
+                A.mult_rowvector(x, x_predicted);
+                x_predicted.copy(x);
+            });
     }
 
     /// Performs the time update / prediction step of only the state covariance matrix
@@ -431,21 +404,22 @@ impl<'a> Kalman<'a> {
         let Q = &self.Q;
         let P = &mut self.P;
 
-        // temporaries
-        let P_temp = &mut self.temporary.P;
-        let BQ_temp = &mut self.temporary.BQ;
-
         //* Predict next covariance using system dynamics and input
         //* P = A*P*A' + B*Q*B'
 
         // P = A*P*A'
-        A.mult(P, P_temp); // temp = A*P
-        P_temp.mult_transb(A, P); // P = temp*A'
+        self.temporary.borrow_P(self.num_states, |P_temp| {
+            A.mult(P, P_temp); // temp = A*P
+            P_temp.mult_transb(A, P); // P = temp*A'
+        });
 
         // P = P + B*Q*B'
         if !B.is_empty() {
-            B.mult(Q, BQ_temp); // temp = B*Q
-            BQ_temp.multadd_transb(B, P); // P += temp*B'
+            self.temporary
+                .borrow_BQ(self.num_states, self.num_inputs, |BQ_temp| {
+                    B.mult(Q, BQ_temp); // temp = B*Q
+                    BQ_temp.multadd_transb(B, P); // P += temp*B'
+                });
         }
     }
 
@@ -462,10 +436,6 @@ impl<'a> Kalman<'a> {
         let Q = &self.Q;
         let P = &mut self.P;
 
-        // temporaries
-        let P_temp = &mut self.temporary.P;
-        let BQ_temp = &mut self.temporary.BQ;
-
         //* Predict next covariance using system dynamics and input
         //* P = A*P*A' * 1/lambda^2 + B*Q*B'
 
@@ -473,13 +443,18 @@ impl<'a> Kalman<'a> {
         let lambda = 1.0 / (lambda * lambda); // TODO: This should be precalculated, e.g. using set_lambda(...);
 
         // P = A*P*A'
-        A.mult(P, P_temp); // temp = A*P
-        P_temp.multscale_transb(A, lambda, P); // P = temp*A' * 1/(lambda^2)
+        self.temporary.borrow_P(self.num_states, |P_temp| {
+            A.mult(P, P_temp); // temp = A*P
+            P_temp.multscale_transb(A, lambda, P); // P = temp*A' * 1/(lambda^2)
+        });
 
         // P = P + B*Q*B'
         if !B.is_empty() {
-            B.mult(Q, BQ_temp); // temp = B*Q
-            BQ_temp.multadd_transb(B, P); // P += temp*B'
+            self.temporary
+                .borrow_BQ(self.num_states, self.num_inputs, |BQ_temp| {
+                    B.mult(Q, BQ_temp); // temp = B*Q
+                    BQ_temp.multadd_transb(B, P); // P += temp*B'
+                });
         }
     }
 

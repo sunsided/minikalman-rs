@@ -20,6 +20,7 @@ mod matrix;
 mod matrix_ops;
 mod matrix_owned;
 mod measurement;
+mod scratch;
 
 pub use matrix::matrix_data_t;
 pub use matrix::Matrix;
@@ -27,6 +28,7 @@ pub use matrix::Matrix;
 pub use crate::kalman::Kalman;
 pub use crate::matrix_ops::{MatrixBase, MatrixOps};
 pub use crate::measurement::Measurement;
+pub use crate::scratch::ScratchBuffer;
 
 /// Creates a buffer fitting the state transition matrix (`num_states` × `num_states`).
 ///
