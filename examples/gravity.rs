@@ -3,6 +3,8 @@
 //! This example sets up a filter to estimate the acceleration of a free-falling object
 //! under earth conditions (i.e. a ≈ 9.807 m/s²) through position observations only.
 
+#![forbid(unsafe_code)]
+
 #[cfg(feature = "std")]
 use colored::Colorize;
 use minikalman::{

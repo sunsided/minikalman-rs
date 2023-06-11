@@ -5,6 +5,10 @@ use stdint::uint_fast8_t;
 /// Kalman Filter structure.
 #[allow(non_snake_case)]
 pub struct Kalman<'a> {
+    /// The number of states.
+    num_states: uint_fast8_t,
+    /// The number of inputs.
+    num_inputs: uint_fast8_t,
     /// State vector.
     x: Matrix<'a>,
     /// System matrix.
@@ -75,6 +79,8 @@ impl<'a> Kalman<'a> {
         temp_BQ: &'a mut [matrix_data_t],
     ) -> Self {
         Self {
+            num_states,
+            num_inputs,
             A: Matrix::new(num_states, num_states, A),
             P: Matrix::new(num_states, num_states, P),
             x: Matrix::new(num_states, 1, x),

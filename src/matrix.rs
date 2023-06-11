@@ -34,9 +34,50 @@ impl<'a> Matrix<'a> {
     /// * `cols` - The number of columns
     /// * `buffer` - The data buffer (of size `rows` x `cols`).
     pub fn new(rows: uint_fast8_t, cols: uint_fast8_t, buffer: &'a mut [matrix_data_t]) -> Self {
-        debug_assert_eq!(
-            buffer.len(),
-            (rows * cols) as _,
+        debug_assert!(
+            buffer.len() >= (rows * cols) as _,
+            "Buffer needs to be large enough to keep at least {} × {} = {} elements",
+            rows,
+            cols,
+            rows * cols
+        );
+        Self {
+            rows,
+            cols,
+            data: buffer,
+        }
+    }
+
+    /// Initializes a matrix structure from a pointer to a buffer.
+    ///
+    /// This method allows aliasing of buffers e.g. for the temporary matrices.
+    /// Enabled only on the `unsafe` crate feature.
+    ///
+    /// ## Arguments
+    /// * `mat` - The matrix to initialize
+    /// * `rows` - The number of rows
+    /// * `cols` - The number of columns
+    /// * `buffer` - The data buffer (of size `rows` x `cols`).
+    #[cfg_attr(docsrs, doc(cfg(feature = "unsafe")))]
+    #[cfg(feature = "unsafe")]
+    pub unsafe fn new_unchecked(
+        rows: uint_fast8_t,
+        cols: uint_fast8_t,
+        ptr: *mut [matrix_data_t],
+    ) -> Self {
+        let buffer = unsafe { &mut *ptr };
+        if ptr.is_null() {
+            debug_assert_eq!(rows, 0, "For null buffers, the row count must be zero");
+            debug_assert_eq!(cols, 0, "For null buffers, the column count must be zero");
+            return Self {
+                rows,
+                cols,
+                data: buffer,
+            };
+        }
+
+        debug_assert!(
+            buffer.len() >= (rows * cols) as _,
             "Buffer needs to be large enough to keep at least {} × {} = {} elements",
             rows,
             cols,
