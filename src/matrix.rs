@@ -75,7 +75,7 @@ impl<'a> Matrix<'a> {
     /// ## Example
     ///
     /// ```
-    /// use kalman::Matrix;
+    /// use minikalman::Matrix;
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [
@@ -175,7 +175,7 @@ impl<'a> Matrix<'a> {
     ///
     /// ## Example
     /// ```
-    /// use kalman::Matrix;
+    /// use minikalman::Matrix;
     ///
     /// let mut a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -248,7 +248,7 @@ impl<'a> Matrix<'a> {
     ///
     /// ## Example
     /// ```
-    /// use kalman::Matrix;
+    /// use minikalman::Matrix;
     ///
     /// let mut a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -774,7 +774,7 @@ impl<'a> Matrix<'a> {
     ///
     /// ## Example
     /// ```
-    /// use kalman::Matrix;
+    /// use minikalman::Matrix;
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [

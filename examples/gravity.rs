@@ -5,7 +5,7 @@
 
 #[cfg(feature = "std")]
 use colored::Colorize;
-use kalman::{
+use minikalman::{
     create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
     create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
     create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,

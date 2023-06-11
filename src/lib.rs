@@ -28,7 +28,7 @@ pub use crate::measurement::Measurement;
 #[allow(non_snake_case)]
 macro_rules! create_buffer_A {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -45,7 +45,7 @@ macro_rules! create_buffer_A {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_P {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -62,7 +62,7 @@ macro_rules! create_buffer_P {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_x {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -79,7 +79,7 @@ macro_rules! create_buffer_x {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_u {
     ( $num_inputs:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_INPUTS_: uint_fast16_t = ($num_inputs) as uint_fast16_t;
@@ -88,7 +88,7 @@ macro_rules! create_buffer_u {
     }};
 }
 
-/// Creates a buffer fitting the input transitition matrix (`num_states` × `num_inputs`).
+/// Creates a buffer fitting the input transition matrix (`num_states` × `num_inputs`).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -97,7 +97,7 @@ macro_rules! create_buffer_u {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_B {
     ( $num_states:expr, $num_inputs:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -115,7 +115,7 @@ macro_rules! create_buffer_B {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_Q {
     ( $num_inputs:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_INPUTS_: uint_fast16_t = ($num_inputs) as uint_fast16_t;
@@ -132,7 +132,7 @@ macro_rules! create_buffer_Q {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_P_temp {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -149,7 +149,7 @@ macro_rules! create_buffer_P_temp {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_BQ_temp {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -166,7 +166,7 @@ macro_rules! create_buffer_BQ_temp {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_z {
     ( $num_measurements:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_MEASUREMENTS_: uint_fast16_t = ($num_measurements) as uint_fast16_t;
@@ -184,7 +184,7 @@ macro_rules! create_buffer_z {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_H {
     ( $num_measurements:expr, $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_MEASUREMENTS_: uint_fast16_t = ($num_measurements) as uint_fast16_t;
@@ -202,7 +202,7 @@ macro_rules! create_buffer_H {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_R {
     ( $num_measurements:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_MEASUREMENTS_: uint_fast16_t = ($num_measurements) as uint_fast16_t;
@@ -219,7 +219,7 @@ macro_rules! create_buffer_R {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_y {
     ( $num_measurements:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_MEASUREMENTS_: uint_fast16_t = ($num_measurements) as uint_fast16_t;
@@ -236,7 +236,7 @@ macro_rules! create_buffer_y {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_S {
     ( $num_measurements:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_MEASUREMENTS_: uint_fast16_t = ($num_measurements) as uint_fast16_t;
@@ -254,7 +254,7 @@ macro_rules! create_buffer_S {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_K {
     ( $num_states:expr, $num_measurements:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -272,7 +272,7 @@ macro_rules! create_buffer_K {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_x {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -289,7 +289,7 @@ macro_rules! create_buffer_temp_x {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_P {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -307,7 +307,7 @@ macro_rules! create_buffer_temp_P {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_BQ {
     ( $num_states:expr, $num_inputs:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -325,7 +325,7 @@ macro_rules! create_buffer_temp_BQ {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_S_inv {
     ( $num_measurements:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_MEASUREMENTS_: uint_fast16_t = ($num_measurements) as uint_fast16_t;
@@ -343,7 +343,7 @@ macro_rules! create_buffer_temp_S_inv {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_HP {
     ( $num_measurements:expr, $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_MEASUREMENTS_: uint_fast16_t = ($num_measurements) as uint_fast16_t;
@@ -362,7 +362,7 @@ macro_rules! create_buffer_temp_HP {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_PHt {
     ( $num_states:expr, $num_measurements:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
@@ -381,7 +381,7 @@ macro_rules! create_buffer_temp_PHt {
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_KHP {
     ( $num_states:expr ) => {{
-        use kalman::matrix_data_t;
+        use minikalman::matrix_data_t;
         use stdint::{uint_fast16_t, uint_fast8_t};
 
         const NUM_STATES_: uint_fast16_t = ($num_states) as uint_fast16_t;
