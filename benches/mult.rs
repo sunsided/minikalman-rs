@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use kalman::Matrix;
+use minikalman::Matrix;
 use rand::Rng;
 
 fn criterion_benchmark(c: &mut Criterion) {

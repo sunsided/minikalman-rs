@@ -18,6 +18,10 @@ harness = false
 name = "mult"
 harness = false
 
+[[bench]]
+name = "gravity"
+harness = false
+
 [[example]]
 name = "gravity"
 path = "examples/gravity.rs"

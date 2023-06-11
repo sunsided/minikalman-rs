@@ -3,7 +3,7 @@ use crate::{matrix_data_t, Matrix};
 use stdint::uint_fast8_t;
 
 /// Kalman Filter structure.
-#[allow(non_snake_case)]
+#[allow(non_snake_case, unused)]
 pub struct Kalman<'a> {
     /// The number of states.
     num_states: uint_fast8_t,
