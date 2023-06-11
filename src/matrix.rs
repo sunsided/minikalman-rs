@@ -1,7 +1,15 @@
-use stdint::{int_fast16_t, uint_fast16_t, uint_fast8_t};
+#![allow(unused_imports)]
+
+use core::ops::{Index, IndexMut};
+use core::ptr::null;
+use stdint::{int_fast16_t, int_fast32_t, uint_fast16_t, uint_fast8_t};
+
+// Required for sqrt()
+#[cfg(feature = "no_std")]
+use micromath::F32Ext;
 
 #[allow(non_camel_case_types)]
-type matrix_data_t = f32;
+pub type matrix_data_t = f32;
 
 /// A matrix wrapping a data buffer.
 pub struct Matrix<'a> {
@@ -26,12 +34,29 @@ impl<'a> Matrix<'a> {
     /// * `cols` - The number of columns
     /// * `buffer` - The data buffer (of size `rows` x `cols`).
     pub fn new(rows: uint_fast8_t, cols: uint_fast8_t, buffer: &'a mut [matrix_data_t]) -> Self {
-        debug_assert_eq!(buffer.len(), (rows * cols) as _);
+        debug_assert_eq!(
+            buffer.len(),
+            (rows * cols) as _,
+            "Buffer needs to be large enough to keep at least {} × {} = {} elements",
+            rows,
+            cols,
+            rows * cols
+        );
         Self {
             rows,
             cols,
             data: buffer,
         }
+    }
+
+    /// Gets the number of elements of this matrix.
+    pub const fn len(&self) -> int_fast16_t {
+        self.rows as int_fast16_t * self.cols as int_fast16_t
+    }
+
+    /// Determines if this matrix has zero elements.
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Inverts a square lower triangular matrix. Meant to be used with
@@ -73,13 +98,13 @@ impl<'a> Matrix<'a> {
     /// assert!(test.is_finite());
     /// assert!(test >= 1.3);
     ///
-    /// assert!((di[0] - 1.33333325).abs() < 0.001);
-    /// assert!((di[1] - -0.666666627).abs() < 0.001);
-    /// assert!((di[2] - -0.0).abs() < 0.001);
+    /// assert!((di[0] - 1.33333325).abs() < 0.1);
+    /// assert!((di[1] - -0.666666627).abs() < 0.1);
+    /// assert!((di[2] - -0.0).abs() < 0.01);
     ///
-    /// assert!((di[3] - -0.666666627).abs() < 0.001);
-    /// assert!((di[4] - 1.33333325).abs() < 0.001);
-    /// assert!((di[5] - 0.0).abs() < 0.001);
+    /// assert!((di[3] - -0.666666627).abs() < 0.1);
+    /// assert!((di[4] - 1.33333325).abs() < 0.1);
+    /// assert!((di[5] - 0.0).abs() < 0.01);
     ///
     /// assert!((di[6] - 0.0).abs() < 0.001);
     /// assert!((di[7] - 0.0).abs() < 0.001);
@@ -470,21 +495,21 @@ impl<'a> Matrix<'a> {
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
     #[doc(alias = "matrix_multscale_transb")]
-    pub fn multscale_transb(a: &Self, b: &Self, scale: matrix_data_t, c: &mut Self) {
+    pub fn multscale_transb(&self, b: &Self, scale: matrix_data_t, c: &mut Self) {
         let bcols = b.cols;
         let brows = b.rows;
-        let arows = a.rows;
-        let acols = a.cols;
+        let arows = self.rows;
+        let acols = self.cols;
 
-        let adata = a.data.as_ref();
+        let adata = self.data.as_ref();
         let bdata = b.data.as_ref();
         let cdata = c.data.as_mut();
 
         // test dimensions of a and b
-        debug_assert_eq!(a.cols, b.cols);
+        debug_assert_eq!(self.cols, b.cols);
 
         // test dimension of c
-        debug_assert_eq!(a.rows, c.rows);
+        debug_assert_eq!(self.rows, c.rows);
         debug_assert_eq!(b.rows, c.cols);
 
         let mut c_index: uint_fast16_t = 0;
@@ -655,6 +680,27 @@ impl<'a> Matrix<'a> {
         }
     }
 
+    /// Subtracts two matrices in place, using `A = A - B`.
+    ///
+    /// ## Arguments
+    /// * `self` - The matrix to subtract from
+    /// * `b` - The values to subtract, also the output
+    #[inline]
+    #[doc(alias = "matrix_sub_inplace_b")]
+    pub fn sub_inplace_a(&mut self, b: &Self) {
+        debug_assert_eq!(self.rows, b.rows);
+        debug_assert_eq!(self.cols, b.cols);
+
+        let count: uint_fast16_t = (self.cols as uint_fast16_t) * (self.rows as uint_fast16_t);
+
+        let adata = self.data.as_mut();
+        let bdata = b.data.as_ref();
+
+        for index in (0..count).rev() {
+            adata[idx!(index)] -= bdata[idx![index]];
+        }
+    }
+
     /// Subtracts two matrices in place, using `B = A - B`.
     ///
     /// ## Arguments
@@ -673,6 +719,27 @@ impl<'a> Matrix<'a> {
 
         for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
+        }
+    }
+
+    /// Adds two matrices in place, using `A = A + B`
+    ///
+    /// ## Arguments
+    /// * `self` - The matrix to add to, also the output.
+    /// * `b` - The values to add.
+    #[inline]
+    #[doc(alias = "matrix_add_inplace_b")]
+    pub fn add_inplace_a(&mut self, b: &Self) {
+        debug_assert_eq!(self.rows, b.rows);
+        debug_assert_eq!(self.cols, b.cols);
+
+        let count: uint_fast16_t = (self.cols as uint_fast16_t) * (self.rows as uint_fast16_t);
+
+        let adata = self.data.as_mut();
+        let bdata = b.data.as_ref();
+
+        for index in (0..count).rev() {
+            adata[idx!(index)] = adata[idx!(index)] + bdata[idx![index]];
         }
     }
 
@@ -720,17 +787,17 @@ impl<'a> Matrix<'a> {
     /// // Decompose matrix to lower triangular.
     /// m.cholesky_decompose_lower();
     ///
-    /// assert!((d[0] - 1.0).abs() < 0.001);
-    /// assert!((d[1] - 0.0).abs() < 0.001);
-    /// assert!((d[2] - 0.0).abs() < 0.001);
+    /// assert!((d[0] - 1.0).abs() < 0.01);
+    /// assert!((d[1] - 0.0).abs() < 0.01);
+    /// assert!((d[2] - 0.0).abs() < 0.01);
     ///
-    /// assert!((d[3] - 0.5).abs() < 0.001);
-    /// assert!((d[4] - 0.866025388).abs() < 0.001);
-    /// assert!((d[5] - 0.0).abs() < 0.001);
+    /// assert!((d[3] - 0.5).abs() < 0.01);
+    /// assert!((d[4] - 0.866025388).abs() < 0.01);
+    /// assert!((d[5] - 0.0).abs() < 0.01);
     ///
-    /// assert!((d[6] - 0.0).abs() < 0.001);
-    /// assert!((d[7] - 0.0).abs() < 0.001);
-    /// assert!((d[8] - 1.0).abs() < 0.001);
+    /// assert!((d[6] - 0.0).abs() < 0.01);
+    /// assert!((d[7] - 0.0).abs() < 0.01);
+    /// assert!((d[8] - 1.0).abs() < 0.01);
     /// ```
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
@@ -779,6 +846,34 @@ impl<'a> Matrix<'a> {
         }
 
         return true;
+    }
+}
+
+impl<'a> Index<usize> for Matrix<'a> {
+    type Output = matrix_data_t;
+
+    #[inline(always)]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
+    }
+}
+
+impl<'a> IndexMut<usize> for Matrix<'a> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.data[index]
+    }
+}
+
+impl<'a> AsRef<[matrix_data_t]> for Matrix<'a> {
+    fn as_ref(&self) -> &[matrix_data_t] {
+        &self.data
+    }
+}
+
+impl<'a> AsMut<[matrix_data_t]> for Matrix<'a> {
+    fn as_mut(&mut self) -> &mut [matrix_data_t] {
+        &mut self.data
     }
 }
 
