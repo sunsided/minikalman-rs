@@ -1,9 +1,12 @@
 [package]
-name = "kalman"
-version = "0.1.0"
+name = "minikalman"
+version = "0.0.1"
 description = "A microcontroller targeted Kalman filter implementation"
+repository = "https://github.com/sunsided/minikalman-rs"
 authors = ["Markus Mayer"]
-keywords = ["kalman-filter", "microcontroller"]
+keywords = ["kalman-filter", "embedded"]
+license = "MIT"
+readme = "README.md"
 edition = "2021"
 build = "build.rs"
 
