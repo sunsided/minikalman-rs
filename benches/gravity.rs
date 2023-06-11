@@ -237,14 +237,14 @@ fn initialize_state_transition_matrix(filter: &mut Kalman) {
 /// linearly are linearly independent.
 fn initialize_state_covariance_matrix(filter: &mut Kalman) {
     filter.system_covariance_apply(|p| {
-        p.set(0, 0, 0.1 as _); // var(s)
-        p.set(0, 1, 0 as _); // cov(s, v)
-        p.set(0, 2, 0 as _); // cov(s, g)
+        p.set_symmetric(0, 0, 0.1 as _); // var(s)
+        p.set_symmetric(0, 1, 0 as _); // cov(s, v)
+        p.set_symmetric(0, 2, 0 as _); // cov(s, g)
 
-        p.set(1, 1, 1 as _); // var(v)
-        p.set(1, 2, 0 as _); // cov(v, g)
+        p.set_symmetric(1, 1, 1 as _); // var(v)
+        p.set_symmetric(1, 2, 0 as _); // cov(v, g)
 
-        p.set(2, 2, 1 as _); // var(g)
+        p.set_symmetric(2, 2, 1 as _); // var(g)
     });
 }
 
@@ -270,7 +270,7 @@ fn initialize_position_measurement_transformation_matrix(measurement: &mut Measu
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(measurement: &mut Measurement) {
     measurement.process_noise_apply(|r| {
-        r.set(0, 0, 0.5 as _); // var(s)
+        r.set_symmetric(0, 0, 0.5 as _); // var(s)
     });
 }
 
