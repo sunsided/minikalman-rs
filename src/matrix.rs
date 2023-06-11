@@ -5,6 +5,7 @@ use core::ptr::null;
 use stdint::{int_fast16_t, int_fast32_t, uint_fast16_t, uint_fast8_t};
 
 // Required for sqrt()
+use crate::{MatrixBase, MatrixOps};
 #[cfg(feature = "no_std")]
 use micromath::F32Ext;
 
@@ -91,8 +92,8 @@ impl<'a> Matrix<'a> {
     }
 
     /// Gets the number of elements of this matrix.
-    pub const fn len(&self) -> int_fast16_t {
-        self.rows as int_fast16_t * self.cols as int_fast16_t
+    pub const fn len(&self) -> uint_fast16_t {
+        self.rows as uint_fast16_t * self.cols as uint_fast16_t
     }
 
     /// Determines if this matrix has zero elements.
@@ -394,7 +395,6 @@ impl<'a> Matrix<'a> {
     /// * `c` - Resulting vector C (will be added to)
     ///
     /// Kudos: https://code.google.com/p/efficient-java-matrix-library
-
     #[doc(alias = "matrix_multadd_rowvector")]
     pub fn multadd_rowvector(&self, x: &Self, c: &mut Self) {
         let arows = self.rows;
@@ -622,7 +622,7 @@ impl<'a> Matrix<'a> {
     /// * `mat` - The matrix to get from
     /// * `rows` - The row
     /// *  `row_data` - A pointer to the given matrix row
-    #[doc(alias = "matrix_get_row_pointe")]
+    #[doc(alias = "matrix_get_row_pointer")]
     pub fn get_row_pointer<'b>(&'a self, row: uint_fast8_t, row_data: &'b mut &'a [matrix_data_t]) {
         *row_data = &self.data[idx!(row * self.cols)..idx!((row + 1) * self.cols)];
     }
@@ -914,6 +914,132 @@ impl<'a> AsRef<[matrix_data_t]> for Matrix<'a> {
 impl<'a> AsMut<[matrix_data_t]> for Matrix<'a> {
     fn as_mut(&mut self) -> &mut [matrix_data_t] {
         &mut self.data
+    }
+}
+
+impl<'a> MatrixBase for Matrix<'a> {
+    fn rows(&self) -> uint_fast8_t {
+        self.rows
+    }
+
+    fn columns(&self) -> uint_fast8_t {
+        self.cols
+    }
+
+    fn len(&self) -> uint_fast16_t {
+        self.len()
+    }
+
+    fn data_ref(&self) -> &[matrix_data_t] {
+        self.data
+    }
+
+    fn data_mut(&mut self) -> &mut [matrix_data_t] {
+        self.data
+    }
+}
+
+impl<'a> MatrixOps for Matrix<'a> {
+    type Target = Matrix<'a>;
+
+    #[inline(always)]
+    fn invert_l_cholesky(&self, inverse: &mut Self::Target) {
+        self.invert_l_cholesky(inverse)
+    }
+
+    #[inline(always)]
+    fn mult_buffered(&self, b: &Self::Target, c: &mut Self::Target, baux: &mut [matrix_data_t]) {
+        self.mult_buffered(b, c, baux)
+    }
+
+    #[inline(always)]
+    fn mult(&self, b: &Self::Target, c: &mut Self::Target) {
+        self.mult(b, c)
+    }
+
+    #[inline(always)]
+    fn mult_rowvector(&self, x: &Self::Target, c: &mut Self::Target) {
+        self.mult_rowvector(x, c)
+    }
+
+    #[inline(always)]
+    fn multadd_rowvector(&self, x: &Self::Target, c: &mut Self::Target) {
+        self.multadd_rowvector(x, c)
+    }
+
+    #[inline(always)]
+    fn mult_transb(&self, b: &Self::Target, c: &mut Self::Target) {
+        self.mult_transb(b, c)
+    }
+
+    #[inline(always)]
+    fn multadd_transb(&self, b: &Self::Target, c: &mut Self::Target) {
+        self.multadd_transb(b, c)
+    }
+
+    #[inline(always)]
+    fn multscale_transb(&self, b: &Self::Target, scale: matrix_data_t, c: &mut Self::Target) {
+        self.multscale_transb(b, scale, c)
+    }
+
+    #[inline(always)]
+    fn get(&self, row: uint_fast8_t, column: uint_fast8_t) -> matrix_data_t {
+        self.get(row, column)
+    }
+
+    #[inline(always)]
+    fn set(&mut self, row: uint_fast8_t, column: uint_fast8_t, value: matrix_data_t) {
+        self.set(row, column, value)
+    }
+
+    #[inline(always)]
+    fn set_symmetric(&mut self, row: uint_fast8_t, column: uint_fast8_t, value: matrix_data_t) {
+        self.set_symmetric(row, column, value)
+    }
+
+    #[inline(always)]
+    fn get_column_copy(&self, column: uint_fast8_t, col_data: &mut [matrix_data_t]) {
+        self.get_column_copy(column, col_data)
+    }
+
+    #[inline(always)]
+    fn get_row_copy(&self, row: uint_fast8_t, row_data: &mut [matrix_data_t]) {
+        self.get_row_copy(row, row_data)
+    }
+
+    #[inline(always)]
+    fn copy(&self, target: &mut Self::Target) {
+        self.copy(target)
+    }
+
+    #[inline(always)]
+    fn sub(&self, b: &Self::Target, c: &mut Self::Target) {
+        self.sub(b, c)
+    }
+
+    #[inline(always)]
+    fn sub_inplace_a(&mut self, b: &Self::Target) {
+        self.sub_inplace_a(b)
+    }
+
+    #[inline(always)]
+    fn sub_inplace_b(&self, b: &mut Self::Target) {
+        self.sub_inplace_b(b)
+    }
+
+    #[inline(always)]
+    fn add_inplace_a(&mut self, b: &Self::Target) {
+        self.add_inplace_a(b)
+    }
+
+    #[inline(always)]
+    fn add_inplace_b(&self, b: &mut Self::Target) {
+        self.add_inplace_b(b)
+    }
+
+    #[inline(always)]
+    fn cholesky_decompose_lower(&mut self) -> bool {
+        self.cholesky_decompose_lower()
     }
 }
 

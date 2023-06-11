@@ -17,12 +17,15 @@ extern crate alloc;
 
 mod kalman;
 mod matrix;
+mod matrix_ops;
+mod matrix_owned;
 mod measurement;
 
 pub use matrix::matrix_data_t;
 pub use matrix::Matrix;
 
 pub use crate::kalman::Kalman;
+pub use crate::matrix_ops::{MatrixBase, MatrixOps};
 pub use crate::measurement::Measurement;
 
 /// Creates a buffer fitting the state transition matrix (`num_states` × `num_states`).
