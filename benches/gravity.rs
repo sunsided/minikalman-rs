@@ -69,7 +69,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             &mut gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::new(
+        let mut measurement = Measurement::new_direct(
             NUM_STATES,
             NUM_MEASUREMENTS,
             &mut gravity_H,
@@ -117,7 +117,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             &mut gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::new(
+        let mut measurement = Measurement::new_direct(
             NUM_STATES,
             NUM_MEASUREMENTS,
             &mut gravity_H,
@@ -159,7 +159,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             &mut gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::new(
+        let mut measurement = Measurement::new_direct(
             NUM_STATES,
             NUM_MEASUREMENTS,
             &mut gravity_H,
