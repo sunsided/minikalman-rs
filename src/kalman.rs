@@ -1,14 +1,9 @@
 use crate::measurement::Measurement;
 use crate::{matrix_data_t, Matrix};
-use stdint::uint_fast8_t;
 
 /// Kalman Filter structure.
 #[allow(non_snake_case, unused)]
 pub struct Kalman<'a, const STATES: usize, const INPUTS: usize> {
-    /// The number of states.
-    num_states: uint_fast8_t,
-    /// The number of inputs.
-    num_inputs: uint_fast8_t,
     /// State vector.
     x: Matrix<'a, STATES, 1>,
     /// System matrix.
@@ -49,25 +44,27 @@ struct KalmanTemporary<'a, const STATES: usize, const INPUTS: usize> {
 }
 
 impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
+    /// The number of states.
+    const NUM_STATES: usize = STATES;
+
+    /// The number of inputs.
+    const NUM_INPUTS: usize = INPUTS;
+
     /// Initializes a Kalman filter instance.
     ///
     /// ## Arguments
-    /// * `num_states` - The number of states tracked by this filter.
-    /// * `num_inputs` - The number of inputs available to the filter.
-    /// * `A` - The state transition matrix (`num_states` × `num_states`).
-    /// * `x` - The state vector (`num_states` × `1`).
-    /// * `B` - The input transition matrix (`num_states` × `num_inputs`).
-    /// * `u` - The input vector (`num_inputs` × `1`).
-    /// * `P` - The state covariance matrix (`num_states` × `num_states`).
-    /// * `Q` - The input covariance matrix (`num_inputs` × `num_inputs`).
-    /// * `predictedX` - The temporary vector for predicted states (`num_states` × `1`).
-    /// * `temp_P` - The temporary vector for P calculation (`num_states` × `num_states`).
-    /// * `temp_BQ` - The temporary vector for B×Q calculation (`num_states` × `num_inputs`).
+    /// * `A` - The state transition matrix (`STATES` × `STATES`).
+    /// * `x` - The state vector (`STATES` × `1`).
+    /// * `B` - The input transition matrix (`STATES` × `INPUTS`).
+    /// * `u` - The input vector (`INPUTS` × `1`).
+    /// * `P` - The state covariance matrix (`STATES` × `STATES`).
+    /// * `Q` - The input covariance matrix (`INPUTS` × `INPUTS`).
+    /// * `predictedX` - The temporary vector for predicted states (`STATES` × `1`).
+    /// * `temp_P` - The temporary vector for P calculation (`STATES` × `STATES`).
+    /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `INPUTS`).
     #[allow(non_snake_case)]
     #[doc(alias = "kalman_filter_initialize")]
     pub fn new_from_buffers(
-        num_states: uint_fast8_t,
-        num_inputs: uint_fast8_t,
         A: &'a mut [matrix_data_t],
         x: &'a mut [matrix_data_t],
         B: &'a mut [matrix_data_t],
@@ -78,21 +75,17 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
         temp_P: &'a mut [matrix_data_t],
         temp_BQ: &'a mut [matrix_data_t],
     ) -> Self {
-        debug_assert_eq!(STATES, num_states.into());
-        debug_assert_eq!(INPUTS, num_inputs.into());
         Self {
-            num_states,
-            num_inputs,
-            A: Matrix::new(num_states, num_states, A),
-            P: Matrix::new(num_states, num_states, P),
-            x: Matrix::new(num_states, 1, x),
-            B: Matrix::new(num_states, num_inputs, B),
-            Q: Matrix::new(num_inputs, num_inputs, Q),
-            u: Matrix::new(num_inputs, 1, u),
+            A: Matrix::<STATES, STATES>::new(A),
+            P: Matrix::<STATES, STATES>::new(P),
+            x: Matrix::<STATES, 1>::new(x),
+            B: Matrix::<STATES, INPUTS>::new(B),
+            Q: Matrix::<INPUTS, INPUTS>::new(Q),
+            u: Matrix::<INPUTS, 1>::new(u),
             temporary: KalmanTemporary {
-                predicted_x: Matrix::new(num_states, 1, predictedX),
-                P: Matrix::new(num_states, num_states, temp_P),
-                BQ: Matrix::new(num_states, num_inputs, temp_BQ),
+                predicted_x: Matrix::<STATES, 1>::new(predictedX),
+                P: Matrix::<STATES, STATES>::new(temp_P),
+                BQ: Matrix::<STATES, INPUTS>::new(temp_BQ),
             },
         }
     }
@@ -113,8 +106,6 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`num_states` × `num_inputs`).
     #[allow(non_snake_case)]
     pub fn new(
-        num_states: uint_fast8_t,
-        num_inputs: uint_fast8_t,
         A: Matrix<'a, STATES, STATES>,
         x: Matrix<'a, STATES, 1>,
         B: Matrix<'a, STATES, INPUTS>,
@@ -125,110 +116,132 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
         temp_P: Matrix<'a, STATES, STATES>,
         temp_BQ: Matrix<'a, STATES, INPUTS>,
     ) -> Self {
-        debug_assert_eq!(STATES, num_states.into());
-        debug_assert_eq!(INPUTS, num_inputs.into());
         debug_assert_eq!(
-            A.rows, num_states,
+            A.rows(),
+            STATES as _,
             "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
-            num_states, num_states
+            STATES,
+            STATES
         );
         debug_assert_eq!(
-            A.cols, num_states,
+            A.cols(),
+            STATES as _,
             "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
-            num_states, num_states
+            STATES,
+            STATES
         );
 
         debug_assert_eq!(
-            P.rows, num_states,
+            P.rows(),
+            STATES as _,
             "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
-            num_states, num_states
+            STATES,
+            STATES
         );
         debug_assert_eq!(
-            P.cols, num_states,
+            P.cols(),
+            STATES as _,
             "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
-            num_states, num_states
+            STATES,
+            STATES
         );
 
         debug_assert_eq!(
-            x.rows, num_states,
+            x.rows(),
+            STATES as _,
             "The state vector x requires {} rows and 1 column (i.e. states × 1)",
-            num_states
+            STATES
         );
         debug_assert_eq!(
-            x.cols, 1,
+            x.cols(),
+            1,
             "The state vector x requires {} rows and 1 column (i.e. states × 1)",
-            num_states
+            STATES
         );
 
         debug_assert_eq!(
-            B.rows, num_states,
+            B.rows(),
+            STATES as _,
             "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
-            num_states, num_inputs
+            STATES,
+            INPUTS
         );
         debug_assert_eq!(
-            B.cols, num_inputs,
+            B.cols(),
+            INPUTS as _,
             "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
-            num_states, num_inputs
+            STATES,
+            INPUTS
         );
 
         debug_assert_eq!(
-            Q.rows, num_inputs,
+            Q.rows(),
+            INPUTS as _,
             "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
-            num_inputs, num_inputs
+            INPUTS,
+            INPUTS
         );
         debug_assert_eq!(
-            Q.cols, num_inputs,
+            Q.cols(),
+            INPUTS as _,
             "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
-            num_inputs, num_inputs
+            INPUTS,
+            INPUTS
         );
 
         debug_assert_eq!(
-            u.rows, num_inputs,
+            u.rows(),
+            INPUTS as _,
             "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
-            num_inputs
+            INPUTS
         );
         debug_assert_eq!(
-            u.cols, 1,
+            u.cols(),
+            1,
             "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
-            num_inputs
+            INPUTS
         );
 
         debug_assert_eq!(
-            predictedX.rows, num_states,
+            predictedX.rows(),
+            STATES as _,
             "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
-            num_states
+            STATES
         );
         debug_assert_eq!(
-            predictedX.cols, 1,
+            predictedX.cols(),
+            1,
             "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
-            num_states
+            STATES
         );
 
         debug_assert_eq!(
-            temp_P.rows, num_states,
+            temp_P.rows(), STATES as _,
             "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
-            num_states, num_states
+            STATES, STATES
         );
         debug_assert_eq!(
-            temp_P.cols, num_states,
+            temp_P.cols(), STATES as _,
             "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
-            num_states, num_states
+            STATES, STATES
         );
 
         debug_assert_eq!(
-            temp_BQ.rows, num_states,
+            temp_BQ.rows(),
+            STATES as _,
             "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
-            num_states, num_inputs
+            STATES,
+            INPUTS
         );
         debug_assert_eq!(
-            temp_BQ.cols, num_inputs,
+            temp_BQ.cols(),
+            INPUTS as _,
             "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
-            num_states, num_inputs
+            STATES,
+            INPUTS
         );
 
         Self {
-            num_states,
-            num_inputs,
             A,
             P,
             x,
@@ -241,6 +254,16 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
                 BQ: temp_BQ,
             },
         }
+    }
+
+    /// Returns the number of states.
+    pub const fn states(&self) -> usize {
+        Self::NUM_STATES
+    }
+
+    /// Returns the number of inputs.
+    pub const fn inputs(&self) -> usize {
+        Self::NUM_INPUTS
     }
 
     /// Gets a reference to the state vector x.

@@ -4,10 +4,6 @@ use stdint::uint_fast8_t;
 /// Kalman Filter measurement structure.
 #[allow(non_snake_case, unused)]
 pub struct Measurement<'a, const STATES: usize, const MEASUREMENTS: usize> {
-    /// The number of states.
-    pub num_states: uint_fast8_t,
-    /// The number of measurements.
-    pub num_measurements: uint_fast8_t,
     /// Measurement vector.
     pub(crate) z: Matrix<'a, MEASUREMENTS, 1>,
     /// Measurement transformation matrix.
@@ -76,8 +72,6 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     #[allow(non_snake_case)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new_direct(
-        num_states: uint_fast8_t,
-        num_measurements: uint_fast8_t,
         H: &'a mut [matrix_data_t],
         z: &'a mut [matrix_data_t],
         R: &'a mut [matrix_data_t],
@@ -89,22 +83,18 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
         temp_PHt: &'a mut [matrix_data_t],
         temp_KHP: &'a mut [matrix_data_t],
     ) -> Self {
-        debug_assert_eq!(STATES, num_states.into());
-        debug_assert_eq!(MEASUREMENTS, num_measurements.into());
         Self {
-            num_states,
-            num_measurements,
-            H: Matrix::new(num_measurements, num_states, H),
-            R: Matrix::new(num_measurements, num_measurements, R),
-            z: Matrix::new(num_measurements, 1, z),
-            K: Matrix::new(num_states, num_measurements, K),
-            S: Matrix::new(num_measurements, num_measurements, S),
-            y: Matrix::new(num_measurements, 1, y),
+            H: Matrix::<MEASUREMENTS, STATES>::new(H),
+            R: Matrix::<MEASUREMENTS, MEASUREMENTS>::new(R),
+            z: Matrix::<MEASUREMENTS, 1>::new(z),
+            K: Matrix::<STATES, MEASUREMENTS>::new(K),
+            S: Matrix::<MEASUREMENTS, MEASUREMENTS>::new(S),
+            y: Matrix::<MEASUREMENTS, 1>::new(y),
             temporary: MeasurementTemporary {
-                S_inv: Matrix::new(num_measurements, num_measurements, S_inv),
-                HP: Matrix::new(num_measurements, num_states, temp_HP),
-                PHt: Matrix::new(num_states, num_measurements, temp_PHt),
-                KHP: Matrix::new(num_states, num_states, temp_KHP),
+                S_inv: Matrix::<MEASUREMENTS, MEASUREMENTS>::new(S_inv),
+                HP: Matrix::<MEASUREMENTS, STATES>::new(temp_HP),
+                PHt: Matrix::<STATES, MEASUREMENTS>::new(temp_PHt),
+                KHP: Matrix::<STATES, STATES>::new(temp_KHP),
             },
         }
     }
@@ -143,118 +133,124 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
         debug_assert_eq!(STATES, num_states.into());
         debug_assert_eq!(MEASUREMENTS, num_measurements.into());
         debug_assert_eq!(
-            H.rows, num_measurements,
+            H.rows(), num_measurements,
             "The measurement transformation matrix H requires {} rows and {} columns (i.e. measurements × states)",
             num_measurements, num_states
         );
         debug_assert_eq!(
-            H.cols, num_states,
+            H.cols(), num_states,
             "The measurement transformation matrix H requires {} rows and {} columns (i.e. measurements × states)",
             num_measurements, num_states
         );
 
         debug_assert_eq!(
-            z.rows, num_measurements,
+            z.rows(),
+            num_measurements,
             "The measurement vector z requires {} rows and 1 column (i.e. measurements × 1)",
             num_measurements
         );
         debug_assert_eq!(
-            z.cols, 1,
+            z.cols(),
+            1,
             "The measurement vector z requires {} rows and 1 column (i.e. measurements × 1)",
             num_measurements
         );
 
         debug_assert_eq!(
-            R.rows, num_measurements,
+            R.rows(), num_measurements,
             "The process noise / measurement uncertainty matrix R requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_measurements
         );
         debug_assert_eq!(
-            R.cols, num_measurements,
+            R.cols(), num_measurements,
             "The process noise / measurement uncertainty matrix R requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_measurements
         );
 
         debug_assert_eq!(
-            y.rows, num_measurements,
+            y.rows(),
+            num_measurements,
             "The innovation vector y requires {} rows and 1 column (i.e. measurements × 1)",
             num_measurements
         );
         debug_assert_eq!(
-            y.cols, 1,
+            y.cols(),
+            1,
             "The innovation vector y requires {} rows and 1 column (i.e. measurements × 1)",
             num_measurements
         );
 
         debug_assert_eq!(
-            S.rows, num_measurements,
+            S.rows(), num_measurements,
             "The residual covariance matrix S requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_measurements
         );
         debug_assert_eq!(
-            S.cols, num_measurements,
+            S.cols(), num_measurements,
             "The residual covariance S requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_measurements
         );
 
         debug_assert_eq!(
-            K.rows, num_states,
+            K.rows(),
+            num_states,
             "The Kalman gain matrix S requires {} rows and {} columns (i.e. states × measurements)",
-            num_states, num_measurements
+            num_states,
+            num_measurements
         );
         debug_assert_eq!(
-            K.cols, num_measurements,
+            K.cols(),
+            num_measurements,
             "The Kalman gain matrix K requires {} rows and {} columns (i.e. states × measurements)",
-            num_states, num_measurements
+            num_states,
+            num_measurements
         );
 
         debug_assert_eq!(
-            S_inv.rows, num_measurements,
+            S_inv.rows(), num_measurements,
             "The temporary S-inverted matrix requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_measurements
         );
         debug_assert_eq!(
-            S_inv.cols, num_measurements,
+            S_inv.cols(), num_measurements,
             "The temporary S-inverted matrix requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_measurements
         );
 
         debug_assert_eq!(
-            temp_HP.rows, num_measurements,
+            temp_HP.rows(), num_measurements,
             "The temporary H×P calculation matrix requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_states
         );
         debug_assert_eq!(
-            temp_HP.cols, num_states,
+            temp_HP.cols(), num_states,
             "The temporary H×P calculation matrix requires {} rows and {} columns (i.e. measurements × measurements)",
             num_measurements, num_states
         );
 
         debug_assert_eq!(
-            temp_PHt.rows, num_states,
+            temp_PHt.rows(), num_states,
             "The temporary P×H' calculation matrix requires {} rows and {} columns (i.e. states × measurements)",
             num_states, num_measurements
         );
         debug_assert_eq!(
-            temp_PHt.cols, num_measurements,
+            temp_PHt.cols(), num_measurements,
             "The temporary P×H' calculation matrix requires {} rows and {} columns (i.e. states × measurements)",
             num_states, num_measurements
         );
 
         debug_assert_eq!(
-            temp_KHP.rows, num_states,
+            temp_KHP.rows(), num_states,
             "The temporary K×H×P calculation matrix requires {} rows and {} columns (i.e. states × states)",
             num_states, num_states
         );
         debug_assert_eq!(
-            temp_KHP.cols, num_states,
+            temp_KHP.cols(), num_states,
             "The temporary K×H×P calculation matrix requires {} rows and {} columns (i.e. states × states)",
             num_states, num_states
         );
 
         Self {
-            num_states,
-            num_measurements,
             H,
             R,
             z,
@@ -268,6 +264,16 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
                 KHP: temp_KHP,
             },
         }
+    }
+
+    /// Returns then number of measurements.
+    pub const fn measurements() -> uint_fast8_t {
+        MEASUREMENTS as _
+    }
+
+    /// Returns then number of states.
+    pub const fn states() -> uint_fast8_t {
+        STATES as _
     }
 
     /// Gets a reference to the measurement vector z.
