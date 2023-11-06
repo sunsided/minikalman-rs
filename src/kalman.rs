@@ -62,7 +62,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     /// * `predictedX` - The temporary vector for predicted states (`STATES` × `1`).
     /// * `temp_P` - The temporary vector for P calculation (`STATES` × `STATES`).
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `INPUTS`).
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_filter_initialize")]
     pub fn new_from_buffers(
         A: &'a mut [matrix_data_t],
@@ -104,7 +104,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     /// * `predictedX` - The temporary vector for predicted states (`num_states` × `1`).
     /// * `temp_P` - The temporary vector for P calculation (`num_states` × `num_states`).
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`num_states` × `num_inputs`).
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case, clippy::too_many_arguments)]
     pub fn new(
         A: Matrix<'a, STATES, STATES>,
         x: Matrix<'a, STATES, 1>,
@@ -283,7 +283,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     #[inline(always)]
     pub fn state_vector_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, 1>) -> (),
+        F: FnMut(&mut Matrix<'a, STATES, 1>),
     {
         f(&mut self.x)
     }
@@ -305,7 +305,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     #[inline(always)]
     pub fn state_transition_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, STATES>) -> (),
+        F: FnMut(&mut Matrix<'a, STATES, STATES>),
     {
         f(&mut self.A)
     }
@@ -327,7 +327,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     #[inline(always)]
     pub fn system_covariance_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, STATES>) -> (),
+        F: FnMut(&mut Matrix<'a, STATES, STATES>),
     {
         f(&mut self.P)
     }
@@ -349,7 +349,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     #[inline(always)]
     pub fn input_vector_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, INPUTS, 1>) -> (),
+        F: FnMut(&mut Matrix<'a, INPUTS, 1>),
     {
         f(&mut self.u)
     }
@@ -371,7 +371,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     #[inline(always)]
     pub fn input_transition_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, INPUTS>) -> (),
+        F: FnMut(&mut Matrix<'a, STATES, INPUTS>),
     {
         f(&mut self.B)
     }
@@ -394,7 +394,7 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     #[doc(alias = "kalman_get_input_covariance")]
     pub fn input_covariance_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, INPUTS, INPUTS>) -> (),
+        F: FnMut(&mut Matrix<'a, INPUTS, INPUTS>),
     {
         f(&mut self.Q)
     }

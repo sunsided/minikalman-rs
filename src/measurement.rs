@@ -69,7 +69,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     /// * `temp_HP` - The temporary matrix for H×P calculation (`num_measurements` × `num_states`).
     /// * `temp_PHt` - The temporary matrix for P×H' calculation (`num_states` × `num_measurements`).
     /// * `temp_KHP` - The temporary matrix for K×H×P calculation (`num_states` × `num_states`).
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new_direct(
         H: &'a mut [matrix_data_t],
@@ -114,7 +114,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     /// * `temp_HP` - The temporary matrix for H×P calculation (`num_measurements` × `num_states`).
     /// * `temp_PHt` - The temporary matrix for P×H' calculation (`num_states` × `num_measurements`).
     /// * `temp_KHP` - The temporary matrix for K×H×P calculation (`num_states` × `num_states`).
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new(
         num_states: uint_fast8_t,
@@ -293,7 +293,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     #[inline(always)]
     pub fn measurement_vector_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, MEASUREMENTS, 1>) -> (),
+        F: FnMut(&mut Matrix<'a, MEASUREMENTS, 1>),
     {
         f(&mut self.z)
     }
@@ -317,7 +317,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     #[inline(always)]
     pub fn measurement_transformation_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, MEASUREMENTS, STATES>) -> (),
+        F: FnMut(&mut Matrix<'a, MEASUREMENTS, STATES>),
     {
         f(&mut self.H)
     }
@@ -339,7 +339,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     #[inline(always)]
     pub fn process_noise_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, MEASUREMENTS, MEASUREMENTS>) -> (),
+        F: FnMut(&mut Matrix<'a, MEASUREMENTS, MEASUREMENTS>),
     {
         f(&mut self.R)
     }

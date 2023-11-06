@@ -149,8 +149,8 @@ impl<'a, const N: usize> Matrix<'a, N, N> {
     #[doc(alias = "matrix_invert_lower")]
     pub fn invert_l_cholesky(&self, inverse: &mut Self) {
         let n = N;
-        let mat = self.data.as_ref(); // t
-        let inv = inverse.data.as_mut(); // a
+        let mat = &self.data; // t
+        let inv = &mut inverse.data; // a
 
         // Inverts the lower triangular system and saves the result
         // in the upper triangle to minimize cache misses.
@@ -247,8 +247,8 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let ccols = c.cols();
         let crows = c.rows();
 
-        let adata = self.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let cdata = &mut c.data;
 
         // test dimensions of a and b
         debug_assert_eq!(COLS, brows as _);
@@ -320,9 +320,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let ccols = c.cols() as usize;
         let crows = c.rows() as usize;
 
-        let adata = self.data.as_ref();
-        let bdata = b.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let bdata = &b.data;
+        let cdata = &mut c.data;
 
         // test dimensions of a and b
         debug_assert_eq!(COLS, brows as _);
@@ -362,9 +362,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let crows = c.rows();
         let ccols = c.cols();
 
-        let adata = self.data.as_ref();
-        let xdata = x.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let xdata = &x.data;
+        let cdata = &mut c.data;
 
         // test dimensions of a and b
         debug_assert_eq!(COLS, xrows as _);
@@ -374,10 +374,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(ccols, 1);
 
         let mut index_a: uint_fast16_t = 0;
-        let mut index_c: uint_fast16_t = 0;
         let b0 = xdata[0];
 
-        for _ in 0..arows {
+        for index_c in 0..arows {
             let mut total = adata[idx!(index_a)] * b0;
             index_a += 1;
 
@@ -386,7 +385,6 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
                 index_a += 1;
             }
             cdata[idx!(index_c)] = total;
-            index_c += 1;
         }
     }
 
@@ -408,9 +406,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let crows = c.rows();
         let ccols = c.cols();
 
-        let adata = self.data.as_ref();
-        let xdata = x.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let xdata = &x.data;
+        let cdata = &mut c.data;
 
         // test dimensions of a and b
         debug_assert_eq!(COLS, xrows as _);
@@ -420,10 +418,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(ccols, 1);
 
         let mut index_a: uint_fast16_t = 0;
-        let mut index_c: uint_fast16_t = 0;
         let b0 = xdata[0];
 
-        for _ in 0..arows {
+        for index_c in 0..arows {
             let mut total = adata[idx!(index_a)] * b0;
             index_a += 1;
 
@@ -432,7 +429,6 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
                 index_a += 1;
             }
             cdata[idx!(index_c)] += total;
-            index_c += 1;
         }
     }
 
@@ -457,9 +453,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let ccols = c.cols();
         let crows = c.rows();
 
-        let adata = self.data.as_ref();
-        let bdata = b.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let bdata = &b.data;
+        let cdata = &mut c.data;
 
         // test dimensions of a and b
         debug_assert_eq!(COLS, bcols as _);
@@ -512,9 +508,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let ccols = c.cols();
         let crows = c.rows();
 
-        let adata = self.data.as_ref();
-        let bdata = b.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let bdata = &b.data;
+        let cdata = &mut c.data;
 
         // test dimensions of a and b
         debug_assert_eq!(COLS, bcols as _);
@@ -569,9 +565,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let ccols = c.cols();
         let crows = c.rows();
 
-        let adata = self.data.as_ref();
-        let bdata = b.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let bdata = &b.data;
+        let cdata = &mut c.data;
 
         // test dimensions of a and b
         debug_assert_eq!(COLS, bcols as _);
@@ -669,7 +665,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let stride: int_fast16_t = self.cols() as _;
         let mut source_index = (target_index as int_fast16_t) * stride + (column as int_fast16_t);
 
-        let src = self.data.as_ref();
+        let src = &self.data;
 
         // fetch data
         col_data[idx!(target_index)] = src[idx!(source_index)];
@@ -714,8 +710,8 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
         let count = self.len();
 
-        let adata = self.data.as_ref();
-        let bdata = target.data.as_mut();
+        let adata = &self.data;
+        let bdata = &mut target.data;
 
         for index in (0..=(count - 1)).rev() {
             bdata[idx!(index)] = adata[idx![index]];
@@ -738,9 +734,9 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
         let count = self.len();
 
-        let adata = self.data.as_ref();
-        let bdata = b.data.as_ref();
-        let cdata = c.data.as_mut();
+        let adata = &self.data;
+        let bdata = &b.data;
+        let cdata = &mut c.data;
 
         for index in (0..count).rev() {
             cdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
@@ -760,8 +756,8 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
         let count = self.len();
 
-        let adata = self.data.as_mut();
-        let bdata = b.data.as_ref();
+        let adata = &mut self.data;
+        let bdata = &b.data;
 
         for index in (0..count).rev() {
             adata[idx!(index)] -= bdata[idx![index]];
@@ -781,8 +777,8 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
         let count = self.len();
 
-        let adata = self.data.as_ref();
-        let bdata = b.data.as_mut();
+        let adata = &self.data;
+        let bdata = &mut b.data;
 
         for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
@@ -802,11 +798,11 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
         let count = self.len();
 
-        let adata = self.data.as_mut();
-        let bdata = b.data.as_ref();
+        let adata = &mut self.data;
+        let bdata = &b.data;
 
         for index in (0..count).rev() {
-            adata[idx!(index)] = adata[idx!(index)] + bdata[idx![index]];
+            adata[idx!(index)] += bdata[idx![index]];
         }
     }
 
@@ -823,11 +819,11 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
         let count = self.len();
 
-        let adata = self.data.as_ref();
-        let bdata = b.data.as_mut();
+        let adata = &self.data;
+        let bdata = &mut b.data;
 
         for index in (0..count).rev() {
-            bdata[idx!(index)] = adata[idx!(index)] + bdata[idx![index]];
+            bdata[idx!(index)] += adata[idx!(index)];
         }
     }
 
@@ -912,7 +908,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
             }
         }
 
-        return true;
+        true
     }
 }
 
@@ -934,13 +930,13 @@ impl<'a, const R: usize, const C: usize> IndexMut<usize> for Matrix<'a, R, C> {
 
 impl<'a, const R: usize, const C: usize> AsRef<[matrix_data_t]> for Matrix<'a, R, C> {
     fn as_ref(&self) -> &[matrix_data_t] {
-        &self.data
+        self.data
     }
 }
 
 impl<'a, const R: usize, const C: usize> AsMut<[matrix_data_t]> for Matrix<'a, R, C> {
     fn as_mut(&mut self) -> &mut [matrix_data_t] {
-        &mut self.data
+        self.data
     }
 }
 
