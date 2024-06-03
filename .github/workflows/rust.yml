@@ -83,7 +83,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@nextest
       - name: Run Example
-        run: cargo run --example=gravity --no-default-features --features=fixed
+        run: cargo run --example=fixed --no-default-features --features=fixed
       - name: Run tests
         run: cargo nextest run --verbose --no-default-features --features=fixed
       - name: Run doctests
