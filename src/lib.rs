@@ -18,7 +18,6 @@ extern crate alloc;
 mod kalman;
 mod matrix;
 mod matrix_ops;
-mod matrix_owned;
 mod measurement;
 mod types;
 
