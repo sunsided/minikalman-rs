@@ -14,6 +14,11 @@ This implementation uses statically allocated buffers for all matrix operations.
 of `const` generics for array allocations in Rust, this crate also provides helper macros
 to create the required arrays. See [`examples/gravity.rs`](examples/gravity.rs) for a worked example.
 
+<div align="center">
+    <img src="docs/hero.webp" width="780" alt="Kalman Filter Library Hero Picture" />
+</div>
+
+
 ## `no_std` vs `std`
 
 This crate builds as `no_std` by default. To build with `std` support, run:
