@@ -391,7 +391,13 @@ mod tests {
         assert_eq!(measurement.process_noise_ref().data[0], 3.0);
 
         // Legacy
-        assert_eq!(Measurement::<NUM_STATES, NUM_MEASUREMENTS>::measurements(), NUM_MEASUREMENTS as _);
-        assert_eq!(Measurement::<NUM_STATES, NUM_MEASUREMENTS>::states(), NUM_STATES as _);
+        assert_eq!(
+            Measurement::<NUM_STATES, NUM_MEASUREMENTS>::measurements(),
+            NUM_MEASUREMENTS as _
+        );
+        assert_eq!(
+            Measurement::<NUM_STATES, NUM_MEASUREMENTS>::states(),
+            NUM_STATES as _
+        );
     }
 }

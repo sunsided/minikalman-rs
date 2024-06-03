@@ -75,19 +75,17 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
         temp_P: &'a mut [matrix_data_t],
         temp_BQ: &'a mut [matrix_data_t],
     ) -> Self {
-        Self {
-            A: Matrix::<STATES, STATES>::new(A),
-            P: Matrix::<STATES, STATES>::new(P),
-            x: Matrix::<STATES, 1>::new(x),
-            B: Matrix::<STATES, INPUTS>::new(B),
-            Q: Matrix::<INPUTS, INPUTS>::new(Q),
-            u: Matrix::<INPUTS, 1>::new(u),
-            temporary: KalmanTemporary {
-                predicted_x: Matrix::<STATES, 1>::new(predictedX),
-                P: Matrix::<STATES, STATES>::new(temp_P),
-                BQ: Matrix::<STATES, INPUTS>::new(temp_BQ),
-            },
-        }
+        Self::new(
+            Matrix::<STATES, STATES>::new(A),
+            Matrix::<STATES, 1>::new(x),
+            Matrix::<STATES, INPUTS>::new(B),
+            Matrix::<INPUTS, 1>::new(u),
+            Matrix::<STATES, STATES>::new(P),
+            Matrix::<INPUTS, INPUTS>::new(Q),
+            Matrix::<STATES, 1>::new(predictedX),
+            Matrix::<STATES, STATES>::new(temp_P),
+            Matrix::<STATES, INPUTS>::new(temp_BQ),
+        )
     }
 
     /// Initializes a Kalman filter instance.
