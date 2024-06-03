@@ -412,7 +412,7 @@ macro_rules! create_buffer_K {
 /// const NUM_STATES: usize = 3;
 /// const NUM_INPUTS: usize = 1;
 ///
-/// // Filter buffers.
+/// // Filter temporaries.
 /// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
 /// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
 /// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
