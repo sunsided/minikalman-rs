@@ -11,7 +11,6 @@
 // only enables the `doc_cfg` feature when
 // the `docsrs` configuration attribute is defined
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
 // Enable `no_std` if the `no_std` crate feature is enabled.
 #![cfg_attr(feature = "no_std", no_std)]
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
