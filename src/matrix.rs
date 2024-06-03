@@ -145,7 +145,7 @@ impl<'a, const N: usize> Matrix<'a, N, N> {
     /// ```
     ///
     /// ## Copyright
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_invert_lower")]
     pub fn invert_l_cholesky(&self, inverse: &mut Self) {
         let n = N;
@@ -233,7 +233,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// assert!((c_buf[3] - (4. * 11. + 5. * 21. + 6. * 31.)).abs() < 0.01); // 335
     /// ```
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_mult_buffered")]
     pub fn mult_buffered<const U: usize>(
         &self,
@@ -311,7 +311,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// assert!((c_buf[3] - (4. * 11. + 5. * 21. + 6. * 31.)).abs() < 0.01); // 335
     /// ```
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_mult")]
     pub fn mult<const U: usize>(&self, b: &Matrix<'_, COLS, U>, c: &mut Matrix<'_, ROWS, U>) {
         let arows = ROWS;
@@ -351,7 +351,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `x` - Vector x
     /// * `c` - Resulting vector C (will be overwritten)
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_mult_rowvector")]
     pub fn mult_rowvector(&self, x: &Matrix<'_, COLS, 1>, c: &mut Matrix<'_, ROWS, 1>) {
         let arows = self.rows();
@@ -395,7 +395,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `x` - Vector x
     /// * `c` - Resulting vector C (will be added to)
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_multadd_rowvector")]
     pub fn multadd_rowvector(&self, x: &Matrix<'_, COLS, 1>, c: &mut Matrix<'_, ROWS, 1>) {
         let arows = self.rows();
@@ -439,7 +439,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `b` - Matrix B
     /// * `c` - Resulting matrix C (will be overwritten)
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_mult_transb")]
     pub fn mult_transb<const U: usize>(
         &self,
@@ -494,7 +494,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `b` - Matrix B
     /// * `c` - Resulting matrix C (will be added to)
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_multadd_transb")]
     pub fn multadd_transb<const U: usize>(
         &self,
@@ -550,7 +550,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `scale` - Scaling factor
     /// * `c` - Resulting matrix C(will be overwritten)
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_multscale_transb")]
     pub fn multscale_transb<const U: usize>(
         &self,
@@ -863,7 +863,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// assert!((d[8] - 1.0).abs() < 0.01);
     /// ```
     ///
-    /// Kudos: https://code.google.com/p/efficient-java-matrix-library
+    /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     pub fn cholesky_decompose_lower(&mut self) -> bool {
         let n = self.rows();
         let t: &mut [matrix_data_t] = self.data;
