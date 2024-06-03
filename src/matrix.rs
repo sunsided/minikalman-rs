@@ -1333,4 +1333,11 @@ mod tests {
         assert_f32_near!(di[7], 0.0);
         assert_f32_near!(di[8], 1.0);
     }
+
+    #[test]
+    fn default_matrix_is_empty() {
+        let mut d = [];
+        let m = Matrix::<0, 0>::new(&mut d);
+        assert!(m.is_empty());
+    }
 }

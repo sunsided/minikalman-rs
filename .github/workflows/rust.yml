@@ -43,6 +43,8 @@ jobs:
         run: cargo build --verbose
       - name: Build Example
         run: cargo build --example=gravity --verbose
+      - name: Build Benchmarks
+        run: cargo build --benches
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
