@@ -88,7 +88,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     /// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
     /// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
     ///
-    /// let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
     ///     &mut gravity_A,
     ///     &mut gravity_x,
     ///     &mut gravity_B,
@@ -493,7 +493,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
     /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
     /// #
-    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
     /// #     &mut gravity_A,
     /// #     &mut gravity_x,
     /// #     &mut gravity_B,
@@ -590,7 +590,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
     /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
     /// #
-    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
     /// #     &mut gravity_A,
     /// #     &mut gravity_x,
     /// #     &mut gravity_B,
@@ -776,7 +776,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
     /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
     /// #
-    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
     /// #     &mut gravity_A,
     /// #     &mut gravity_x,
     /// #     &mut gravity_B,
