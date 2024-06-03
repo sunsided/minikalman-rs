@@ -7,6 +7,13 @@
 //! This implementation uses statically allocated buffers for all matrix operations. Due to lack
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
 //! to create the required arrays (see e.g. [`create_buffer_A`]).
+//!
+//! ## Crate Features
+//!
+//! * `no_std` - Enabled by default. Turns on the `no_std` configuration attribute.
+//! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
+//! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
+//!              compiles the crate as `#![forbid(unsafe)]`.
 
 // only enables the `doc_cfg` feature when
 // the `docsrs` configuration attribute is defined
@@ -53,11 +60,12 @@ macro_rules! create_buffer_A {
         (create_buffer_A!($num_states, f32))
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -83,11 +91,12 @@ macro_rules! create_buffer_P {
         (create_buffer_P!($num_states, f32))
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -113,11 +122,12 @@ macro_rules! create_buffer_x {
         (create_buffer_x![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -144,11 +154,12 @@ macro_rules! create_buffer_u {
         (create_buffer_u![$num_inputs, f32])
     };
     ( $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_INPUTS_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -176,12 +187,13 @@ macro_rules! create_buffer_B {
         (create_buffer_B![$num_states, $num_inputs, f32])
     };
     ( $num_states:expr, $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_INPUTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -208,11 +220,12 @@ macro_rules! create_buffer_Q {
         (create_buffer_Q![$num_states, f32])
     };
     ( $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_INPUTS_ * NUM_INPUTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -242,11 +255,12 @@ macro_rules! create_buffer_z {
         (create_buffer_z![$num_states, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -277,12 +291,13 @@ macro_rules! create_buffer_H {
         (create_buffer_H![$num_measurements, $num_states, f32])
     };
     ( $num_measurements:expr, $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -312,11 +327,12 @@ macro_rules! create_buffer_R {
         (create_buffer_R![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -346,11 +362,12 @@ macro_rules! create_buffer_y {
         (create_buffer_y![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -380,11 +397,12 @@ macro_rules! create_buffer_S {
         (create_buffer_S![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -415,12 +433,13 @@ macro_rules! create_buffer_K {
         (create_buffer_K![$num_states, $num_measurements, f32])
     };
     ( $num_states:expr, $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -447,11 +466,12 @@ macro_rules! create_buffer_temp_x {
         (create_buffer_temp_x![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -478,11 +498,12 @@ macro_rules! create_buffer_temp_P {
         (create_buffer_temp_P![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -510,12 +531,13 @@ macro_rules! create_buffer_temp_BQ {
         (create_buffer_temp_BQ![$num_states, $num_inputs, f32])
     };
     ( $num_states:expr, $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_INPUTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -543,11 +565,12 @@ macro_rules! create_buffer_temp_S_inv {
         (create_buffer_temp_S_inv![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -576,12 +599,13 @@ macro_rules! create_buffer_temp_HP {
         (create_buffer_temp_HP![$num_measurements, $num_states, f32])
     };
     ( $num_measurements:expr, $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -610,12 +634,13 @@ macro_rules! create_buffer_temp_PHt {
         (create_buffer_temp_PHt![$num_states, $num_measurements, f32])
     };
     ( $num_states:expr, $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }
 
@@ -644,10 +669,11 @@ macro_rules! create_buffer_temp_KHP {
         (create_buffer_temp_KHP![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [<$t>::ZERO; COUNT]
     }};
 }

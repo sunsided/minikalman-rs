@@ -1,16 +1,11 @@
 #![allow(unused_imports)]
 
 use crate::types::*;
-use core::ops::{Add, AddAssign, Div, Index, IndexMut, Sub, SubAssign};
+use core::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign};
 use core::ptr::null;
 
 // Required for sqrt()
 use crate::{MatrixBase, MatrixOps};
-#[cfg(feature = "no_std")]
-use micromath::F32Ext;
-
-use num_traits::real::Real;
-use num_traits::{ConstOne, ConstZero, Float, FloatConst};
 
 /// A matrix wrapping a data buffer.
 pub struct Matrix<'a, const ROWS: usize, const COLS: usize, T = f32> {
@@ -149,7 +144,7 @@ impl<'a, T, const N: usize> Matrix<'a, N, N, T> {
     #[doc(alias = "matrix_invert_lower")]
     pub fn invert_l_cholesky(&self, inverse: &mut Self)
     where
-        T: Float + ConstZero + ConstOne + AddAssign + core::iter::Sum,
+        T: MatrixDataType,
     {
         let n = N;
         let mat = &self.data; // t
@@ -161,9 +156,9 @@ impl<'a, T, const N: usize> Matrix<'a, N, N, T> {
             let el_ii = mat[idx!(i * n + i)];
             let inv_el_ii = el_ii.recip();
             for j in 0..=i {
-                let mut sum = T::ZERO;
+                let mut sum = T::zero();
                 if i == j {
-                    sum = T::ONE;
+                    sum = T::one();
                 };
 
                 sum += (j..i)
@@ -178,11 +173,11 @@ impl<'a, T, const N: usize> Matrix<'a, N, N, T> {
         // takes advantage of symmetry.
         for i in (0..=(n - 1)).rev() {
             let el_ii = mat[idx!(i * n + i)];
-            let inv_el_ii = T::ONE.div(el_ii);
+            let inv_el_ii = el_ii.recip();
             for j in 0..=i {
                 let mut sum = inv[idx!(j * n + i)];
                 if i < j {
-                    sum = T::ZERO;
+                    sum = T::zero();
                 };
 
                 sum += ((i + 1)..n)
@@ -197,10 +192,7 @@ impl<'a, T, const N: usize> Matrix<'a, N, N, T> {
     }
 }
 
-impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T>
-where
-    T: Float + ConstZero,
-{
+impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
     /// Performs a matrix multiplication such that `C = A * B`. This method
     /// uses an auxiliary buffer for keeping one row of `B` cached. This might
     /// improve performance on very wide matrices but is generally slower than
@@ -247,7 +239,7 @@ where
         c: &mut Matrix<'_, ROWS, U, T>,
         baux: &mut [T],
     ) where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         let arows = self.rows();
         let brows = b.rows();
@@ -275,7 +267,7 @@ where
 
             let mut index_a: FastUInt16 = 0;
             for i in 0..arows {
-                let mut total = T::ZERO;
+                let mut total = T::zero();
                 for k in 0..brows {
                     total += adata[idx!(index_a)] * baux[idx!(k)];
                     index_a += 1;
@@ -323,7 +315,7 @@ where
     #[doc(alias = "matrix_mult")]
     pub fn mult<const U: usize>(&self, b: &Matrix<'_, COLS, U, T>, c: &mut Matrix<'_, ROWS, U, T>)
     where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         let arows = ROWS;
         let bcols = b.cols() as usize;
@@ -345,7 +337,7 @@ where
         for j in (0..bcols).rev() {
             let mut index_a: FastUInt16 = 0;
             for i in 0..arows {
-                let mut total = T::ZERO;
+                let mut total = T::zero();
                 for k in 0..brows {
                     total += adata[idx!(index_a)] * bdata[idx!(k * bcols + j)];
                     index_a += 1;
@@ -366,7 +358,7 @@ where
     #[doc(alias = "matrix_mult_rowvector")]
     pub fn mult_rowvector(&self, x: &Matrix<'_, COLS, 1, T>, c: &mut Matrix<'_, ROWS, 1, T>)
     where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         let arows = self.rows();
         let acols = self.cols();
@@ -413,7 +405,7 @@ where
     #[doc(alias = "matrix_multadd_rowvector")]
     pub fn multadd_rowvector(&self, x: &Matrix<'_, COLS, 1, T>, c: &mut Matrix<'_, ROWS, 1, T>)
     where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         let arows = self.rows();
         let acols = self.cols();
@@ -463,7 +455,7 @@ where
         b: &Matrix<'_, U, COLS, T>,
         c: &mut Matrix<'_, ROWS, U, T>,
     ) where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         let arows = self.rows();
         let acols = self.cols();
@@ -492,7 +484,7 @@ where
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
-                let mut total: T = T::ZERO;
+                let mut total: T = T::zero();
                 while index_a < end {
                     total += adata[idx!(index_a)] * bdata[idx!(index_b)];
                     index_a += 1;
@@ -520,7 +512,7 @@ where
         b: &Matrix<'_, U, COLS, T>,
         c: &mut Matrix<'_, ROWS, U, T>,
     ) where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         let arows = self.rows();
         let acols = self.cols();
@@ -549,7 +541,7 @@ where
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
-                let mut total: T = T::ZERO;
+                let mut total: T = T::zero();
                 while index_a < end {
                     total += adata[idx!(index_a)] * bdata[idx!(index_b)];
                     index_a += 1;
@@ -579,7 +571,7 @@ where
         scale: T,
         c: &mut Matrix<'_, ROWS, U, T>,
     ) where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         let arows = self.rows();
         let acols = self.cols();
@@ -608,7 +600,7 @@ where
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
-                let mut total: T = T::ZERO;
+                let mut total: T = T::zero();
                 while index_a < end {
                     total += adata[idx!(index_a)] * bdata[idx!(index_b)];
                     index_a += 1;
@@ -632,7 +624,10 @@ where
     /// The value at the given cell.
     #[inline(always)]
     #[doc(alias = "matrix_get")]
-    pub fn get(&self, row: FastUInt8, column: FastUInt8) -> T {
+    pub fn get(&self, row: FastUInt8, column: FastUInt8) -> T
+    where
+        T: Copy,
+    {
         self.data[idx!(row * self.cols() + column)]
     }
 
@@ -657,7 +652,10 @@ where
     /// * `value` - The value to set
     #[inline(always)]
     #[doc(alias = "matrix_set_symmetric")]
-    pub fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: T) {
+    pub fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: T)
+    where
+        T: Copy,
+    {
         self.set(row, column, value);
         self.set(column, row, value);
     }
@@ -680,7 +678,10 @@ where
     /// * `column` - The column
     /// * `col_data` - Pointer to an array of the correct length to hold a column of matrix `mat`.
     #[doc(alias = "matrix_get_column_copy")]
-    pub fn get_column_copy(&self, column: FastUInt8, col_data: &mut [T]) {
+    pub fn get_column_copy(&self, column: FastUInt8, col_data: &mut [T])
+    where
+        T: Copy,
+    {
         // start from the back, so target index is equal to the index of the last row.
         let mut target_index: FastInt16 = (self.rows() - 1) as _;
 
@@ -707,7 +708,10 @@ where
     /// * `rows` - The row
     /// * `row_data` - Pointer to an array of the correct length to hold a row of matrix `mat`.
     #[doc(alias = "matrix_get_row_copy")]
-    pub fn get_row_copy(&self, row: FastUInt8, row_data: &mut [T]) {
+    pub fn get_row_copy(&self, row: FastUInt8, row_data: &mut [T])
+    where
+        T: Copy,
+    {
         let mut target_index: FastUInt16 = (self.cols() - 1) as _;
         let mut source_index: FastUInt16 =
             (row as FastUInt16 + 1) * (self.cols() - 1) as FastUInt16;
@@ -727,7 +731,10 @@ where
     /// * `target` - The matrix to copy to
     #[inline]
     #[doc(alias = "matrix_copy")]
-    pub fn copy(&self, target: &mut Self) {
+    pub fn copy(&self, target: &mut Self)
+    where
+        T: Copy,
+    {
         debug_assert_eq!(self.rows(), target.rows());
         debug_assert_eq!(self.cols(), target.cols());
 
@@ -749,7 +756,10 @@ where
     /// * `c` - The output
     #[inline]
     #[doc(alias = "matrix_sub")]
-    pub fn sub(&self, b: &Self, c: &mut Self) {
+    pub fn sub(&self, b: &Self, c: &mut Self)
+    where
+        T: MatrixDataType,
+    {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
         debug_assert_eq!(self.rows(), c.rows());
@@ -775,7 +785,7 @@ where
     #[doc(alias = "matrix_sub_inplace_b")]
     pub fn sub_inplace_a(&mut self, b: &Self)
     where
-        T: SubAssign,
+        T: MatrixDataType,
     {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
@@ -797,7 +807,10 @@ where
     /// * `b` - The values to subtract, also the output
     #[inline]
     #[doc(alias = "matrix_sub_inplace_b")]
-    pub fn sub_inplace_b(&self, b: &mut Self) {
+    pub fn sub_inplace_b(&self, b: &mut Self)
+    where
+        T: MatrixDataType,
+    {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
 
@@ -820,7 +833,7 @@ where
     #[doc(alias = "matrix_add_inplace_b")]
     pub fn add_inplace_a(&mut self, b: &Self)
     where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
@@ -844,7 +857,7 @@ where
     #[doc(alias = "matrix_add_inplace_b")]
     pub fn add_inplace_b(&self, b: &mut Self)
     where
-        T: AddAssign,
+        T: MatrixDataType,
     {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
@@ -898,12 +911,12 @@ where
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     pub fn cholesky_decompose_lower(&mut self) -> bool
     where
-        T: SubAssign,
+        T: MatrixDataType,
     {
         let n = self.rows();
         let t: &mut [T] = self.data;
 
-        let mut div_el_ii = T::ZERO;
+        let mut div_el_ii = T::zero();
 
         debug_assert_eq!(ROWS, COLS);
         debug_assert!(ROWS > 0);
@@ -925,11 +938,11 @@ where
                 t[idx!(j * n + i)] = sum * div_el_ii;
                 if i == j {
                     // is it positive-definite?
-                    if sum <= T::ZERO {
+                    if sum <= T::zero() {
                         return false;
                     }
 
-                    let el_ii = sum.sqrt();
+                    let el_ii = sum.square_root();
                     t[idx!(i * n + i)] = el_ii;
                     div_el_ii = el_ii.recip();
                 }
@@ -939,7 +952,7 @@ where
         // zero out the top right corner.
         for i in 0..n {
             for j in (i + 1)..n {
-                t[idx!(i * n + j)] = T::ZERO;
+                t[idx!(i * n + j)] = T::zero();
             }
         }
 

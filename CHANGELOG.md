@@ -5,10 +5,18 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Added
+
+- Added support for fixed-point values via the fixed](https://crates.io/crates/fixed) crate. 
+
 ### Changed
 
 - The macros, matrix, filter and measurement structs are now generic on the data type.
   If no type is provided, it defaults to `f32`.
+
+### Removed
+
+- The dependency on `micromath` was removed due to the generic type implementations.
 
 ## [0.2.3] - 2024-06-03
 

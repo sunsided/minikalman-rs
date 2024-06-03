@@ -43,8 +43,6 @@ jobs:
         run: cargo build --verbose
       - name: Build Benchmarks
         run: cargo build --benches
-      - name: Build Example
-        run: cargo run --example=gravity --no-default-features
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
@@ -63,11 +61,13 @@ jobs:
 
   build-std:
     needs: lint
-    name: Build and Test (std)
+    name: Build and Test (floating-point)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@nextest
+      - name: Run Example
+        run: cargo run --example=gravity --no-default-features
       - name: Run tests
         run: cargo nextest run --verbose --no-default-features
       - name: Run tests
@@ -75,10 +75,25 @@ jobs:
       - name: Run doctests
         run: cargo test --doc --verbose --no-default-features
 
+  build-fixed:
+    needs: lint
+    name: Build and Test (fixed-point)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@nextest
+      - name: Run Example
+        run: cargo run --example=gravity --no-default-features --features=fixed
+      - name: Run tests
+        run: cargo nextest run --verbose --no-default-features --features=fixed
+      - name: Run doctests
+        run: cargo test --doc --verbose --no-default-features --features=fixed
+
   build-others:
     needs:
       - codecov
       - build-std
+      - build-fixed
     name: Build and Test
     runs-on: ${{ matrix.os }}
     strategy:
