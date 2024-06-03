@@ -114,6 +114,7 @@ impl MatrixDataType for f64 {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "fixed")))]
 #[cfg(feature = "fixed")]
 impl MatrixDataType for I16F16 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
@@ -127,6 +128,7 @@ impl MatrixDataType for I16F16 {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "fixed")))]
 #[cfg(feature = "fixed")]
 impl MatrixDataType for I32F32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
