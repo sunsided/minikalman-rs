@@ -1,5 +1,5 @@
+use crate::types::FastUInt8;
 use crate::{matrix_data_t, Matrix};
-use stdint::uint_fast8_t;
 
 /// Kalman Filter measurement structure.
 #[allow(non_snake_case, unused)]
@@ -117,8 +117,8 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new(
-        num_states: uint_fast8_t,
-        num_measurements: uint_fast8_t,
+        num_states: FastUInt8,
+        num_measurements: FastUInt8,
         H: Matrix<'a, MEASUREMENTS, STATES>,
         z: Matrix<'a, MEASUREMENTS, 1>,
         R: Matrix<'a, MEASUREMENTS, MEASUREMENTS>,
@@ -267,12 +267,12 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     }
 
     /// Returns then number of measurements.
-    pub const fn measurements() -> uint_fast8_t {
+    pub const fn measurements() -> FastUInt8 {
         MEASUREMENTS as _
     }
 
     /// Returns then number of states.
-    pub const fn states() -> uint_fast8_t {
+    pub const fn states() -> FastUInt8 {
         STATES as _
     }
 

@@ -68,6 +68,8 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - name: Run tests
         run: cargo nextest run --verbose --no-default-features --features=std
+      - name: Run tests
+        run: cargo nextest run --verbose --features=stdint
       - name: Run doctests
         run: cargo test --doc --verbose --no-default-features --features=std
 
