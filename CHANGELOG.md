@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2024-06-03
+
+[0.2.2]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.2.2
+
+### Internal
+
+- Added usage examples to macro documentation.
+
+### Removed
+
+- Removed duplicate `create_buffer_P_temp` and `create_buffer_BQ_temp` macros in favor of `create_buffer_temp_P`
+  and `create_buffer_temp_BQ`.
+
 ## [0.2.1] - 2024-06-03
 
 [0.2.1]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.2.1

@@ -26,7 +26,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let mut c_buf = [0f32; 3 * 3];
         let mut c = Matrix::<3, 3>::new(&mut c_buf);
 
-        let mut aux = [0f32; 3 * 1];
+        let mut aux = [0f32; 3];
 
         bencher.iter(|| {
             Matrix::mult_buffered(
@@ -61,7 +61,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let mut c_buf = [0f32; 3 * 2];
         let mut c = Matrix::<3, 2>::new(&mut c_buf);
 
-        let mut aux = [0f32; 3 * 1];
+        let mut aux = [0f32; 3];
 
         bencher.iter(|| {
             Matrix::mult_buffered(
@@ -108,7 +108,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let mut c_buf = [0f32; 3 * 3];
         let mut c = Matrix::<3, 3>::new(&mut c_buf);
 
-        let mut aux = [0f32; 16 * 1];
+        let mut aux = [0f32; 16];
 
         bencher.iter(|| {
             Matrix::mult_buffered(

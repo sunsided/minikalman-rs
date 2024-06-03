@@ -983,7 +983,7 @@ mod tests {
         let mut c_buf = [0f32; 2 * 2];
         let mut c = Matrix::<2, 2>::new(&mut c_buf);
 
-        let mut aux = [0f32; 3 * 1];
+        let mut aux = [0f32; 3];
         a.mult_buffered(&b, &mut c, &mut aux);
         assert_f32_near!(c_buf[0], 1. * 10. + 2. * 20. + 3. * 30.); // 140
         assert_f32_near!(c_buf[1], 1. * 11. + 2. * 21. + 3. * 31.); // 146
@@ -1131,7 +1131,7 @@ mod tests {
         let a = Matrix::<2, 3>::new(&mut a_buf);
         let b = Matrix::<3, 1>::new(&mut b_buf);
 
-        let mut c_buf = [0f32; 2 * 1];
+        let mut c_buf = [0f32; 2];
         let mut c = Matrix::<2, 1>::new(&mut c_buf);
 
         Matrix::mult_rowvector(&a, &b, &mut c);
@@ -1263,7 +1263,7 @@ mod tests {
         assert_f32_near!(d[2], 0.0);
 
         assert_f32_near!(d[3], 0.5);
-        assert_f32_near!(d[4], 0.866025388);
+        assert_f32_near!(d[4], 0.866_025_4);
         assert_f32_near!(d[5], 0.0);
 
         assert_f32_near!(d[6], 0.0);
@@ -1321,12 +1321,12 @@ mod tests {
         assert!(test.is_finite());
         assert!(test >= 1.3);
 
-        assert_f32_near!(di[0], 1.33333325);
-        assert_f32_near!(di[1], -0.666666627);
+        assert_f32_near!(di[0], 1.333_333_3);
+        assert_f32_near!(di[1], -0.666_666_6);
         assert_f32_near!(di[2], -0.0);
 
-        assert_f32_near!(di[3], -0.666666627);
-        assert_f32_near!(di[4], 1.33333325);
+        assert_f32_near!(di[3], -0.666_666_6);
+        assert_f32_near!(di[4], 1.333_333_3);
         assert_f32_near!(di[5], 0.0);
 
         assert_f32_near!(di[6], 0.0);
