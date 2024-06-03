@@ -1,10 +1,11 @@
 [package]
 name = "minikalman"
-version = "0.2.3"
+version = "0.3.0"
 description = "A microcontroller targeted Kalman filter implementation"
 repository = "https://github.com/sunsided/minikalman-rs"
 authors = ["Markus Mayer"]
-keywords = ["kalman-filter", "embedded"]
+keywords = ["kalman-filter", "embedded", "fixed-point", "robotics", "slam"]
+categories = ["aerospace", "algorithms", "science::robotics", "no-std", "embedded"]
 license = "MIT"
 readme = "README.md"
 edition = "2021"
