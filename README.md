@@ -1,5 +1,11 @@
 # Kalman Filters for Embedded Targets (in Rust)
 
+[![Crates.io](https://img.shields.io/crates/v/minikalman)](https://crates.io/crates/minikalman-rs)
+[![Crates.io](https://img.shields.io/crates/l/minikalman)](https://crates.io/crates/minikalman-rs)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/sunsided/minikalman-rs/rust.yml)
+[![docs.rs](https://img.shields.io/docsrs/minikalman)](https://docs.rs/minikalman/)
+[![codecov](https://codecov.io/gh/sunsided/minikalman-rs/graph/badge.svg?token=YJYARXA8EL)](https://codecov.io/gh/sunsided/minikalman-rs)
+
 This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
 a microcontroller targeted Kalman filter implementation. Uses [`micromath`](https://docs.rs/micromath)
 for square root calculations on `no_std`. At the moment, this crate requires `f32` / FPU support.
