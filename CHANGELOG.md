@@ -5,7 +5,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0] - 2024-06-03
 
-[0.1.0]: https://github.com/sunsided/stdint-rs/releases/tag/v0.1.0
+[0.1.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.1.0
 
 ### Internal
 
@@ -14,9 +14,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Remove dependency on [stdint](https://github.com/sunsided/stdint-rs) crate unless explicitly enabled with the
   `stdint` crate feature. This should unblock builds on Windows. 
 
-## [0.2.0] - 2023-07-11
+## [0.0.2] - 2023-07-11
 
-[0.2.0]: https://github.com/sunsided/stdint-rs/releases/tag/0.2.0
+[0.0.2]: https://github.com/sunsided/minikalman-rs/releases/tag/0.0.2
 
 ### Added
 
