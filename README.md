@@ -19,7 +19,7 @@ to create the required arrays. See [`examples/gravity.rs`](examples/gravity.rs) 
 This crate builds as `no_std` by default. To build with `std` support, run:
 
 ```
-cargo build --no-default-features --features std
+cargo build --no-default-features
 ```
 
 ## Example
@@ -28,7 +28,7 @@ The provided example code will print output only on `std` builds. To run the exa
 [`gravity`](examples/gravity.rs) simulation, run
 
 ```
-cargo run --example gravity --no-default-features --features=std
+cargo run --example gravity --no-default-features
 ```
 
 This will estimate the (earth's) gravitational constant (g ≈ 9.807 m/s²) through observation
