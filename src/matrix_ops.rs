@@ -46,7 +46,7 @@ pub trait MatrixOps: MatrixBase {
     /// Performs a matrix multiplication such that `C = A * B`. This method
     /// uses an auxiliary buffer for keeping one row of `B` cached. This might
     /// improve performance on very wide matrices but is generally slower than
-    /// [`Matrix::mult`].
+    /// [`Matrix::mult`](crate::Matrix::mult).
     ///
     /// ## Arguments
     /// * `self` - Matrix A
