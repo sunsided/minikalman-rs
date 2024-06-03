@@ -1,8 +1,8 @@
 #![allow(unused_imports)]
 
+use crate::types::*;
 use core::ops::{Index, IndexMut};
 use core::ptr::null;
-use stdint::{int_fast16_t, int_fast32_t, uint_fast16_t, uint_fast8_t};
 
 // Required for sqrt()
 use crate::{MatrixBase, MatrixOps};
@@ -41,12 +41,12 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     }
 
     /// Returns the number of rows of this matrix.
-    pub const fn rows(&self) -> uint_fast8_t {
+    pub const fn rows(&self) -> FastUInt8 {
         ROWS as _
     }
 
     /// Returns the number of columns of this matrix.
-    pub const fn cols(&self) -> uint_fast8_t {
+    pub const fn cols(&self) -> FastUInt8 {
         COLS as _
     }
 
@@ -81,8 +81,8 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     }
 
     /// Gets the number of elements of this matrix.
-    pub const fn len(&self) -> uint_fast16_t {
-        ROWS as uint_fast16_t * COLS as uint_fast16_t
+    pub const fn len(&self) -> FastUInt16 {
+        ROWS as FastUInt16 * COLS as FastUInt16
     }
 
     /// Determines if this matrix has zero elements.
@@ -265,7 +265,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
             // create a copy of the column in B to avoid cache issues
             b.get_column_copy(j as _, baux);
 
-            let mut index_a: uint_fast16_t = 0;
+            let mut index_a: FastUInt16 = 0;
             for i in 0..arows {
                 let mut total = 0 as matrix_data_t;
                 for k in 0..brows {
@@ -332,7 +332,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(bcols, ccols);
 
         for j in (0..bcols).rev() {
-            let mut index_a: uint_fast16_t = 0;
+            let mut index_a: FastUInt16 = 0;
             for i in 0..arows {
                 let mut total = 0 as matrix_data_t;
                 for k in 0..brows {
@@ -373,7 +373,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(ROWS, crows as _);
         debug_assert_eq!(ccols, 1);
 
-        let mut index_a: uint_fast16_t = 0;
+        let mut index_a: FastUInt16 = 0;
         let b0 = xdata[0];
 
         for index_c in 0..arows {
@@ -417,7 +417,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(ROWS, crows as _);
         debug_assert_eq!(ccols, 1);
 
-        let mut index_a: uint_fast16_t = 0;
+        let mut index_a: FastUInt16 = 0;
         let b0 = xdata[0];
 
         for index_c in 0..arows {
@@ -464,12 +464,12 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(ROWS, crows as _);
         debug_assert_eq!(b.rows(), ccols);
 
-        let mut c_index: uint_fast16_t = 0;
-        let mut a_index_start: uint_fast16_t = 0;
+        let mut c_index: FastUInt16 = 0;
+        let mut a_index_start: FastUInt16 = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as uint_fast16_t;
-            let mut index_b: uint_fast16_t = 0;
+            let end = a_index_start + bcols as FastUInt16;
+            let mut index_b: FastUInt16 = 0;
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
@@ -482,7 +482,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
                 cdata[idx!(c_index)] = total;
                 c_index += 1;
             }
-            a_index_start += acols as uint_fast16_t;
+            a_index_start += acols as FastUInt16;
         }
     }
 
@@ -519,12 +519,12 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(ROWS, crows as _);
         debug_assert_eq!(brows, ccols);
 
-        let mut c_index: uint_fast16_t = 0;
-        let mut a_index_start: uint_fast16_t = 0;
+        let mut c_index: FastUInt16 = 0;
+        let mut a_index_start: FastUInt16 = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as uint_fast16_t;
-            let mut index_b: uint_fast16_t = 0;
+            let end = a_index_start + bcols as FastUInt16;
+            let mut index_b: FastUInt16 = 0;
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
@@ -537,7 +537,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
                 cdata[idx!(c_index)] += total;
                 c_index += 1;
             }
-            a_index_start += acols as uint_fast16_t;
+            a_index_start += acols as FastUInt16;
         }
     }
 
@@ -576,12 +576,12 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         debug_assert_eq!(ROWS, crows as _);
         debug_assert_eq!(brows, ccols);
 
-        let mut c_index: uint_fast16_t = 0;
-        let mut a_index_start: uint_fast16_t = 0;
+        let mut c_index: FastUInt16 = 0;
+        let mut a_index_start: FastUInt16 = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as uint_fast16_t;
-            let mut index_b: uint_fast16_t = 0;
+            let end = a_index_start + bcols as FastUInt16;
+            let mut index_b: FastUInt16 = 0;
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
@@ -594,7 +594,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
                 cdata[idx!(c_index)] = total * scale;
                 c_index += 1;
             }
-            a_index_start += acols as uint_fast16_t;
+            a_index_start += acols as FastUInt16;
         }
     }
 
@@ -609,7 +609,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// The value at the given cell.
     #[inline(always)]
     #[doc(alias = "matrix_get")]
-    pub fn get(&self, row: uint_fast8_t, column: uint_fast8_t) -> matrix_data_t {
+    pub fn get(&self, row: FastUInt8, column: FastUInt8) -> matrix_data_t {
         self.data[idx!(row * self.cols() + column)]
     }
 
@@ -621,7 +621,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `value` - The value to set
     #[inline(always)]
     #[doc(alias = "matrix_set")]
-    pub fn set(&mut self, row: uint_fast8_t, column: uint_fast8_t, value: matrix_data_t) {
+    pub fn set(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t) {
         self.data[idx!(row * self.cols() + column)] = value;
     }
 
@@ -634,7 +634,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `value` - The value to set
     #[inline(always)]
     #[doc(alias = "matrix_set_symmetric")]
-    pub fn set_symmetric(&mut self, row: uint_fast8_t, column: uint_fast8_t, value: matrix_data_t) {
+    pub fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t) {
         self.set(row, column, value);
         self.set(column, row, value);
     }
@@ -646,7 +646,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `rows` - The row
     /// *  `row_data` - A pointer to the given matrix row
     #[doc(alias = "matrix_get_row_pointer")]
-    pub fn get_row_pointer<'b>(&'a self, row: uint_fast8_t, row_data: &'b mut &'a [matrix_data_t]) {
+    pub fn get_row_pointer<'b>(&'a self, row: FastUInt8, row_data: &'b mut &'a [matrix_data_t]) {
         *row_data = &self.data[idx!(row * self.cols())..idx!((row + 1) * self.cols())];
     }
 
@@ -657,13 +657,13 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `column` - The column
     /// * `col_data` - Pointer to an array of the correct length to hold a column of matrix `mat`.
     #[doc(alias = "matrix_get_column_copy")]
-    pub fn get_column_copy(&self, column: uint_fast8_t, col_data: &mut [matrix_data_t]) {
+    pub fn get_column_copy(&self, column: FastUInt8, col_data: &mut [matrix_data_t]) {
         // start from the back, so target index is equal to the index of the last row.
-        let mut target_index: int_fast16_t = (self.rows() - 1) as _;
+        let mut target_index: FastInt16 = (self.rows() - 1) as _;
 
         // also, the source index is the column..th index
-        let stride: int_fast16_t = self.cols() as _;
-        let mut source_index = (target_index as int_fast16_t) * stride + (column as int_fast16_t);
+        let stride: FastInt16 = self.cols() as _;
+        let mut source_index = (target_index as FastInt16) * stride + (column as FastInt16);
 
         let src = &self.data;
 
@@ -684,10 +684,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `rows` - The row
     /// * `row_data` - Pointer to an array of the correct length to hold a row of matrix `mat`.
     #[doc(alias = "matrix_get_row_copy")]
-    pub fn get_row_copy(&self, row: uint_fast8_t, row_data: &mut [matrix_data_t]) {
-        let mut target_index: uint_fast16_t = (self.cols() - 1) as _;
-        let mut source_index: uint_fast16_t =
-            (row as uint_fast16_t + 1) * (self.cols() - 1) as uint_fast16_t;
+    pub fn get_row_copy(&self, row: FastUInt8, row_data: &mut [matrix_data_t]) {
+        let mut target_index: FastUInt16 = (self.cols() - 1) as _;
+        let mut source_index: FastUInt16 =
+            (row as FastUInt16 + 1) * (self.cols() - 1) as FastUInt16;
 
         row_data[idx!(target_index)] = self.data[idx!(source_index)];
         while target_index != 0 {
@@ -941,15 +941,15 @@ impl<'a, const R: usize, const C: usize> AsMut<[matrix_data_t]> for Matrix<'a, R
 }
 
 impl<'a, const R: usize, const C: usize> MatrixBase for Matrix<'a, R, C> {
-    fn rows(&self) -> uint_fast8_t {
+    fn rows(&self) -> FastUInt8 {
         self.rows()
     }
 
-    fn columns(&self) -> uint_fast8_t {
+    fn columns(&self) -> FastUInt8 {
         self.cols()
     }
 
-    fn len(&self) -> uint_fast16_t {
+    fn len(&self) -> FastUInt16 {
         self.len()
     }
 
@@ -1332,5 +1332,12 @@ mod tests {
         assert_f32_near!(di[6], 0.0);
         assert_f32_near!(di[7], 0.0);
         assert_f32_near!(di[8], 1.0);
+    }
+
+    #[test]
+    fn default_matrix_is_empty() {
+        let mut d = [];
+        let m = Matrix::<0, 0>::new(&mut d);
+        assert!(m.is_empty());
     }
 }

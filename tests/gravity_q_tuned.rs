@@ -6,9 +6,7 @@
 #![forbid(unsafe_code)]
 
 #[cfg(feature = "std")]
-#[allow(unused)]
 use colored::Colorize;
-
 use minikalman::{
     create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
     create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
@@ -45,7 +43,8 @@ const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 #[allow(non_snake_case)]
-fn main() {
+#[test]
+fn test_gravity_estimation_tuned() {
     // System buffers.
     let mut gravity_x = create_buffer_x!(NUM_STATES);
     let mut gravity_A = create_buffer_A!(NUM_STATES);
@@ -107,20 +106,19 @@ fn main() {
     initialize_position_measurement_transformation_matrix(&mut measurement);
     initialize_position_measurement_process_noise_matrix(&mut measurement);
 
+    const LAMBDA: matrix_data_t = 0.5;
+
     // Filter!
     for t in 0..REAL_DISTANCE.len() {
         // Prediction.
-        filter.predict();
-        print_state_prediction(t, filter.state_vector_ref());
+        filter.predict_tuned(LAMBDA);
 
         // Measure ...
         let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
         measurement.measurement_vector_apply(|z| z[0] = m);
-        print_measurement(t);
 
         // Update.
         filter.correct(&mut measurement);
-        print_state_correction(t, filter.state_vector_ref());
     }
 
     // Fetch estimated gravity constant.
@@ -213,50 +211,4 @@ fn initialize_position_measurement_process_noise_matrix(
     measurement.process_noise_apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)
     });
-}
-
-/// Print the state prediction. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_state_prediction<T>(t: usize, x: T)
-where
-    T: AsRef<[matrix_data_t]>,
-{
-    let x = x.as_ref();
-    #[cfg(feature = "std")]
-    println!(
-        "At t = {}, predicted state: s = {}, v = {}, a = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", x[0]).magenta(),
-        format!("{} m/s", x[1]).magenta(),
-        format!("{} m/s²", x[2]).magenta(),
-    );
-}
-
-/// Print the measurement corrected state. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_state_correction<T>(t: usize, x: T)
-where
-    T: AsRef<[matrix_data_t]>,
-{
-    let x = x.as_ref();
-    #[cfg(feature = "std")]
-    println!(
-        "At t = {}, corrected state: s = {}, v = {}, a = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", x[0]).yellow(),
-        format!("{} m/s", x[1]).yellow(),
-        format!("{} m/s²", x[2]).yellow(),
-    );
-}
-
-/// Print the current measurement. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_measurement(t: usize) {
-    #[cfg(feature = "std")]
-    println!(
-        "At t = {}, measurement: s = {}, noise ε = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", REAL_DISTANCE[t]).green(),
-        format!("{} m", MEASUREMENT_ERROR[t]).blue()
-    );
 }

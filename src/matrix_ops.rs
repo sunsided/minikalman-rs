@@ -1,16 +1,16 @@
 use crate::matrix_data_t;
-use stdint::{uint_fast16_t, uint_fast8_t};
+use crate::types::{FastUInt16, FastUInt8};
 
 /// Matrix operations relevant to the Kalman filter calculation.
 pub trait MatrixBase {
     /// Gets the number of rows.
-    fn rows(&self) -> uint_fast8_t;
+    fn rows(&self) -> FastUInt8;
 
     /// Gets the number of columns.
-    fn columns(&self) -> uint_fast8_t;
+    fn columns(&self) -> FastUInt8;
 
     /// Gets the number of elements of this matrix.
-    fn len(&self) -> uint_fast16_t;
+    fn len(&self) -> FastUInt16;
 
     /// Determines if this matrix has zero elements.
     #[inline(always)]
@@ -116,7 +116,7 @@ pub trait MatrixOps: MatrixBase {
     ///
     /// ## Returns
     /// The value at the given cell.
-    fn get(&self, row: uint_fast8_t, column: uint_fast8_t) -> matrix_data_t;
+    fn get(&self, row: FastUInt8, column: FastUInt8) -> matrix_data_t;
 
     /// Sets a matrix element
     ///
@@ -124,7 +124,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `mat` - The matrix to set    /// * `rows` - The row
     /// * `cols` - The column
     /// * `value` - The value to set
-    fn set(&mut self, row: uint_fast8_t, column: uint_fast8_t, value: matrix_data_t);
+    fn set(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t);
 
     /// Sets matrix elements in a symmetric matrix
     ///
@@ -133,7 +133,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `rows` - The row
     /// * `cols` - The column
     /// * `value` - The value to set
-    fn set_symmetric(&mut self, row: uint_fast8_t, column: uint_fast8_t, value: matrix_data_t);
+    fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t);
 
     /// Gets a copy of a matrix column
     ///
@@ -141,7 +141,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `self` - The matrix to initialize
     /// * `column` - The column
     /// * `col_data` - Pointer to an array of the correct length to hold a column of matrix `mat`.
-    fn get_column_copy(&self, column: uint_fast8_t, col_data: &mut [matrix_data_t]);
+    fn get_column_copy(&self, column: FastUInt8, col_data: &mut [matrix_data_t]);
 
     /// Gets a copy of a matrix row
     ///
@@ -149,7 +149,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `self` - The matrix to initialize
     /// * `rows` - The row
     /// * `row_data` - Pointer to an array of the correct length to hold a row of matrix `mat`.
-    fn get_row_copy(&self, row: uint_fast8_t, row_data: &mut [matrix_data_t]);
+    fn get_row_copy(&self, row: FastUInt8, row_data: &mut [matrix_data_t]);
 
     /// Copies the matrix from `mat` to `target`.
     ///
