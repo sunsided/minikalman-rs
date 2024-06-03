@@ -217,9 +217,9 @@ fn initialize_position_measurement_process_noise_matrix(
 
 /// Print the state prediction. Will do nothing on `no_std` features.
 #[allow(unused)]
-fn print_state_prediction<T, D>(t: usize, x: T)
+fn print_state_prediction<T>(t: usize, x: T)
 where
-    T: AsRef<[D]>,
+    T: AsRef<[f32]>,
 {
     let x = x.as_ref();
     #[cfg(not(feature = "no_std"))]
@@ -234,9 +234,9 @@ where
 
 /// Print the measurement corrected state. Will do nothing on `no_std` features.
 #[allow(unused)]
-fn print_state_correction<T, D>(t: usize, x: T)
+fn print_state_correction<T>(t: usize, x: T)
 where
-    T: AsRef<[D]>,
+    T: AsRef<[f32]>,
 {
     let x = x.as_ref();
     #[cfg(not(feature = "no_std"))]
