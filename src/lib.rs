@@ -24,7 +24,6 @@ mod matrix_ops;
 mod measurement;
 mod types;
 
-pub use matrix::matrix_data_t;
 pub use matrix::Matrix;
 
 pub use crate::kalman::Kalman;
@@ -50,13 +49,15 @@ pub use crate::types::*;
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_A {
-    ( $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_A!($num_states, f32))
+    };
+    ( $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -78,13 +79,15 @@ macro_rules! create_buffer_A {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_P {
-    ( $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_P!($num_states, f32))
+    };
+    ( $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -106,13 +109,15 @@ macro_rules! create_buffer_P {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_x {
-    ( $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_x![$num_states, f32])
+    };
+    ( $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * 1) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -135,13 +140,15 @@ macro_rules! create_buffer_x {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_u {
-    ( $num_inputs:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_inputs:expr ) => {
+        (create_buffer_u![$num_inputs, f32])
+    };
+    ( $num_inputs:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_INPUTS_ * 1) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -165,14 +172,16 @@ macro_rules! create_buffer_u {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_B {
-    ( $num_states:expr, $num_inputs:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr, $num_inputs:expr ) => {
+        (create_buffer_B![$num_states, $num_inputs, f32])
+    };
+    ( $num_states:expr, $num_inputs:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_INPUTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -195,13 +204,15 @@ macro_rules! create_buffer_B {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_Q {
-    ( $num_inputs:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_Q![$num_states, f32])
+    };
+    ( $num_inputs:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_INPUTS_ * NUM_INPUTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -227,13 +238,15 @@ macro_rules! create_buffer_Q {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_z {
-    ( $num_measurements:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_z![$num_states, f32])
+    };
+    ( $num_measurements:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * 1) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -260,14 +273,16 @@ macro_rules! create_buffer_z {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_H {
-    ( $num_measurements:expr, $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_measurements:expr, $num_states:expr ) => {
+        (create_buffer_H![$num_measurements, $num_states, f32])
+    };
+    ( $num_measurements:expr, $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_STATES_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -293,13 +308,15 @@ macro_rules! create_buffer_H {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_R {
-    ( $num_measurements:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_measurements:expr ) => {
+        (create_buffer_R![$num_measurements, f32])
+    };
+    ( $num_measurements:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -325,13 +342,15 @@ macro_rules! create_buffer_R {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_y {
-    ( $num_measurements:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_measurements:expr ) => {
+        (create_buffer_y![$num_measurements, f32])
+    };
+    ( $num_measurements:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * 1) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -357,13 +376,15 @@ macro_rules! create_buffer_y {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_S {
-    ( $num_measurements:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_measurements:expr ) => {
+        (create_buffer_S![$num_measurements, f32])
+    };
+    ( $num_measurements:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -390,14 +411,16 @@ macro_rules! create_buffer_S {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_K {
-    ( $num_states:expr, $num_measurements:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr, $num_measurements:expr ) => {
+        (create_buffer_K![$num_states, $num_measurements, f32])
+    };
+    ( $num_states:expr, $num_measurements:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -420,13 +443,15 @@ macro_rules! create_buffer_K {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_x {
-    ( $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_temp_x![$num_states, f32])
+    };
+    ( $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * 1) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -449,13 +474,15 @@ macro_rules! create_buffer_temp_x {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_P {
-    ( $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_temp_P![$num_states, f32])
+    };
+    ( $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -479,14 +506,16 @@ macro_rules! create_buffer_temp_P {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_BQ {
-    ( $num_states:expr, $num_inputs:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr, $num_inputs:expr ) => {
+        (create_buffer_temp_BQ![$num_states, $num_inputs, f32])
+    };
+    ( $num_states:expr, $num_inputs:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_INPUTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -510,13 +539,15 @@ macro_rules! create_buffer_temp_BQ {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_S_inv {
-    ( $num_measurements:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_measurements:expr ) => {
+        (create_buffer_temp_S_inv![$num_measurements, f32])
+    };
+    ( $num_measurements:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -541,14 +572,16 @@ macro_rules! create_buffer_temp_S_inv {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_HP {
-    ( $num_measurements:expr, $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_measurements:expr, $num_states:expr ) => {
+        (create_buffer_temp_HP![$num_measurements, $num_states, f32])
+    };
+    ( $num_measurements:expr, $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -573,14 +606,16 @@ macro_rules! create_buffer_temp_HP {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_PHt {
-    ( $num_states:expr, $num_measurements:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr, $num_measurements:expr ) => {
+        (create_buffer_temp_PHt![$num_states, $num_measurements, f32])
+    };
+    ( $num_states:expr, $num_measurements:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }
 
@@ -605,12 +640,14 @@ macro_rules! create_buffer_temp_PHt {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_KHP {
-    ( $num_states:expr ) => {{
-        use $crate::matrix_data_t;
+    ( $num_states:expr ) => {
+        (create_buffer_temp_KHP![$num_states, f32])
+    };
+    ( $num_states:expr, $t:ty ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as matrix_data_t; COUNT]
+        [0.0 as $t; COUNT]
     }};
 }

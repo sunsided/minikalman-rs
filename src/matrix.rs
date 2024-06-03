@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 
 use crate::types::*;
-use core::ops::{Index, IndexMut};
+use core::ops::{Add, AddAssign, Div, Index, IndexMut, Sub, SubAssign};
 use core::ptr::null;
 
 // Required for sqrt()
@@ -9,12 +9,12 @@ use crate::{MatrixBase, MatrixOps};
 #[cfg(feature = "no_std")]
 use micromath::F32Ext;
 
-#[allow(non_camel_case_types)]
-pub type matrix_data_t = f32;
+use num_traits::real::Real;
+use num_traits::{ConstOne, ConstZero, Float, FloatConst};
 
 /// A matrix wrapping a data buffer.
-pub struct Matrix<'a, const ROWS: usize, const COLS: usize> {
-    pub data: &'a mut [matrix_data_t],
+pub struct Matrix<'a, const ROWS: usize, const COLS: usize, T = f32> {
+    pub data: &'a mut [T],
 }
 
 /// Replaces `x` with `(x) as usize` to simplify index accesses.
@@ -24,14 +24,14 @@ macro_rules! idx {
     };
 }
 
-impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
+impl<'a, T, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS, T> {
     /// Initializes a matrix structure.
     ///
     /// ## Arguments
     /// * `buffer` - The data buffer (of size `rows` x `cols`).
-    pub fn new(buffer: &'a mut [matrix_data_t]) -> Self {
+    pub fn new(buffer: &'a mut [T]) -> Self {
         debug_assert!(
-            buffer.len() >= (ROWS * COLS) as _,
+            buffer.len() >= (ROWS * COLS),
             "Buffer needs to be large enough to keep at least {} × {} = {} elements",
             ROWS,
             COLS,
@@ -62,7 +62,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `buffer` - The data buffer (of size `rows` x `cols`).
     #[cfg_attr(docsrs, doc(cfg(feature = "unsafe")))]
     #[cfg(feature = "unsafe")]
-    pub unsafe fn new_unchecked(ptr: *mut [matrix_data_t]) -> Self {
+    pub unsafe fn new_unchecked(ptr: *mut [T]) -> Self {
         let buffer = unsafe { &mut *ptr };
         if ptr.is_null() {
             debug_assert_eq!(ROWS, 0, "For null buffers, the row count must be zero");
@@ -91,7 +91,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     }
 }
 
-impl<'a, const N: usize> Matrix<'a, N, N> {
+impl<'a, T, const N: usize> Matrix<'a, N, N, T> {
     /// Inverts a square lower triangular matrix. Meant to be used with
     /// [`Matrix::cholesky_decompose_lower`].
     ///
@@ -147,7 +147,10 @@ impl<'a, const N: usize> Matrix<'a, N, N> {
     /// ## Copyright
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_invert_lower")]
-    pub fn invert_l_cholesky(&self, inverse: &mut Self) {
+    pub fn invert_l_cholesky(&self, inverse: &mut Self)
+    where
+        T: Float + ConstZero + ConstOne + AddAssign + core::iter::Sum,
+    {
         let n = N;
         let mat = &self.data; // t
         let inv = &mut inverse.data; // a
@@ -156,16 +159,16 @@ impl<'a, const N: usize> Matrix<'a, N, N> {
         // in the upper triangle to minimize cache misses.
         for i in 0..n {
             let el_ii = mat[idx!(i * n + i)];
-            let inv_el_ii = 1.0 / el_ii;
+            let inv_el_ii = el_ii.recip();
             for j in 0..=i {
-                let mut sum = 0 as matrix_data_t;
+                let mut sum = T::ZERO;
                 if i == j {
-                    sum = 1.0 as matrix_data_t;
+                    sum = T::ONE;
                 };
 
                 sum += (j..i)
                     .map(|k| -mat[idx!(i * n + k)] * inv[idx!(j * n + k)])
-                    .sum::<matrix_data_t>();
+                    .sum::<T>();
 
                 inv[idx!(j * n + i)] = sum * inv_el_ii;
             }
@@ -175,16 +178,16 @@ impl<'a, const N: usize> Matrix<'a, N, N> {
         // takes advantage of symmetry.
         for i in (0..=(n - 1)).rev() {
             let el_ii = mat[idx!(i * n + i)];
-            let inv_el_ii = 1.0 / el_ii;
+            let inv_el_ii = T::ONE.div(el_ii);
             for j in 0..=i {
                 let mut sum = inv[idx!(j * n + i)];
                 if i < j {
-                    sum = 0 as matrix_data_t;
+                    sum = T::ZERO;
                 };
 
                 sum += ((i + 1)..n)
                     .map(|k| -mat[idx!(k * n + i)] * inv[idx!(j * n + k)])
-                    .sum::<matrix_data_t>();
+                    .sum::<T>();
 
                 let value = sum * inv_el_ii;
                 inv[idx!(i * n + j)] = value;
@@ -194,7 +197,10 @@ impl<'a, const N: usize> Matrix<'a, N, N> {
     }
 }
 
-impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
+impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T>
+where
+    T: Float + ConstZero,
+{
     /// Performs a matrix multiplication such that `C = A * B`. This method
     /// uses an auxiliary buffer for keeping one row of `B` cached. This might
     /// improve performance on very wide matrices but is generally slower than
@@ -237,10 +243,12 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     #[doc(alias = "matrix_mult_buffered")]
     pub fn mult_buffered<const U: usize>(
         &self,
-        b: &Matrix<'_, COLS, U>,
-        c: &mut Matrix<'_, ROWS, U>,
-        baux: &mut [matrix_data_t],
-    ) {
+        b: &Matrix<'_, COLS, U, T>,
+        c: &mut Matrix<'_, ROWS, U, T>,
+        baux: &mut [T],
+    ) where
+        T: AddAssign,
+    {
         let arows = self.rows();
         let brows = b.rows();
         let bcols = b.cols();
@@ -251,15 +259,15 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, brows as _);
+        debug_assert_eq!(COLS, brows as usize);
 
         // test dimension of c
-        debug_assert_eq!(ROWS, crows as _);
-        debug_assert_eq!(bcols, ccols as _);
+        debug_assert_eq!(ROWS, crows as usize);
+        debug_assert_eq!(bcols, ccols as FastUInt8);
 
         // Test aux dimensions.
-        debug_assert_eq!(baux.len(), COLS as _);
-        debug_assert_eq!(baux.len(), brows as _);
+        debug_assert_eq!(baux.len(), { COLS });
+        debug_assert_eq!(baux.len(), brows as usize);
 
         for j in (0..bcols).rev() {
             // create a copy of the column in B to avoid cache issues
@@ -267,7 +275,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
             let mut index_a: FastUInt16 = 0;
             for i in 0..arows {
-                let mut total = 0 as matrix_data_t;
+                let mut total = T::ZERO;
                 for k in 0..brows {
                     total += adata[idx!(index_a)] * baux[idx!(k)];
                     index_a += 1;
@@ -313,7 +321,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_mult")]
-    pub fn mult<const U: usize>(&self, b: &Matrix<'_, COLS, U>, c: &mut Matrix<'_, ROWS, U>) {
+    pub fn mult<const U: usize>(&self, b: &Matrix<'_, COLS, U, T>, c: &mut Matrix<'_, ROWS, U, T>)
+    where
+        T: AddAssign,
+    {
         let arows = ROWS;
         let bcols = b.cols() as usize;
         let brows = b.rows() as usize;
@@ -325,16 +336,16 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, brows as _);
+        debug_assert_eq!(COLS, { brows });
 
         // test dimension of c
-        debug_assert_eq!(ROWS, crows as _);
+        debug_assert_eq!(ROWS, { crows });
         debug_assert_eq!(bcols, ccols);
 
         for j in (0..bcols).rev() {
             let mut index_a: FastUInt16 = 0;
             for i in 0..arows {
-                let mut total = 0 as matrix_data_t;
+                let mut total = T::ZERO;
                 for k in 0..brows {
                     total += adata[idx!(index_a)] * bdata[idx!(k * bcols + j)];
                     index_a += 1;
@@ -353,7 +364,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_mult_rowvector")]
-    pub fn mult_rowvector(&self, x: &Matrix<'_, COLS, 1>, c: &mut Matrix<'_, ROWS, 1>) {
+    pub fn mult_rowvector(&self, x: &Matrix<'_, COLS, 1, T>, c: &mut Matrix<'_, ROWS, 1, T>)
+    where
+        T: AddAssign,
+    {
         let arows = self.rows();
         let acols = self.cols();
 
@@ -367,10 +381,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, xrows as _);
+        debug_assert_eq!(COLS, xrows as usize);
 
         // test dimension of c
-        debug_assert_eq!(ROWS, crows as _);
+        debug_assert_eq!(ROWS, crows as usize);
         debug_assert_eq!(ccols, 1);
 
         let mut index_a: FastUInt16 = 0;
@@ -397,7 +411,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_multadd_rowvector")]
-    pub fn multadd_rowvector(&self, x: &Matrix<'_, COLS, 1>, c: &mut Matrix<'_, ROWS, 1>) {
+    pub fn multadd_rowvector(&self, x: &Matrix<'_, COLS, 1, T>, c: &mut Matrix<'_, ROWS, 1, T>)
+    where
+        T: AddAssign,
+    {
         let arows = self.rows();
         let acols = self.cols();
 
@@ -411,10 +428,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, xrows as _);
+        debug_assert_eq!(COLS, xrows as usize);
 
         // test dimension of c
-        debug_assert_eq!(ROWS, crows as _);
+        debug_assert_eq!(ROWS, crows as usize);
         debug_assert_eq!(ccols, 1);
 
         let mut index_a: FastUInt16 = 0;
@@ -443,9 +460,11 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     #[doc(alias = "matrix_mult_transb")]
     pub fn mult_transb<const U: usize>(
         &self,
-        b: &Matrix<'_, U, COLS>,
-        c: &mut Matrix<'_, ROWS, U>,
-    ) {
+        b: &Matrix<'_, U, COLS, T>,
+        c: &mut Matrix<'_, ROWS, U, T>,
+    ) where
+        T: AddAssign,
+    {
         let arows = self.rows();
         let acols = self.cols();
         let bcols = b.cols();
@@ -458,10 +477,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, bcols as _);
+        debug_assert_eq!(COLS, bcols as usize);
 
         // test dimension of c
-        debug_assert_eq!(ROWS, crows as _);
+        debug_assert_eq!(ROWS, crows as usize);
         debug_assert_eq!(b.rows(), ccols);
 
         let mut c_index: FastUInt16 = 0;
@@ -473,7 +492,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
-                let mut total: matrix_data_t = 0.;
+                let mut total: T = T::ZERO;
                 while index_a < end {
                     total += adata[idx!(index_a)] * bdata[idx!(index_b)];
                     index_a += 1;
@@ -498,9 +517,11 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     #[doc(alias = "matrix_multadd_transb")]
     pub fn multadd_transb<const U: usize>(
         &self,
-        b: &Matrix<'_, U, COLS>,
-        c: &mut Matrix<'_, ROWS, U>,
-    ) {
+        b: &Matrix<'_, U, COLS, T>,
+        c: &mut Matrix<'_, ROWS, U, T>,
+    ) where
+        T: AddAssign,
+    {
         let arows = self.rows();
         let acols = self.cols();
         let bcols = b.cols();
@@ -513,10 +534,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, bcols as _);
+        debug_assert_eq!(COLS, bcols as usize);
 
         // test dimension of c
-        debug_assert_eq!(ROWS, crows as _);
+        debug_assert_eq!(ROWS, crows as usize);
         debug_assert_eq!(brows, ccols);
 
         let mut c_index: FastUInt16 = 0;
@@ -528,7 +549,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
-                let mut total: matrix_data_t = 0.;
+                let mut total: T = T::ZERO;
                 while index_a < end {
                     total += adata[idx!(index_a)] * bdata[idx!(index_b)];
                     index_a += 1;
@@ -554,10 +575,12 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     #[doc(alias = "matrix_multscale_transb")]
     pub fn multscale_transb<const U: usize>(
         &self,
-        b: &Matrix<'_, U, COLS>,
-        scale: matrix_data_t,
-        c: &mut Matrix<'_, ROWS, U>,
-    ) {
+        b: &Matrix<'_, U, COLS, T>,
+        scale: T,
+        c: &mut Matrix<'_, ROWS, U, T>,
+    ) where
+        T: AddAssign,
+    {
         let arows = self.rows();
         let acols = self.cols();
         let bcols = b.cols();
@@ -570,10 +593,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, bcols as _);
+        debug_assert_eq!(COLS, bcols as usize);
 
         // test dimension of c
-        debug_assert_eq!(ROWS, crows as _);
+        debug_assert_eq!(ROWS, crows as usize);
         debug_assert_eq!(brows, ccols);
 
         let mut c_index: FastUInt16 = 0;
@@ -585,7 +608,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
-                let mut total: matrix_data_t = 0.;
+                let mut total: T = T::ZERO;
                 while index_a < end {
                     total += adata[idx!(index_a)] * bdata[idx!(index_b)];
                     index_a += 1;
@@ -609,7 +632,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// The value at the given cell.
     #[inline(always)]
     #[doc(alias = "matrix_get")]
-    pub fn get(&self, row: FastUInt8, column: FastUInt8) -> matrix_data_t {
+    pub fn get(&self, row: FastUInt8, column: FastUInt8) -> T {
         self.data[idx!(row * self.cols() + column)]
     }
 
@@ -621,7 +644,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `value` - The value to set
     #[inline(always)]
     #[doc(alias = "matrix_set")]
-    pub fn set(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t) {
+    pub fn set(&mut self, row: FastUInt8, column: FastUInt8, value: T) {
         self.data[idx!(row * self.cols() + column)] = value;
     }
 
@@ -634,7 +657,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `value` - The value to set
     #[inline(always)]
     #[doc(alias = "matrix_set_symmetric")]
-    pub fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t) {
+    pub fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: T) {
         self.set(row, column, value);
         self.set(column, row, value);
     }
@@ -646,7 +669,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `rows` - The row
     /// *  `row_data` - A pointer to the given matrix row
     #[doc(alias = "matrix_get_row_pointer")]
-    pub fn get_row_pointer<'b>(&'a self, row: FastUInt8, row_data: &'b mut &'a [matrix_data_t]) {
+    pub fn get_row_pointer<'b>(&'a self, row: FastUInt8, row_data: &'b mut &'a [T]) {
         *row_data = &self.data[idx!(row * self.cols())..idx!((row + 1) * self.cols())];
     }
 
@@ -657,7 +680,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `column` - The column
     /// * `col_data` - Pointer to an array of the correct length to hold a column of matrix `mat`.
     #[doc(alias = "matrix_get_column_copy")]
-    pub fn get_column_copy(&self, column: FastUInt8, col_data: &mut [matrix_data_t]) {
+    pub fn get_column_copy(&self, column: FastUInt8, col_data: &mut [T]) {
         // start from the back, so target index is equal to the index of the last row.
         let mut target_index: FastInt16 = (self.rows() - 1) as _;
 
@@ -684,7 +707,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `rows` - The row
     /// * `row_data` - Pointer to an array of the correct length to hold a row of matrix `mat`.
     #[doc(alias = "matrix_get_row_copy")]
-    pub fn get_row_copy(&self, row: FastUInt8, row_data: &mut [matrix_data_t]) {
+    pub fn get_row_copy(&self, row: FastUInt8, row_data: &mut [T]) {
         let mut target_index: FastUInt16 = (self.cols() - 1) as _;
         let mut source_index: FastUInt16 =
             (row as FastUInt16 + 1) * (self.cols() - 1) as FastUInt16;
@@ -750,7 +773,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `b` - The values to subtract, also the output
     #[inline]
     #[doc(alias = "matrix_sub_inplace_b")]
-    pub fn sub_inplace_a(&mut self, b: &Self) {
+    pub fn sub_inplace_a(&mut self, b: &Self)
+    where
+        T: SubAssign,
+    {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
 
@@ -792,7 +818,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `b` - The values to add.
     #[inline]
     #[doc(alias = "matrix_add_inplace_b")]
-    pub fn add_inplace_a(&mut self, b: &Self) {
+    pub fn add_inplace_a(&mut self, b: &Self)
+    where
+        T: AddAssign,
+    {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
 
@@ -813,7 +842,10 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// * `b` - The values to add, also the output
     #[inline]
     #[doc(alias = "matrix_add_inplace_b")]
-    pub fn add_inplace_b(&self, b: &mut Self) {
+    pub fn add_inplace_b(&self, b: &mut Self)
+    where
+        T: AddAssign,
+    {
         debug_assert_eq!(self.rows(), b.rows());
         debug_assert_eq!(self.cols(), b.cols());
 
@@ -864,11 +896,14 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     /// ```
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
-    pub fn cholesky_decompose_lower(&mut self) -> bool {
+    pub fn cholesky_decompose_lower(&mut self) -> bool
+    where
+        T: SubAssign,
+    {
         let n = self.rows();
-        let t: &mut [matrix_data_t] = self.data;
+        let t: &mut [T] = self.data;
 
-        let mut div_el_ii = 0 as matrix_data_t;
+        let mut div_el_ii = T::ZERO;
 
         debug_assert_eq!(ROWS, COLS);
         debug_assert!(ROWS > 0);
@@ -890,13 +925,13 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
                 t[idx!(j * n + i)] = sum * div_el_ii;
                 if i == j {
                     // is it positive-definite?
-                    if sum <= 0.0 {
+                    if sum <= T::ZERO {
                         return false;
                     }
 
-                    let el_ii = sum.sqrt() as matrix_data_t;
+                    let el_ii = sum.sqrt();
                     t[idx!(i * n + i)] = el_ii;
-                    div_el_ii = (1.0 as matrix_data_t) / el_ii;
+                    div_el_ii = el_ii.recip();
                 }
             }
         }
@@ -904,7 +939,7 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
         // zero out the top right corner.
         for i in 0..n {
             for j in (i + 1)..n {
-                t[idx!(i * n + j)] = 0.0;
+                t[idx!(i * n + j)] = T::ZERO;
             }
         }
 
@@ -912,8 +947,8 @@ impl<'a, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS> {
     }
 }
 
-impl<'a, const R: usize, const C: usize> Index<usize> for Matrix<'a, R, C> {
-    type Output = matrix_data_t;
+impl<'a, const R: usize, const C: usize, T> Index<usize> for Matrix<'a, R, C, T> {
+    type Output = T;
 
     #[inline(always)]
     fn index(&self, index: usize) -> &Self::Output {
@@ -921,26 +956,26 @@ impl<'a, const R: usize, const C: usize> Index<usize> for Matrix<'a, R, C> {
     }
 }
 
-impl<'a, const R: usize, const C: usize> IndexMut<usize> for Matrix<'a, R, C> {
+impl<'a, const R: usize, const C: usize, T> IndexMut<usize> for Matrix<'a, R, C, T> {
     #[inline(always)]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.data[index]
     }
 }
 
-impl<'a, const R: usize, const C: usize> AsRef<[matrix_data_t]> for Matrix<'a, R, C> {
-    fn as_ref(&self) -> &[matrix_data_t] {
+impl<'a, const R: usize, const C: usize, T> AsRef<[T]> for Matrix<'a, R, C, T> {
+    fn as_ref(&self) -> &[T] {
         self.data
     }
 }
 
-impl<'a, const R: usize, const C: usize> AsMut<[matrix_data_t]> for Matrix<'a, R, C> {
-    fn as_mut(&mut self) -> &mut [matrix_data_t] {
+impl<'a, const R: usize, const C: usize, T> AsMut<[T]> for Matrix<'a, R, C, T> {
+    fn as_mut(&mut self) -> &mut [T] {
         self.data
     }
 }
 
-impl<'a, const R: usize, const C: usize> MatrixBase for Matrix<'a, R, C> {
+impl<'a, const R: usize, const C: usize, T> MatrixBase<T> for Matrix<'a, R, C, T> {
     fn rows(&self) -> FastUInt8 {
         self.rows()
     }
@@ -953,11 +988,11 @@ impl<'a, const R: usize, const C: usize> MatrixBase for Matrix<'a, R, C> {
         self.len()
     }
 
-    fn data_ref(&self) -> &[matrix_data_t] {
+    fn data_ref(&self) -> &[T] {
         self.data
     }
 
-    fn data_mut(&mut self) -> &mut [matrix_data_t] {
+    fn data_mut(&mut self) -> &mut [T] {
         self.data
     }
 }

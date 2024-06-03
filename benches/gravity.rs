@@ -5,15 +5,15 @@ use minikalman::{
     create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
     create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,
     create_buffer_temp_S_inv, create_buffer_temp_x, create_buffer_u, create_buffer_x,
-    create_buffer_y, create_buffer_z, matrix_data_t, Kalman, Measurement,
+    create_buffer_y, create_buffer_z, Kalman, Measurement,
 };
 
-const REAL_DISTANCE: [matrix_data_t; 15] = [
+const REAL_DISTANCE: [f32; 15] = [
     0.0, 4.905, 19.62, 44.145, 78.48, 122.63, 176.58, 240.35, 313.92, 397.31, 490.5, 593.51,
     706.32, 828.94, 961.38,
 ];
 
-const MEASUREMENT_ERROR: [matrix_data_t; 15] = [
+const MEASUREMENT_ERROR: [f32; 15] = [
     0.13442, 0.45847, -0.56471, 0.21554, 0.079691, -0.32692, -0.1084, 0.085656, 0.8946, 0.69236,
     -0.33747, 0.75873, 0.18135, -0.015764, 0.17869,
 ];
@@ -198,7 +198,7 @@ fn initialize_state_vector(filter: &mut Kalman<NUM_STATES, NUM_INPUTS>) {
 fn initialize_state_transition_matrix(filter: &mut Kalman<NUM_STATES, NUM_INPUTS>) {
     filter.state_transition_apply(|a| {
         // Time constant.
-        const T: matrix_data_t = 1 as _;
+        const T: f32 = 1 as _;
 
         // Transition of x to s.
         a.set(0, 0, 1 as _); // 1

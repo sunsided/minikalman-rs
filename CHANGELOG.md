@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- The macros, matrix, filter and measurement structs are now generic on the data type.
+  If no type is provided, it defaults to `f32`.
+
 ## [0.2.3] - 2024-06-03
 
 [0.2.3]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.2.3

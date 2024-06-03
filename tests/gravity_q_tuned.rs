@@ -12,7 +12,7 @@ use minikalman::{
     create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
     create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,
     create_buffer_temp_S_inv, create_buffer_temp_x, create_buffer_u, create_buffer_x,
-    create_buffer_y, create_buffer_z, matrix_data_t, Kalman, Measurement,
+    create_buffer_y, create_buffer_z, Kalman, Measurement,
 };
 
 /// Measurements.
@@ -22,7 +22,7 @@ use minikalman::{
 /// s = s + v*T + g*0.5*T^2;
 /// v = v + g*T;
 /// ```
-const REAL_DISTANCE: [matrix_data_t; 15] = [
+const REAL_DISTANCE: [f64; 15] = [
     0.0, 4.905, 19.62, 44.145, 78.48, 122.63, 176.58, 240.35, 313.92, 397.31, 490.5, 593.51,
     706.32, 828.94, 961.38,
 ];
@@ -33,7 +33,7 @@ const REAL_DISTANCE: [matrix_data_t; 15] = [
 /// ```matlab
 /// noise = 0.5^2*randn(15,1);
 /// ```
-const MEASUREMENT_ERROR: [matrix_data_t; 15] = [
+const MEASUREMENT_ERROR: [f64; 15] = [
     0.13442, 0.45847, -0.56471, 0.21554, 0.079691, -0.32692, -0.1084, 0.085656, 0.8946, 0.69236,
     -0.33747, 0.75873, 0.18135, -0.015764, 0.17869,
 ];
@@ -46,35 +46,35 @@ const NUM_MEASUREMENTS: usize = 1;
 #[test]
 fn test_gravity_estimation_tuned() {
     // System buffers.
-    let mut gravity_x = create_buffer_x!(NUM_STATES);
-    let mut gravity_A = create_buffer_A!(NUM_STATES);
-    let mut gravity_P = create_buffer_P!(NUM_STATES);
+    let mut gravity_x = create_buffer_x!(NUM_STATES, f64);
+    let mut gravity_A = create_buffer_A!(NUM_STATES, f64);
+    let mut gravity_P = create_buffer_P!(NUM_STATES, f64);
 
     // Input buffers.
-    let mut gravity_u = create_buffer_u!(0);
-    let mut gravity_B = create_buffer_B!(0, 0);
-    let mut gravity_Q = create_buffer_Q!(0);
+    let mut gravity_u = create_buffer_u!(0, f64);
+    let mut gravity_B = create_buffer_B!(0, 0, f64);
+    let mut gravity_Q = create_buffer_Q!(0, f64);
 
     // Measurement buffers.
-    let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-    let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-    let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-    let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-    let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS, f64);
+    let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, f64);
+    let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS, f64);
+    let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS, f64);
+    let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS, f64);
+    let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, f64);
 
     // Filter temporaries.
-    let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-    let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-    let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES, f64);
+    let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES, f64);
+    let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, f64);
 
     // Measurement temporaries.
-    let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, f64);
+    let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, f64);
+    let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS, f64);
+    let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, f64);
 
-    let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
+    let mut filter = Kalman::<NUM_STATES, NUM_INPUTS, f64>::new_direct(
         &mut gravity_A,
         &mut gravity_x,
         &mut gravity_B,
@@ -86,7 +86,7 @@ fn test_gravity_estimation_tuned() {
         &mut gravity_temp_BQ,
     );
 
-    let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS, f64>::new_direct(
         &mut gravity_H,
         &mut gravity_z,
         &mut gravity_R,
@@ -106,7 +106,7 @@ fn test_gravity_estimation_tuned() {
     initialize_position_measurement_transformation_matrix(&mut measurement);
     initialize_position_measurement_process_noise_matrix(&mut measurement);
 
-    const LAMBDA: matrix_data_t = 0.5;
+    const LAMBDA: f64 = 0.5;
 
     // Filter!
     for t in 0..REAL_DISTANCE.len() {
@@ -127,7 +127,7 @@ fn test_gravity_estimation_tuned() {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
+fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, f64>) {
     filter.state_vector_apply(|state| {
         state[0] = 0 as _; // position
         state[1] = 0 as _; // velocity
@@ -143,10 +143,10 @@ fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
+fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, f64>) {
     filter.state_transition_apply(|a| {
         // Time constant.
-        const T: matrix_data_t = 1 as _;
+        const T: f64 = 1 as _;
 
         // Transition of x to s.
         a.set(0, 0, 1 as _); // 1
@@ -170,7 +170,7 @@ fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// This defines how different states (linearly) influence each other
 /// over time. In this setup we claim that position, velocity and acceleration
 /// linearly are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
+fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, f64>) {
     filter.system_covariance_apply(|p| {
         p.set(0, 0, 0.1 as _); // var(s)
         p.set(0, 1, 0 as _); // cov(s, v)
@@ -191,7 +191,7 @@ fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS>,
+    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS, f64>,
 ) {
     measurement.measurement_transformation_apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
@@ -206,7 +206,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS>,
+    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS, f64>,
 ) {
     measurement.process_noise_apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)
