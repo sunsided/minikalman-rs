@@ -7,6 +7,13 @@
 //! This implementation uses statically allocated buffers for all matrix operations. Due to lack
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
 //! to create the required arrays (see e.g. [`create_buffer_A`]).
+//!
+//! ## Crate Features
+//!
+//! * `no_std` - Enabled by default. Turns on the `no_std` configuration attribute.
+//! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
+//! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
+//!              compiles the crate as `#![forbid(unsafe)]`.
 
 // only enables the `doc_cfg` feature when
 // the `docsrs` configuration attribute is defined
@@ -35,6 +42,8 @@ pub use crate::types::*;
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -45,6 +54,15 @@ pub use crate::types::*;
 /// let mut gravity_x = create_buffer_x!(NUM_STATES);
 /// let mut gravity_A = create_buffer_A!(NUM_STATES);
 /// let mut gravity_P = create_buffer_P!(NUM_STATES);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// let mut gravity_A = create_buffer_A!(NUM_STATES, f64);
+/// let mut gravity_A = create_buffer_A!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -53,11 +71,15 @@ macro_rules! create_buffer_A {
         (create_buffer_A!($num_states, f32))
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_A!($num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -65,6 +87,8 @@ macro_rules! create_buffer_A {
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -75,6 +99,15 @@ macro_rules! create_buffer_A {
 /// let mut gravity_x = create_buffer_x!(NUM_STATES);
 /// let mut gravity_A = create_buffer_A!(NUM_STATES);
 /// let mut gravity_P = create_buffer_P!(NUM_STATES);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// let mut gravity_P = create_buffer_P!(NUM_STATES, f64);
+/// let mut gravity_P = create_buffer_P!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -83,11 +116,15 @@ macro_rules! create_buffer_P {
         (create_buffer_P!($num_states, f32))
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_P!($num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -95,6 +132,8 @@ macro_rules! create_buffer_P {
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -106,6 +145,15 @@ macro_rules! create_buffer_P {
 /// let mut gravity_A = create_buffer_A!(NUM_STATES);
 /// let mut gravity_P = create_buffer_P!(NUM_STATES);
 /// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// let mut gravity_x = create_buffer_x!(NUM_STATES, f64);
+/// let mut gravity_x = create_buffer_x!(NUM_STATES, f64, 0.0);
+/// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_x {
@@ -113,11 +161,15 @@ macro_rules! create_buffer_x {
         (create_buffer_x![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_x!($num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -125,6 +177,8 @@ macro_rules! create_buffer_x {
 ///
 /// ## Arguments
 /// * `num_inputs` - The number of states describing the system.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -136,6 +190,15 @@ macro_rules! create_buffer_x {
 /// let mut gravity_u = create_buffer_u!(NUM_INPUTS);
 /// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
 /// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_INPUTS: usize = 1;
+/// let mut gravity_u = create_buffer_u!(NUM_INPUTS, f64);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -144,11 +207,16 @@ macro_rules! create_buffer_u {
         (create_buffer_u![$num_inputs, f32])
     };
     ( $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_u!($num_inputs, $t, <$t>::ZERO)
+    }};
+    ( $num_inputs:expr, $t:ty, $value:expr ) => {{
+        use num_traits::ConstZero;
         use $crate::FastUInt16;
 
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_INPUTS_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -157,6 +225,8 @@ macro_rules! create_buffer_u {
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
 /// * `num_inputs` - The number of inputs.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -168,6 +238,16 @@ macro_rules! create_buffer_u {
 /// let mut gravity_u = create_buffer_u!(NUM_INPUTS);
 /// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
 /// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_INPUTS: usize = 1;
+/// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS, f64);
+/// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -176,12 +256,16 @@ macro_rules! create_buffer_B {
         (create_buffer_B![$num_states, $num_inputs, f32])
     };
     ( $num_states:expr, $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_B!($num_states, $num_inputs, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $num_inputs:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_INPUTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -189,6 +273,8 @@ macro_rules! create_buffer_B {
 ///
 /// ## Arguments
 /// * `num_inputs` - The number of states describing the system.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -201,6 +287,16 @@ macro_rules! create_buffer_B {
 /// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
 /// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
 /// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_INPUTS: usize = 1;
+/// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS, f64);
+/// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS, f64, 0.0);
+/// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_Q {
@@ -208,11 +304,15 @@ macro_rules! create_buffer_Q {
         (create_buffer_Q![$num_states, f32])
     };
     ( $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_Q!($num_inputs, $t, <$t>::ZERO)
+    }};
+    ( $num_inputs:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_INPUTS_ * NUM_INPUTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -220,6 +320,8 @@ macro_rules! create_buffer_Q {
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -235,18 +337,32 @@ macro_rules! create_buffer_Q {
 /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
 /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS, f64);
+/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS, f64, 0.0);
+/// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_z {
-    ( $num_states:expr ) => {
-        (create_buffer_z![$num_states, f32])
+    ( $num_measurements:expr ) => {
+        (create_buffer_z![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_z!($num_measurements, $t, <$t>::ZERO)
+    }};
+    ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -255,6 +371,8 @@ macro_rules! create_buffer_z {
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
 /// * `num_states` - The number of states.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -269,6 +387,16 @@ macro_rules! create_buffer_z {
 /// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
 /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
 /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, f64);
+/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -277,12 +405,16 @@ macro_rules! create_buffer_H {
         (create_buffer_H![$num_measurements, $num_states, f32])
     };
     ( $num_measurements:expr, $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_H!($num_measurements, $num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_measurements:expr, $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -290,6 +422,8 @@ macro_rules! create_buffer_H {
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -304,6 +438,16 @@ macro_rules! create_buffer_H {
 /// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
 /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
 /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS, f64);
+/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -312,11 +456,15 @@ macro_rules! create_buffer_R {
         (create_buffer_R![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_R!($num_measurements, $t, <$t>::ZERO)
+    }};
+    ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -324,6 +472,8 @@ macro_rules! create_buffer_R {
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -338,6 +488,16 @@ macro_rules! create_buffer_R {
 /// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
 /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
 /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS, f64);
+/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -346,11 +506,15 @@ macro_rules! create_buffer_y {
         (create_buffer_y![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_y!($num_measurements, $t, <$t>::ZERO)
+    }};
+    ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -358,6 +522,8 @@ macro_rules! create_buffer_y {
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -372,6 +538,16 @@ macro_rules! create_buffer_y {
 /// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
 /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
 /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS, f64);
+/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -380,11 +556,15 @@ macro_rules! create_buffer_S {
         (create_buffer_S![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_S!($num_measurements, $t, <$t>::ZERO)
+    }};
+    ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -393,6 +573,8 @@ macro_rules! create_buffer_S {
 /// ## Arguments
 /// * `num_states` - The number of states.
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -408,6 +590,16 @@ macro_rules! create_buffer_S {
 /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
 /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, f64);
+/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, f64, 0.0);
+/// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_K {
@@ -415,12 +607,16 @@ macro_rules! create_buffer_K {
         (create_buffer_K![$num_states, $num_measurements, f32])
     };
     ( $num_states:expr, $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_K!($num_states, $num_measurements, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $num_measurements:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -428,6 +624,8 @@ macro_rules! create_buffer_K {
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -439,6 +637,16 @@ macro_rules! create_buffer_K {
 /// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
 /// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
 /// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_INPUTS: usize = 1;
+/// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES, f64);
+/// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -447,11 +655,15 @@ macro_rules! create_buffer_temp_x {
         (create_buffer_temp_x![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_temp_x!($num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * 1) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -459,6 +671,8 @@ macro_rules! create_buffer_temp_x {
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -470,6 +684,16 @@ macro_rules! create_buffer_temp_x {
 /// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
 /// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
 /// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_INPUTS: usize = 1;
+/// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES, f64);
+/// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -478,11 +702,15 @@ macro_rules! create_buffer_temp_P {
         (create_buffer_temp_P![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_temp_P!($num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -491,6 +719,8 @@ macro_rules! create_buffer_temp_P {
 /// ## Arguments
 /// * `num_states` - The number of states.
 /// * `num_inputs` - The number of inputs.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -503,6 +733,15 @@ macro_rules! create_buffer_temp_P {
 /// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
 /// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
 /// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_INPUTS: usize = 1;
+/// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, f64);
+/// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_BQ {
@@ -510,12 +749,16 @@ macro_rules! create_buffer_temp_BQ {
         (create_buffer_temp_BQ![$num_states, $num_inputs, f32])
     };
     ( $num_states:expr, $num_inputs:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_temp_BQ!($num_states, $num_inputs, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $num_inputs:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_INPUTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -523,6 +766,8 @@ macro_rules! create_buffer_temp_BQ {
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -535,6 +780,17 @@ macro_rules! create_buffer_temp_BQ {
 /// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
 /// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
 /// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, f64);
+/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, f64, 0.0);
+/// ```
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -543,11 +799,15 @@ macro_rules! create_buffer_temp_S_inv {
         (create_buffer_temp_S_inv![$num_measurements, f32])
     };
     ( $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_temp_S_inv!($num_measurements, $t, <$t>::ZERO)
+    }};
+    ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -556,6 +816,8 @@ macro_rules! create_buffer_temp_S_inv {
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
 /// * `num_states` - The number of states.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -568,6 +830,16 @@ macro_rules! create_buffer_temp_S_inv {
 /// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
 /// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
 /// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, f64);
+/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -576,12 +848,16 @@ macro_rules! create_buffer_temp_HP {
         (create_buffer_temp_HP![$num_measurements, $num_states, f32])
     };
     ( $num_measurements:expr, $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_temp_HP!($num_measurements, $num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_measurements:expr, $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -590,6 +866,8 @@ macro_rules! create_buffer_temp_HP {
 /// ## Arguments
 /// * `num_states` - The number of states.
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -602,6 +880,15 @@ macro_rules! create_buffer_temp_HP {
 /// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
 /// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
 /// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+/// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS, f64);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -610,12 +897,16 @@ macro_rules! create_buffer_temp_PHt {
         (create_buffer_temp_PHt![$num_states, $num_measurements, f32])
     };
     ( $num_states:expr, $num_measurements:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_temp_PHt!($num_states, $num_measurements, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $num_measurements:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_MEASUREMENTS_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }
 
@@ -624,6 +915,8 @@ macro_rules! create_buffer_temp_PHt {
 /// ## Arguments
 /// * `num_states` - The number of states.
 /// * `num_measurements` - The number of measurements.
+/// * `t` - Optional: The data type. Defaults to `f32`.
+/// * `value` - Optional: The constant value to initialize the field with. Defaults to [`ZERO`](num_traits::ConstZero::ZERO).
 ///
 /// ## Example
 /// ```
@@ -637,6 +930,15 @@ macro_rules! create_buffer_temp_PHt {
 /// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
 /// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 /// ```
+///
+/// or with explicit types:
+///
+/// ```
+/// # use minikalman::*;
+/// # const NUM_STATES: usize = 3;
+/// # const NUM_MEASUREMENTS: usize = 1;
+/// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, f64);
+/// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! create_buffer_temp_KHP {
@@ -644,10 +946,14 @@ macro_rules! create_buffer_temp_KHP {
         (create_buffer_temp_KHP![$num_states, f32])
     };
     ( $num_states:expr, $t:ty ) => {{
+        use num_traits::ConstZero;
+        create_buffer_temp_KHP!($num_states, $t, <$t>::ZERO)
+    }};
+    ( $num_states:expr, $t:ty, $value:expr ) => {{
         use $crate::FastUInt16;
 
         const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
         const COUNT: usize = (NUM_STATES_ * NUM_STATES_) as usize;
-        [0.0 as $t; COUNT]
+        [($value) as $t; COUNT]
     }};
 }

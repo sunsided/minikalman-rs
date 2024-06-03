@@ -1,7 +1,5 @@
 use crate::measurement::Measurement;
-use crate::{FastUInt8, Matrix};
-use core::ops::{AddAssign, SubAssign};
-use num_traits::{ConstOne, ConstZero, Float};
+use crate::{FastUInt8, Matrix, MatrixDataType};
 
 /// Kalman Filter structure.
 #[allow(non_snake_case, unused)]
@@ -114,10 +112,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
         predictedX: &'a mut [T],
         temp_P: &'a mut [T],
         temp_BQ: &'a mut [T],
-    ) -> Self
-    where
-        T: Float,
-    {
+    ) -> Self {
         Self::new(
             Matrix::<STATES, STATES, T>::new(A),
             Matrix::<STATES, 1, T>::new(x),
@@ -144,10 +139,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
         predictedX: &'a mut [T],
         temp_P: &'a mut [T],
         temp_BQ: &'a mut [T],
-    ) -> Self
-    where
-        T: Float,
-    {
+    ) -> Self {
         Self::new_direct(A, x, B, u, P, Q, predictedX, temp_P, temp_BQ)
     }
 
@@ -180,10 +172,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
         predictedX: Matrix<'a, STATES, 1, T>,
         temp_P: Matrix<'a, STATES, STATES, T>,
         temp_BQ: Matrix<'a, STATES, INPUTS, T>,
-    ) -> Self
-    where
-        T: Float,
-    {
+    ) -> Self {
         debug_assert_eq!(
             A.rows(),
             STATES as FastUInt8,
@@ -550,7 +539,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[doc(alias = "kalman_predict")]
     pub fn predict(&mut self)
     where
-        T: Float + ConstZero + AddAssign,
+        T: MatrixDataType,
     {
         //* Predict next state using system dynamics
         //* x = A*x
@@ -649,7 +638,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned(&mut self, lambda: T)
     where
-        T: Float + ConstZero + AddAssign,
+        T: MatrixDataType,
     {
         //* Predict next state using system dynamics
         //* x = A*x
@@ -665,7 +654,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[doc(alias = "kalman_predict_x")]
     fn predict_x(&mut self)
     where
-        T: Float + ConstZero + AddAssign,
+        T: MatrixDataType,
     {
         // matrices and vectors
         let A = &self.A;
@@ -686,7 +675,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[doc(alias = "kalman_predict_Q")]
     fn predict_Q(&mut self)
     where
-        T: Float + ConstZero + AddAssign,
+        T: MatrixDataType,
     {
         // matrices and vectors
         let A = &self.A;
@@ -720,7 +709,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[doc(alias = "kalman_predict_Q")]
     fn predict_Q_tuned(&mut self, lambda: T)
     where
-        T: Float + ConstZero + AddAssign,
+        T: MatrixDataType,
     {
         // matrices and vectors
         let A = &self.A;
@@ -834,7 +823,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[doc(alias = "kalman_predict_Q")]
     pub fn correct<const M: usize>(&mut self, kfm: &mut Measurement<'a, STATES, M, T>)
     where
-        T: Float + AddAssign + SubAssign + ConstOne + ConstZero + core::iter::Sum,
+        T: MatrixDataType,
     {
         // matrices and vectors
         let P = &mut self.P;

@@ -1,6 +1,5 @@
 use crate::types::FastUInt8;
 use crate::Matrix;
-use num_traits::Float;
 
 /// Kalman Filter measurement structure.
 #[allow(non_snake_case, unused)]
@@ -123,10 +122,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
         temp_HP: &'a mut [T],
         temp_PHt: &'a mut [T],
         temp_KHP: &'a mut [T],
-    ) -> Self
-    where
-        T: Float,
-    {
+    ) -> Self {
         Self::new(
             Matrix::<MEASUREMENTS, STATES, T>::new(H),
             Matrix::<MEASUREMENTS, 1, T>::new(z),
@@ -170,10 +166,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
         temp_HP: Matrix<'a, MEASUREMENTS, STATES, T>,
         temp_PHt: Matrix<'a, STATES, MEASUREMENTS, T>,
         temp_KHP: Matrix<'a, STATES, STATES, T>,
-    ) -> Self
-    where
-        T: Float,
-    {
+    ) -> Self {
         debug_assert_eq!(
             H.rows(), MEASUREMENTS as FastUInt8,
             "The measurement transformation matrix H requires {} rows and {} columns (i.e. measurements × states)",
