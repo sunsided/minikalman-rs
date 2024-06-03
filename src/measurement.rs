@@ -105,7 +105,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     /// );
     /// ```
     ///
-    /// See also [`Kalman::new_direct`] for setting up the Kalman filter itself.
+    /// See also [`Kalman::new_direct`](crate::Kalman::new_direct) for setting up the Kalman filter itself.
     #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new_direct(
