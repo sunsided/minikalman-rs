@@ -1,8 +1,7 @@
-use crate::matrix_data_t;
 use crate::types::{FastUInt16, FastUInt8};
 
 /// Matrix operations relevant to the Kalman filter calculation.
-pub trait MatrixBase {
+pub trait MatrixBase<T> {
     /// Gets the number of rows.
     fn rows(&self) -> FastUInt8;
 
@@ -19,14 +18,14 @@ pub trait MatrixBase {
     }
 
     /// Gets an immutable reference to the data.
-    fn data_ref(&self) -> &[matrix_data_t];
+    fn data_ref(&self) -> &[T];
 
     /// Gets a mutable reference to the data.
-    fn data_mut(&mut self) -> &mut [matrix_data_t];
+    fn data_mut(&mut self) -> &mut [T];
 }
 
 /// Matrix operations relevant to the Kalman filter calculation.
-pub trait MatrixOps: MatrixBase {
+pub trait MatrixOps<T>: MatrixBase<T> {
     type Target;
 
     /// Inverts a square lower triangular matrix. Meant to be used with
@@ -53,7 +52,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `b` - Matrix B
     /// * `c` - Resulting matrix C (will be overwritten)
     /// * `aux` -  Auxiliary vector that can hold a column of `b`.
-    fn mult_buffered(&self, b: &Self::Target, c: &mut Self::Target, baux: &mut [matrix_data_t]);
+    fn mult_buffered(&self, b: &Self::Target, c: &mut Self::Target, baux: &mut [T]);
 
     /// Performs a matrix multiplication such that `C = A * B`.
     ///
@@ -105,7 +104,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `b` - Matrix B
     /// * `scale` - Scaling factor
     /// * `c` - Resulting matrix C(will be overwritten)
-    fn multscale_transb(&self, b: &Self::Target, scale: matrix_data_t, c: &mut Self::Target);
+    fn multscale_transb(&self, b: &Self::Target, scale: T, c: &mut Self::Target);
 
     /// Gets a matrix element
     ///
@@ -116,7 +115,7 @@ pub trait MatrixOps: MatrixBase {
     ///
     /// ## Returns
     /// The value at the given cell.
-    fn get(&self, row: FastUInt8, column: FastUInt8) -> matrix_data_t;
+    fn get(&self, row: FastUInt8, column: FastUInt8) -> T;
 
     /// Sets a matrix element
     ///
@@ -124,7 +123,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `mat` - The matrix to set    /// * `rows` - The row
     /// * `cols` - The column
     /// * `value` - The value to set
-    fn set(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t);
+    fn set(&mut self, row: FastUInt8, column: FastUInt8, value: T);
 
     /// Sets matrix elements in a symmetric matrix
     ///
@@ -133,7 +132,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `rows` - The row
     /// * `cols` - The column
     /// * `value` - The value to set
-    fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: matrix_data_t);
+    fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: T);
 
     /// Gets a copy of a matrix column
     ///
@@ -141,7 +140,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `self` - The matrix to initialize
     /// * `column` - The column
     /// * `col_data` - Pointer to an array of the correct length to hold a column of matrix `mat`.
-    fn get_column_copy(&self, column: FastUInt8, col_data: &mut [matrix_data_t]);
+    fn get_column_copy(&self, column: FastUInt8, col_data: &mut [T]);
 
     /// Gets a copy of a matrix row
     ///
@@ -149,7 +148,7 @@ pub trait MatrixOps: MatrixBase {
     /// * `self` - The matrix to initialize
     /// * `rows` - The row
     /// * `row_data` - Pointer to an array of the correct length to hold a row of matrix `mat`.
-    fn get_row_copy(&self, row: FastUInt8, row_data: &mut [matrix_data_t]);
+    fn get_row_copy(&self, row: FastUInt8, row_data: &mut [T]);
 
     /// Copies the matrix from `mat` to `target`.
     ///
