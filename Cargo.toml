@@ -9,7 +9,6 @@ license = "MIT"
 readme = "README.md"
 edition = "2021"
 rust-version = "1.70.0"
-build = "build.rs"
 
 [[bench]]
 name = "inversion"
@@ -30,8 +29,7 @@ path = "examples/gravity.rs"
 [features]
 default = ["no_std"]
 no_std = ["micromath"]
-std = ["stdint", "stdint/std"]
-stdint = ["dep:stdint"]
+stdint = ["dep:stdint", "stdint/std"]
 unsafe = []
 
 [dependencies]

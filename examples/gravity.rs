@@ -5,7 +5,7 @@
 
 #![forbid(unsafe_code)]
 
-#[cfg(feature = "std")]
+#[cfg(not(feature = "no_std"))]
 #[allow(unused)]
 use colored::Colorize;
 
@@ -222,7 +222,7 @@ where
     T: AsRef<[matrix_data_t]>,
 {
     let x = x.as_ref();
-    #[cfg(feature = "std")]
+    #[cfg(not(feature = "no_std"))]
     println!(
         "At t = {}, predicted state: s = {}, v = {}, a = {}",
         format!("{}", t).bright_white(),
@@ -239,7 +239,7 @@ where
     T: AsRef<[matrix_data_t]>,
 {
     let x = x.as_ref();
-    #[cfg(feature = "std")]
+    #[cfg(not(feature = "no_std"))]
     println!(
         "At t = {}, corrected state: s = {}, v = {}, a = {}",
         format!("{}", t).bright_white(),
@@ -252,7 +252,7 @@ where
 /// Print the current measurement. Will do nothing on `no_std` features.
 #[allow(unused)]
 fn print_measurement(t: usize) {
-    #[cfg(feature = "std")]
+    #[cfg(not(feature = "no_std"))]
     println!(
         "At t = {}, measurement: s = {}, noise ε = {}",
         format!("{}", t).bright_white(),
