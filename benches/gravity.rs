@@ -5,7 +5,7 @@ use minikalman::{
     create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
     create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,
     create_buffer_temp_S_inv, create_buffer_temp_x, create_buffer_u, create_buffer_x,
-    create_buffer_y, create_buffer_z, matrix_data_t, Kalman, Measurement
+    create_buffer_y, create_buffer_z, matrix_data_t, Kalman, Measurement,
 };
 
 const REAL_DISTANCE: [matrix_data_t; 15] = [

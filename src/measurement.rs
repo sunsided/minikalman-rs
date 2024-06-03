@@ -93,7 +93,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
             Matrix::<MEASUREMENTS, MEASUREMENTS>::new(S_inv),
             Matrix::<MEASUREMENTS, STATES>::new(temp_HP),
             Matrix::<STATES, MEASUREMENTS>::new(temp_PHt),
-            Matrix::<STATES, STATES>::new(temp_KHP)
+            Matrix::<STATES, STATES>::new(temp_KHP),
         )
     }
 
@@ -334,5 +334,64 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
         F: FnMut(&mut Matrix<'a, MEASUREMENTS, MEASUREMENTS>),
     {
         f(&mut self.R)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        create_buffer_H, create_buffer_K, create_buffer_R, create_buffer_S, create_buffer_temp_HP,
+        create_buffer_temp_KHP, create_buffer_temp_PHt, create_buffer_temp_S_inv, create_buffer_y,
+        create_buffer_z,
+    };
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test() {
+        const NUM_STATES: usize = 3;
+        const NUM_MEASUREMENTS: usize = 1;
+
+        // Measurement buffers.
+        let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+        let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+        let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+        let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+        let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+        let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+
+        // Measurement temporaries.
+        let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+        let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+        let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+        let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+
+        gravity_z[0] = 1.0;
+        gravity_H[0] = 2.0;
+        gravity_R[0] = 3.0;
+        gravity_y[0] = 4.0;
+        gravity_S[0] = 5.0;
+        gravity_K[0] = 6.0;
+
+        let measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+            &mut gravity_H,
+            &mut gravity_z,
+            &mut gravity_R,
+            &mut gravity_y,
+            &mut gravity_S,
+            &mut gravity_K,
+            &mut gravity_temp_S_inv,
+            &mut gravity_temp_HP,
+            &mut gravity_temp_PHt,
+            &mut gravity_temp_KHP,
+        );
+
+        assert_eq!(measurement.measurement_vector_ref().data[0], 1.0);
+        assert_eq!(measurement.measurement_transformation_ref().data[0], 2.0);
+        assert_eq!(measurement.process_noise_ref().data[0], 3.0);
+
+        // Legacy
+        assert_eq!(Measurement::<NUM_STATES, NUM_MEASUREMENTS>::measurements(), NUM_MEASUREMENTS as _);
+        assert_eq!(Measurement::<NUM_STATES, NUM_MEASUREMENTS>::states(), NUM_STATES as _);
     }
 }
