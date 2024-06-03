@@ -69,6 +69,43 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     /// * `temp_HP` - The temporary matrix for H×P calculation (`num_measurements` × `num_states`).
     /// * `temp_PHt` - The temporary matrix for P×H' calculation (`num_states` × `num_measurements`).
     /// * `temp_KHP` - The temporary matrix for K×H×P calculation (`num_states` × `num_states`).
+    /// ## Example
+    ///
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::*;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// // Measurement buffers.
+    /// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    /// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    /// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    /// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    ///
+    /// // Measurement temporaries.
+    /// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    /// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    /// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    /// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    ///
+    /// let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    ///     &mut gravity_H,
+    ///     &mut gravity_z,
+    ///     &mut gravity_R,
+    ///     &mut gravity_y,
+    ///     &mut gravity_S,
+    ///     &mut gravity_K,
+    ///     &mut gravity_temp_S_inv,
+    ///     &mut gravity_temp_HP,
+    ///     &mut gravity_temp_PHt,
+    ///     &mut gravity_temp_KHP,
+    /// );
+    /// ```
+    ///
+    /// See also [`Kalman::new_direct`] for setting up the Kalman filter itself.
     #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new_direct(
@@ -110,6 +147,9 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     /// * `temp_HP` - The temporary matrix for H×P calculation (`num_measurements` × `num_states`).
     /// * `temp_PHt` - The temporary matrix for P×H' calculation (`num_states` × `num_measurements`).
     /// * `temp_KHP` - The temporary matrix for K×H×P calculation (`num_states` × `num_states`).
+    ///
+    /// ## Example
+    /// See [`Measurement::new_direct`] for an example.
     #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new(
@@ -282,6 +322,83 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize> Measurement<'a, STATES,
     }
 
     /// Applies a function to the measurement vector z.
+    ///
+    /// ## Example
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::*;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # // System buffers.
+    /// # let mut gravity_x = create_buffer_x!(NUM_STATES);
+    /// # let mut gravity_A = create_buffer_A!(NUM_STATES);
+    /// # let mut gravity_P = create_buffer_P!(NUM_STATES);
+    /// #
+    /// # // Input buffers.
+    /// # let mut gravity_u = create_buffer_u!(0);
+    /// # let mut gravity_B = create_buffer_B!(0, 0);
+    /// # let mut gravity_Q = create_buffer_Q!(0);
+    /// #
+    /// # // Filter temporaries.
+    /// # let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    /// #
+    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// #     &mut gravity_A,
+    /// #     &mut gravity_x,
+    /// #     &mut gravity_B,
+    /// #     &mut gravity_u,
+    /// #     &mut gravity_P,
+    /// #     &mut gravity_Q,
+    /// #     &mut gravity_temp_x,
+    /// #     &mut gravity_temp_P,
+    /// #     &mut gravity_temp_BQ,
+    /// #  );
+    /// #
+    /// # // Measurement buffers.
+    /// # let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    /// # let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    /// # let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    /// # let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    /// # let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// #
+    /// # // Measurement temporaries.
+    /// # let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// #
+    /// # let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    /// #     &mut gravity_H,
+    /// #     &mut gravity_z,
+    /// #     &mut gravity_R,
+    /// #     &mut gravity_y,
+    /// #     &mut gravity_S,
+    /// #     &mut gravity_K,
+    /// #     &mut gravity_temp_S_inv,
+    /// #     &mut gravity_temp_HP,
+    /// #     &mut gravity_temp_PHt,
+    /// #     &mut gravity_temp_KHP,
+    /// # );
+    /// #
+    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// #
+    /// for t in 0..REAL_DISTANCE.len() {
+    ///     // Prediction.
+    ///     filter.predict();
+    ///
+    ///     // Measure ...
+    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     measurement.measurement_vector_apply(|z| z[0] = m);
+    ///
+    ///     // Update.
+    ///     filter.correct(&mut measurement);
+    /// }
+    /// ```
     #[inline(always)]
     pub fn measurement_vector_apply<F>(&mut self, mut f: F)
     where

@@ -74,7 +74,7 @@ fn test_gravity_estimation() {
     let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
     let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 
-    let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
         &mut gravity_A,
         &mut gravity_x,
         &mut gravity_B,

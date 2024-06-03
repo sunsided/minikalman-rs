@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2024-06-03
+
+[0.2.3]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.2.3
+
+### Internal
+
+- Improved documentation of `Kalman` and `Measurement` structs.
+
 ## [0.2.2] - 2024-06-03
 
 [0.2.2]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.2.2

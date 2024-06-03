@@ -1,6 +1,6 @@
 [package]
 name = "minikalman"
-version = "0.2.2"
+version = "0.2.3"
 description = "A microcontroller targeted Kalman filter implementation"
 repository = "https://github.com/sunsided/minikalman-rs"
 authors = ["Markus Mayer"]

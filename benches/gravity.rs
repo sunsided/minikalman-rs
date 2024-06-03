@@ -54,7 +54,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 
     c.bench_function("filter loop", |bencher| {
-        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
             &mut gravity_A,
             &mut gravity_x,
             &mut gravity_B,
@@ -98,7 +98,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("predict", |bencher| {
-        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
             &mut gravity_A,
             &mut gravity_x,
             &mut gravity_B,
@@ -136,7 +136,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("update", |bencher| {
-        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
             &mut gravity_A,
             &mut gravity_x,
             &mut gravity_B,

@@ -62,9 +62,47 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     /// * `predictedX` - The temporary vector for predicted states (`STATES` × `1`).
     /// * `temp_P` - The temporary vector for P calculation (`STATES` × `STATES`).
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `INPUTS`).
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::*;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// // System buffers.
+    /// let mut gravity_x = create_buffer_x!(NUM_STATES);
+    /// let mut gravity_A = create_buffer_A!(NUM_STATES);
+    /// let mut gravity_P = create_buffer_P!(NUM_STATES);
+    ///
+    /// // Input buffers.
+    /// let mut gravity_u = create_buffer_u!(0);
+    /// let mut gravity_B = create_buffer_B!(0, 0);
+    /// let mut gravity_Q = create_buffer_Q!(0);
+    ///
+    /// // Filter temporaries.
+    /// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    /// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    /// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    ///
+    /// let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    ///     &mut gravity_A,
+    ///     &mut gravity_x,
+    ///     &mut gravity_B,
+    ///     &mut gravity_u,
+    ///     &mut gravity_P,
+    ///     &mut gravity_Q,
+    ///     &mut gravity_temp_x,
+    ///     &mut gravity_temp_P,
+    ///     &mut gravity_temp_BQ,
+    ///  );
+    /// ```
+    ///
+    /// See also [`Measurement::new_direct`] for setting up measurement buffers.
     #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_filter_initialize")]
-    pub fn new_from_buffers(
+    pub fn new_direct(
         A: &'a mut [matrix_data_t],
         x: &'a mut [matrix_data_t],
         B: &'a mut [matrix_data_t],
@@ -88,6 +126,23 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
         )
     }
 
+    /// See [`Kalman::new_direct`] instead.
+    #[allow(non_snake_case, clippy::too_many_arguments)]
+    #[deprecated(since = "0.2.2")]
+    pub fn new_from_buffers(
+        A: &'a mut [matrix_data_t],
+        x: &'a mut [matrix_data_t],
+        B: &'a mut [matrix_data_t],
+        u: &'a mut [matrix_data_t],
+        P: &'a mut [matrix_data_t],
+        Q: &'a mut [matrix_data_t],
+        predictedX: &'a mut [matrix_data_t],
+        temp_P: &'a mut [matrix_data_t],
+        temp_BQ: &'a mut [matrix_data_t],
+    ) -> Self {
+        Self::new_direct(A, x, B, u, P, Q, predictedX, temp_P, temp_BQ)
+    }
+
     /// Initializes a Kalman filter instance.
     ///
     /// ## Arguments
@@ -102,6 +157,10 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     /// * `predictedX` - The temporary vector for predicted states (`num_states` × `1`).
     /// * `temp_P` - The temporary vector for P calculation (`num_states` × `num_states`).
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`num_states` × `num_inputs`).
+    ///
+    /// ## Example
+    ///
+    /// See [`Kalman::new_direct`] for an example.
     #[allow(non_snake_case, clippy::too_many_arguments)]
     pub fn new(
         A: Matrix<'a, STATES, STATES>,
@@ -400,6 +459,83 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     /// Performs the time update / prediction step.
     ///
     /// This call assumes that the input covariance and variables are already set in the filter structure.
+    ///
+    /// ## Example
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::*;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # // System buffers.
+    /// # let mut gravity_x = create_buffer_x!(NUM_STATES);
+    /// # let mut gravity_A = create_buffer_A!(NUM_STATES);
+    /// # let mut gravity_P = create_buffer_P!(NUM_STATES);
+    /// #
+    /// # // Input buffers.
+    /// # let mut gravity_u = create_buffer_u!(0);
+    /// # let mut gravity_B = create_buffer_B!(0, 0);
+    /// # let mut gravity_Q = create_buffer_Q!(0);
+    /// #
+    /// # // Filter temporaries.
+    /// # let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    /// #
+    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// #     &mut gravity_A,
+    /// #     &mut gravity_x,
+    /// #     &mut gravity_B,
+    /// #     &mut gravity_u,
+    /// #     &mut gravity_P,
+    /// #     &mut gravity_Q,
+    /// #     &mut gravity_temp_x,
+    /// #     &mut gravity_temp_P,
+    /// #     &mut gravity_temp_BQ,
+    /// #  );
+    /// #
+    /// # // Measurement buffers.
+    /// # let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    /// # let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    /// # let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    /// # let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    /// # let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// #
+    /// # // Measurement temporaries.
+    /// # let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// #
+    /// # let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    /// #     &mut gravity_H,
+    /// #     &mut gravity_z,
+    /// #     &mut gravity_R,
+    /// #     &mut gravity_y,
+    /// #     &mut gravity_S,
+    /// #     &mut gravity_K,
+    /// #     &mut gravity_temp_S_inv,
+    /// #     &mut gravity_temp_HP,
+    /// #     &mut gravity_temp_PHt,
+    /// #     &mut gravity_temp_KHP,
+    /// # );
+    /// #
+    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// #
+    /// for t in 0..REAL_DISTANCE.len() {
+    ///     // Prediction.
+    ///     filter.predict();
+    ///
+    ///     // Measure ...
+    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     measurement.measurement_vector_apply(|z| z[0] = m);
+    ///
+    ///     // Update.
+    ///     filter.correct(&mut measurement);
+    /// }
+    /// ```
     #[doc(alias = "kalman_predict")]
     pub fn predict(&mut self) {
         //* Predict next state using system dynamics
@@ -417,6 +553,85 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     ///
     /// ## Arguments
     /// * `lambda` - Lambda factor (0 < `lambda` <= 1) to forcibly reduce prediction certainty. Smaller values mean larger uncertainty.
+    ///
+    /// ## Example
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::*;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # // System buffers.
+    /// # let mut gravity_x = create_buffer_x!(NUM_STATES);
+    /// # let mut gravity_A = create_buffer_A!(NUM_STATES);
+    /// # let mut gravity_P = create_buffer_P!(NUM_STATES);
+    /// #
+    /// # // Input buffers.
+    /// # let mut gravity_u = create_buffer_u!(0);
+    /// # let mut gravity_B = create_buffer_B!(0, 0);
+    /// # let mut gravity_Q = create_buffer_Q!(0);
+    /// #
+    /// # // Filter temporaries.
+    /// # let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    /// #
+    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// #     &mut gravity_A,
+    /// #     &mut gravity_x,
+    /// #     &mut gravity_B,
+    /// #     &mut gravity_u,
+    /// #     &mut gravity_P,
+    /// #     &mut gravity_Q,
+    /// #     &mut gravity_temp_x,
+    /// #     &mut gravity_temp_P,
+    /// #     &mut gravity_temp_BQ,
+    /// #  );
+    /// #
+    /// # // Measurement buffers.
+    /// # let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    /// # let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    /// # let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    /// # let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    /// # let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// #
+    /// # // Measurement temporaries.
+    /// # let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// #
+    /// # let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    /// #     &mut gravity_H,
+    /// #     &mut gravity_z,
+    /// #     &mut gravity_R,
+    /// #     &mut gravity_y,
+    /// #     &mut gravity_S,
+    /// #     &mut gravity_K,
+    /// #     &mut gravity_temp_S_inv,
+    /// #     &mut gravity_temp_HP,
+    /// #     &mut gravity_temp_PHt,
+    /// #     &mut gravity_temp_KHP,
+    /// # );
+    /// #
+    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// #
+    /// const LAMBDA: f32 = 0.97;
+    ///
+    /// for t in 0..REAL_DISTANCE.len() {
+    ///     // Prediction.
+    ///     filter.predict_tuned(LAMBDA);
+    ///
+    ///     // Measure ...
+    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     measurement.measurement_vector_apply(|z| z[0] = m);
+    ///
+    ///     // Update.
+    ///     filter.correct(&mut measurement);
+    /// }
+    /// ```
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned(&mut self, lambda: matrix_data_t) {
         //* Predict next state using system dynamics
@@ -512,6 +727,83 @@ impl<'a, const STATES: usize, const INPUTS: usize> Kalman<'a, STATES, INPUTS> {
     ///
     /// ## Arguments
     /// * `kfm` - The measurement.
+    ///
+    /// ## Example
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::*;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # // System buffers.
+    /// # let mut gravity_x = create_buffer_x!(NUM_STATES);
+    /// # let mut gravity_A = create_buffer_A!(NUM_STATES);
+    /// # let mut gravity_P = create_buffer_P!(NUM_STATES);
+    /// #
+    /// # // Input buffers.
+    /// # let mut gravity_u = create_buffer_u!(0);
+    /// # let mut gravity_B = create_buffer_B!(0, 0);
+    /// # let mut gravity_Q = create_buffer_Q!(0);
+    /// #
+    /// # // Filter temporaries.
+    /// # let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    /// #
+    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_from_buffers(
+    /// #     &mut gravity_A,
+    /// #     &mut gravity_x,
+    /// #     &mut gravity_B,
+    /// #     &mut gravity_u,
+    /// #     &mut gravity_P,
+    /// #     &mut gravity_Q,
+    /// #     &mut gravity_temp_x,
+    /// #     &mut gravity_temp_P,
+    /// #     &mut gravity_temp_BQ,
+    /// #  );
+    /// #
+    /// # // Measurement buffers.
+    /// # let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    /// # let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    /// # let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    /// # let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    /// # let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// #
+    /// # // Measurement temporaries.
+    /// # let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    /// # let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// #
+    /// # let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    /// #     &mut gravity_H,
+    /// #     &mut gravity_z,
+    /// #     &mut gravity_R,
+    /// #     &mut gravity_y,
+    /// #     &mut gravity_S,
+    /// #     &mut gravity_K,
+    /// #     &mut gravity_temp_S_inv,
+    /// #     &mut gravity_temp_HP,
+    /// #     &mut gravity_temp_PHt,
+    /// #     &mut gravity_temp_KHP,
+    /// # );
+    /// #
+    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// #
+    /// for t in 0..REAL_DISTANCE.len() {
+    ///     // Prediction.
+    ///     filter.predict();
+    ///
+    ///     // Measure ...
+    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     measurement.measurement_vector_apply(|z| z[0] = m);
+    ///
+    ///     // Update.
+    ///     filter.correct(&mut measurement);
+    /// }
+    /// ```
     #[allow(non_snake_case)]
     #[doc(alias = "kalman_predict_Q")]
     pub fn correct<const M: usize>(&mut self, kfm: &mut Measurement<'a, STATES, M>) {
