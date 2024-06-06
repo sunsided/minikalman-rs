@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [features]
-default = ["kalman-fixed"]
+default = ["kalman-fixed", "kalman-float"]
 kalman-float = ["minikalman/float", "minikalman/libm"]
 kalman-fixed = ["minikalman/fixed"]
 
