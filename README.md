@@ -31,6 +31,13 @@ cargo build --features=std
 
 ## Examples
 
+### Embedded Targets
+
+An example for STM32F303 microcontrollers can be found in the
+[`xbuild-tests/stm32`] directory. It showcases both fixed-point and floating-point support.
+
+[`xbuild-tests/stm32`]: xbuild-tests/stm32
+
 ### `Q16.16` fixed-point
 
 Run the `fixed` example with the `fixed` crate feature. This enables `I16F16` type support, similar to
