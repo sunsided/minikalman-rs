@@ -4,11 +4,16 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = ["kalman-float"]
+kalman-float = ["minikalman/float", "minikalman/libm"]
+kalman-fixed = ["minikalman/fixed"]
+
 [dependencies]
 cortex-m = { version = "0.7.4", features = ["critical-section-single-core"]}
 cortex-m-rt = { version = "0.7.3", features = ["device"] }
 embedded-hal = "1.0.0"
-minikalman = { version = "0.3.0", path = "../..", default-features = false, features = ["float", "libm"] }
+minikalman = { version = "0.3.0", path = "../..", default-features = false }
 panic-halt = "0.2.0"
 stm32f3 = { version = "0.15.1", features = ["stm32f303"] }
 stm32f3xx-hal = { version = "0.10.0", features = ["ld", "rt", "stm32f303xc"] }
