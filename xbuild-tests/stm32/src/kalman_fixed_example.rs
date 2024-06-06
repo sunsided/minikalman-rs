@@ -155,7 +155,7 @@ pub fn predict_gravity() -> I16F16 {
     }
 
     // Fetch estimated gravity constant.
-    return unsafe { gravity_x[2] };
+    unsafe { gravity_x[2] }
 }
 
 /// Initializes the state vector with initial assumptions.
