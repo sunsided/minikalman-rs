@@ -33,7 +33,7 @@ jobs:
         working-directory: xbuild-tests/stm32
     steps:
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: rust-src
@@ -55,7 +55,7 @@ jobs:
         working-directory: xbuild-tests/stm32
     steps:
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: rust-src
@@ -73,7 +73,7 @@ jobs:
         working-directory: xbuild-tests/stm32
     steps:
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: rust-src
