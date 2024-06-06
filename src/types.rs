@@ -2,6 +2,8 @@ use core::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 #[cfg(feature = "fixed")]
 use fixed::types::{I16F16, I32F32};
 use num_traits::{FromPrimitive, One, Zero};
+#[cfg(feature = "float")]
+use num_traits::Float;
 
 /// A type that captures the value range of `i16` but is known to be
 /// fastest on the target platform.
@@ -90,6 +92,8 @@ pub trait MatrixDataType: MatrixDataTypeBase {
     fn square_root(self) -> Self;
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "float")))]
+#[cfg(feature = "float")]
 impl MatrixDataType for f32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
@@ -102,6 +106,8 @@ impl MatrixDataType for f32 {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "float")))]
+#[cfg(feature = "float")]
 impl MatrixDataType for f64 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {

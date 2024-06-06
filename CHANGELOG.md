@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Removed the `no_std` crate feature in favor of the `std` feature (disabled by default).
+
+### Internal
+
+- Add an example project for STM32F303 cross-compilation.
+
 ## [0.3.0] - 2024-06-04
 
 [0.3.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.3.0

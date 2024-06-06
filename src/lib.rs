@@ -10,7 +10,9 @@
 //!
 //! ## Crate Features
 //!
-//! * `no_std` - Enabled by default. Turns on the `no_std` configuration attribute.
+//! * `std` - Diabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
+//! * `libm` - Enables libm support.
+//! * `float` - Enables some in-built support for `f32` and `f64` support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!              compiles the crate as `#![forbid(unsafe)]`.
@@ -19,7 +21,7 @@
 // the `docsrs` configuration attribute is defined
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // Enable `no_std` if the `no_std` crate feature is enabled.
-#![cfg_attr(feature = "no_std", no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
