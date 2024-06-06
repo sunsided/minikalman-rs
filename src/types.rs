@@ -1,8 +1,6 @@
 use core::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 #[cfg(feature = "fixed")]
 use fixed::types::{I16F16, I32F32};
-#[cfg(feature = "float")]
-use num_traits::Float;
 use num_traits::{FromPrimitive, One, Zero};
 
 /// A type that captures the value range of `i16` but is known to be
@@ -97,11 +95,15 @@ pub trait MatrixDataType: MatrixDataTypeBase {
 impl MatrixDataType for f32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
+        #[allow(unused)]
+        use num_traits::Float;
         self.recip()
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
+        #[allow(unused)]
+        use num_traits::Float;
         self.sqrt()
     }
 }
@@ -111,11 +113,15 @@ impl MatrixDataType for f32 {
 impl MatrixDataType for f64 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
+        #[allow(unused)]
+        use num_traits::Float;
         self.recip()
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
+        #[allow(unused)]
+        use num_traits::Float;
         self.sqrt()
     }
 }

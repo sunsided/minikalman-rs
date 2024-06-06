@@ -1,14 +1,20 @@
 #![no_std]
 #![no_main]
 
+mod kalman_example;
+
 use cortex_m_rt::entry;
 use panic_halt as _; // When a panic occurs, halt the microcontroller
 use stm32f3xx_hal as hal;
+
+use crate::kalman_example::predict_gravity;
 
 use hal::{pac, prelude::*};
 
 #[entry]
 fn main() -> ! {
+    let _gravity = predict_gravity();
+
     let dp = pac::Peripherals::take().unwrap();
 
     let _flash = dp.FLASH.constrain();
