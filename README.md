@@ -8,7 +8,7 @@
 
 This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
 a microcontroller targeted Kalman filter implementation, as well as the
-[libfixkalman](https://github.com/sunsided/libfixkalman) C library for Q16.16 fixed-point Kalman filters. 
+[libfixkalman](https://github.com/sunsided/libfixkalman) C library for Q16.16 fixed-point Kalman filters.
 It uses [`micromath`](https://docs.rs/micromath) for square root calculations on `no_std`. Depending on the configuration, this crate may
 require `f32` / FPU support.
 
@@ -26,7 +26,7 @@ to create the required arrays. See [`examples/gravity.rs`](examples/gravity.rs) 
 This crate builds as `no_std` by default. To build with `std` support, run:
 
 ```
-cargo build --no-default-features
+cargo build --features=std
 ```
 
 ## Examples
@@ -37,16 +37,28 @@ Run the `fixed` example with the `fixed` crate feature. This enables `I16F16` ty
 the [libfixkalman](https://github.com/sunsided/libfixkalman) C library.
 
 ```shell
+cargo run --example fixed --features=fixed
+```
+
+To disable floating-point support, run
+
+```shell
 cargo run --example fixed --no-default-features --features=fixed
 ```
 
 ### `f32` floating-point
 
-The provided example code will print output only on `std` builds. To run the example
+The provided example code will print output only on `float` builds. To run the example
 [`gravity`](examples/gravity.rs) simulation, run
 
 ```shell
-cargo run --example gravity --no-default-features
+cargo run --example gravity --features=float,libm
+```
+
+or
+
+```shell
+cargo run --example gravity --features=float,std
 ```
 
 This will estimate the (earth's) gravitational constant (g ≈ 9.807 m/s²) through observation
