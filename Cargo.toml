@@ -35,14 +35,16 @@ required-features = ["fixed"]
 [features]
 default = ["float", "libm"]
 std = ["num-traits/std"]
-libm = ["num-traits/libm"]
+libm = ["dep:libm", "num-traits/libm"]
 float = []
 stdint = ["dep:stdint", "stdint/std", "std"]
 unsafe = []
 fixed = ["dep:fixed", "fixed/num-traits"]
+no_assert = []
 
 [dependencies]
 fixed = { version = "1.27.0", optional = true }
+libm = { version = "0.2.8", optional = true }
 num-traits = { version = "0.2.19", default-features = false }
 stdint = { version = "1.0.0", default-features = false, optional = true }
 

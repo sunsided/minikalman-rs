@@ -31,7 +31,7 @@ lazy_static! {
     /// s = s + v*T + g*0.5*T^2;
     /// v = v + g*T;
     /// ```
-    static ref  REAL_DISTANCE: [I16F16; 15] = [
+    static ref REAL_DISTANCE: [I16F16; 15] = [
         I16F16::from_num(0.0),
         I16F16::from_num(4.905),
         I16F16::from_num(19.62),

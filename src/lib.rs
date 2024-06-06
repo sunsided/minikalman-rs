@@ -24,8 +24,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
-
-extern crate alloc;
+// Attempt to disable allocations.
+#![forbid(box_pointers)]
 
 mod kalman;
 mod matrix;
@@ -42,6 +42,33 @@ pub use crate::types::*;
 
 /// Re-export `num_traits`.
 pub use num_traits;
+
+/// Exports all macros and common types.
+pub mod prelude {
+    pub use crate::{
+        create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
+        create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_u, create_buffer_x,
+        create_buffer_y, create_buffer_z,
+    };
+    pub use crate::{
+        create_buffer_temp_BQ, create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P,
+        create_buffer_temp_PHt, create_buffer_temp_S_inv, create_buffer_temp_x,
+    };
+    pub use crate::{
+        size_buffer_A, size_buffer_B, size_buffer_H, size_buffer_K, size_buffer_P, size_buffer_Q,
+        size_buffer_R, size_buffer_S, size_buffer_u, size_buffer_x, size_buffer_y, size_buffer_z,
+    };
+    pub use crate::{
+        size_buffer_temp_BQ, size_buffer_temp_HP, size_buffer_temp_KHP, size_buffer_temp_P,
+        size_buffer_temp_PHt, size_buffer_temp_S_inv, size_buffer_temp_x,
+    };
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "fixed")))]
+    #[cfg(feature = "fixed")]
+    pub mod fixed {
+        pub use fixed::types::{I16F16, I32F32};
+    }
+}
 
 /// Sizes a buffer fitting the state transition matrix (`num_states` × `num_states`).
 ///

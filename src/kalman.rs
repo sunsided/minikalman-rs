@@ -1,5 +1,5 @@
 use crate::measurement::Measurement;
-use crate::{FastUInt8, Matrix, MatrixDataType};
+use crate::{Matrix, MatrixDataType};
 
 /// Kalman Filter structure.
 #[allow(non_snake_case, unused)]
@@ -173,130 +173,134 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
         temp_P: Matrix<'a, STATES, STATES, T>,
         temp_BQ: Matrix<'a, STATES, INPUTS, T>,
     ) -> Self {
-        debug_assert_eq!(
-            A.rows(),
-            STATES as FastUInt8,
-            "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
-            STATES,
-            STATES
-        );
-        debug_assert_eq!(
-            A.cols(),
-            STATES as FastUInt8,
-            "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
-            STATES,
-            STATES
-        );
+        #[cfg(not(feature = "no_assert"))]
+        {
+            use crate::FastUInt8;
+            debug_assert_eq!(
+                A.rows(),
+                STATES as FastUInt8,
+                "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
+                STATES,
+                STATES
+            );
+            debug_assert_eq!(
+                A.cols(),
+                STATES as FastUInt8,
+                "The state transition matrix A requires {} rows and {} columns (i.e. states × states)",
+                STATES,
+                STATES
+            );
 
-        debug_assert_eq!(
-            P.rows(),
-            STATES as FastUInt8,
-            "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
-            STATES,
-            STATES
-        );
-        debug_assert_eq!(
-            P.cols(),
-            STATES as FastUInt8,
-            "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
-            STATES,
-            STATES
-        );
+            debug_assert_eq!(
+                P.rows(),
+                STATES as FastUInt8,
+                "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
+                STATES,
+                STATES
+            );
+            debug_assert_eq!(
+                P.cols(),
+                STATES as FastUInt8,
+                "The system covariance matrix P requires {} rows and {} columns (i.e. states × states)",
+                STATES,
+                STATES
+            );
 
-        debug_assert_eq!(
-            x.rows(),
-            STATES as FastUInt8,
-            "The state vector x requires {} rows and 1 column (i.e. states × 1)",
-            STATES
-        );
-        debug_assert_eq!(
-            x.cols(),
-            1,
-            "The state vector x requires {} rows and 1 column (i.e. states × 1)",
-            STATES
-        );
+            debug_assert_eq!(
+                x.rows(),
+                STATES as FastUInt8,
+                "The state vector x requires {} rows and 1 column (i.e. states × 1)",
+                STATES
+            );
+            debug_assert_eq!(
+                x.cols(),
+                1,
+                "The state vector x requires {} rows and 1 column (i.e. states × 1)",
+                STATES
+            );
 
-        debug_assert_eq!(
-            B.rows(),
-            STATES as FastUInt8,
-            "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
-            STATES,
-            INPUTS
-        );
-        debug_assert_eq!(
-            B.cols(),
-            INPUTS as FastUInt8,
-            "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
-            STATES,
-            INPUTS
-        );
+            debug_assert_eq!(
+                B.rows(),
+                STATES as FastUInt8,
+                "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
+                STATES,
+                INPUTS
+            );
+            debug_assert_eq!(
+                B.cols(),
+                INPUTS as FastUInt8,
+                "The input transition matrix B requires {} rows and {} columns (i.e. states × inputs)",
+                STATES,
+                INPUTS
+            );
 
-        debug_assert_eq!(
-            Q.rows(),
-            INPUTS as FastUInt8,
-            "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
-            INPUTS,
-            INPUTS
-        );
-        debug_assert_eq!(
-            Q.cols(),
-            INPUTS as FastUInt8,
-            "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
-            INPUTS,
-            INPUTS
-        );
+            debug_assert_eq!(
+                Q.rows(),
+                INPUTS as FastUInt8,
+                "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
+                INPUTS,
+                INPUTS
+            );
+            debug_assert_eq!(
+                Q.cols(),
+                INPUTS as FastUInt8,
+                "The input covariance matrix Q requires {} rows and {} columns (i.e. inputs × inputs)",
+                INPUTS,
+                INPUTS
+            );
 
-        debug_assert_eq!(
-            u.rows(),
-            INPUTS as FastUInt8,
-            "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
-            INPUTS
-        );
-        debug_assert_eq!(
-            u.cols(),
-            1,
-            "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
-            INPUTS
-        );
+            debug_assert_eq!(
+                u.rows(),
+                INPUTS as FastUInt8,
+                "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
+                INPUTS
+            );
+            debug_assert_eq!(
+                u.cols(),
+                1,
+                "The input vector u requires {} rows and 1 column (i.e. inputs × 1)",
+                INPUTS
+            );
 
-        debug_assert_eq!(
-            predictedX.rows(),
-            STATES as FastUInt8,
-            "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
-            STATES
-        );
-        debug_assert_eq!(
-            predictedX.cols(),
-            1,
-            "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
-            STATES
-        );
+            debug_assert_eq!(
+                predictedX.rows(),
+                STATES as FastUInt8,
+                "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
+                STATES
+            );
+            debug_assert_eq!(
+                predictedX.cols(),
+                1,
+                "The temporary state prediction vector requires {} rows and 1 column (i.e. states × 1)",
+                STATES
+            );
 
-        debug_assert_eq!(
-            temp_P.rows(), STATES as FastUInt8,
-            "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
-            STATES, STATES
-        );
-        debug_assert_eq!(
-            temp_P.cols(), STATES as FastUInt8,
-            "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
-            STATES, STATES
-        );
+            debug_assert_eq!(
+                temp_P.rows(), STATES as FastUInt8,
+                "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
+                STATES, STATES
+            );
+            debug_assert_eq!(
+                temp_P.cols(), STATES as FastUInt8,
+                "The temporary system covariance matrix requires {} rows and {} columns (i.e. states × states)",
+                STATES, STATES
+            );
 
-        debug_assert_eq!(
-            temp_BQ.rows(),
-            STATES as FastUInt8,
-            "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
-            STATES,
-            INPUTS
-        );
-        debug_assert_eq!(
-            temp_BQ.cols(),
-            INPUTS as FastUInt8,
-            "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
-            STATES,
-            INPUTS
-        );
+            debug_assert_eq!(
+                temp_BQ.rows(),
+                STATES as FastUInt8,
+                "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
+                STATES,
+                INPUTS
+            );
+            debug_assert_eq!(
+                temp_BQ.cols(),
+                INPUTS as FastUInt8,
+                "The temporary B×Q matrix requires {} rows and {} columns (i.e. states × inputs)",
+                STATES,
+                INPUTS
+            );
+        }
 
         Self {
             A,

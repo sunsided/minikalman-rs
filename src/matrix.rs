@@ -25,13 +25,16 @@ impl<'a, T, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS, T> {
     /// ## Arguments
     /// * `buffer` - The data buffer (of size `rows` x `cols`).
     pub fn new(buffer: &'a mut [T]) -> Self {
-        debug_assert!(
-            buffer.len() >= (ROWS * COLS),
-            "Buffer needs to be large enough to keep at least {} × {} = {} elements",
-            ROWS,
-            COLS,
-            ROWS * COLS
-        );
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert!(
+                buffer.len() >= (ROWS * COLS),
+                "Buffer needs to be large enough to keep at least {} × {} = {} elements",
+                ROWS,
+                COLS,
+                ROWS * COLS
+            );
+        }
         Self { data: buffer }
     }
 
@@ -60,18 +63,24 @@ impl<'a, T, const ROWS: usize, const COLS: usize> Matrix<'a, ROWS, COLS, T> {
     pub unsafe fn new_unchecked(ptr: *mut [T]) -> Self {
         let buffer = unsafe { &mut *ptr };
         if ptr.is_null() {
-            debug_assert_eq!(ROWS, 0, "For null buffers, the row count must be zero");
-            debug_assert_eq!(COLS, 0, "For null buffers, the column count must be zero");
+            #[cfg(not(feature = "no_assert"))]
+            {
+                debug_assert_eq!(ROWS, 0, "For null buffers, the row count must be zero");
+                debug_assert_eq!(COLS, 0, "For null buffers, the column count must be zero");
+            }
             return Self { data: buffer };
         }
 
-        debug_assert!(
-            buffer.len() >= (ROWS * COLS) as _,
-            "Buffer needs to be large enough to keep at least {} × {} = {} elements",
-            ROWS,
-            COLS,
-            ROWS * COLS
-        );
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert!(
+                buffer.len() >= (ROWS * COLS) as _,
+                "Buffer needs to be large enough to keep at least {} × {} = {} elements",
+                ROWS,
+                COLS,
+                ROWS * COLS
+            );
+        }
         Self { data: buffer }
     }
 
@@ -245,21 +254,25 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
         let brows = b.rows();
         let bcols = b.cols();
         let ccols = c.cols();
-        let crows = c.rows();
+
+        #[cfg(not(feature = "no_assert"))]
+        {
+            let crows = c.rows();
+
+            // test dimensions of a and b
+            debug_assert_eq!(COLS, brows as usize);
+
+            // test dimension of c
+            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(bcols, ccols as FastUInt8);
+
+            // Test aux dimensions.
+            debug_assert_eq!(baux.len(), { COLS });
+            debug_assert_eq!(baux.len(), brows as usize);
+        }
 
         let adata = &self.data;
         let cdata = &mut c.data;
-
-        // test dimensions of a and b
-        debug_assert_eq!(COLS, brows as usize);
-
-        // test dimension of c
-        debug_assert_eq!(ROWS, crows as usize);
-        debug_assert_eq!(bcols, ccols as FastUInt8);
-
-        // Test aux dimensions.
-        debug_assert_eq!(baux.len(), { COLS });
-        debug_assert_eq!(baux.len(), brows as usize);
 
         for j in (0..bcols).rev() {
             // create a copy of the column in B to avoid cache issues
@@ -321,18 +334,22 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
         let bcols = b.cols() as usize;
         let brows = b.rows() as usize;
         let ccols = c.cols() as usize;
-        let crows = c.rows() as usize;
+
+        #[cfg(not(feature = "no_assert"))]
+        {
+            let crows = c.rows() as usize;
+
+            // test dimensions of a and b
+            debug_assert_eq!(COLS, { brows });
+
+            // test dimension of c
+            debug_assert_eq!(ROWS, { crows });
+            debug_assert_eq!(bcols, ccols);
+        }
 
         let adata = &self.data;
         let bdata = &b.data;
         let cdata = &mut c.data;
-
-        // test dimensions of a and b
-        debug_assert_eq!(COLS, { brows });
-
-        // test dimension of c
-        debug_assert_eq!(ROWS, { crows });
-        debug_assert_eq!(bcols, ccols);
 
         for j in (0..bcols).rev() {
             let mut index_a: FastUInt16 = 0;
@@ -363,21 +380,24 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
         let arows = self.rows();
         let acols = self.cols();
 
-        let xrows = x.rows();
+        #[cfg(not(feature = "no_assert"))]
+        {
+            let xrows = x.rows();
 
-        let crows = c.rows();
-        let ccols = c.cols();
+            let crows = c.rows();
+            let ccols = c.cols();
+
+            // test dimensions of a and b
+            debug_assert_eq!(COLS, xrows as usize);
+
+            // test dimension of c
+            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ccols, 1);
+        }
 
         let adata = &self.data;
         let xdata = &x.data;
         let cdata = &mut c.data;
-
-        // test dimensions of a and b
-        debug_assert_eq!(COLS, xrows as usize);
-
-        // test dimension of c
-        debug_assert_eq!(ROWS, crows as usize);
-        debug_assert_eq!(ccols, 1);
 
         let mut index_a: FastUInt16 = 0;
         let b0 = xdata[0];
@@ -410,21 +430,24 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
         let arows = self.rows();
         let acols = self.cols();
 
-        let xrows = x.rows();
+        #[cfg(not(feature = "no_assert"))]
+        {
+            let xrows = x.rows();
 
-        let crows = c.rows();
-        let ccols = c.cols();
+            let crows = c.rows();
+            let ccols = c.cols();
+
+            // test dimensions of a and b
+            debug_assert_eq!(COLS, xrows as usize);
+
+            // test dimension of c
+            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ccols, 1);
+        }
 
         let adata = &self.data;
         let xdata = &x.data;
         let cdata = &mut c.data;
-
-        // test dimensions of a and b
-        debug_assert_eq!(COLS, xrows as usize);
-
-        // test dimension of c
-        debug_assert_eq!(ROWS, crows as usize);
-        debug_assert_eq!(ccols, 1);
 
         let mut index_a: FastUInt16 = 0;
         let b0 = xdata[0];
@@ -461,19 +484,23 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
         let acols = self.cols();
         let bcols = b.cols();
         let brows = b.rows();
-        let ccols = c.cols();
-        let crows = c.rows();
+
+        #[cfg(not(feature = "no_assert"))]
+        {
+            let ccols = c.cols();
+            let crows = c.rows();
+
+            // test dimensions of a and b
+            debug_assert_eq!(COLS, bcols as usize);
+
+            // test dimension of c
+            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(b.rows(), ccols);
+        }
 
         let adata = &self.data;
         let bdata = &b.data;
         let cdata = &mut c.data;
-
-        // test dimensions of a and b
-        debug_assert_eq!(COLS, bcols as usize);
-
-        // test dimension of c
-        debug_assert_eq!(ROWS, crows as usize);
-        debug_assert_eq!(b.rows(), ccols);
 
         let mut c_index: FastUInt16 = 0;
         let mut a_index_start: FastUInt16 = 0;
@@ -518,19 +545,23 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
         let acols = self.cols();
         let bcols = b.cols();
         let brows = b.rows();
-        let ccols = c.cols();
-        let crows = c.rows();
+
+        #[cfg(not(feature = "no_assert"))]
+        {
+            let ccols = c.cols();
+            let crows = c.rows();
+
+            // test dimensions of a and b
+            debug_assert_eq!(COLS, bcols as usize);
+
+            // test dimension of c
+            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(brows, ccols);
+        }
 
         let adata = &self.data;
         let bdata = &b.data;
         let cdata = &mut c.data;
-
-        // test dimensions of a and b
-        debug_assert_eq!(COLS, bcols as usize);
-
-        // test dimension of c
-        debug_assert_eq!(ROWS, crows as usize);
-        debug_assert_eq!(brows, ccols);
 
         let mut c_index: FastUInt16 = 0;
         let mut a_index_start: FastUInt16 = 0;
@@ -577,19 +608,25 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
         let acols = self.cols();
         let bcols = b.cols();
         let brows = b.rows();
-        let ccols = c.cols();
-        let crows = c.rows();
+
+        // test dimension of c
+        #[cfg(not(feature = "no_assert"))]
+        {
+            let ccols = c.cols();
+            let crows = c.rows();
+            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(brows, ccols);
+        }
 
         let adata = &self.data;
         let bdata = &b.data;
         let cdata = &mut c.data;
 
         // test dimensions of a and b
-        debug_assert_eq!(COLS, bcols as usize);
-
-        // test dimension of c
-        debug_assert_eq!(ROWS, crows as usize);
-        debug_assert_eq!(brows, ccols);
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(COLS, bcols as usize);
+        }
 
         let mut c_index: FastUInt16 = 0;
         let mut a_index_start: FastUInt16 = 0;
@@ -735,8 +772,11 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
     where
         T: Copy,
     {
-        debug_assert_eq!(self.rows(), target.rows());
-        debug_assert_eq!(self.cols(), target.cols());
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(self.rows(), target.rows());
+            debug_assert_eq!(self.cols(), target.cols());
+        }
 
         let count = self.len();
 
@@ -760,10 +800,13 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
     where
         T: MatrixDataType,
     {
-        debug_assert_eq!(self.rows(), b.rows());
-        debug_assert_eq!(self.cols(), b.cols());
-        debug_assert_eq!(self.rows(), c.rows());
-        debug_assert_eq!(self.cols(), c.cols());
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(self.rows(), b.rows());
+            debug_assert_eq!(self.cols(), b.cols());
+            debug_assert_eq!(self.rows(), c.rows());
+            debug_assert_eq!(self.cols(), c.cols());
+        }
 
         let count = self.len();
 
@@ -787,8 +830,11 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
     where
         T: MatrixDataType,
     {
-        debug_assert_eq!(self.rows(), b.rows());
-        debug_assert_eq!(self.cols(), b.cols());
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(self.rows(), b.rows());
+            debug_assert_eq!(self.cols(), b.cols());
+        }
 
         let count = self.len();
 
@@ -811,8 +857,11 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
     where
         T: MatrixDataType,
     {
-        debug_assert_eq!(self.rows(), b.rows());
-        debug_assert_eq!(self.cols(), b.cols());
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(self.rows(), b.rows());
+            debug_assert_eq!(self.cols(), b.cols());
+        }
 
         let count = self.len();
 
@@ -835,8 +884,11 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
     where
         T: MatrixDataType,
     {
-        debug_assert_eq!(self.rows(), b.rows());
-        debug_assert_eq!(self.cols(), b.cols());
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(self.rows(), b.rows());
+            debug_assert_eq!(self.cols(), b.cols());
+        }
 
         let count = self.len();
 
@@ -859,8 +911,11 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
     where
         T: MatrixDataType,
     {
-        debug_assert_eq!(self.rows(), b.rows());
-        debug_assert_eq!(self.cols(), b.cols());
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(self.rows(), b.rows());
+            debug_assert_eq!(self.cols(), b.cols());
+        }
 
         let count = self.len();
 
@@ -918,8 +973,11 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<'a, ROWS, COLS, T> {
 
         let mut div_el_ii = T::zero();
 
-        debug_assert_eq!(ROWS, COLS);
-        debug_assert!(ROWS > 0);
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(ROWS, COLS);
+            debug_assert!(ROWS > 0);
+        }
 
         for i in 0..n {
             for j in i..n {
