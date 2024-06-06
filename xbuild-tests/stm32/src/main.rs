@@ -1,7 +1,10 @@
 #![no_std]
 #![no_main]
 
+#[cfg(feature = "kalman-fixed")]
 mod kalman_fixed_example;
+
+#[cfg(feature = "kalman-float")]
 mod kalman_float_example;
 
 use cortex_m_rt::entry;
@@ -12,8 +15,15 @@ use hal::{pac, prelude::*};
 
 #[entry]
 fn main() -> ! {
-    let _gravity = kalman_fixed_example::predict_gravity();
-    let _gravity = kalman_float_example::predict_gravity();
+    #[cfg(feature = "kalman-fixed")]
+    {
+        let _gravity = kalman_fixed_example::predict_gravity();
+    }
+
+    #[cfg(feature = "kalman-float")]
+    {
+        let _gravity = kalman_float_example::predict_gravity();
+    }
 
     let dp = pac::Peripherals::take().unwrap();
 
