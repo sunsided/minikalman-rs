@@ -3,15 +3,26 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.4.0] - 2024-06-07
 
-### Changed
+[0.4.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.4.0
+
+### Added
+
+- [!7](https://github.com/sunsided/minikalman-rs/pull/7):
+  Added the `libm` crate feature for [libm](https://github.com/rust-lang/libm) support.
+- [!7](https://github.com/sunsided/minikalman-rs/pull/7):
+  Added the `float` crate feature to enable `f32` and `f64` built-in support.
+
+### Removed
 
 - Removed the `no_std` crate feature in favor of the `std` feature (disabled by default).
 
 ### Internal
 
-- Add an example project for STM32F303 cross-compilation.
+- [!7](https://github.com/sunsided/minikalman-rs/pull/7):
+  Add an example project for STM32F303 cross-compilation.
+- Added CI/CD spell-checks and pre-commit hooks.
 
 ## [0.3.0] - 2024-06-04
 
