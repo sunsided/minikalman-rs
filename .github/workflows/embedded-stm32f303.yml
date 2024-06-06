@@ -1,0 +1,70 @@
+---
+name: STM32F303 Cross-Compilation
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+      - 'src/**'
+      - 'xbuild-tests/**'
+      - '.github/workflows/rust.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+      - 'src/**'
+      - 'xbuild-tests/**'
+      - '.github/workflows/rust.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: xbuild-tests/stm32
+    steps:
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rust-src
+          target: thumbv7em-none-eabihf
+      - uses: actions/checkout@v4
+      - name: Check format
+        run: cargo fmt --check
+      - name: Check
+        run: cargo check
+      - name: Clippy
+        run: cargo clippy
+
+  build:
+    needs: lint
+    name: Build and Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature:
+          - kalman-float
+          - kalman-fixed
+    defaults:
+      run:
+        working-directory: xbuild-tests/stm32
+    steps:
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rust-src
+          target: thumbv7em-none-eabihf
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cargo build --no-default-features --features=${{ matrix.feature }}

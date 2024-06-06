@@ -1,29 +1,14 @@
-//! Tracking a free-falling object.
-//!
-//! This example sets up a filter to estimate the acceleration of a free-falling object
-//! under earth conditions (i.e. a ≈ 9.807 m/s²) through position observations only.
-
-#![forbid(unsafe_code)]
-
-#[cfg(feature = "std")]
-#[allow(unused)]
-use colored::Colorize;
-use fixed::types::I16F16;
+use core::ptr::addr_of_mut;
 use lazy_static::lazy_static;
+use minikalman::{prelude::fixed::*, prelude::*, Kalman, Measurement};
 
-use minikalman::{
-    create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
-    create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
-    create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,
-    create_buffer_temp_S_inv, create_buffer_temp_x, create_buffer_u, create_buffer_x,
-    create_buffer_y, create_buffer_z, Kalman, Measurement,
-};
-
+/// Measurements.
 const NUM_STATES: usize = 3;
 const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 lazy_static! {
+
     /// Measurements.
     ///
     /// MATLAB source:
@@ -72,64 +57,81 @@ lazy_static! {
         I16F16::from_num(-0.015764),
         I16F16::from_num(0.17869),
     ];
+
 }
 
 #[allow(non_snake_case)]
-fn main() {
+#[allow(non_upper_case_globals)]
+pub fn predict_gravity() -> I16F16 {
     // System buffers.
-    let mut gravity_x = create_buffer_x!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_A = create_buffer_A!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_P = create_buffer_P!(NUM_STATES, I16F16, I16F16::ZERO);
+    static mut gravity_x: [I16F16; size_buffer_x!(NUM_STATES)] =
+        create_buffer_x!(NUM_STATES, I16F16, I16F16::ZERO);
+    static mut gravity_A: [I16F16; size_buffer_A!(NUM_STATES)] =
+        create_buffer_A!(NUM_STATES, I16F16, I16F16::ZERO);
+    static mut gravity_P: [I16F16; size_buffer_P!(NUM_STATES)] =
+        create_buffer_P!(NUM_STATES, I16F16, I16F16::ZERO);
 
     // Input buffers.
-    let mut gravity_u = create_buffer_u!(0, I16F16, I16F16::ZERO);
-    let mut gravity_B = create_buffer_B!(0, 0, I16F16, I16F16::ZERO);
-    let mut gravity_Q = create_buffer_Q!(0, I16F16, I16F16::ZERO);
+    static mut gravity_u: [I16F16; size_buffer_u!(0)] = create_buffer_u!(0, I16F16, I16F16::ZERO);
+    static mut gravity_B: [I16F16; size_buffer_B!(0, 0)] =
+        create_buffer_B!(0, 0, I16F16, I16F16::ZERO);
+    static mut gravity_Q: [I16F16; size_buffer_Q!(0)] = create_buffer_Q!(0, I16F16, I16F16::ZERO);
 
     // Measurement buffers.
-    let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    static mut gravity_z: [I16F16; size_buffer_z!(NUM_MEASUREMENTS)] =
+        create_buffer_z!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    static mut gravity_H: [I16F16; size_buffer_H!(NUM_MEASUREMENTS, NUM_STATES)] =
+        create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
+    static mut gravity_R: [I16F16; size_buffer_R!(NUM_MEASUREMENTS)] =
+        create_buffer_R!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    static mut gravity_y: [I16F16; size_buffer_y!(NUM_MEASUREMENTS)] =
+        create_buffer_y!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    static mut gravity_S: [I16F16; size_buffer_S!(NUM_MEASUREMENTS)] =
+        create_buffer_S!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    static mut gravity_K: [I16F16; size_buffer_K!(NUM_STATES, NUM_MEASUREMENTS)] =
+        create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
 
     // Filter temporaries.
-    let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, I16F16, I16F16::ZERO);
+    static mut gravity_temp_x: [I16F16; size_buffer_temp_x!(NUM_STATES)] =
+        create_buffer_temp_x!(NUM_STATES, I16F16, I16F16::ZERO);
+    static mut gravity_temp_P: [I16F16; size_buffer_temp_P!(NUM_STATES)] =
+        create_buffer_temp_P!(NUM_STATES, I16F16, I16F16::ZERO);
+    static mut gravity_temp_BQ: [I16F16; size_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS)] =
+        create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, I16F16, I16F16::ZERO);
 
     // Measurement temporaries.
-    let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_temp_HP =
+    static mut gravity_temp_S_inv: [I16F16; size_buffer_temp_S_inv!(NUM_MEASUREMENTS)] =
+        create_buffer_temp_S_inv!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    static mut gravity_temp_HP: [I16F16; size_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES)] =
         create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_temp_PHt =
+    static mut gravity_temp_PHt: [I16F16; size_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS)] =
         create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, I16F16, I16F16::ZERO);
+    static mut gravity_temp_KHP: [I16F16; size_buffer_temp_KHP!(NUM_STATES)] =
+        create_buffer_temp_KHP!(NUM_STATES, I16F16, I16F16::ZERO);
 
     let mut filter = Kalman::<NUM_STATES, NUM_INPUTS, I16F16>::new_direct(
-        &mut gravity_A,
-        &mut gravity_x,
-        &mut gravity_B,
-        &mut gravity_u,
-        &mut gravity_P,
-        &mut gravity_Q,
-        &mut gravity_temp_x,
-        &mut gravity_temp_P,
-        &mut gravity_temp_BQ,
+        unsafe { &mut *addr_of_mut!(gravity_A) },
+        unsafe { &mut *addr_of_mut!(gravity_x) },
+        unsafe { &mut *addr_of_mut!(gravity_B) },
+        unsafe { &mut *addr_of_mut!(gravity_u) },
+        unsafe { &mut *addr_of_mut!(gravity_P) },
+        unsafe { &mut *addr_of_mut!(gravity_Q) },
+        unsafe { &mut *addr_of_mut!(gravity_temp_x) },
+        unsafe { &mut *addr_of_mut!(gravity_temp_P) },
+        unsafe { &mut *addr_of_mut!(gravity_temp_BQ) },
     );
 
     let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS, I16F16>::new_direct(
-        &mut gravity_H,
-        &mut gravity_z,
-        &mut gravity_R,
-        &mut gravity_y,
-        &mut gravity_S,
-        &mut gravity_K,
-        &mut gravity_temp_S_inv,
-        &mut gravity_temp_HP,
-        &mut gravity_temp_PHt,
-        &mut gravity_temp_KHP,
+        unsafe { &mut *addr_of_mut!(gravity_H) },
+        unsafe { &mut *addr_of_mut!(gravity_z) },
+        unsafe { &mut *addr_of_mut!(gravity_R) },
+        unsafe { &mut *addr_of_mut!(gravity_y) },
+        unsafe { &mut *addr_of_mut!(gravity_S) },
+        unsafe { &mut *addr_of_mut!(gravity_K) },
+        unsafe { &mut *addr_of_mut!(gravity_temp_S_inv) },
+        unsafe { &mut *addr_of_mut!(gravity_temp_HP) },
+        unsafe { &mut *addr_of_mut!(gravity_temp_PHt) },
+        unsafe { &mut *addr_of_mut!(gravity_temp_KHP) },
     );
 
     // Set initial state.
@@ -143,21 +145,17 @@ fn main() {
     for t in 0..REAL_DISTANCE.len() {
         // Prediction.
         filter.predict();
-        print_state_prediction(t, filter.state_vector_ref());
 
         // Measure ...
         let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
         measurement.measurement_vector_apply(|z| z[0] = m);
-        print_measurement(t);
 
         // Update.
         filter.correct(&mut measurement);
-        print_state_correction(t, filter.state_vector_ref());
     }
 
     // Fetch estimated gravity constant.
-    let g_estimated = gravity_x[2];
-    assert!(g_estimated > 9.0 && g_estimated < 10.0);
+    unsafe { gravity_x[2] }
 }
 
 /// Initializes the state vector with initial assumptions.
@@ -245,50 +243,4 @@ fn initialize_position_measurement_process_noise_matrix(
     measurement.process_noise_apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)
     });
-}
-
-/// Print the state prediction. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_state_prediction<T>(t: usize, x: T)
-where
-    T: AsRef<[I16F16]>,
-{
-    let x = x.as_ref();
-    #[cfg(feature = "std")]
-    println!(
-        "At t = {}, predicted state: s = {}, v = {}, a = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", x[0]).magenta(),
-        format!("{} m/s", x[1]).magenta(),
-        format!("{} m/s²", x[2]).magenta(),
-    );
-}
-
-/// Print the measurement corrected state. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_state_correction<T>(t: usize, x: T)
-where
-    T: AsRef<[I16F16]>,
-{
-    let x = x.as_ref();
-    #[cfg(feature = "std")]
-    println!(
-        "At t = {}, corrected state: s = {}, v = {}, a = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", x[0]).yellow(),
-        format!("{} m/s", x[1]).yellow(),
-        format!("{} m/s²", x[2]).yellow(),
-    );
-}
-
-/// Print the current measurement. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_measurement(t: usize) {
-    #[cfg(feature = "std")]
-    println!(
-        "At t = {}, measurement: s = {}, noise ε = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", REAL_DISTANCE[t]).green(),
-        format!("{} m", MEASUREMENT_ERROR[t]).blue()
-    );
 }

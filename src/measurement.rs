@@ -167,123 +167,126 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
         temp_PHt: Matrix<'a, STATES, MEASUREMENTS, T>,
         temp_KHP: Matrix<'a, STATES, STATES, T>,
     ) -> Self {
-        debug_assert_eq!(
-            H.rows(), MEASUREMENTS as FastUInt8,
-            "The measurement transformation matrix H requires {} rows and {} columns (i.e. measurements × states)",
-            MEASUREMENTS, STATES
-        );
-        debug_assert_eq!(
-            H.cols(), STATES as FastUInt8,
-            "The measurement transformation matrix H requires {} rows and {} columns (i.e. measurements × states)",
-            MEASUREMENTS, STATES
-        );
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(
+                H.rows(), MEASUREMENTS as FastUInt8,
+                "The measurement transformation matrix H requires {} rows and {} columns (i.e. measurements × states)",
+                MEASUREMENTS, STATES
+            );
+            debug_assert_eq!(
+                H.cols(), STATES as FastUInt8,
+                "The measurement transformation matrix H requires {} rows and {} columns (i.e. measurements × states)",
+                MEASUREMENTS, STATES
+            );
 
-        debug_assert_eq!(
-            z.rows(),
-            MEASUREMENTS as FastUInt8,
-            "The measurement vector z requires {} rows and 1 column (i.e. measurements × 1)",
-            MEASUREMENTS
-        );
-        debug_assert_eq!(
-            z.cols(),
-            1,
-            "The measurement vector z requires {} rows and 1 column (i.e. measurements × 1)",
-            MEASUREMENTS
-        );
+            debug_assert_eq!(
+                z.rows(),
+                MEASUREMENTS as FastUInt8,
+                "The measurement vector z requires {} rows and 1 column (i.e. measurements × 1)",
+                MEASUREMENTS
+            );
+            debug_assert_eq!(
+                z.cols(),
+                1,
+                "The measurement vector z requires {} rows and 1 column (i.e. measurements × 1)",
+                MEASUREMENTS
+            );
 
-        debug_assert_eq!(
-            R.rows(), MEASUREMENTS as FastUInt8,
-            "The process noise / measurement uncertainty matrix R requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, MEASUREMENTS
-        );
-        debug_assert_eq!(
-            R.cols(), MEASUREMENTS as FastUInt8,
-            "The process noise / measurement uncertainty matrix R requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, MEASUREMENTS
-        );
+            debug_assert_eq!(
+                R.rows(), MEASUREMENTS as FastUInt8,
+                "The process noise / measurement uncertainty matrix R requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, MEASUREMENTS
+            );
+            debug_assert_eq!(
+                R.cols(), MEASUREMENTS as FastUInt8,
+                "The process noise / measurement uncertainty matrix R requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, MEASUREMENTS
+            );
 
-        debug_assert_eq!(
-            y.rows(),
-            MEASUREMENTS as FastUInt8,
-            "The innovation vector y requires {} rows and 1 column (i.e. measurements × 1)",
-            MEASUREMENTS
-        );
-        debug_assert_eq!(
-            y.cols(),
-            1,
-            "The innovation vector y requires {} rows and 1 column (i.e. measurements × 1)",
-            MEASUREMENTS
-        );
+            debug_assert_eq!(
+                y.rows(),
+                MEASUREMENTS as FastUInt8,
+                "The innovation vector y requires {} rows and 1 column (i.e. measurements × 1)",
+                MEASUREMENTS
+            );
+            debug_assert_eq!(
+                y.cols(),
+                1,
+                "The innovation vector y requires {} rows and 1 column (i.e. measurements × 1)",
+                MEASUREMENTS
+            );
 
-        debug_assert_eq!(
-            S.rows(), MEASUREMENTS as FastUInt8,
-            "The residual covariance matrix S requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, MEASUREMENTS
-        );
-        debug_assert_eq!(
-            S.cols(), MEASUREMENTS as FastUInt8,
-            "The residual covariance S requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, MEASUREMENTS
-        );
+            debug_assert_eq!(
+                S.rows(), MEASUREMENTS as FastUInt8,
+                "The residual covariance matrix S requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, MEASUREMENTS
+            );
+            debug_assert_eq!(
+                S.cols(), MEASUREMENTS as FastUInt8,
+                "The residual covariance S requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, MEASUREMENTS
+            );
 
-        debug_assert_eq!(
-            K.rows(),
-            STATES as FastUInt8,
-            "The Kalman gain matrix S requires {} rows and {} columns (i.e. states × measurements)",
-            STATES,
-            MEASUREMENTS
-        );
-        debug_assert_eq!(
-            K.cols(),
-            MEASUREMENTS as FastUInt8,
-            "The Kalman gain matrix K requires {} rows and {} columns (i.e. states × measurements)",
-            STATES,
-            MEASUREMENTS
-        );
+            debug_assert_eq!(
+                K.rows(),
+                STATES as FastUInt8,
+                "The Kalman gain matrix S requires {} rows and {} columns (i.e. states × measurements)",
+                STATES,
+                MEASUREMENTS
+            );
+            debug_assert_eq!(
+                K.cols(),
+                MEASUREMENTS as FastUInt8,
+                "The Kalman gain matrix K requires {} rows and {} columns (i.e. states × measurements)",
+                STATES,
+                MEASUREMENTS
+            );
 
-        debug_assert_eq!(
-            S_inv.rows(), MEASUREMENTS as FastUInt8,
-            "The temporary S-inverted matrix requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, MEASUREMENTS
-        );
-        debug_assert_eq!(
-            S_inv.cols(), MEASUREMENTS as FastUInt8,
-            "The temporary S-inverted matrix requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, MEASUREMENTS
-        );
+            debug_assert_eq!(
+                S_inv.rows(), MEASUREMENTS as FastUInt8,
+                "The temporary S-inverted matrix requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, MEASUREMENTS
+            );
+            debug_assert_eq!(
+                S_inv.cols(), MEASUREMENTS as FastUInt8,
+                "The temporary S-inverted matrix requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, MEASUREMENTS
+            );
 
-        debug_assert_eq!(
-            temp_HP.rows(), MEASUREMENTS as FastUInt8,
-            "The temporary H×P calculation matrix requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, STATES
-        );
-        debug_assert_eq!(
-            temp_HP.cols(), STATES as FastUInt8,
-            "The temporary H×P calculation matrix requires {} rows and {} columns (i.e. measurements × measurements)",
-            MEASUREMENTS, STATES
-        );
+            debug_assert_eq!(
+                temp_HP.rows(), MEASUREMENTS as FastUInt8,
+                "The temporary H×P calculation matrix requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, STATES
+            );
+            debug_assert_eq!(
+                temp_HP.cols(), STATES as FastUInt8,
+                "The temporary H×P calculation matrix requires {} rows and {} columns (i.e. measurements × measurements)",
+                MEASUREMENTS, STATES
+            );
 
-        debug_assert_eq!(
-            temp_PHt.rows(), STATES as FastUInt8,
-            "The temporary P×H' calculation matrix requires {} rows and {} columns (i.e. states × measurements)",
-            STATES, MEASUREMENTS
-        );
-        debug_assert_eq!(
-            temp_PHt.cols(), MEASUREMENTS as FastUInt8,
-            "The temporary P×H' calculation matrix requires {} rows and {} columns (i.e. states × measurements)",
-            STATES, MEASUREMENTS
-        );
+            debug_assert_eq!(
+                temp_PHt.rows(), STATES as FastUInt8,
+                "The temporary P×H' calculation matrix requires {} rows and {} columns (i.e. states × measurements)",
+                STATES, MEASUREMENTS
+            );
+            debug_assert_eq!(
+                temp_PHt.cols(), MEASUREMENTS as FastUInt8,
+                "The temporary P×H' calculation matrix requires {} rows and {} columns (i.e. states × measurements)",
+                STATES, MEASUREMENTS
+            );
 
-        debug_assert_eq!(
-            temp_KHP.rows(), STATES as FastUInt8,
-            "The temporary K×H×P calculation matrix requires {} rows and {} columns (i.e. states × states)",
-            STATES, STATES
-        );
-        debug_assert_eq!(
-            temp_KHP.cols(), STATES as FastUInt8,
-            "The temporary K×H×P calculation matrix requires {} rows and {} columns (i.e. states × states)",
-            STATES, STATES
-        );
+            debug_assert_eq!(
+                temp_KHP.rows(), STATES as FastUInt8,
+                "The temporary K×H×P calculation matrix requires {} rows and {} columns (i.e. states × states)",
+                STATES, STATES
+            );
+            debug_assert_eq!(
+                temp_KHP.cols(), STATES as FastUInt8,
+                "The temporary K×H×P calculation matrix requires {} rows and {} columns (i.e. states × states)",
+                STATES, STATES
+            );
+        }
 
         Self {
             H,
