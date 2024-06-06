@@ -10,7 +10,7 @@
 //!
 //! ## Crate Features
 //!
-//! * `std` - Diabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
+//! * `std` - Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
 //! * `libm` - Enables libm support.
 //! * `float` - Enables some in-built support for `f32` and `f64` support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.

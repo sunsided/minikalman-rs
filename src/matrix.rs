@@ -1298,7 +1298,7 @@ mod tests {
 
         // >> chol(m, 'lower')
         //
-        // ans =
+        // answer =
         //
         //     1.0000         0         0
         //     0.5000    0.8660         0
@@ -1339,7 +1339,7 @@ mod tests {
 
         // >> chol(m, 'lower')
         //
-        // ans =
+        // answer =
         //
         //     1.0000         0         0
         //     0.5000    0.8660         0
@@ -1350,7 +1350,7 @@ mod tests {
 
         // >> inv(chol(m, 'lower'))
         //
-        // ans =
+        // answer =
         //
         //     1.0000         0         0
         //    -0.5774    1.1547         0
@@ -1359,7 +1359,7 @@ mod tests {
         // Expected result:
         // >> inv(m)
         //
-        // ans =
+        // answer =
         //
         //     1.3333   -0.6667         0
         //    -0.6667    1.3333         0
