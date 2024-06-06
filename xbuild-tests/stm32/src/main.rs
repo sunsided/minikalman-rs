@@ -15,7 +15,9 @@ fn main() -> ! {
     let mut rcc = dp.RCC.constrain();
     let mut gpioe = dp.GPIOE.split(&mut rcc.ahb);
 
-    let mut led = gpioe.pe9.into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
+    let mut led = gpioe
+        .pe9
+        .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
 
     loop {
         led.set_high().unwrap();

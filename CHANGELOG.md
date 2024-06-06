@@ -19,7 +19,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Added support for fixed-point values via the [fixed](https://crates.io/crates/fixed) crate. 
+- Added support for fixed-point values via the [fixed](https://crates.io/crates/fixed) crate.
 
 ### Changed
 

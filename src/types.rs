@@ -1,9 +1,9 @@
 use core::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 #[cfg(feature = "fixed")]
 use fixed::types::{I16F16, I32F32};
-use num_traits::{FromPrimitive, One, Zero};
 #[cfg(feature = "float")]
 use num_traits::Float;
+use num_traits::{FromPrimitive, One, Zero};
 
 /// A type that captures the value range of `i16` but is known to be
 /// fastest on the target platform.
