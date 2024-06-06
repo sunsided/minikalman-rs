@@ -95,12 +95,30 @@ pub trait MatrixDataType: MatrixDataTypeBase {
 impl MatrixDataType for f32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
-        1.0 / self
+        #[cfg(feature = "libm")]
+        {
+            1.0 / self
+        }
+        #[cfg(not(feature = "libm"))]
+        {
+            #[allow(unused)]
+            use num_traits::Float;
+            self.recip()
+        }
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
-        libm::sqrtf(self)
+        #[cfg(feature = "libm")]
+        {
+            libm::sqrtf(self)
+        }
+        #[cfg(not(feature = "libm"))]
+        {
+            #[allow(unused)]
+            use num_traits::Float;
+            self.sqrt()
+        }
     }
 }
 
@@ -109,12 +127,30 @@ impl MatrixDataType for f32 {
 impl MatrixDataType for f64 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
-        1.0 / self
+        #[cfg(feature = "libm")]
+        {
+            1.0 / self
+        }
+        #[cfg(not(feature = "libm"))]
+        {
+            #[allow(unused)]
+            use num_traits::Float;
+            self.recip()
+        }
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
-        libm::sqrt(self)
+        #[cfg(feature = "libm")]
+        {
+            libm::sqrt(self)
+        }
+        #[cfg(not(feature = "libm"))]
+        {
+            #[allow(unused)]
+            use num_traits::Float;
+            self.sqrt()
+        }
     }
 }
 
