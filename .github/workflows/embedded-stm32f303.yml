@@ -46,10 +46,15 @@ jobs:
       - name: Clippy
         run: cargo clippy
 
-  build-float:
+  build:
     needs: lint
-    name: Build and Test (floating-point)
+    name: Build and Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature:
+          - kalman-float
+          - kalman-fixed
     defaults:
       run:
         working-directory: xbuild-tests/stm32
@@ -62,22 +67,4 @@ jobs:
           target: thumbv7em-none-eabihf
       - uses: actions/checkout@v4
       - name: Build
-        run: cargo build --no-default-features --features=kalman-float
-
-  build-fixed:
-    needs: lint
-    name: Build and Test (fixed-point)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: xbuild-tests/stm32
-    steps:
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: rust-src
-          target: thumbv7em-none-eabihf
-      - uses: actions/checkout@v4
-      - name: Build
-        run: cargo build --no-default-features --features=kalman-fixed
+        run: cargo build --no-default-features --features=${{ matrix.feature }}
