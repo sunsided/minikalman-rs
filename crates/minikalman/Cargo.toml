@@ -7,7 +7,7 @@ authors = ["Markus Mayer"]
 keywords = ["kalman-filter", "embedded", "fixed-point", "robotics", "slam"]
 categories = ["aerospace", "algorithms", "science::robotics", "no-std", "embedded"]
 license = "MIT"
-readme = "README.md"
+readme = "../../README.md"
 edition = "2021"
 rust-version = "1.70.0"
 

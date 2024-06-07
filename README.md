@@ -14,7 +14,7 @@ require `f32` / FPU support.
 
 This implementation uses statically allocated buffers for all matrix operations. Due to lack
 of `const` generics for array allocations in Rust, this crate also provides helper macros
-to create the required arrays. See [`examples/gravity.rs`](examples/gravity.rs) for a worked example.
+to create the required arrays. See [`examples/gravity.rs`](https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/gravity.rs) for a worked example.
 
 <div align="center">
     <img src="docs/hero.webp" width="780" alt="Kalman Filter Library Hero Picture" />
@@ -36,7 +36,7 @@ cargo build --features=std
 An example for STM32F303 microcontrollers can be found in the
 [`xbuild-tests/stm32`] directory. It showcases both fixed-point and floating-point support.
 
-[`xbuild-tests/stm32`]: xbuild-tests/stm32
+[`xbuild-tests/stm32`]: https://github.com/sunsided/minikalman-rs/tree/main/xbuild-tests/stm32
 
 ### `Q16.16` fixed-point
 

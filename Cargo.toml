@@ -3,11 +3,11 @@ resolver = "2"
 members = ["crates/minikalman", "xbuild-tests/stm32"]
 default-members = ["crates/minikalman"]
 
-[profile.dev]
+[profile.dev]      # Needed for the embedded cross-compilation projects
 panic = "abort"
 
-[profile.release]
+[profile.release]  # Needed for the embedded cross-compilation projects
 panic = "abort"
-codegen-units = 1 # better optimizations
-debug = true # symbols are nice and they don't increase the size on Flash
-lto = true # better optimizations
+codegen-units = 1  # better optimizations
+debug = true       # symbols are nice, and they don't increase the size on Flash
+lto = true         # better optimizations
