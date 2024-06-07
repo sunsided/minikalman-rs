@@ -22,6 +22,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+defaults:
+  run:
+    working-directory: crates/minikalman
+
 jobs:
   lint:
     name: Lint
@@ -51,7 +55,7 @@ jobs:
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Generate code coverage
-        run: cargo llvm-cov nextest --no-default-features --features=std,float --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov nextest --features=std,float,fixed --package minikalman --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
