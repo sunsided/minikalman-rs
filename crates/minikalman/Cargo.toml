@@ -22,6 +22,12 @@ harness = false
 [[bench]]
 name = "gravity"
 harness = false
+required-features = ["float"]
+
+[[bench]]
+name = "gravity_fixed"
+harness = false
+required-features = ["fixed"]
 
 [[example]]
 name = "gravity"
