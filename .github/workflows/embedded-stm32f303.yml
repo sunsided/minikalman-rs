@@ -24,13 +24,14 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+defaults:
+  run:
+    working-directory: xbuild-tests/stm32
+
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: xbuild-tests/stm32
     steps:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -55,9 +56,6 @@ jobs:
         feature:
           - kalman-float
           - kalman-fixed
-    defaults:
-      run:
-        working-directory: xbuild-tests/stm32
     steps:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
