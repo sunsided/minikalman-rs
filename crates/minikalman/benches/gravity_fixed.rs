@@ -10,7 +10,6 @@ use minikalman::{
     create_buffer_y, create_buffer_z, Kalman, Measurement,
 };
 
-
 lazy_static! {
     /// Measurements.
     ///

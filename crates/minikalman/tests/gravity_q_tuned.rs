@@ -5,8 +5,6 @@
 
 #![forbid(unsafe_code)]
 
-#[cfg(feature = "std")]
-use colored::Colorize;
 use minikalman::{
     create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
     create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
