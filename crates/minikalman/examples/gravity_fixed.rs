@@ -77,59 +77,59 @@ lazy_static! {
 #[allow(non_snake_case)]
 fn main() {
     // System buffers.
-    let mut gravity_x = create_buffer_x!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_A = create_buffer_A!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_P = create_buffer_P!(NUM_STATES, I16F16, I16F16::ZERO);
+    let gravity_x = create_buffer_x!(NUM_STATES, I16F16, I16F16::ZERO);
+    let gravity_A = create_buffer_A!(NUM_STATES, I16F16, I16F16::ZERO);
+    let gravity_P = create_buffer_P!(NUM_STATES, I16F16, I16F16::ZERO);
 
     // Input buffers.
-    let mut gravity_u = create_buffer_u!(0, I16F16, I16F16::ZERO);
-    let mut gravity_B = create_buffer_B!(0, 0, I16F16, I16F16::ZERO);
-    let mut gravity_Q = create_buffer_Q!(0, I16F16, I16F16::ZERO);
+    let gravity_u = create_buffer_u!(0, I16F16, I16F16::ZERO);
+    let gravity_B = create_buffer_B!(0, 0, I16F16, I16F16::ZERO);
+    let gravity_Q = create_buffer_Q!(0, I16F16, I16F16::ZERO);
 
     // Measurement buffers.
-    let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    let gravity_z = create_buffer_z!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
+    let gravity_R = create_buffer_R!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    let gravity_y = create_buffer_y!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    let gravity_S = create_buffer_S!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
 
     // Filter temporaries.
-    let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, I16F16, I16F16::ZERO);
+    let gravity_temp_x = create_buffer_temp_x!(NUM_STATES, I16F16, I16F16::ZERO);
+    let gravity_temp_P = create_buffer_temp_P!(NUM_STATES, I16F16, I16F16::ZERO);
+    let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, I16F16, I16F16::ZERO);
 
     // Measurement temporaries.
-    let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_temp_HP =
+    let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    let gravity_temp_HP =
         create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
-    let mut gravity_temp_PHt =
+    let gravity_temp_PHt =
         create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, I16F16, I16F16::ZERO);
+    let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, I16F16, I16F16::ZERO);
 
     let mut filter = Kalman::<NUM_STATES, NUM_INPUTS, I16F16>::new_direct(
-        &mut gravity_A,
-        &mut gravity_x,
-        &mut gravity_B,
-        &mut gravity_u,
-        &mut gravity_P,
-        &mut gravity_Q,
-        &mut gravity_temp_x,
-        &mut gravity_temp_P,
-        &mut gravity_temp_BQ,
+        gravity_A,
+        gravity_x,
+        gravity_B,
+        gravity_u,
+        gravity_P,
+        gravity_Q,
+        gravity_temp_x,
+        gravity_temp_P,
+        gravity_temp_BQ,
     );
 
     let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS, I16F16>::new_direct(
-        &mut gravity_H,
-        &mut gravity_z,
-        &mut gravity_R,
-        &mut gravity_y,
-        &mut gravity_S,
-        &mut gravity_K,
-        &mut gravity_temp_S_inv,
-        &mut gravity_temp_HP,
-        &mut gravity_temp_PHt,
-        &mut gravity_temp_KHP,
+        gravity_H,
+        gravity_z,
+        gravity_R,
+        gravity_y,
+        gravity_S,
+        gravity_K,
+        gravity_temp_S_inv,
+        gravity_temp_HP,
+        gravity_temp_PHt,
+        gravity_temp_KHP,
     );
 
     // Set initial state.

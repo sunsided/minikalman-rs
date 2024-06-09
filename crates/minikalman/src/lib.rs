@@ -113,9 +113,9 @@ macro_rules! size_buffer_A {
 /// const NUM_STATES: usize = 3;
 ///
 /// // System buffers.
-/// let mut gravity_x = create_buffer_x!(NUM_STATES);
-/// let mut gravity_A = create_buffer_A!(NUM_STATES);
-/// let mut gravity_P = create_buffer_P!(NUM_STATES);
+/// let gravity_x = create_buffer_x!(NUM_STATES);
+/// let gravity_A = create_buffer_A!(NUM_STATES);
+/// let gravity_P = create_buffer_P!(NUM_STATES);
 /// ```
 ///
 /// or with explicit types:
@@ -123,8 +123,8 @@ macro_rules! size_buffer_A {
 /// ```
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
-/// let mut gravity_A = create_buffer_A!(NUM_STATES, f64);
-/// let mut gravity_A = create_buffer_A!(NUM_STATES, f64, 0.0);
+/// let gravity_A = create_buffer_A!(NUM_STATES, f64);
+/// let gravity_A = create_buffer_A!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -180,9 +180,9 @@ macro_rules! size_buffer_P {
 /// const NUM_STATES: usize = 3;
 ///
 /// // System buffers.
-/// let mut gravity_x = create_buffer_x!(NUM_STATES);
-/// let mut gravity_A = create_buffer_A!(NUM_STATES);
-/// let mut gravity_P = create_buffer_P!(NUM_STATES);
+/// let gravity_x = create_buffer_x!(NUM_STATES);
+/// let gravity_A = create_buffer_A!(NUM_STATES);
+/// let gravity_P = create_buffer_P!(NUM_STATES);
 /// ```
 ///
 /// or with explicit types:
@@ -190,8 +190,8 @@ macro_rules! size_buffer_P {
 /// ```
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
-/// let mut gravity_P = create_buffer_P!(NUM_STATES, f64);
-/// let mut gravity_P = create_buffer_P!(NUM_STATES, f64, 0.0);
+/// let gravity_P = create_buffer_P!(NUM_STATES, f64);
+/// let gravity_P = create_buffer_P!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -247,9 +247,9 @@ macro_rules! size_buffer_x {
 /// const NUM_STATES: usize = 3;
 ///
 /// // System buffers.
-/// let mut gravity_x = create_buffer_x!(NUM_STATES);
-/// let mut gravity_A = create_buffer_A!(NUM_STATES);
-/// let mut gravity_P = create_buffer_P!(NUM_STATES);
+/// let gravity_x = create_buffer_x!(NUM_STATES);
+/// let gravity_A = create_buffer_A!(NUM_STATES);
+/// let gravity_P = create_buffer_P!(NUM_STATES);
 /// ```
 ///
 /// or with explicit types:
@@ -257,8 +257,8 @@ macro_rules! size_buffer_x {
 /// ```
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
-/// let mut gravity_x = create_buffer_x!(NUM_STATES, f64);
-/// let mut gravity_x = create_buffer_x!(NUM_STATES, f64, 0.0);
+/// let gravity_x = create_buffer_x!(NUM_STATES, f64);
+/// let gravity_x = create_buffer_x!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -316,9 +316,9 @@ macro_rules! size_buffer_u {
 /// const NUM_INPUTS: usize = 1;
 ///
 /// // Input buffers.
-/// let mut gravity_u = create_buffer_u!(NUM_INPUTS);
-/// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
-/// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
+/// let gravity_u = create_buffer_u!(NUM_INPUTS);
+/// let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+/// let gravity_Q = create_buffer_Q!(NUM_INPUTS);
 /// ```
 ///
 /// or with explicit types:
@@ -327,7 +327,7 @@ macro_rules! size_buffer_u {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_INPUTS: usize = 1;
-/// let mut gravity_u = create_buffer_u!(NUM_INPUTS, f64);
+/// let gravity_u = create_buffer_u!(NUM_INPUTS, f64);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -388,9 +388,9 @@ macro_rules! size_buffer_B {
 /// const NUM_INPUTS: usize = 1;
 ///
 /// // Input buffers.
-/// let mut gravity_u = create_buffer_u!(NUM_INPUTS);
-/// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
-/// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
+/// let gravity_u = create_buffer_u!(NUM_INPUTS);
+/// let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+/// let gravity_Q = create_buffer_Q!(NUM_INPUTS);
 /// ```
 ///
 /// or with explicit types:
@@ -399,8 +399,8 @@ macro_rules! size_buffer_B {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_INPUTS: usize = 1;
-/// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS, f64);
-/// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS, f64, 0.0);
+/// let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS, f64);
+/// let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -463,9 +463,9 @@ macro_rules! size_buffer_Q {
 /// const NUM_INPUTS: usize = 1;
 ///
 /// // Input buffers.
-/// let mut gravity_u = create_buffer_u!(NUM_INPUTS);
-/// let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
-/// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
+/// let gravity_u = create_buffer_u!(NUM_INPUTS);
+/// let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+/// let gravity_Q = create_buffer_Q!(NUM_INPUTS);
 /// ```
 ///
 /// or with explicit types:
@@ -474,8 +474,8 @@ macro_rules! size_buffer_Q {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_INPUTS: usize = 1;
-/// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS, f64);
-/// let mut gravity_Q = create_buffer_Q!(NUM_INPUTS, f64, 0.0);
+/// let gravity_Q = create_buffer_Q!(NUM_INPUTS, f64);
+/// let gravity_Q = create_buffer_Q!(NUM_INPUTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -533,12 +533,12 @@ macro_rules! size_buffer_z {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement buffers.
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
 ///
 /// or with explicit types:
@@ -547,8 +547,8 @@ macro_rules! size_buffer_z {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS, f64);
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS, f64, 0.0);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS, f64);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -614,12 +614,12 @@ macro_rules! size_buffer_H {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement buffers.
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
 ///
 /// or with explicit types:
@@ -628,8 +628,8 @@ macro_rules! size_buffer_H {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, f64);
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, f64);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -691,12 +691,12 @@ macro_rules! size_buffer_R {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement buffers.
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
 ///
 /// or with explicit types:
@@ -705,8 +705,8 @@ macro_rules! size_buffer_R {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS, f64);
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS, f64, 0.0);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS, f64);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -767,12 +767,12 @@ macro_rules! size_buffer_y {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement buffers.
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
 ///
 /// or with explicit types:
@@ -781,8 +781,8 @@ macro_rules! size_buffer_y {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS, f64);
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS, f64, 0.0);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS, f64);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -843,12 +843,12 @@ macro_rules! size_buffer_S {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement buffers.
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
 ///
 /// or with explicit types:
@@ -857,8 +857,8 @@ macro_rules! size_buffer_S {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS, f64);
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS, f64, 0.0);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS, f64);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -922,12 +922,12 @@ macro_rules! size_buffer_K {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement buffers.
-/// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-/// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-/// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-/// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+/// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+/// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+/// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 /// ```
 ///
 /// or with explicit types:
@@ -936,8 +936,8 @@ macro_rules! size_buffer_K {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, f64);
-/// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, f64, 0.0);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, f64);
+/// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1000,9 +1000,9 @@ macro_rules! size_buffer_temp_x {
 /// const NUM_INPUTS: usize = 1;
 ///
 /// // Filter temporaries.
-/// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-/// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-/// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+/// let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+/// let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+/// let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
 /// ```
 ///
 /// or with explicit types:
@@ -1011,8 +1011,8 @@ macro_rules! size_buffer_temp_x {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_INPUTS: usize = 1;
-/// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES, f64);
-/// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES, f64, 0.0);
+/// let gravity_temp_x = create_buffer_temp_x!(NUM_STATES, f64);
+/// let gravity_temp_x = create_buffer_temp_x!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1070,9 +1070,9 @@ macro_rules! size_buffer_temp_P {
 /// const NUM_INPUTS: usize = 1;
 ///
 /// // Filter temporaries.
-/// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-/// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-/// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+/// let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+/// let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+/// let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
 /// ```
 ///
 /// or with explicit types:
@@ -1081,8 +1081,8 @@ macro_rules! size_buffer_temp_P {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_INPUTS: usize = 1;
-/// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES, f64);
-/// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES, f64, 0.0);
+/// let gravity_temp_P = create_buffer_temp_P!(NUM_STATES, f64);
+/// let gravity_temp_P = create_buffer_temp_P!(NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1144,9 +1144,9 @@ macro_rules! size_buffer_temp_BQ {
 /// const NUM_INPUTS: usize = 1;
 ///
 /// // Filter temporaries.
-/// let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-/// let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-/// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+/// let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+/// let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+/// let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
 /// ```
 ///
 /// or with explicit types:
@@ -1155,7 +1155,7 @@ macro_rules! size_buffer_temp_BQ {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_INPUTS: usize = 1;
-/// let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, f64);
+/// let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, f64);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1218,10 +1218,10 @@ macro_rules! size_buffer_temp_S_inv {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement temporaries.
-/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-/// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+/// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+/// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 /// ```
 ///
 /// or with explicit types:
@@ -1230,8 +1230,8 @@ macro_rules! size_buffer_temp_S_inv {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, f64);
-/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, f64, 0.0);
+/// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, f64);
+/// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS, f64, 0.0);
 /// ```
 /// ```
 #[macro_export]
@@ -1296,10 +1296,10 @@ macro_rules! size_buffer_temp_HP {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement temporaries.
-/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-/// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+/// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+/// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 /// ```
 ///
 /// or with explicit types:
@@ -1308,8 +1308,8 @@ macro_rules! size_buffer_temp_HP {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, f64);
-/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
+/// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, f64);
+/// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1375,10 +1375,10 @@ macro_rules! size_buffer_temp_PHt {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement temporaries.
-/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-/// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+/// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+/// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 /// ```
 ///
 /// or with explicit types:
@@ -1387,7 +1387,7 @@ macro_rules! size_buffer_temp_PHt {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS, f64);
+/// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS, f64);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1450,10 +1450,10 @@ macro_rules! size_buffer_temp_KHP {
 /// const NUM_MEASUREMENTS: usize = 1;
 ///
 /// // Measurement temporaries.
-/// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-/// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-/// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-/// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+/// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+/// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+/// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+/// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 /// ```
 ///
 /// or with explicit types:
@@ -1462,7 +1462,7 @@ macro_rules! size_buffer_temp_KHP {
 /// # use minikalman::*;
 /// # const NUM_STATES: usize = 3;
 /// # const NUM_MEASUREMENTS: usize = 1;
-/// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, f64);
+/// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, f64);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]

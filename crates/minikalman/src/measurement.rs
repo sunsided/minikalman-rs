@@ -46,30 +46,30 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// # const NUM_INPUTS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// // Measurement buffers.
-    /// let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-    /// let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    /// let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-    /// let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-    /// let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-    /// let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    /// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    /// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    /// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    /// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    /// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
     ///
     /// // Measurement temporaries.
-    /// let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    /// let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    /// let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    /// let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    /// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    /// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    /// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
     ///
     /// let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
-    ///     &mut gravity_H,
-    ///     &mut gravity_z,
-    ///     &mut gravity_R,
-    ///     &mut gravity_y,
-    ///     &mut gravity_S,
-    ///     &mut gravity_K,
-    ///     &mut gravity_temp_S_inv,
-    ///     &mut gravity_temp_HP,
-    ///     &mut gravity_temp_PHt,
-    ///     &mut gravity_temp_KHP,
+    ///     gravity_H,
+    ///     gravity_z,
+    ///     gravity_R,
+    ///     gravity_y,
+    ///     gravity_S,
+    ///     gravity_K,
+    ///     gravity_temp_S_inv,
+    ///     gravity_temp_HP,
+    ///     gravity_temp_PHt,
+    ///     gravity_temp_KHP,
     /// );
     /// ```
     ///
@@ -235,57 +235,57 @@ impl<
     /// # const NUM_INPUTS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// # // System buffers.
-    /// # let mut gravity_x = create_buffer_x!(NUM_STATES);
-    /// # let mut gravity_A = create_buffer_A!(NUM_STATES);
-    /// # let mut gravity_P = create_buffer_P!(NUM_STATES);
+    /// # let gravity_x = create_buffer_x!(NUM_STATES);
+    /// # let gravity_A = create_buffer_A!(NUM_STATES);
+    /// # let gravity_P = create_buffer_P!(NUM_STATES);
     /// #
     /// # // Input buffers.
-    /// # let mut gravity_u = create_buffer_u!(0);
-    /// # let mut gravity_B = create_buffer_B!(0, 0);
-    /// # let mut gravity_Q = create_buffer_Q!(0);
+    /// # let gravity_u = create_buffer_u!(NUM_INPUTS);
+    /// # let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+    /// # let gravity_Q = create_buffer_Q!(NUM_INPUTS);
     /// #
     /// # // Filter temporaries.
-    /// # let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-    /// # let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-    /// # let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    /// # let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    /// # let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    /// # let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
     /// #
-    /// # let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
-    /// #     &mut gravity_A,
-    /// #     &mut gravity_x,
-    /// #     &mut gravity_B,
-    /// #     &mut gravity_u,
-    /// #     &mut gravity_P,
-    /// #     &mut gravity_Q,
-    /// #     &mut gravity_temp_x,
-    /// #     &mut gravity_temp_P,
-    /// #     &mut gravity_temp_BQ,
+    /// # let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+    /// #     gravity_A,
+    /// #     gravity_x,
+    /// #     gravity_B,
+    /// #     gravity_u,
+    /// #     gravity_P,
+    /// #     gravity_Q,
+    /// #     gravity_temp_x,
+    /// #     gravity_temp_P,
+    /// #     gravity_temp_BQ,
     /// #  );
     /// #
     /// # // Measurement buffers.
-    /// # let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-    /// # let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    /// # let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-    /// # let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-    /// # let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-    /// # let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// # let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    /// # let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    /// # let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    /// # let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    /// # let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
     /// #
     /// # // Measurement temporaries.
-    /// # let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    /// # let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    /// # let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    /// # let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// # let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    /// # let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    /// # let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    /// # let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
     /// #
     /// # let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
-    /// #     &mut gravity_H,
-    /// #     &mut gravity_z,
-    /// #     &mut gravity_R,
-    /// #     &mut gravity_y,
-    /// #     &mut gravity_S,
-    /// #     &mut gravity_K,
-    /// #     &mut gravity_temp_S_inv,
-    /// #     &mut gravity_temp_HP,
-    /// #     &mut gravity_temp_PHt,
-    /// #     &mut gravity_temp_KHP,
+    /// #     gravity_H,
+    /// #     gravity_z,
+    /// #     gravity_R,
+    /// #     gravity_y,
+    /// #     gravity_S,
+    /// #     gravity_K,
+    /// #     gravity_temp_S_inv,
+    /// #     gravity_temp_HP,
+    /// #     gravity_temp_PHt,
+    /// #     gravity_temp_KHP,
     /// # );
     /// #
     /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];

@@ -67,28 +67,28 @@ fn test_gravity_estimation_tuned() {
     let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES, f64);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f64>(
-        SystemMatrixMutBuffer::new(gravity_A),
-        StateVectorBuffer::new(gravity_x),
-        InputMatrixMutBuffer::new(gravity_B),
-        InputVectorBuffer::new(gravity_u),
-        SystemCovarianceMatrixBuffer::new(gravity_P),
-        InputCovarianceMatrixBuffer::new(gravity_Q),
-        StatePredictionVectorBuffer::new(gravity_temp_x),
-        TemporaryStateMatrixBuffer::new(gravity_temp_P),
-        TemporaryBQMatrixBuffer::new(gravity_temp_BQ),
+        gravity_A,
+        gravity_x,
+        gravity_B,
+        gravity_u,
+        gravity_P,
+        gravity_Q,
+        gravity_temp_x,
+        gravity_temp_P,
+        gravity_temp_BQ,
     );
 
     let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f64>(
-        MeasurementTransformationMatrixMutBuffer::new(gravity_H),
-        MeasurementVectorBuffer::new(gravity_z),
-        MeasurementProcessNoiseCovarianceMatrixBuffer::new(gravity_R),
-        InnovationVectorBuffer::new(gravity_y),
-        InnovationResidualCovarianceMatrixBuffer::new(gravity_S),
-        KalmanGainMatrixBuffer::new(gravity_K),
-        TemporaryResidualCovarianceInvertedMatrixBuffer::new(gravity_temp_S_inv),
-        TemporaryHPMatrixBuffer::new(gravity_temp_HP),
-        TemporaryPHTMatrixBuffer::new(gravity_temp_PHt),
-        TemporaryKHPMatrixBuffer::new(gravity_temp_KHP),
+        gravity_H,
+        gravity_z,
+        gravity_R,
+        gravity_y,
+        gravity_S,
+        gravity_K,
+        gravity_temp_S_inv,
+        gravity_temp_HP,
+        gravity_temp_PHt,
+        gravity_temp_KHP,
     );
 
     // Set initial state.

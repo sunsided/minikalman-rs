@@ -38,9 +38,9 @@ pub fn predict_gravity() -> f32 {
     static mut gravity_P: [f32; size_buffer_P!(NUM_STATES)] = create_buffer_P!(NUM_STATES);
 
     // Input buffers.
-    static mut gravity_u: [f32; size_buffer_u!(0)] = create_buffer_u!(0);
-    static mut gravity_B: [f32; size_buffer_B!(0, 0)] = create_buffer_B!(0, 0);
-    static mut gravity_Q: [f32; size_buffer_Q!(0)] = create_buffer_Q!(0);
+    static mut gravity_u: [f32; size_buffer_u!(0)] = create_buffer_u!(NUM_INPUTS);
+    static mut gravity_B: [f32; size_buffer_B!(0, 0)] = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+    static mut gravity_Q: [f32; size_buffer_Q!(0)] = create_buffer_Q!(NUM_INPUTS);
 
     // Measurement buffers.
     static mut gravity_z: [f32; size_buffer_z!(NUM_MEASUREMENTS)] =
@@ -74,7 +74,7 @@ pub fn predict_gravity() -> f32 {
     static mut gravity_temp_KHP: [f32; size_buffer_temp_KHP!(NUM_STATES)] =
         create_buffer_temp_KHP!(NUM_STATES);
 
-    let mut filter = Kalman::<NUM_STATES, NUM_INPUTS>::new_direct(
+    let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
         unsafe { &mut *addr_of_mut!(gravity_A) },
         unsafe { &mut *addr_of_mut!(gravity_x) },
         unsafe { &mut *addr_of_mut!(gravity_B) },
