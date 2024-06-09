@@ -31,6 +31,8 @@
 #[cfg(any(feature = "std", feature = "alloc"))]
 extern crate alloc;
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 mod buffer_builder;
 pub mod buffer_types;
 mod filter_traits;
@@ -41,6 +43,8 @@ mod measurement;
 mod static_macros;
 mod types;
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 pub use crate::buffer_builder::BufferBuilder;
 pub use crate::kalman::{Kalman, KalmanBuilder};
 pub use crate::matrix_types::*;
@@ -52,6 +56,8 @@ pub use num_traits;
 
 /// Exports all macros and common types.
 pub mod prelude {
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
     pub use crate::buffer_builder::BufferBuilder;
     pub use crate::buffer_types::*;
     pub use crate::filter_traits::*;

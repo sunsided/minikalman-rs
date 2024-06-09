@@ -1,7 +1,7 @@
 use crate::matrix_traits::{Matrix, MatrixMut};
 use core::ops::{Index, IndexMut};
 
-#[cfg(all(feature = "alloc", not(feature = "std)")))]
+#[cfg(any(feature = "alloc", feature = "std"))]
 use alloc::boxed::Box;
 
 /// A builder for a Kalman filter measurements.
@@ -187,6 +187,8 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> IntoInnerData
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> IntoInnerData for MatrixDataBoxed<ROWS, COLS, T> {
     type Target = Box<[T]>;
 
@@ -223,6 +225,8 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> From<[T; TOTAL
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T, B> From<B> for MatrixDataBoxed<ROWS, COLS, T>
 where
     B: Into<Box<[T]>>,
@@ -282,22 +286,30 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> AsMut<[T]>
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
     for MatrixDataBoxed<ROWS, COLS, T>
 {
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T>
     for MatrixDataBoxed<ROWS, COLS, T>
 {
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> AsRef<[T]> for MatrixDataBoxed<ROWS, COLS, T> {
     fn as_ref(&self) -> &[T] {
         &self.0
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> AsMut<[T]> for MatrixDataBoxed<ROWS, COLS, T> {
     fn as_mut(&mut self) -> &mut [T] {
         &mut self.0
@@ -355,6 +367,8 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> IndexMut<usize
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> Index<usize> for MatrixDataBoxed<ROWS, COLS, T> {
     type Output = T;
 
@@ -363,6 +377,8 @@ impl<const ROWS: usize, const COLS: usize, T> Index<usize> for MatrixDataBoxed<R
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> IndexMut<usize> for MatrixDataBoxed<ROWS, COLS, T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.0[index]
