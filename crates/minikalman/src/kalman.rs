@@ -1,29 +1,29 @@
 use crate::measurement::Measurement;
-use crate::{Matrix, MatrixDataType};
+use crate::{MatrixData, MatrixDataType};
 
 /// Kalman Filter structure.
 #[allow(non_snake_case, unused)]
 pub struct Kalman<'a, const STATES: usize, const INPUTS: usize, T = f32> {
     /// State vector.
-    x: Matrix<'a, STATES, 1, T>,
+    x: MatrixData<'a, STATES, 1, T>,
     /// System matrix.
     ///
     /// See also [`P`].
-    A: Matrix<'a, STATES, STATES, T>,
+    A: MatrixData<'a, STATES, STATES, T>,
     /// System covariance matrix.
     ///
     /// See also [`A`].
-    P: Matrix<'a, STATES, STATES, T>,
+    P: MatrixData<'a, STATES, STATES, T>,
     /// Input vector.
-    u: Matrix<'a, INPUTS, 1, T>,
+    u: MatrixData<'a, INPUTS, 1, T>,
     /// Input matrix.
     ///
     /// See also [`Q`].
-    B: Matrix<'a, STATES, INPUTS, T>,
+    B: MatrixData<'a, STATES, INPUTS, T>,
     /// Input covariance matrix.
     ///
     /// See also [`B`].
-    Q: Matrix<'a, INPUTS, INPUTS, T>,
+    Q: MatrixData<'a, INPUTS, INPUTS, T>,
 
     /// Temporary storage.
     temporary: KalmanTemporary<'a, STATES, INPUTS, T>,
@@ -32,15 +32,15 @@ pub struct Kalman<'a, const STATES: usize, const INPUTS: usize, T = f32> {
 #[allow(non_snake_case)]
 struct KalmanTemporary<'a, const STATES: usize, const INPUTS: usize, T = f32> {
     /// x-sized temporary vector.
-    predicted_x: Matrix<'a, STATES, 1, T>,
+    predicted_x: MatrixData<'a, STATES, 1, T>,
     /// P-Sized temporary matrix (number of states × number of states).
     ///
     /// The backing field for this temporary MAY be aliased with temporary BQ.
-    P: Matrix<'a, STATES, STATES, T>,
+    P: MatrixData<'a, STATES, STATES, T>,
     /// B×Q-sized temporary matrix (number of states × number of inputs).
     ///
     /// The backing field for this temporary MAY be aliased with temporary P.
-    BQ: Matrix<'a, STATES, INPUTS, T>,
+    BQ: MatrixData<'a, STATES, INPUTS, T>,
 }
 
 impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS, T> {
@@ -114,15 +114,15 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
         temp_BQ: &'a mut [T],
     ) -> Self {
         Self::new(
-            Matrix::<STATES, STATES, T>::new(A),
-            Matrix::<STATES, 1, T>::new(x),
-            Matrix::<STATES, INPUTS, T>::new(B),
-            Matrix::<INPUTS, 1, T>::new(u),
-            Matrix::<STATES, STATES, T>::new(P),
-            Matrix::<INPUTS, INPUTS, T>::new(Q),
-            Matrix::<STATES, 1, T>::new(predictedX),
-            Matrix::<STATES, STATES, T>::new(temp_P),
-            Matrix::<STATES, INPUTS, T>::new(temp_BQ),
+            MatrixData::<STATES, STATES, T>::new(A),
+            MatrixData::<STATES, 1, T>::new(x),
+            MatrixData::<STATES, INPUTS, T>::new(B),
+            MatrixData::<INPUTS, 1, T>::new(u),
+            MatrixData::<STATES, STATES, T>::new(P),
+            MatrixData::<INPUTS, INPUTS, T>::new(Q),
+            MatrixData::<STATES, 1, T>::new(predictedX),
+            MatrixData::<STATES, STATES, T>::new(temp_P),
+            MatrixData::<STATES, INPUTS, T>::new(temp_BQ),
         )
     }
 
@@ -163,15 +163,15 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     /// See [`Kalman::new_direct`] for an example.
     #[allow(non_snake_case, clippy::too_many_arguments)]
     pub fn new(
-        A: Matrix<'a, STATES, STATES, T>,
-        x: Matrix<'a, STATES, 1, T>,
-        B: Matrix<'a, STATES, INPUTS, T>,
-        u: Matrix<'a, INPUTS, 1, T>,
-        P: Matrix<'a, STATES, STATES, T>,
-        Q: Matrix<'a, INPUTS, INPUTS, T>,
-        predictedX: Matrix<'a, STATES, 1, T>,
-        temp_P: Matrix<'a, STATES, STATES, T>,
-        temp_BQ: Matrix<'a, STATES, INPUTS, T>,
+        A: MatrixData<'a, STATES, STATES, T>,
+        x: MatrixData<'a, STATES, 1, T>,
+        B: MatrixData<'a, STATES, INPUTS, T>,
+        u: MatrixData<'a, INPUTS, 1, T>,
+        P: MatrixData<'a, STATES, STATES, T>,
+        Q: MatrixData<'a, INPUTS, INPUTS, T>,
+        predictedX: MatrixData<'a, STATES, 1, T>,
+        temp_P: MatrixData<'a, STATES, STATES, T>,
+        temp_BQ: MatrixData<'a, STATES, INPUTS, T>,
     ) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
@@ -329,14 +329,14 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
 
     /// Gets a reference to the state vector x.
     #[inline(always)]
-    pub fn state_vector_ref(&self) -> &Matrix<'_, STATES, 1, T> {
+    pub fn state_vector_ref(&self) -> &MatrixData<'_, STATES, 1, T> {
         &self.x
     }
 
     /// Gets a reference to the state vector x.
     #[inline(always)]
     #[doc(alias = "kalman_get_state_vector")]
-    pub fn state_vector_mut<'b: 'a>(&'b mut self) -> &'b mut Matrix<'a, STATES, 1, T> {
+    pub fn state_vector_mut<'b: 'a>(&'b mut self) -> &'b mut MatrixData<'a, STATES, 1, T> {
         &mut self.x
     }
 
@@ -344,21 +344,21 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[inline(always)]
     pub fn state_vector_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, 1, T>),
+        F: FnMut(&mut MatrixData<'a, STATES, 1, T>),
     {
         f(&mut self.x)
     }
 
     /// Gets a reference to the state transition matrix A.
     #[inline(always)]
-    pub fn state_transition_ref(&self) -> &Matrix<'_, STATES, STATES, T> {
+    pub fn state_transition_ref(&self) -> &MatrixData<'_, STATES, STATES, T> {
         &self.A
     }
 
     /// Gets a reference to the state transition matrix A.
     #[inline(always)]
     #[doc(alias = "kalman_get_state_transition")]
-    pub fn state_transition_mut(&'a mut self) -> &mut Matrix<'_, STATES, STATES, T> {
+    pub fn state_transition_mut(&'a mut self) -> &mut MatrixData<'_, STATES, STATES, T> {
         &mut self.A
     }
 
@@ -366,21 +366,21 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[inline(always)]
     pub fn state_transition_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, STATES, T>),
+        F: FnMut(&mut MatrixData<'a, STATES, STATES, T>),
     {
         f(&mut self.A)
     }
 
     /// Gets a reference to the system covariance matrix P.
     #[inline(always)]
-    pub fn system_covariance_ref(&self) -> &Matrix<'_, STATES, STATES, T> {
+    pub fn system_covariance_ref(&self) -> &MatrixData<'_, STATES, STATES, T> {
         &self.P
     }
 
     /// Gets a mutable reference to the system covariance matrix P.
     #[inline(always)]
     #[doc(alias = "kalman_get_system_covariance")]
-    pub fn system_covariance_mut(&'a mut self) -> &'a mut Matrix<'_, STATES, STATES, T> {
+    pub fn system_covariance_mut(&'a mut self) -> &'a mut MatrixData<'_, STATES, STATES, T> {
         &mut self.P
     }
 
@@ -388,21 +388,21 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[inline(always)]
     pub fn system_covariance_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, STATES, T>),
+        F: FnMut(&mut MatrixData<'a, STATES, STATES, T>),
     {
         f(&mut self.P)
     }
 
     /// Gets a reference to the input vector u.
     #[inline(always)]
-    pub fn input_vector_ref(&self) -> &Matrix<'_, INPUTS, 1, T> {
+    pub fn input_vector_ref(&self) -> &MatrixData<'_, INPUTS, 1, T> {
         &self.u
     }
 
     /// Gets a mutable reference to the input vector u.
     #[inline(always)]
     #[doc(alias = "kalman_get_input_vector")]
-    pub fn input_vector_mut(&'a mut self) -> &'a mut Matrix<'_, INPUTS, 1, T> {
+    pub fn input_vector_mut(&'a mut self) -> &'a mut MatrixData<'_, INPUTS, 1, T> {
         &mut self.u
     }
 
@@ -410,21 +410,21 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[inline(always)]
     pub fn input_vector_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, INPUTS, 1, T>),
+        F: FnMut(&mut MatrixData<'a, INPUTS, 1, T>),
     {
         f(&mut self.u)
     }
 
     /// Gets a reference to the input transition matrix B.
     #[inline(always)]
-    pub fn input_transition_ref(&self) -> &Matrix<'a, STATES, INPUTS, T> {
+    pub fn input_transition_ref(&self) -> &MatrixData<'a, STATES, INPUTS, T> {
         &self.B
     }
 
     /// Gets a mutable reference to the input transition matrix B.
     #[inline(always)]
     #[doc(alias = "kalman_get_input_transition")]
-    pub fn input_transition_mut(&'a mut self) -> &'a mut Matrix<'_, STATES, INPUTS, T> {
+    pub fn input_transition_mut(&'a mut self) -> &'a mut MatrixData<'_, STATES, INPUTS, T> {
         &mut self.B
     }
 
@@ -432,21 +432,21 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[inline(always)]
     pub fn input_transition_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, STATES, INPUTS, T>),
+        F: FnMut(&mut MatrixData<'a, STATES, INPUTS, T>),
     {
         f(&mut self.B)
     }
 
     /// Gets a reference to the input covariance matrix Q.
     #[inline(always)]
-    pub fn input_covariance_ref(&self) -> &Matrix<'_, INPUTS, INPUTS, T> {
+    pub fn input_covariance_ref(&self) -> &MatrixData<'_, INPUTS, INPUTS, T> {
         &self.Q
     }
 
     /// Gets a mutable reference to the input covariance matrix Q.
     #[inline(always)]
     #[doc(alias = "kalman_get_input_covariance")]
-    pub fn input_covariance_mut(&'a mut self) -> &'a mut Matrix<'_, INPUTS, INPUTS, T> {
+    pub fn input_covariance_mut(&'a mut self) -> &'a mut MatrixData<'_, INPUTS, INPUTS, T> {
         &mut self.Q
     }
 
@@ -455,7 +455,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> Kalman<'a, STATES, INPUTS,
     #[doc(alias = "kalman_get_input_covariance")]
     pub fn input_covariance_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, INPUTS, INPUTS, T>),
+        F: FnMut(&mut MatrixData<'a, INPUTS, INPUTS, T>),
     {
         f(&mut self.Q)
     }

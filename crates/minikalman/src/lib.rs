@@ -28,15 +28,18 @@
 #![forbid(box_pointers)]
 
 mod kalman;
+mod kalman_new;
 mod matrix;
-mod matrix_ops;
 mod measurement;
+mod measurement_new;
+mod more_matrix_traits;
+mod more_matrix_types;
+mod more_traits;
 mod types;
 
-pub use matrix::Matrix;
+pub use matrix::MatrixData;
 
 pub use crate::kalman::Kalman;
-pub use crate::matrix_ops::{MatrixBase, MatrixOps};
 pub use crate::measurement::Measurement;
 pub use crate::types::*;
 

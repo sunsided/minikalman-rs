@@ -1,25 +1,25 @@
 use crate::types::FastUInt8;
-use crate::Matrix;
+use crate::MatrixData;
 
 /// Kalman Filter measurement structure.
 #[allow(non_snake_case, unused)]
 pub struct Measurement<'a, const STATES: usize, const MEASUREMENTS: usize, T = f32> {
     /// Measurement vector.
-    pub(crate) z: Matrix<'a, MEASUREMENTS, 1, T>,
+    pub(crate) z: MatrixData<'a, MEASUREMENTS, 1, T>,
     /// Measurement transformation matrix.
     ///
     /// See also [`R`].
-    pub(crate) H: Matrix<'a, MEASUREMENTS, STATES, T>,
+    pub(crate) H: MatrixData<'a, MEASUREMENTS, STATES, T>,
     /// Process noise covariance matrix.
     ///
     /// See also [`A`].
-    pub(crate) R: Matrix<'a, MEASUREMENTS, MEASUREMENTS, T>,
+    pub(crate) R: MatrixData<'a, MEASUREMENTS, MEASUREMENTS, T>,
     /// Innovation vector.
-    pub(crate) y: Matrix<'a, MEASUREMENTS, 1, T>,
+    pub(crate) y: MatrixData<'a, MEASUREMENTS, 1, T>,
     /// Residual covariance matrix.
-    pub(crate) S: Matrix<'a, MEASUREMENTS, MEASUREMENTS, T>,
+    pub(crate) S: MatrixData<'a, MEASUREMENTS, MEASUREMENTS, T>,
     /// Kalman gain matrix.
-    pub(crate) K: Matrix<'a, STATES, MEASUREMENTS, T>,
+    pub(crate) K: MatrixData<'a, STATES, MEASUREMENTS, T>,
 
     /// Temporary storage.
     pub(crate) temporary: MeasurementTemporary<'a, STATES, MEASUREMENTS, T>,
@@ -33,25 +33,25 @@ pub(crate) struct MeasurementTemporary<'a, const STATES: usize, const MEASUREMEN
     /// - The backing field for this temporary MAY be aliased with temporary [`KHP`].
     /// - The backing field for this temporary MAY be aliased with temporary [`HP`] (if it is not aliased with [`PHt`]).
     /// - The backing field for this temporary MUST NOT be aliased with temporary [`PHt`].
-    pub(crate) S_inv: Matrix<'a, MEASUREMENTS, MEASUREMENTS, T>,
+    pub(crate) S_inv: MatrixData<'a, MEASUREMENTS, MEASUREMENTS, T>,
     /// H-Sized temporary matrix  (number of measurements × number of states).
     ///
     /// - The backing field for this temporary MAY be aliased with temporary [`S_inv`].
     /// - The backing field for this temporary MAY be aliased with temporary [`PHt`].
     /// - The backing field for this temporary MUST NOT be aliased with temporary [`KHP`].
-    pub(crate) HP: Matrix<'a, MEASUREMENTS, STATES, T>,
+    pub(crate) HP: MatrixData<'a, MEASUREMENTS, STATES, T>,
     /// P-Sized temporary matrix  (number of states × number of states).
     ///
     /// - The backing field for this temporary MAY be aliased with temporary [`S_inv`].
     /// - The backing field for this temporary MAY be aliased with temporary [`PHt`].
     /// - The backing field for this temporary MUST NOT be aliased with temporary [`HP`].
-    pub(crate) KHP: Matrix<'a, STATES, STATES, T>,
+    pub(crate) KHP: MatrixData<'a, STATES, STATES, T>,
     /// P×H'-Sized (H'-Sized) temporary matrix  (number of states × number of measurements).
     ///
     /// - The backing field for this temporary MAY be aliased with temporary [`HP`].
     /// - The backing field for this temporary MAY be aliased with temporary [`KHP`].
     /// - The backing field for this temporary MUST NOT be aliased with temporary [`S_inv`].
-    pub(crate) PHt: Matrix<'a, STATES, MEASUREMENTS, T>,
+    pub(crate) PHt: MatrixData<'a, STATES, MEASUREMENTS, T>,
 }
 
 impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
@@ -124,16 +124,16 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
         temp_KHP: &'a mut [T],
     ) -> Self {
         Self::new(
-            Matrix::<MEASUREMENTS, STATES, T>::new(H),
-            Matrix::<MEASUREMENTS, 1, T>::new(z),
-            Matrix::<MEASUREMENTS, MEASUREMENTS, T>::new(R),
-            Matrix::<MEASUREMENTS, 1, T>::new(y),
-            Matrix::<MEASUREMENTS, MEASUREMENTS, T>::new(S),
-            Matrix::<STATES, MEASUREMENTS, T>::new(K),
-            Matrix::<MEASUREMENTS, MEASUREMENTS, T>::new(S_inv),
-            Matrix::<MEASUREMENTS, STATES, T>::new(temp_HP),
-            Matrix::<STATES, MEASUREMENTS, T>::new(temp_PHt),
-            Matrix::<STATES, STATES, T>::new(temp_KHP),
+            MatrixData::<MEASUREMENTS, STATES, T>::new(H),
+            MatrixData::<MEASUREMENTS, 1, T>::new(z),
+            MatrixData::<MEASUREMENTS, MEASUREMENTS, T>::new(R),
+            MatrixData::<MEASUREMENTS, 1, T>::new(y),
+            MatrixData::<MEASUREMENTS, MEASUREMENTS, T>::new(S),
+            MatrixData::<STATES, MEASUREMENTS, T>::new(K),
+            MatrixData::<MEASUREMENTS, MEASUREMENTS, T>::new(S_inv),
+            MatrixData::<MEASUREMENTS, STATES, T>::new(temp_HP),
+            MatrixData::<STATES, MEASUREMENTS, T>::new(temp_PHt),
+            MatrixData::<STATES, STATES, T>::new(temp_KHP),
         )
     }
 
@@ -156,16 +156,16 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
     #[allow(non_snake_case, clippy::too_many_arguments)]
     #[doc(alias = "kalman_measurement_initialize")]
     pub fn new(
-        H: Matrix<'a, MEASUREMENTS, STATES, T>,
-        z: Matrix<'a, MEASUREMENTS, 1, T>,
-        R: Matrix<'a, MEASUREMENTS, MEASUREMENTS, T>,
-        y: Matrix<'a, MEASUREMENTS, 1, T>,
-        S: Matrix<'a, MEASUREMENTS, MEASUREMENTS, T>,
-        K: Matrix<'a, STATES, MEASUREMENTS, T>,
-        S_inv: Matrix<'a, MEASUREMENTS, MEASUREMENTS, T>,
-        temp_HP: Matrix<'a, MEASUREMENTS, STATES, T>,
-        temp_PHt: Matrix<'a, STATES, MEASUREMENTS, T>,
-        temp_KHP: Matrix<'a, STATES, STATES, T>,
+        H: MatrixData<'a, MEASUREMENTS, STATES, T>,
+        z: MatrixData<'a, MEASUREMENTS, 1, T>,
+        R: MatrixData<'a, MEASUREMENTS, MEASUREMENTS, T>,
+        y: MatrixData<'a, MEASUREMENTS, 1, T>,
+        S: MatrixData<'a, MEASUREMENTS, MEASUREMENTS, T>,
+        K: MatrixData<'a, STATES, MEASUREMENTS, T>,
+        S_inv: MatrixData<'a, MEASUREMENTS, MEASUREMENTS, T>,
+        temp_HP: MatrixData<'a, MEASUREMENTS, STATES, T>,
+        temp_PHt: MatrixData<'a, STATES, MEASUREMENTS, T>,
+        temp_KHP: MatrixData<'a, STATES, STATES, T>,
     ) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
@@ -316,14 +316,14 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
 
     /// Gets a reference to the measurement vector z.
     #[inline(always)]
-    pub fn measurement_vector_ref(&self) -> &Matrix<'_, MEASUREMENTS, 1, T> {
+    pub fn measurement_vector_ref(&self) -> &MatrixData<'_, MEASUREMENTS, 1, T> {
         &self.z
     }
 
     /// Gets a mutable reference to the measurement vector z.
     #[inline(always)]
     #[doc(alias = "kalman_get_measurement_vector")]
-    pub fn measurement_vector_mut(&'a mut self) -> &'a mut Matrix<'_, MEASUREMENTS, 1, T> {
+    pub fn measurement_vector_mut(&'a mut self) -> &'a mut MatrixData<'_, MEASUREMENTS, 1, T> {
         &mut self.z
     }
 
@@ -408,14 +408,14 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
     #[inline(always)]
     pub fn measurement_vector_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, MEASUREMENTS, 1, T>),
+        F: FnMut(&mut MatrixData<'a, MEASUREMENTS, 1, T>),
     {
         f(&mut self.z)
     }
 
     /// Gets a reference to the measurement transformation matrix H.
     #[inline(always)]
-    pub fn measurement_transformation_ref(&self) -> &Matrix<'_, MEASUREMENTS, STATES, T> {
+    pub fn measurement_transformation_ref(&self) -> &MatrixData<'_, MEASUREMENTS, STATES, T> {
         &self.H
     }
 
@@ -424,7 +424,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
     #[doc(alias = "kalman_get_measurement_transformation")]
     pub fn measurement_transformation_mut(
         &'a mut self,
-    ) -> &'a mut Matrix<'_, MEASUREMENTS, STATES, T> {
+    ) -> &'a mut MatrixData<'_, MEASUREMENTS, STATES, T> {
         &mut self.H
     }
 
@@ -432,21 +432,23 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
     #[inline(always)]
     pub fn measurement_transformation_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, MEASUREMENTS, STATES, T>),
+        F: FnMut(&mut MatrixData<'a, MEASUREMENTS, STATES, T>),
     {
         f(&mut self.H)
     }
 
     /// Gets a reference to the process noise matrix R.
     #[inline(always)]
-    pub fn process_noise_ref(&self) -> &Matrix<'_, MEASUREMENTS, MEASUREMENTS, T> {
+    pub fn process_noise_ref(&self) -> &MatrixData<'_, MEASUREMENTS, MEASUREMENTS, T> {
         &self.R
     }
 
     /// Gets a mutable reference to the process noise matrix R.
     #[inline(always)]
     #[doc(alias = "kalman_get_process_noise")]
-    pub fn process_noise_mut(&'a mut self) -> &'a mut Matrix<'_, MEASUREMENTS, MEASUREMENTS, T> {
+    pub fn process_noise_mut(
+        &'a mut self,
+    ) -> &'a mut MatrixData<'_, MEASUREMENTS, MEASUREMENTS, T> {
         &mut self.R
     }
 
@@ -454,7 +456,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T>
     #[inline(always)]
     pub fn process_noise_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Matrix<'a, MEASUREMENTS, MEASUREMENTS, T>),
+        F: FnMut(&mut MatrixData<'a, MEASUREMENTS, MEASUREMENTS, T>),
     {
         f(&mut self.R)
     }
