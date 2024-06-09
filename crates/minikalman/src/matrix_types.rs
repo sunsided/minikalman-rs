@@ -1,5 +1,5 @@
 use crate::matrix_traits::{Matrix, MatrixMut};
-use std::ops::{Index, IndexMut};
+use core::ops::{Index, IndexMut};
 
 /// A builder for a Kalman filter measurements.
 pub struct MatrixData;

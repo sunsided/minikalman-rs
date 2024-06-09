@@ -1,5 +1,5 @@
-use std::marker::PhantomData;
-use std::ops::{Index, IndexMut};
+use core::marker::PhantomData;
+use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::TemporaryStateMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};

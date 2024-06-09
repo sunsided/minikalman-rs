@@ -829,7 +829,7 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
 
 #[cfg(test)]
 mod tests {
-    use std::ops::{Index, IndexMut};
+    use core::ops::{Index, IndexMut};
 
     use crate::matrix_traits::MatrixMut;
 

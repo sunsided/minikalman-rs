@@ -1,8 +1,8 @@
 use crate::filter_traits::MeasurementVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::prelude::MeasurementVectorMut;
-use std::marker::PhantomData;
-use std::ops::{Index, IndexMut};
+use core::marker::PhantomData;
+use core::ops::{Index, IndexMut};
 
 pub struct MeasurementVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
 where

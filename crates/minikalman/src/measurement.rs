@@ -377,7 +377,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::ops::{Index, IndexMut};
+    use core::ops::{Index, IndexMut};
 
     use crate::filter_traits::{MeasurementTransformationMatrixMut, MeasurementVectorMut};
     use crate::matrix_traits::{Matrix, MatrixMut};

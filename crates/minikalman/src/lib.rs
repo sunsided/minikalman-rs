@@ -30,7 +30,6 @@
 pub mod buffer_types;
 mod filter_traits;
 mod kalman;
-mod matrix;
 mod matrix_traits;
 mod matrix_types;
 mod measurement;

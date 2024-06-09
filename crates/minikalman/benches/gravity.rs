@@ -5,7 +5,7 @@ use minikalman::{
     create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
     create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,
     create_buffer_temp_S_inv, create_buffer_temp_x, create_buffer_u, create_buffer_x,
-    create_buffer_y, create_buffer_z, Kalman, Measurement,
+    create_buffer_y, create_buffer_z, Kalman, KalmanBuilder, Measurement, MeasurementBuilder,
 };
 
 const REAL_DISTANCE: [f32; 15] = [
@@ -66,7 +66,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
             gravity_H,
             gravity_z,
             gravity_R,
@@ -110,7 +110,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
             gravity_H,
             gravity_z,
             gravity_R,
@@ -148,7 +148,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
             gravity_H,
             gravity_z,
             gravity_R,

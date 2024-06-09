@@ -86,7 +86,7 @@ pub fn predict_gravity() -> f32 {
         unsafe { &mut *addr_of_mut!(gravity_temp_BQ) },
     );
 
-    let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
         unsafe { &mut *addr_of_mut!(gravity_H) },
         unsafe { &mut *addr_of_mut!(gravity_z) },
         unsafe { &mut *addr_of_mut!(gravity_R) },

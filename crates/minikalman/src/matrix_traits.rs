@@ -1,6 +1,5 @@
 use crate::{FastInt16, FastUInt16, FastUInt8, MatrixDataType};
-use core::ops::Index;
-use std::ops::IndexMut;
+use core::ops::{Index, IndexMut};
 
 /// Replaces `x` with `(x) as usize` to simplify index accesses.
 macro_rules! idx {
