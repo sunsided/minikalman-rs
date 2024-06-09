@@ -50,7 +50,7 @@ impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataOwned<INPUTS, INPUTS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -69,7 +69,7 @@ where
     M: Matrix<INPUTS, INPUTS, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 
@@ -106,7 +106,7 @@ where
     M: MatrixMut<INPUTS, INPUTS, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

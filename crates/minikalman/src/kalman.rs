@@ -13,6 +13,7 @@ use crate::measurement::Measurement;
 use crate::{FastUInt8, MatrixDataType};
 
 /// A builder for a [`Kalman`] filter instances.
+#[allow(clippy::type_complexity)]
 pub struct KalmanBuilder<A, X, B, U, P, Q, PX, TempP, TempBQ> {
     _phantom: (
         PhantomData<A>,
@@ -76,7 +77,7 @@ impl<A, X, B, U, P, Q, PX, TempP, TempBQ> KalmanBuilder<A, X, B, U, P, Q, PX, Te
     ///     gravity_temp_BQ,
     ///  );
     /// ```
-    #[allow(non_snake_case, unused)]
+    #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, const INPUTS: usize, T>(
         A: A,
         x: X,
@@ -110,7 +111,7 @@ impl<A, X, B, U, P, Q, PX, TempP, TempBQ> KalmanBuilder<A, X, B, U, P, Q, PX, Te
             predicted_x,
             temp_P,
             temp_BQ,
-            _phantom: PhantomData::default(),
+            _phantom: Default::default(),
         }
     }
 }

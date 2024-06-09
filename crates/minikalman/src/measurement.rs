@@ -4,6 +4,7 @@ use crate::filter_traits::*;
 use crate::{FastUInt8, MatrixDataType};
 
 /// A builder for a Kalman filter [`Measurement`] instances.
+#[allow(clippy::type_complexity)]
 pub struct MeasurementBuilder<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP> {
     _phantom: (
         PhantomData<Z>,
@@ -74,7 +75,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// ```
     ///
     /// See also [`Kalman::new_direct`](crate::Kalman::new_direct) for setting up the Kalman filter itself.
-    #[allow(non_snake_case, unused)]
+    #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, const MEASUREMENTS: usize, T>(
         H: H,
         z: Z,
@@ -111,7 +112,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
             temp_HP,
             temp_PHt,
             temp_KHP,
-            _phantom: PhantomData::default(),
+            _phantom: Default::default(),
         }
     }
 }

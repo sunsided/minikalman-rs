@@ -23,7 +23,7 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
+impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
     for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataOwned<MEASUREMENTS, 1, MEASUREMENTS, T>>
 {
     fn from(value: [T; MEASUREMENTS]) -> Self {
@@ -40,7 +40,7 @@ where
     M: MatrixMut<MEASUREMENTS, 1, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

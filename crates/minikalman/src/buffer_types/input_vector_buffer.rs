@@ -24,7 +24,7 @@ impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const INPUTS: usize, T> From<[T; INPUTS]>
+impl<const INPUTS: usize, T> From<[T; INPUTS]>
     for InputVectorBuffer<INPUTS, T, MatrixDataOwned<INPUTS, 1, INPUTS, T>>
 {
     fn from(value: [T; INPUTS]) -> Self {
@@ -39,7 +39,7 @@ where
     M: MatrixMut<INPUTS, 1, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

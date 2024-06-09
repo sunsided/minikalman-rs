@@ -22,7 +22,7 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const STATES: usize, T> From<[T; STATES]>
+impl<const STATES: usize, T> From<[T; STATES]>
     for StateVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>
 {
     fn from(value: [T; STATES]) -> Self {
@@ -37,7 +37,7 @@ where
     M: MatrixMut<STATES, 1, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

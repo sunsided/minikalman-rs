@@ -52,6 +52,8 @@ pub struct MatrixDataRef<'a, const ROWS: usize, const COLS: usize, T = f32>(&'a 
 /// A mutable reference to data.
 pub struct MatrixDataMut<'a, const ROWS: usize, const COLS: usize, T = f32>(&'a mut [T]);
 
+// TODO: Provide variants that allow taking Box<[T]>
+
 /// Consumes self and returns the wrapped data.
 pub trait IntoInnerData {
     type Target;
@@ -196,7 +198,7 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 
 impl<'a, const ROWS: usize, const COLS: usize, T> AsRef<[T]> for MatrixDataRef<'a, ROWS, COLS, T> {
     fn as_ref(&self) -> &[T] {
-        &self.0
+        self.0
     }
 }
 
@@ -207,7 +209,7 @@ impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
 
 impl<'a, const ROWS: usize, const COLS: usize, T> AsRef<[T]> for MatrixDataMut<'a, ROWS, COLS, T> {
     fn as_ref(&self) -> &[T] {
-        &self.0
+        self.0
     }
 }
 
@@ -218,7 +220,7 @@ impl<'a, const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T>
 
 impl<'a, const ROWS: usize, const COLS: usize, T> AsMut<[T]> for MatrixDataMut<'a, ROWS, COLS, T> {
     fn as_mut(&mut self) -> &mut [T] {
-        &mut self.0
+        self.0
     }
 }
 

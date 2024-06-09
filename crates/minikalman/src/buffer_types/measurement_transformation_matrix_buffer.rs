@@ -76,7 +76,7 @@ impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for MeasurementTransformationMatrixMutBuffer<
         MEASUREMENTS,
         STATES,
@@ -103,7 +103,7 @@ where
     M: Matrix<MEASUREMENTS, STATES, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 
@@ -143,7 +143,7 @@ where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

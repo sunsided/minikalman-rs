@@ -23,7 +23,7 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for TemporaryKHPMatrixBuffer<STATES, T, MatrixDataOwned<STATES, STATES, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -42,7 +42,7 @@ where
     M: MatrixMut<STATES, STATES, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

@@ -16,7 +16,7 @@ pub trait StateVector<const STATES: usize, T = f32> {
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -43,7 +43,7 @@ pub trait SystemMatrixMut<const STATES: usize, T = f32>: SystemMatrix<STATES, T>
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -63,7 +63,7 @@ pub trait SystemCovarianceMatrix<const STATES: usize, T = f32> {
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -90,7 +90,7 @@ pub trait InputVectorMut<const INPUTS: usize, T = f32>: InputVector<INPUTS, T> {
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -119,7 +119,7 @@ pub trait InputMatrixMut<const STATES: usize, const INPUTS: usize, T = f32>:
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -149,7 +149,7 @@ pub trait InputCovarianceMatrixMut<const INPUTS: usize, T = f32>:
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -211,7 +211,7 @@ pub trait MeasurementVectorMut<const MEASUREMENTS: usize, T = f32>:
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -243,7 +243,7 @@ pub trait MeasurementTransformationMatrixMut<
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 
@@ -263,7 +263,7 @@ pub trait MeasurementProcessNoiseCovarianceMatrix<const MEASUREMENTS: usize, T =
     where
         F: FnMut(&mut Self::TargetMut),
     {
-        f(&mut self.as_matrix_mut())
+        f(self.as_matrix_mut())
     }
 }
 

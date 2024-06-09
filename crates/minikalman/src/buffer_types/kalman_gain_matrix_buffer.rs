@@ -26,7 +26,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for KalmanGainMatrixBuffer<
         STATES,
         MEASUREMENTS,
@@ -53,7 +53,7 @@ where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

@@ -29,7 +29,7 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for MeasurementProcessNoiseCovarianceMatrixBuffer<
         MEASUREMENTS,
         T,
@@ -53,7 +53,7 @@ where
     M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 

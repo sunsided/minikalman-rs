@@ -51,7 +51,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
     }
 }
 
-impl<'a, const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataOwned<STATES, INPUTS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -70,7 +70,7 @@ where
     M: Matrix<STATES, INPUTS, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 
@@ -108,7 +108,7 @@ where
     M: MatrixMut<STATES, INPUTS, T>,
 {
     pub fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData::default())
+        Self(matrix, PhantomData)
     }
 }
 
