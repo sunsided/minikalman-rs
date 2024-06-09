@@ -44,7 +44,7 @@ impl<const STATES: usize, const INPUTS: usize, T, M> TemporaryBQMatrixBuffer<STA
 where
     M: MatrixMut<STATES, INPUTS, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }

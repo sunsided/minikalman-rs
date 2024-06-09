@@ -68,7 +68,7 @@ impl<const INPUTS: usize, T, M> InputCovarianceMatrixBuffer<INPUTS, T, M>
 where
     M: Matrix<INPUTS, INPUTS, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }
@@ -105,7 +105,7 @@ impl<const INPUTS: usize, T, M> InputCovarianceMatrixMutBuffer<INPUTS, T, M>
 where
     M: MatrixMut<INPUTS, INPUTS, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }

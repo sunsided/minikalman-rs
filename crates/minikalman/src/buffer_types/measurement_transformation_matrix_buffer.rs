@@ -102,7 +102,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
 where
     M: Matrix<MEASUREMENTS, STATES, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }
@@ -142,7 +142,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }

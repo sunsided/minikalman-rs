@@ -38,7 +38,7 @@ impl<const INPUTS: usize, T, M> InputVectorBuffer<INPUTS, T, M>
 where
     M: MatrixMut<INPUTS, 1, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }

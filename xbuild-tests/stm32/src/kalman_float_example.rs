@@ -1,5 +1,15 @@
 use core::ptr::addr_of_mut;
-use minikalman::{prelude::*, Kalman, Measurement};
+use minikalman::buffer_types::{
+    InnovationResidualCovarianceMatrixBuffer, InnovationVectorBuffer,
+    InputCovarianceMatrixMutBuffer, InputMatrixBuffer, InputMatrixMutBuffer, InputVectorBuffer,
+    KalmanGainMatrixBuffer, MeasurementProcessNoiseCovarianceMatrixBuffer,
+    MeasurementTransformationMatrixMutBuffer, MeasurementVectorBuffer, StatePredictionVectorBuffer,
+    StateVectorBuffer, SystemCovarianceMatrixBuffer, SystemMatrixMutBuffer,
+    TemporaryBQMatrixBuffer, TemporaryHPMatrixBuffer, TemporaryKHPMatrixBuffer,
+    TemporaryPHTMatrixBuffer, TemporaryResidualCovarianceInvertedMatrixBuffer,
+    TemporaryStateMatrixBuffer,
+};
+use minikalman::{prelude::*, Kalman, MatrixDataOwned, Measurement};
 
 /// Measurements.
 const NUM_STATES: usize = 3;
@@ -33,46 +43,35 @@ const MEASUREMENT_ERROR: [f32; 15] = [
 #[allow(non_upper_case_globals)]
 pub fn predict_gravity() -> f32 {
     // System buffers.
-    static mut gravity_x: [f32; size_buffer_x!(NUM_STATES)] = create_buffer_x!(NUM_STATES);
-    static mut gravity_A: [f32; size_buffer_A!(NUM_STATES)] = create_buffer_A!(NUM_STATES);
-    static mut gravity_P: [f32; size_buffer_P!(NUM_STATES)] = create_buffer_P!(NUM_STATES);
+    impl_static_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
+    impl_static_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
+    impl_static_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
 
     // Input buffers.
-    static mut gravity_u: [f32; size_buffer_u!(0)] = create_buffer_u!(NUM_INPUTS);
-    static mut gravity_B: [f32; size_buffer_B!(0, 0)] = create_buffer_B!(NUM_STATES, NUM_INPUTS);
-    static mut gravity_Q: [f32; size_buffer_Q!(0)] = create_buffer_Q!(NUM_INPUTS);
+    impl_static_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
+    impl_static_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
+    impl_static_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
 
     // Measurement buffers.
-    static mut gravity_z: [f32; size_buffer_z!(NUM_MEASUREMENTS)] =
-        create_buffer_z!(NUM_MEASUREMENTS);
-    static mut gravity_H: [f32; size_buffer_H!(NUM_MEASUREMENTS, NUM_STATES)] =
-        create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    static mut gravity_R: [f32; size_buffer_R!(NUM_MEASUREMENTS)] =
-        create_buffer_R!(NUM_MEASUREMENTS);
-    static mut gravity_y: [f32; size_buffer_y!(NUM_MEASUREMENTS)] =
-        create_buffer_y!(NUM_MEASUREMENTS);
-    static mut gravity_S: [f32; size_buffer_S!(NUM_MEASUREMENTS)] =
-        create_buffer_S!(NUM_MEASUREMENTS);
-    static mut gravity_K: [f32; size_buffer_K!(NUM_STATES, NUM_MEASUREMENTS)] =
-        create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    impl_static_buffer_Q!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
+    impl_static_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    impl_static_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
+    impl_static_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
+    impl_static_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
+    impl_static_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
 
     // Filter temporaries.
-    static mut gravity_temp_x: [f32; size_buffer_temp_x!(NUM_STATES)] =
-        create_buffer_temp_x!(NUM_STATES);
-    static mut gravity_temp_P: [f32; size_buffer_temp_P!(NUM_STATES)] =
-        create_buffer_temp_P!(NUM_STATES);
-    static mut gravity_temp_BQ: [f32; size_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS)] =
-        create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    impl_static_buffer_temp_x!(gravity_temp_x, NUM_STATES, f32, 0.0);
+    impl_static_buffer_temp_P!(gravity_temp_P, NUM_STATES, f32, 0.0);
+    impl_static_buffer_temp_BQ!(gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
 
     // Measurement temporaries.
-    static mut gravity_temp_S_inv: [f32; size_buffer_temp_S_inv!(NUM_MEASUREMENTS)] =
-        create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    static mut gravity_temp_HP: [f32; size_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES)] =
-        create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    static mut gravity_temp_PHt: [f32; size_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS)] =
-        create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    static mut gravity_temp_KHP: [f32; size_buffer_temp_KHP!(NUM_STATES)] =
-        create_buffer_temp_KHP!(NUM_STATES);
+    impl_static_buffer_temp_S_inv!(gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
+
+    // Measurement temporaries.
+    impl_static_buffer_temp_HP!(gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    impl_static_buffer_temp_PHt!(gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    impl_static_buffer_temp_KHP!(gravity_temp_KHP, NUM_STATES, f32, 0.0);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
         unsafe { &mut *addr_of_mut!(gravity_A) },
@@ -124,8 +123,8 @@ pub fn predict_gravity() -> f32 {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
-    filter.state_vector_apply(|state| {
+fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, f32>) {
+    filter.apply(|state| {
         state[0] = 0.0; // position
         state[1] = 0.0; // velocity
         state[2] = 6.0; // acceleration
@@ -140,8 +139,8 @@ fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
-    filter.state_transition_apply(|a| {
+fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, f32>) {
+    filter.apply(|a| {
         // Time constant.
         const T: f32 = 1.0;
 
@@ -167,8 +166,8 @@ fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// This defines how different states (linearly) influence each other
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS>) {
-    filter.system_covariance_apply(|p| {
+fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<NUM_STATES, f32>) {
+    filter.apply(|p| {
         p.set(0, 0, 0.1); // var(s)
         p.set(0, 1, 0.0); // cov(s, v)
         p.set(0, 2, 0.0); // cov(s, g)
@@ -188,9 +187,9 @@ fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS>,
+    measurement: &mut impl MeasurementTransformationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
 ) {
-    measurement.measurement_transformation_apply(|h| {
+    measurement.apply(|h| {
         h.set(0, 0, 1.0); // z = 1*s
         h.set(0, 1, 0.0); //   + 0*v
         h.set(0, 2, 0.0); //   + 0*g
@@ -203,9 +202,9 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, f32>,
 ) {
-    measurement.process_noise_apply(|r| {
+    measurement.apply(|r| {
         r.set(0, 0, 0.5); // var(s)
     });
 }

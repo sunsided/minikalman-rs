@@ -15,14 +15,14 @@ impl MatrixData {
     }
 
     /// Creates a new matrix buffer that owns the data.
-    pub fn new_owned<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>(
+    pub const fn new_owned<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>(
         data: [T; TOTAL],
     ) -> MatrixDataOwned<ROWS, COLS, TOTAL, T> {
-        MatrixDataOwned::<ROWS, COLS, TOTAL, T>::new(data)
+        MatrixDataOwned::<ROWS, COLS, TOTAL, T>::new_unchecked(data)
     }
 
     /// Creates a new matrix buffer that references the data.
-    pub fn new_ref<const ROWS: usize, const COLS: usize, T>(
+    pub const fn new_ref<const ROWS: usize, const COLS: usize, T>(
         data: &[T],
     ) -> MatrixDataRef<ROWS, COLS, T> {
         MatrixDataRef::<ROWS, COLS, T>::new(data)
@@ -68,8 +68,13 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
     pub fn new(data: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(ROWS * COLS, TOTAL);
+            assert_eq!(ROWS * COLS, TOTAL);
         }
+        Self(data)
+    }
+
+    /// Creates a new instance of the [`MatrixDataOwned`] type.
+    pub const fn new_unchecked(data: [T; TOTAL]) -> Self {
         Self(data)
     }
 
@@ -81,12 +86,12 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
 
 impl<'a, const ROWS: usize, const COLS: usize, T> MatrixDataRef<'a, ROWS, COLS, T> {
     /// Creates a new instance of the [`MatrixDataRef`] type.
-    pub fn new(data: &'a [T]) -> Self {
+    pub const fn new(data: &'a [T]) -> Self {
         Self(data)
     }
 
     /// Returns the inner slice reference.
-    pub fn into_inner(self) -> &'a [T] {
+    pub const fn into_inner(self) -> &'a [T] {
         self.0
     }
 }

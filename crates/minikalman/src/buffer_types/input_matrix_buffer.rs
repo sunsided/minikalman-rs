@@ -69,7 +69,7 @@ impl<const STATES: usize, const INPUTS: usize, T, M> InputMatrixBuffer<STATES, I
 where
     M: Matrix<STATES, INPUTS, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }
@@ -107,7 +107,7 @@ impl<const STATES: usize, const INPUTS: usize, T, M> InputMatrixMutBuffer<STATES
 where
     M: MatrixMut<STATES, INPUTS, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }

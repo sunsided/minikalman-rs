@@ -36,7 +36,7 @@ impl<const STATES: usize, T, M> StateVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }

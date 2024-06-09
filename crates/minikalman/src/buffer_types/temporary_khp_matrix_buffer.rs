@@ -41,7 +41,7 @@ impl<const STATES: usize, T, M> TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
-    pub fn new(matrix: M) -> Self {
+    pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 }

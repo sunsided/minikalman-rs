@@ -33,6 +33,7 @@ mod kalman;
 mod matrix_traits;
 mod matrix_types;
 mod measurement;
+mod static_macros;
 mod types;
 
 pub use crate::kalman::{Kalman, KalmanBuilder};
@@ -52,6 +53,15 @@ pub mod prelude {
     pub use crate::matrix_types::{IntoInnerData, MatrixData};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
     pub use crate::types::*;
+
+    pub use crate::{
+        impl_static_buffer_A, impl_static_buffer_B, impl_static_buffer_H, impl_static_buffer_K,
+        impl_static_buffer_P, impl_static_buffer_Q, impl_static_buffer_R, impl_static_buffer_S,
+        impl_static_buffer_temp_BQ, impl_static_buffer_temp_HP, impl_static_buffer_temp_KHP,
+        impl_static_buffer_temp_P, impl_static_buffer_temp_PHt, impl_static_buffer_temp_S_inv,
+        impl_static_buffer_temp_x, impl_static_buffer_u, impl_static_buffer_x,
+        impl_static_buffer_y, impl_static_buffer_z,
+    };
 
     pub use crate::{
         create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
@@ -1103,7 +1113,7 @@ macro_rules! create_buffer_temp_P {
     }};
 }
 
-/// Sizes a buffer fitting the temporary B×Q matrix (`num_measurements` × `num_measurements`).
+/// Sizes a buffer fitting the temporary B×Q matrix (`num_states` × `num_inputs`).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
