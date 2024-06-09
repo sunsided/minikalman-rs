@@ -27,8 +27,8 @@
 // Attempt to disable allocations.
 #![forbid(box_pointers)]
 
+pub mod buffer_types;
 mod filter_traits;
-mod filter_types;
 mod kalman;
 mod matrix;
 mod matrix_traits;
@@ -46,8 +46,8 @@ pub use num_traits;
 
 /// Exports all macros and common types.
 pub mod prelude {
+    pub use crate::buffer_types;
     pub use crate::filter_traits::*;
-    pub use crate::filter_types::*;
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::matrix_traits::*;
     pub use crate::matrix_types::MatrixData;
@@ -137,9 +137,12 @@ macro_rules! create_buffer_A {
     }};
     ( $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_A!($num_states);
-        $crate::MatrixData::new_owned::<$num_states, $num_states, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::SystemMatrixMutBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_states,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -201,9 +204,12 @@ macro_rules! create_buffer_P {
     }};
     ( $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_P!($num_states);
-        $crate::MatrixData::new_owned::<$num_states, $num_states, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::SystemCovarianceMatrixBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_states,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -265,7 +271,12 @@ macro_rules! create_buffer_x {
     }};
     ( $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_x!($num_states);
-        $crate::MatrixData::new_owned::<$num_states, 1, COUNT, $t>([($value) as $t; COUNT])
+        $crate::buffer_types::StateVectorBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            1,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -329,7 +340,12 @@ macro_rules! create_buffer_u {
     }};
     ( $num_inputs:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_u!($num_inputs);
-        $crate::MatrixData::new_owned::<$num_inputs, 1, COUNT, $t>([($value) as $t; COUNT])
+        $crate::buffer_types::InputVectorBuffer::new($crate::MatrixData::new_owned::<
+            $num_inputs,
+            1,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -402,9 +418,12 @@ macro_rules! create_buffer_B {
     }};
     ( $num_states:expr, $num_inputs:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_B!($num_states, $num_inputs);
-        $crate::MatrixData::new_owned::<$num_states, $num_inputs, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::InputMatrixMutBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_inputs,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -469,9 +488,12 @@ macro_rules! create_buffer_Q {
     }};
     ( $num_inputs:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_Q!($num_inputs);
-        $crate::MatrixData::new_owned::<$num_inputs, $num_inputs, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::InputCovarianceMatrixMutBuffer::new($crate::MatrixData::new_owned::<
+            $num_inputs,
+            $num_inputs,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -543,7 +565,12 @@ macro_rules! create_buffer_z {
     }};
     ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_z!($num_measurements);
-        $crate::MatrixData::new_owned::<$num_measurements, 1, COUNT, $t>([($value) as $t; COUNT])
+        $crate::buffer_types::MeasurementVectorBuffer::new($crate::MatrixData::new_owned::<
+            $num_measurements,
+            1,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -620,8 +647,10 @@ macro_rules! create_buffer_H {
     }};
     ( $num_measurements:expr, $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_H!($num_measurements, $num_states);
-        $crate::MatrixData::new_owned::<$num_measurements, $num_states, COUNT, $t>(
-            [($value) as $t; COUNT],
+        $crate::buffer_types::MeasurementTransformationMatrixMutBuffer::new(
+            $crate::MatrixData::new_owned::<$num_measurements, $num_states, COUNT, $t>(
+                [($value) as $t; COUNT],
+            ),
         )
     }};
 }
@@ -694,8 +723,10 @@ macro_rules! create_buffer_R {
     }};
     ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_R!($num_measurements);
-        $crate::MatrixData::new_owned::<$num_measurements, $num_measurements, COUNT, $t>(
-            [($value) as $t; COUNT],
+        $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer::new(
+            $crate::MatrixData::new_owned::<$num_measurements, $num_measurements, COUNT, $t>(
+                [($value) as $t; COUNT],
+            ),
         )
     }};
 }
@@ -768,7 +799,12 @@ macro_rules! create_buffer_y {
     }};
     ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_y!($num_measurements);
-        $crate::MatrixData::new_owned::<$num_measurements, 1, COUNT, $t>([($value) as $t; COUNT])
+        $crate::buffer_types::InnovationVectorBuffer::new($crate::MatrixData::new_owned::<
+            $num_measurements,
+            1,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -839,8 +875,10 @@ macro_rules! create_buffer_S {
     }};
     ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_S!($num_measurements);
-        $crate::MatrixData::new_owned::<$num_measurements, $num_measurements, COUNT, $t>(
-            [($value) as $t; COUNT],
+        $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer::new(
+            $crate::MatrixData::new_owned::<$num_measurements, $num_measurements, COUNT, $t>(
+                [($value) as $t; COUNT],
+            ),
         )
     }};
 }
@@ -917,9 +955,12 @@ macro_rules! create_buffer_K {
     }};
     ( $num_states:expr, $num_measurements:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_K!($num_states, $num_measurements);
-        $crate::MatrixData::new_owned::<$num_states, $num_measurements, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::KalmanGainMatrixBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_measurements,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -984,7 +1025,12 @@ macro_rules! create_buffer_temp_x {
     }};
     ( $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_temp_x!($num_states);
-        $crate::MatrixData::new_owned::<$num_states, 1, COUNT, $t>([($value) as $t; COUNT])
+        $crate::buffer_types::StatePredictionVectorBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            1,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -1049,9 +1095,12 @@ macro_rules! create_buffer_temp_P {
     }};
     ( $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_temp_P!($num_states);
-        $crate::MatrixData::new_owned::<$num_states, $num_states, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::TemporaryStateMatrixBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_states,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -1124,9 +1173,12 @@ macro_rules! create_buffer_temp_BQ {
     }};
     ( $num_states:expr, $num_inputs:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_temp_BQ!($num_states, $num_inputs);
-        $crate::MatrixData::new_owned::<$num_states, $num_inputs, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::TemporaryBQMatrixBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_inputs,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -1197,8 +1249,10 @@ macro_rules! create_buffer_temp_S_inv {
     }};
     ( $num_measurements:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_temp_S_inv!($num_measurements);
-        $crate::MatrixData::new_owned::<$num_measurements, $num_measurements, COUNT, $t>(
-            [($value) as $t; COUNT],
+        $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer::new(
+            $crate::MatrixData::new_owned::<$num_measurements, $num_measurements, COUNT, $t>(
+                [($value) as $t; COUNT],
+            ),
         )
     }};
 }
@@ -1273,9 +1327,12 @@ macro_rules! create_buffer_temp_HP {
     }};
     ( $num_measurements:expr, $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_temp_HP!($num_measurements, $num_states);
-        $crate::MatrixData::new_owned::<$num_measurements, $num_states, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::TemporaryHPMatrixBuffer::new($crate::MatrixData::new_owned::<
+            $num_measurements,
+            $num_states,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -1348,9 +1405,12 @@ macro_rules! create_buffer_temp_PHt {
     }};
     ( $num_states:expr, $num_measurements:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_temp_PHt!($num_states, $num_measurements);
-        $crate::MatrixData::new_owned::<$num_states, $num_measurements, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::TemporaryPHTMatrixBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_measurements,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }
 
@@ -1415,8 +1475,11 @@ macro_rules! create_buffer_temp_KHP {
     }};
     ( $num_states:expr, $t:ty, $value:expr ) => {{
         const COUNT: usize = $crate::size_buffer_temp_KHP!($num_states);
-        $crate::MatrixData::new_owned::<$num_states, $num_states, COUNT, $t>(
-            [($value) as $t; COUNT],
-        )
+        $crate::buffer_types::TemporaryKHPMatrixBuffer::new($crate::MatrixData::new_owned::<
+            $num_states,
+            $num_states,
+            COUNT,
+            $t,
+        >([($value) as $t; COUNT]))
     }};
 }

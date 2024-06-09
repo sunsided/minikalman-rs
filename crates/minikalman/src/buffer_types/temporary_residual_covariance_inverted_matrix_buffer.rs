@@ -1,5 +1,5 @@
+use crate::buffer_types::TemporaryKHPMatrixBuffer;
 use crate::filter_traits::{ResidualCovarianceMatrix, TemporaryResidualCovarianceInvertedMatrix};
-use crate::filter_types::TemporaryKHPMatrixBuffer;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
@@ -33,7 +33,24 @@ where
     }
 }
 
+impl<const MEASUREMENTS: usize, T, M> AsMut<[T]>
+    for TemporaryResidualCovarianceInvertedMatrixBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+{
+    fn as_mut(&mut self) -> &mut [T] {
+        self.0.as_mut()
+    }
+}
+
 impl<const MEASUREMENTS: usize, T, M> Matrix<MEASUREMENTS, MEASUREMENTS, T>
+    for TemporaryResidualCovarianceInvertedMatrixBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+{
+}
+
+impl<const MEASUREMENTS: usize, T, M> MatrixMut<MEASUREMENTS, MEASUREMENTS, T>
     for TemporaryResidualCovarianceInvertedMatrixBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,

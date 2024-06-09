@@ -9,7 +9,7 @@
 #[allow(unused)]
 use colored::Colorize;
 
-use minikalman::prelude::*;
+use minikalman::prelude::{buffer_types::*, *};
 
 /// Measurements.
 ///

@@ -49,6 +49,13 @@ where
 {
 }
 
+impl<const MEASUREMENT: usize, T, M> MatrixMut<MEASUREMENT, MEASUREMENT, T>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
+where
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
+{
+}
+
 impl<const MEASUREMENT: usize, T, M> MeasurementProcessNoiseCovarianceMatrix<MEASUREMENT, T>
     for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
 where

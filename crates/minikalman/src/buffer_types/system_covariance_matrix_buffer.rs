@@ -1,5 +1,5 @@
+use crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer;
 use crate::filter_traits::SystemCovarianceMatrix;
-use crate::filter_types::MeasurementProcessNoiseCovarianceMatrixBuffer;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
@@ -28,7 +28,23 @@ where
     }
 }
 
+impl<const STATES: usize, T, M> AsMut<[T]> for SystemCovarianceMatrixBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, STATES, T>,
+{
+    fn as_mut(&mut self) -> &mut [T] {
+        self.0.as_mut()
+    }
+}
+
 impl<const STATES: usize, T, M> Matrix<STATES, STATES, T>
+    for SystemCovarianceMatrixBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, STATES, T>,
+{
+}
+
+impl<const STATES: usize, T, M> MatrixMut<STATES, STATES, T>
     for SystemCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,

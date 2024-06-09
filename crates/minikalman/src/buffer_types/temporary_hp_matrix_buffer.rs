@@ -1,5 +1,5 @@
+use crate::buffer_types::TemporaryBQMatrixBuffer;
 use crate::filter_traits::TemporaryHPMatrix;
-use crate::filter_types::TemporaryBQMatrixBuffer;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
@@ -44,6 +44,13 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> Matrix<MEASUREMENTS, STATES, T>
+    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, STATES, T>,
+{
+}
+
+impl<const MEASUREMENTS: usize, const STATES: usize, T, M> MatrixMut<MEASUREMENTS, STATES, T>
     for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,

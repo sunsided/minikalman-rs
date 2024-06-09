@@ -5,7 +5,7 @@
 
 #![forbid(unsafe_code)]
 
-use minikalman::prelude::*;
+use minikalman::prelude::{buffer_types::*, *};
 
 /// Measurements.
 ///
@@ -67,7 +67,7 @@ fn test_gravity_estimation() {
     let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
-        SystemMatrixMutBuffer::new(gravity_A),
+        SystemMatrixMutBuffer::new(gravity_A), // TODO: Implement from!
         StateVectorBuffer::new(gravity_x),
         InputMatrixMutBuffer::new(gravity_B),
         InputVectorBuffer::new(gravity_u),

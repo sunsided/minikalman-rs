@@ -1,5 +1,5 @@
+use crate::buffer_types::InnovationVectorBuffer;
 use crate::filter_traits::StatePredictionVector;
-use crate::filter_types::InnovationVectorBuffer;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};

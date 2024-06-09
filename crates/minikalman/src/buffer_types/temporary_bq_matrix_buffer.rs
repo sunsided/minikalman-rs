@@ -1,5 +1,5 @@
+use crate::buffer_types::MeasurementTransformationMatrixMutBuffer;
 use crate::filter_traits::TemporaryBQMatrix;
-use crate::filter_types::MeasurementTransformationMatrixMutBuffer;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
@@ -32,7 +32,24 @@ where
     }
 }
 
+impl<const STATES: usize, const INPUTS: usize, T, M> AsMut<[T]>
+    for TemporaryBQMatrixBuffer<STATES, INPUTS, T, M>
+where
+    M: MatrixMut<STATES, INPUTS, T>,
+{
+    fn as_mut(&mut self) -> &mut [T] {
+        self.0.as_mut()
+    }
+}
+
 impl<const STATES: usize, const INPUTS: usize, T, M> Matrix<STATES, INPUTS, T>
+    for TemporaryBQMatrixBuffer<STATES, INPUTS, T, M>
+where
+    M: MatrixMut<STATES, INPUTS, T>,
+{
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, M> MatrixMut<STATES, INPUTS, T>
     for TemporaryBQMatrixBuffer<STATES, INPUTS, T, M>
 where
     M: MatrixMut<STATES, INPUTS, T>,

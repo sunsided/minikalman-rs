@@ -1,5 +1,5 @@
+use crate::buffer_types::InputMatrixMutBuffer;
 use crate::filter_traits::{KalmanGainMatrix, ResidualCovarianceMatrix};
-use crate::filter_types::InputMatrixMutBuffer;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
@@ -33,7 +33,24 @@ where
     }
 }
 
+impl<const STATES: usize, const MEASUREMENTS: usize, T, M> AsMut<[T]>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+where
+    M: MatrixMut<STATES, MEASUREMENTS, T>,
+{
+    fn as_mut(&mut self) -> &mut [T] {
+        self.0.as_mut()
+    }
+}
+
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> Matrix<STATES, MEASUREMENTS, T>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+where
+    M: MatrixMut<STATES, MEASUREMENTS, T>,
+{
+}
+
+impl<const STATES: usize, const MEASUREMENTS: usize, T, M> MatrixMut<STATES, MEASUREMENTS, T>
     for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,

@@ -1,5 +1,5 @@
+use crate::buffer_types::MeasurementVectorBuffer;
 use crate::filter_traits::InputVector;
-use crate::filter_types::MeasurementVectorBuffer;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::prelude::InputVectorMut;
 use std::marker::PhantomData;
