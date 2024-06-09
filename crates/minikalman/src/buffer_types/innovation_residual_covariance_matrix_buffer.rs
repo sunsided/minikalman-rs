@@ -5,6 +5,19 @@ use crate::filter_traits::ResidualCovarianceMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
+/// Buffer for the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+///
+/// // From owned data
+/// let buffer = InnovationResidualCovarianceMatrixBuffer::new(MatrixData::new_owned::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = InnovationResidualCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// ```
 pub struct InnovationResidualCovarianceMatrixBuffer<const MEASUREMENTS: usize, T, M>(
     M,
     PhantomData<T>,
