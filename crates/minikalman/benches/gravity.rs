@@ -47,32 +47,32 @@ fn criterion_benchmark(c: &mut Criterion) {
     let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
     let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 
+    let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+        gravity_A,
+        gravity_x,
+        gravity_B,
+        gravity_u,
+        gravity_P,
+        gravity_Q,
+        gravity_temp_x,
+        gravity_temp_P,
+        gravity_temp_BQ,
+    );
+
+    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+        gravity_H,
+        gravity_z,
+        gravity_R,
+        gravity_y,
+        gravity_S,
+        gravity_K,
+        gravity_temp_S_inv,
+        gravity_temp_HP,
+        gravity_temp_PHt,
+        gravity_temp_KHP,
+    );
+
     c.bench_function("filter loop", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
-            gravity_A,
-            gravity_x,
-            gravity_B,
-            gravity_u,
-            gravity_P,
-            gravity_Q,
-            gravity_temp_x,
-            gravity_temp_P,
-            gravity_temp_BQ,
-        );
-
-        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-            gravity_H,
-            gravity_z,
-            gravity_R,
-            gravity_y,
-            gravity_S,
-            gravity_K,
-            gravity_temp_S_inv,
-            gravity_temp_HP,
-            gravity_temp_PHt,
-            gravity_temp_KHP,
-        );
-
         // Set initial state.
         initialize_state_vector(filter.state_vector_mut());
         initialize_state_transition_matrix(filter.state_transition_mut());
@@ -93,32 +93,61 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    // System buffers.
+    let gravity_x = create_buffer_x!(NUM_STATES);
+    let gravity_A = create_buffer_A!(NUM_STATES);
+    let gravity_P = create_buffer_P!(NUM_STATES);
+
+    // Input buffers.
+    let gravity_u = create_buffer_u!(NUM_INPUTS);
+    let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+    let gravity_Q = create_buffer_Q!(NUM_INPUTS);
+
+    // Measurement buffers.
+    let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+
+    // Filter temporaries.
+    let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+
+    // Measurement temporaries.
+    let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+
+    let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+        gravity_A,
+        gravity_x,
+        gravity_B,
+        gravity_u,
+        gravity_P,
+        gravity_Q,
+        gravity_temp_x,
+        gravity_temp_P,
+        gravity_temp_BQ,
+    );
+
+    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+        gravity_H,
+        gravity_z,
+        gravity_R,
+        gravity_y,
+        gravity_S,
+        gravity_K,
+        gravity_temp_S_inv,
+        gravity_temp_HP,
+        gravity_temp_PHt,
+        gravity_temp_KHP,
+    );
+
     c.bench_function("predict", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
-            gravity_A,
-            gravity_x,
-            gravity_B,
-            gravity_u,
-            gravity_P,
-            gravity_Q,
-            gravity_temp_x,
-            gravity_temp_P,
-            gravity_temp_BQ,
-        );
-
-        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-            gravity_H,
-            gravity_z,
-            gravity_R,
-            gravity_y,
-            gravity_S,
-            gravity_K,
-            gravity_temp_S_inv,
-            gravity_temp_HP,
-            gravity_temp_PHt,
-            gravity_temp_KHP,
-        );
-
         // Set initial state.
         initialize_state_vector(filter.state_vector_mut());
         initialize_state_transition_matrix(filter.state_transition_mut());
@@ -133,32 +162,61 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    // System buffers.
+    let gravity_x = create_buffer_x!(NUM_STATES);
+    let gravity_A = create_buffer_A!(NUM_STATES);
+    let gravity_P = create_buffer_P!(NUM_STATES);
+
+    // Input buffers.
+    let gravity_u = create_buffer_u!(NUM_INPUTS);
+    let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+    let gravity_Q = create_buffer_Q!(NUM_INPUTS);
+
+    // Measurement buffers.
+    let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+
+    // Filter temporaries.
+    let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+
+    // Measurement temporaries.
+    let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+
+    let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+        gravity_A,
+        gravity_x,
+        gravity_B,
+        gravity_u,
+        gravity_P,
+        gravity_Q,
+        gravity_temp_x,
+        gravity_temp_P,
+        gravity_temp_BQ,
+    );
+
+    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+        gravity_H,
+        gravity_z,
+        gravity_R,
+        gravity_y,
+        gravity_S,
+        gravity_K,
+        gravity_temp_S_inv,
+        gravity_temp_HP,
+        gravity_temp_PHt,
+        gravity_temp_KHP,
+    );
+
     c.bench_function("update", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
-            gravity_A,
-            gravity_x,
-            gravity_B,
-            gravity_u,
-            gravity_P,
-            gravity_Q,
-            gravity_temp_x,
-            gravity_temp_P,
-            gravity_temp_BQ,
-        );
-
-        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-            gravity_H,
-            gravity_z,
-            gravity_R,
-            gravity_y,
-            gravity_S,
-            gravity_K,
-            gravity_temp_S_inv,
-            gravity_temp_HP,
-            gravity_temp_PHt,
-            gravity_temp_KHP,
-        );
-
         // Set initial state.
         initialize_state_vector(filter.state_vector_mut());
         initialize_state_transition_matrix(filter.state_transition_mut());
