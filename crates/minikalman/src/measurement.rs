@@ -59,7 +59,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
     /// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
     ///
-    /// let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    /// let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
     ///     gravity_H,
     ///     gravity_z,
     ///     gravity_R,
@@ -275,7 +275,7 @@ impl<
     /// # let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
     /// # let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
     /// #
-    /// # let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS>::new_direct(
+    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
     /// #     gravity_H,
     /// #     gravity_z,
     /// #     gravity_R,

@@ -5,7 +5,7 @@
 
 #![forbid(unsafe_code)]
 
-use minikalman::prelude::{buffer_types::*, *};
+use minikalman::prelude::*;
 
 /// Measurements.
 ///

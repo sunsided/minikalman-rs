@@ -157,20 +157,21 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// ## Example
     /// ```
     /// use minikalman::MatrixData;
+    /// use minikalman::prelude::Matrix;
     ///
-    /// let mut a_buf = [
+    /// let a_buf = [
     ///      1.0, 2.0, 3.0,
     ///      4.0, 5.0, 6.0];
-    /// let a = MatrixData::<2, 3>::new(&mut a_buf);
+    /// let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
     ///
-    /// let mut b_buf = [
+    /// let b_buf = [
     ///     10.0, 11.0,
     ///     20.0, 21.0,
     ///     30.0, 31.0];
-    /// let b = MatrixData::<3, 2>::new(&mut b_buf);
+    /// let b = MatrixData::new_ref::<3, 2, f32>(&b_buf);
     ///
     /// let mut c_buf = [0f32; 2 * 2];
-    /// let mut c = MatrixData::<2, 2>::new(&mut c_buf);
+    /// let mut c = MatrixData::new_mut::<2, 2, f32>(&mut c_buf);
     ///
     /// let mut aux = [0f32; 3 * 1];
     /// a.mult_buffered(&b, &mut c, &mut aux);
@@ -240,20 +241,21 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// ## Example
     /// ```
     /// use minikalman::MatrixData;
+    /// use minikalman::prelude::Matrix;
     ///
-    /// let mut a_buf = [
+    /// let a_buf = [
     ///      1.0, 2.0, 3.0,
     ///      4.0, 5.0, 6.0];
-    /// let a = MatrixData::<2, 3>::new(&mut a_buf);
+    /// let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
     ///
-    /// let mut b_buf = [
+    /// let b_buf = [
     ///     10.0, 11.0,
     ///     20.0, 21.0,
     ///     30.0, 31.0];
-    /// let b = MatrixData::<3, 2>::new(&mut b_buf);
+    /// let b = MatrixData::new_ref::<3, 2, f32>(&b_buf);
     ///
     /// let mut c_buf = [0f32; 2 * 2];
-    /// let mut c = MatrixData::<2, 2>::new(&mut c_buf);
+    /// let mut c = MatrixData::new_mut::<2, 2, f32>(&mut c_buf);
     ///
     /// a.mult(&b, &mut c);
     ///
@@ -700,17 +702,18 @@ pub trait SquareMatrix<const N: usize, T = f32>: AsRef<[T]> {
     ///
     /// ```
     /// use minikalman::MatrixData;
+    /// use minikalman::prelude::{Matrix, MatrixMut, SquareMatrix};
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [
     ///     1.0, 0.5, 0.0,
     ///     0.5, 1.0, 0.0,
     ///     0.0, 0.0, 1.0];
-    /// let mut m = MatrixData::<3, 3>::new(&mut d);
+    /// let mut m = MatrixData::new_mut::<3, 3, f32>(&mut d);
     ///
     /// // data buffer for the inverted matrix
     /// let mut di = [0.0; 3 * 3];
-    /// let mut mi = MatrixData::<3, 3>::new(&mut di);
+    /// let mut mi = MatrixData::new_mut::<3, 3, f32>(&mut di);
     ///
     /// // Decompose matrix to lower triangular.
     /// m.cholesky_decompose_lower();
@@ -896,6 +899,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// ## Example
     /// ```
     /// use minikalman::MatrixData;
+    /// use minikalman::prelude::MatrixMut;
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [
@@ -903,7 +907,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     ///     0.5, 1.0, 0.0,
     ///     0.0, 0.0, 1.0];
     ///
-    /// let mut m = MatrixData::<3, 3>::new(&mut d);
+    /// let mut m = MatrixData::new_mut::<3, 3, f32>(&mut d);
     ///
     /// // Decompose matrix to lower triangular.
     /// m.cholesky_decompose_lower();
