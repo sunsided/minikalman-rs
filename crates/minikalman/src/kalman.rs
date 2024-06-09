@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::filter_traits::{
     InnovationVector, InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut,
     InputVector, InputVectorMut, KalmanGainMatrix, MeasurementProcessNoiseCovarianceMatrix,
@@ -7,9 +9,8 @@ use crate::filter_traits::{
     TemporaryResidualCovarianceInvertedMatrix, TemporaryStateMatrix,
 };
 use crate::matrix_traits::{Matrix, MatrixMut, SquareMatrix};
-use crate::measurement::{Measurement, MeasurementBuilder};
+use crate::measurement::Measurement;
 use crate::{FastUInt8, MatrixDataType};
-use core::marker::PhantomData;
 
 /// A builder for a [`Kalman`] filter instances.
 pub struct KalmanBuilder<A, X, B, U, P, Q, PX, TempP, TempBQ> {
@@ -828,13 +829,15 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::matrix_traits::MatrixMut;
     use std::ops::{Index, IndexMut};
+
+    use crate::matrix_traits::MatrixMut;
+
+    use super::*;
 
     #[test]
     fn builder_simple() {
-        let filter = KalmanBuilder::new::<3, 0, f32>(
+        let _filter = KalmanBuilder::new::<3, 0, f32>(
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
@@ -986,13 +989,13 @@ mod tests {
     impl<T> Index<usize> for DummyMatrix<T> {
         type Output = T;
 
-        fn index(&self, index: usize) -> &Self::Output {
+        fn index(&self, _index: usize) -> &Self::Output {
             todo!()
         }
     }
 
     impl<T> IndexMut<usize> for DummyMatrix<T> {
-        fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        fn index_mut(&mut self, _index: usize) -> &mut Self::Output {
             todo!()
         }
     }

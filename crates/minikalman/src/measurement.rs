@@ -1,13 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::filter_traits::{
-    InnovationVector, InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut,
-    InputVector, InputVectorMut, KalmanGainMatrix, MeasurementProcessNoiseCovarianceMatrix,
-    MeasurementTransformationMatrix, MeasurementTransformationMatrixMut, MeasurementVector,
-    ResidualCovarianceMatrix, StatePredictionVector, StateVector, SystemCovarianceMatrix,
-    SystemMatrix, SystemMatrixMut, TemporaryBQMatrix, TemporaryHPMatrix, TemporaryKHPMatrix,
-    TemporaryPHTMatrix, TemporaryResidualCovarianceInvertedMatrix, TemporaryStateMatrix,
-};
+use crate::filter_traits::*;
 use crate::{FastUInt8, MatrixDataType};
 
 /// A builder for a Kalman filter [`Measurement`] instances.
@@ -384,15 +377,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::filter_traits::{MeasurementTransformationMatrixMut, MeasurementVectorMut};
-    use crate::matrix_traits::{Matrix, MatrixMut, SquareMatrix, SquareMatrixMut};
     use std::ops::{Index, IndexMut};
+
+    use crate::filter_traits::{MeasurementTransformationMatrixMut, MeasurementVectorMut};
+    use crate::matrix_traits::{Matrix, MatrixMut};
 
     use super::*;
 
     #[test]
     fn builder_simple() {
-        let filter = MeasurementBuilder::new::<3, 1, f32>(
+        let _filter = MeasurementBuilder::new::<3, 1, f32>(
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
@@ -577,13 +571,13 @@ mod tests {
     impl<T> Index<usize> for DummyMatrix<T> {
         type Output = T;
 
-        fn index(&self, index: usize) -> &Self::Output {
+        fn index(&self, _index: usize) -> &Self::Output {
             todo!()
         }
     }
 
     impl<T> IndexMut<usize> for DummyMatrix<T> {
-        fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        fn index_mut(&mut self, _index: usize) -> &mut Self::Output {
             todo!()
         }
     }

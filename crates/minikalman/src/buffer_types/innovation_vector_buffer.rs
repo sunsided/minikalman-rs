@@ -1,8 +1,8 @@
-use crate::buffer_types::InputVectorBuffer;
-use crate::filter_traits::InnovationVector;
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::InnovationVector;
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct InnovationVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
 where

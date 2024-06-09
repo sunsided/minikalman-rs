@@ -1,8 +1,8 @@
-use crate::buffer_types::TemporaryKHPMatrixBuffer;
-use crate::filter_traits::{ResidualCovarianceMatrix, TemporaryResidualCovarianceInvertedMatrix};
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::TemporaryResidualCovarianceInvertedMatrix;
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct TemporaryResidualCovarianceInvertedMatrixBuffer<const MEASUREMENTS: usize, T, M>(
     M,

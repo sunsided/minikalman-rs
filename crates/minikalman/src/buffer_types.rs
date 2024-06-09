@@ -18,9 +18,6 @@ mod temporary_pht_matrix_buffer;
 mod temporary_residual_covariance_inverted_matrix_buffer;
 mod temporary_state_matrix_buffer;
 
-use crate::filter_traits::{StateVector, SystemMatrix, SystemMatrixMut};
-use crate::matrix_traits::{Matrix, MatrixMut};
-
 pub use crate::buffer_types::innovation_residual_covariance_matrix_buffer::*;
 pub use crate::buffer_types::innovation_vector_buffer::*;
 pub use crate::buffer_types::input_covariance_buffer::*;

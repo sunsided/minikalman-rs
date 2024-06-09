@@ -1,9 +1,9 @@
-use crate::buffer_types::MeasurementVectorBuffer;
+use std::marker::PhantomData;
+use std::ops::{Index, IndexMut};
+
 use crate::filter_traits::InputVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::prelude::InputVectorMut;
-use std::marker::PhantomData;
-use std::ops::{Index, IndexMut};
 
 pub struct InputVectorBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
 where

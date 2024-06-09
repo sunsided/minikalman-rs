@@ -1,8 +1,8 @@
-use crate::buffer_types::MeasurementTransformationMatrixMutBuffer;
-use crate::filter_traits::TemporaryBQMatrix;
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::TemporaryBQMatrix;
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct TemporaryBQMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(
     M,

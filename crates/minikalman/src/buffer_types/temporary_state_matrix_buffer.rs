@@ -1,8 +1,8 @@
-use crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer;
-use crate::filter_traits::TemporaryStateMatrix;
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::TemporaryStateMatrix;
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct TemporaryStateMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where

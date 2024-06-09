@@ -1,8 +1,8 @@
-use crate::buffer_types::InputCovarianceMatrixMutBuffer;
-use crate::filter_traits::{InputMatrix, InputMatrixMut};
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::{InputMatrix, InputMatrixMut};
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct InputMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
 where

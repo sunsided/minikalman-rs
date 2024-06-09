@@ -1,8 +1,8 @@
-use crate::buffer_types::InputMatrixMutBuffer;
-use crate::filter_traits::{MeasurementTransformationMatrix, MeasurementTransformationMatrixMut};
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::{MeasurementTransformationMatrix, MeasurementTransformationMatrixMut};
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct MeasurementTransformationMatrixBuffer<
     const MEASUREMENTS: usize,

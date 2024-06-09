@@ -278,7 +278,7 @@ mod tests {
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
 
-        let mut a = MatrixData::new_ref::<2, 3, f32>(&BUFFER);
+        let a = MatrixData::new_ref::<2, 3, f32>(&BUFFER);
 
         assert_f32_near!(a[0], 1.);
         assert_f32_near!(a[1], 2.);

@@ -1,8 +1,8 @@
-use crate::buffer_types::SystemCovarianceMatrixBuffer;
-use crate::filter_traits::{SystemMatrix, SystemMatrixMut};
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::{SystemMatrix, SystemMatrixMut};
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct SystemMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where

@@ -1,8 +1,8 @@
-use crate::buffer_types::InnovationVectorBuffer;
-use crate::filter_traits::StatePredictionVector;
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::StatePredictionVector;
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct StatePredictionVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where

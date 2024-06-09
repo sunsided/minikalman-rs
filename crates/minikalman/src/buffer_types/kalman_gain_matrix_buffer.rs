@@ -1,8 +1,8 @@
-use crate::buffer_types::InputMatrixMutBuffer;
-use crate::filter_traits::{KalmanGainMatrix, ResidualCovarianceMatrix};
-use crate::matrix_traits::{Matrix, MatrixMut};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+
+use crate::filter_traits::KalmanGainMatrix;
+use crate::matrix_traits::{Matrix, MatrixMut};
 
 pub struct KalmanGainMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(
     M,

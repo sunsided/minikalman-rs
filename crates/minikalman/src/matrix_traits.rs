@@ -1,4 +1,3 @@
-use crate::matrix_types::MatrixData;
 use crate::{FastInt16, FastUInt16, FastUInt8, MatrixDataType};
 use core::ops::Index;
 use std::ops::IndexMut;
@@ -980,6 +979,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::MatrixData;
     use assert_float_eq::*;
 
     #[test]

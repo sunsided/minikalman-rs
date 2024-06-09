@@ -41,33 +41,33 @@ const NUM_MEASUREMENTS: usize = 1;
 #[allow(non_snake_case)]
 fn main() {
     // System buffers.
-    let mut gravity_x = create_buffer_x!(NUM_STATES);
-    let mut gravity_A = create_buffer_A!(NUM_STATES);
-    let mut gravity_P = create_buffer_P!(NUM_STATES);
+    let gravity_x = create_buffer_x!(NUM_STATES);
+    let gravity_A = create_buffer_A!(NUM_STATES);
+    let gravity_P = create_buffer_P!(NUM_STATES);
 
     // Input buffers.
-    let mut gravity_u = create_buffer_u!(NUM_INPUTS);
-    let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
-    let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
+    let gravity_u = create_buffer_u!(NUM_INPUTS);
+    let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
+    let gravity_Q = create_buffer_Q!(NUM_INPUTS);
 
     // Measurement buffers.
-    let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-    let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-    let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-    let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-    let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
+    let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
+    let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
+    let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
+    let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
+    let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
 
     // Filter temporaries.
-    let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-    let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-    let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
+    let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
+    let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
 
     // Measurement temporaries.
-    let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
+    let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
+    let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
+    let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
         SystemMatrixMutBuffer::new(gravity_A),
