@@ -9,33 +9,53 @@
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_x!(mut X, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_x!(static mut X, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(X.len(), 3);
 ///     assert_eq!(X[0], 0.0_f32);
 /// }
 /// ```
+///
+/// Or create it as a regular variable:
+///
+/// ```
+/// # use minikalman::prelude::*;
+/// # const NUM_STATES: usize = 3;
+/// impl_static_buffer_x!(x, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_x!(mut x, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_x!(let mut x, NUM_STATES, f32, 0.0);
+///
+/// assert_eq!(x.len(), 3);
+/// assert_eq!(x[0], 0.0_f32);
+/// ```
 #[macro_export]
 macro_rules! impl_static_buffer_x {
-    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static $vec_name: $crate::buffer_types::StateVectorBuffer<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
-        > = $crate::buffer_types::StateVectorBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * 1 }],
-        ));
-    };
     (mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $vec_name: $crate::buffer_types::StateVectorBuffer<
+        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let mut)
+    };
+    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let)
+    };
+    (let mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let mut)
+    };
+    (let $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let)
+    };
+    (static mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, static mut)
+    };
+    (static $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, static)
+    };
+    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::buffer_types::StateVectorBuffer<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
@@ -60,38 +80,56 @@ macro_rules! impl_static_buffer_x {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_A!(mut A, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_A!(static mut A, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(A.len(), 9);
 ///     assert_eq!(A[0], 0.0_f32);
 /// }
 /// ```
+///
+/// Or create it as a regular variable:
+///
+/// ```
+/// # use minikalman::prelude::*;
+/// # const NUM_STATES: usize = 3;
+/// impl_static_buffer_A!(let mut A, NUM_STATES, f32, 0.0);
+///
+/// assert_eq!(A.len(), 9);
+/// assert_eq!(A[0], 0.0_f32);
+/// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_A {
+    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let mut)
+    };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::SystemMatrixBuffer<
+        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::SystemMatrixBuffer<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::SystemMatrixBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_states }],
-        ));
-    };
-    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::SystemMatrixMutBuffer<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::SystemMatrixMutBuffer::<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
@@ -112,10 +150,12 @@ macro_rules! impl_static_buffer_A {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_P!(mut P, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_P!(static mut P, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(P.len(), 9);
@@ -125,21 +165,26 @@ macro_rules! impl_static_buffer_A {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_P {
-    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::SystemCovarianceMatrixBuffer<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::SystemCovarianceMatrixBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_states }],
-        ));
-    };
     (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::SystemCovarianceMatrixBuffer<
+        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::SystemCovarianceMatrixBuffer<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
@@ -164,10 +209,12 @@ macro_rules! impl_static_buffer_P {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_u!(mut U, NUM_INPUTS, f32, 0.0);
+/// impl_static_buffer_u!(static mut U, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(U.len(), 2);
@@ -176,21 +223,26 @@ macro_rules! impl_static_buffer_P {
 /// ```
 #[macro_export]
 macro_rules! impl_static_buffer_u {
-    ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        static $vec_name: $crate::buffer_types::InputVectorBuffer<
-            $num_inputs,
-            $t,
-            $crate::MatrixDataOwned<$num_inputs, 1, { $num_inputs * 1 }, $t>,
-        > = $crate::buffer_types::InputVectorBuffer::<
-            $num_inputs,
-            $t,
-            $crate::MatrixDataOwned<$num_inputs, 1, { $num_inputs * 1 }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_inputs * 1 }],
-        ));
+    (mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
     };
-    (mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::InputVectorBuffer<
+    ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let)
+    };
+    (let mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
+    };
+    (let $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let)
+    };
+    (static mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, static mut)
+    };
+    (static $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, static)
+    };
+    ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::buffer_types::InputVectorBuffer<
             $num_inputs,
             $t,
             $crate::MatrixDataOwned<$num_inputs, 1, { $num_inputs * 1 }, $t>,
@@ -216,11 +268,13 @@ macro_rules! impl_static_buffer_u {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_B!(mut B, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// impl_static_buffer_B!(static mut B, NUM_STATES, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(B.len(), 6);
@@ -230,23 +284,26 @@ macro_rules! impl_static_buffer_u {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_B {
-    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::InputMatrixMutBuffer<
-            $num_states,
-            $num_inputs,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        > = $crate::buffer_types::InputMatrixMutBuffer::<
-            $num_states,
-            $num_inputs,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_inputs }],
-        ));
-    };
     (mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::InputMatrixMutBuffer<
+        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::InputMatrixMutBuffer<
             $num_states,
             $num_inputs,
             $t,
@@ -273,10 +330,12 @@ macro_rules! impl_static_buffer_B {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_Q!(mut Q, NUM_INPUTS, f32, 0.0);
+/// impl_static_buffer_Q!(static mut Q, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Q.len(), 4);
@@ -286,21 +345,26 @@ macro_rules! impl_static_buffer_B {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_Q {
-    ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::InputCovarianceMatrixMutBuffer<
-            $num_inputs,
-            $t,
-            $crate::MatrixDataOwned<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
-        > = $crate::buffer_types::InputCovarianceMatrixMutBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_inputs * $num_inputs }],
-        ));
-    };
     (mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::InputCovarianceMatrixMutBuffer<
+        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, static)
+    };
+    ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::InputCovarianceMatrixMutBuffer<
             $num_inputs,
             $t,
             $crate::MatrixDataOwned<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
@@ -325,10 +389,12 @@ macro_rules! impl_static_buffer_Q {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_z!(mut Z, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_static_buffer_z!(static mut Z, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Z.len(), 5);
@@ -337,21 +403,26 @@ macro_rules! impl_static_buffer_Q {
 /// ```
 #[macro_export]
 macro_rules! impl_static_buffer_z {
-    ($modifier:tt $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static $modifier $vec_name: $crate::buffer_types::MeasurementVectorBuffer<
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        > = $crate::buffer_types::MeasurementVectorBuffer::<
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_measurements * 1 }],
-        ));
+    (mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let mut)
     };
-    (mut $modifier:tt $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static mut $modifier $vec_name: $crate::buffer_types::MeasurementVectorBuffer<
+    ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let)
+    };
+    (let mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let mut)
+    };
+    (let $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let)
+    };
+    (static mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, static mut)
+    };
+    (static $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, static)
+    };
+    ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::buffer_types::MeasurementVectorBuffer<
             $num_measurements,
             $t,
             $crate::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
@@ -377,11 +448,13 @@ macro_rules! impl_static_buffer_z {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_H!(mut H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_H!(static mut H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(H.len(), 15);
@@ -391,33 +464,26 @@ macro_rules! impl_static_buffer_z {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_H {
-    ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::MeasurementTransformationMatrixMutBuffer<
-            $num_measurements,
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_states,
-                { $num_measurements * $num_states },
-                $t,
-            >,
-        > = $crate::buffer_types::MeasurementTransformationMatrixMutBuffer::<
-            $num_measurements,
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_states,
-                { $num_measurements * $num_states },
-                $t,
-            >,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_measurements * $num_states }],
-        ));
-    };
     (mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::MeasurementTransformationMatrixMutBuffer<
+        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::MeasurementTransformationMatrixMutBuffer<
             $num_measurements,
             $num_states,
             $t,
@@ -454,10 +520,12 @@ macro_rules! impl_static_buffer_H {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_R!(mut R, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_static_buffer_R!(static mut R, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(R.len(), 25);
@@ -467,31 +535,26 @@ macro_rules! impl_static_buffer_H {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_R {
-    ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer<
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_measurements,
-                { $num_measurements * $num_measurements },
-                $t,
-            >,
-        > = $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_measurements,
-                { $num_measurements * $num_measurements },
-                $t,
-            >,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_measurements * $num_measurements }],
-        ));
-    };
     (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer<
+        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, static)
+    };
+    ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer<
             $num_measurements,
             $t,
             $crate::MatrixDataOwned<
@@ -526,10 +589,12 @@ macro_rules! impl_static_buffer_R {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_y!(mut Y, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_static_buffer_y!(static mut Y, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Y.len(), 5);
@@ -538,21 +603,26 @@ macro_rules! impl_static_buffer_R {
 /// ```
 #[macro_export]
 macro_rules! impl_static_buffer_y {
-    ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static $vec_name: $crate::buffer_types::InnovationVectorBuffer<
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        > = $crate::buffer_types::InnovationVectorBuffer::<
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_measurements * 1 }],
-        ));
+    (mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let mut)
     };
-    (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::InnovationVectorBuffer<
+    ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let)
+    };
+    (let mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let mut)
+    };
+    (let $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let)
+    };
+    (static mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, static mut)
+    };
+    (static $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, static)
+    };
+    ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::buffer_types::InnovationVectorBuffer<
             $num_measurements,
             $t,
             $crate::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
@@ -577,10 +647,12 @@ macro_rules! impl_static_buffer_y {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_S!(mut S, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_static_buffer_S!(static mut S, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(S.len(), 25);
@@ -590,31 +662,26 @@ macro_rules! impl_static_buffer_y {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_S {
-    ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer<
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_measurements,
-                { $num_measurements * $num_measurements },
-                $t,
-            >,
-        > = $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_measurements,
-                { $num_measurements * $num_measurements },
-                $t,
-            >,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_measurements * $num_measurements }],
-        ));
-    };
     (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer<
+        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, static)
+    };
+    ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer<
             $num_measurements,
             $t,
             $crate::MatrixDataOwned<
@@ -650,11 +717,13 @@ macro_rules! impl_static_buffer_S {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_K!(mut K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_static_buffer_K!(static mut K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(K.len(), 15);
@@ -664,33 +733,26 @@ macro_rules! impl_static_buffer_S {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_K {
-    ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::KalmanGainMatrixBuffer<
-            $num_states,
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_states,
-                $num_measurements,
-                { $num_states * $num_measurements },
-                $t,
-            >,
-        > = $crate::buffer_types::KalmanGainMatrixBuffer::<
-            $num_states,
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_states,
-                $num_measurements,
-                { $num_states * $num_measurements },
-                $t,
-            >,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_measurements }],
-        ));
-    };
     (mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::KalmanGainMatrixBuffer<
+        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::KalmanGainMatrixBuffer<
             $num_states,
             $num_measurements,
             $t,
@@ -727,10 +789,12 @@ macro_rules! impl_static_buffer_K {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_x!(mut TX, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_temp_x!(static mut TX, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TX.len(), 3);
@@ -739,21 +803,26 @@ macro_rules! impl_static_buffer_K {
 /// ```
 #[macro_export]
 macro_rules! impl_static_buffer_temp_x {
-    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static $vec_name: $crate::buffer_types::StatePredictionVectorBuffer<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
-        > = $crate::buffer_types::StatePredictionVectorBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * 1 }],
-        ));
-    };
     (mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $vec_name: $crate::buffer_types::StatePredictionVectorBuffer<
+        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let mut)
+    };
+    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let)
+    };
+    (let mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let mut)
+    };
+    (let $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let)
+    };
+    (static mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, static mut)
+    };
+    (static $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, static)
+    };
+    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::buffer_types::StatePredictionVectorBuffer<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
@@ -778,10 +847,12 @@ macro_rules! impl_static_buffer_temp_x {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_P!(mut TP, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_temp_P!(static mut TP, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TP.len(), 9);
@@ -791,21 +862,26 @@ macro_rules! impl_static_buffer_temp_x {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_temp_P {
-    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::TemporaryStateMatrixBuffer<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::TemporaryStateMatrixBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_states }],
-        ));
-    };
     (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::TemporaryStateMatrixBuffer<
+        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::TemporaryStateMatrixBuffer<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
@@ -831,11 +907,13 @@ macro_rules! impl_static_buffer_temp_P {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_temp_BQ!(mut TBQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// impl_static_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TBQ.len(), 6);
@@ -845,23 +923,26 @@ macro_rules! impl_static_buffer_temp_P {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_temp_BQ {
-    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::TemporaryBQMatrixBuffer<
-            $num_states,
-            $num_inputs,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        > = $crate::buffer_types::TemporaryBQMatrixBuffer::<
-            $num_states,
-            $num_inputs,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_inputs }],
-        ));
-    };
     (mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::TemporaryBQMatrixBuffer<
+        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::TemporaryBQMatrixBuffer<
             $num_states,
             $num_inputs,
             $t,
@@ -888,10 +969,12 @@ macro_rules! impl_static_buffer_temp_BQ {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_S_inv!(mut TSINV, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_temp_S_inv!(static mut TSINV, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TSINV.len(), 9);
@@ -901,8 +984,26 @@ macro_rules! impl_static_buffer_temp_BQ {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_temp_S_inv {
+    (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let mut)
+    };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer<
+        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, static)
+    };
+    ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer<
             $num_measurements,
             $t,
             $crate::MatrixDataOwned<
@@ -912,30 +1013,6 @@ macro_rules! impl_static_buffer_temp_S_inv {
                 $t,
             >,
         > = $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer::<
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_measurements,
-                { $num_measurements * $num_measurements },
-                $t,
-            >,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_measurements * $num_measurements }],
-        ));
-    };
-    (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        static mut $mat_name:
-            $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer<
-                $num_measurements,
-                $t,
-                $crate::MatrixDataOwned<
-                    $num_measurements,
-                    $num_measurements,
-                    { $num_measurements * $num_measurements },
-                    $t,
-                >,
-            > = $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer::<
             $num_measurements,
             $t,
             $crate::MatrixDataOwned<
@@ -962,11 +1039,13 @@ macro_rules! impl_static_buffer_temp_S_inv {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_temp_HP!(mut THP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_temp_HP!(static mut THP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(THP.len(), 15);
@@ -976,33 +1055,26 @@ macro_rules! impl_static_buffer_temp_S_inv {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_temp_HP {
-    ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::TemporaryHPMatrixBuffer<
-            $num_measurements,
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_states,
-                { $num_measurements * $num_states },
-                $t,
-            >,
-        > = $crate::buffer_types::TemporaryHPMatrixBuffer::<
-            $num_measurements,
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_measurements,
-                $num_states,
-                { $num_measurements * $num_states },
-                $t,
-            >,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_measurements * $num_states }],
-        ));
-    };
     (mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::TemporaryHPMatrixBuffer<
+        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::TemporaryHPMatrixBuffer<
             $num_measurements,
             $num_states,
             $t,
@@ -1040,11 +1112,13 @@ macro_rules! impl_static_buffer_temp_HP {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_temp_PHt!(mut TPHT, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_static_buffer_temp_PHt!(static mut TPHT, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TPHT.len(), 15);
@@ -1054,33 +1128,26 @@ macro_rules! impl_static_buffer_temp_HP {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_temp_PHt {
-    ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::TemporaryPHTMatrixBuffer<
-            $num_states,
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_states,
-                $num_measurements,
-                { $num_states * $num_measurements },
-                $t,
-            >,
-        > = $crate::buffer_types::TemporaryPHTMatrixBuffer::<
-            $num_states,
-            $num_measurements,
-            $t,
-            $crate::MatrixDataOwned<
-                $num_states,
-                $num_measurements,
-                { $num_states * $num_measurements },
-                $t,
-            >,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_measurements }],
-        ));
-    };
     (mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::TemporaryPHTMatrixBuffer<
+        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::TemporaryPHTMatrixBuffer<
             $num_states,
             $num_measurements,
             $t,
@@ -1117,10 +1184,12 @@ macro_rules! impl_static_buffer_temp_PHt {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
+/// You can generate a `static mut` binding:
+///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_KHP!(mut TKHP, NUM_STATES, f32, 0.0);
+/// impl_static_buffer_temp_KHP!(static mut TKHP, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TKHP.len(), 9);
@@ -1130,21 +1199,26 @@ macro_rules! impl_static_buffer_temp_PHt {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_static_buffer_temp_KHP {
-    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static $mat_name: $crate::buffer_types::TemporaryKHPMatrixBuffer<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::TemporaryKHPMatrixBuffer::<
-            $num_states,
-            $t,
-            $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::MatrixDataOwned::new_unchecked(
-            [$init; { $num_states * $num_states }],
-        ));
-    };
     (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        static mut $mat_name: $crate::buffer_types::TemporaryKHPMatrixBuffer<
+        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffer_types::TemporaryKHPMatrixBuffer<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
