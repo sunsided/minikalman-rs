@@ -46,7 +46,7 @@ pub use num_traits;
 
 /// Exports all macros and common types.
 pub mod prelude {
-    pub use crate::buffer_types;
+    pub use crate::buffer_types::*;
     pub use crate::filter_traits::*;
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::matrix_traits::*;

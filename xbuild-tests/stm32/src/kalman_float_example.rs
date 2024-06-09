@@ -1,4 +1,4 @@
-use minikalman::prelude::{buffer_types::*, *};
+use minikalman::prelude::*;
 
 /// Measurements.
 const NUM_STATES: usize = 3;

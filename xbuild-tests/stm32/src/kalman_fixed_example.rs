@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use minikalman::{buffer_types::*, prelude::fixed::*, prelude::*};
+use minikalman::{prelude::fixed::*, prelude::*};
 
 /// Measurements.
 const NUM_STATES: usize = 3;
