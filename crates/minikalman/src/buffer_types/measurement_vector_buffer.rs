@@ -1,6 +1,7 @@
 use crate::filter_traits::MeasurementVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::prelude::MeasurementVectorMut;
+use crate::IntoInnerData;
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -93,5 +94,18 @@ where
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
         &mut self.0
+    }
+}
+
+// -----------------------------------------------------------
+
+impl<const MEASUREMENTS: usize, T, M> IntoInnerData for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, 1, T> + IntoInnerData,
+{
+    type Target = M::Target;
+
+    fn into_inner(self) -> Self::Target {
+        self.0.into_inner()
     }
 }

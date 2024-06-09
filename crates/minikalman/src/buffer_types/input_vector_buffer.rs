@@ -4,6 +4,7 @@ use core::ops::{Index, IndexMut};
 use crate::filter_traits::InputVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::prelude::InputVectorMut;
+use crate::IntoInnerData;
 
 pub struct InputVectorBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
@@ -87,5 +88,18 @@ where
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
+    }
+}
+
+// -----------------------------------------------------------
+
+impl<const INPUTS: usize, T, M> IntoInnerData for InputVectorBuffer<INPUTS, T, M>
+where
+    M: MatrixMut<INPUTS, 1, T> + IntoInnerData,
+{
+    type Target = M::Target;
+
+    fn into_inner(self) -> Self::Target {
+        self.0.into_inner()
     }
 }

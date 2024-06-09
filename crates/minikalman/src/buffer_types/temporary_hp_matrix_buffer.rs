@@ -3,6 +3,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::TemporaryHPMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::IntoInnerData;
 
 pub struct TemporaryHPMatrixBuffer<const MEASUREMENTS: usize, const STATES: usize, T, M>(
     M,
@@ -94,5 +95,19 @@ where
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
+    }
+}
+
+// -----------------------------------------------------------
+
+impl<const MEASUREMENTS: usize, const STATES: usize, T, M> IntoInnerData
+    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, STATES, T> + IntoInnerData,
+{
+    type Target = M::Target;
+
+    fn into_inner(self) -> Self::Target {
+        self.0.into_inner()
     }
 }

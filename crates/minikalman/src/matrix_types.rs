@@ -52,6 +52,13 @@ pub struct MatrixDataRef<'a, const ROWS: usize, const COLS: usize, T = f32>(&'a 
 /// A mutable reference to data.
 pub struct MatrixDataMut<'a, const ROWS: usize, const COLS: usize, T = f32>(&'a mut [T]);
 
+/// Consumes self and returns the wrapped data.
+pub trait IntoInnerData {
+    type Target;
+
+    fn into_inner(self) -> Self::Target;
+}
+
 impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
     MatrixDataOwned<ROWS, COLS, TOTAL, T>
 {
@@ -63,6 +70,11 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
         }
         Self(data)
     }
+
+    /// Returns the inner array.
+    pub fn into_inner(self) -> [T; TOTAL] {
+        self.0
+    }
 }
 
 impl<'a, const ROWS: usize, const COLS: usize, T> MatrixDataRef<'a, ROWS, COLS, T> {
@@ -70,12 +82,52 @@ impl<'a, const ROWS: usize, const COLS: usize, T> MatrixDataRef<'a, ROWS, COLS, 
     pub fn new(data: &'a [T]) -> Self {
         Self(data)
     }
+
+    /// Returns the inner slice reference.
+    pub fn into_inner(self) -> &'a [T] {
+        self.0
+    }
 }
 
 impl<'a, const ROWS: usize, const COLS: usize, T> MatrixDataMut<'a, ROWS, COLS, T> {
     /// Creates a new instance of the [`MatrixDataMut`] type.
     pub fn new(data: &'a mut [T]) -> Self {
         Self(data)
+    }
+
+    /// Returns the inner mutable slice reference.
+    pub fn into_inner(self) -> &'a mut [T] {
+        self.0
+    }
+}
+
+impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> IntoInnerData
+    for MatrixDataOwned<ROWS, COLS, TOTAL, T>
+{
+    type Target = [T; TOTAL];
+
+    fn into_inner(self) -> Self::Target {
+        self.into_inner()
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> IntoInnerData
+    for MatrixDataRef<'a, ROWS, COLS, T>
+{
+    type Target = &'a [T];
+
+    fn into_inner(self) -> Self::Target {
+        self.into_inner()
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> IntoInnerData
+    for MatrixDataMut<'a, ROWS, COLS, T>
+{
+    type Target = &'a mut [T];
+
+    fn into_inner(self) -> Self::Target {
+        self.into_inner()
     }
 }
 

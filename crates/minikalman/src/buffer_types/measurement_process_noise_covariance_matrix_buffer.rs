@@ -1,5 +1,6 @@
 use crate::filter_traits::MeasurementProcessNoiseCovarianceMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::IntoInnerData;
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -92,5 +93,19 @@ where
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
+    }
+}
+
+// -----------------------------------------------------------
+
+impl<const MEASUREMENTS: usize, T, M> IntoInnerData
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T> + IntoInnerData,
+{
+    type Target = M::Target;
+
+    fn into_inner(self) -> Self::Target {
+        self.0.into_inner()
     }
 }

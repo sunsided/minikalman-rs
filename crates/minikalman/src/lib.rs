@@ -36,7 +36,7 @@ mod measurement;
 mod types;
 
 pub use crate::kalman::{Kalman, KalmanBuilder};
-pub use crate::matrix_types::{MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
+pub use crate::matrix_types::*;
 pub use crate::measurement::{Measurement, MeasurementBuilder};
 pub use crate::types::*;
 
@@ -49,7 +49,7 @@ pub mod prelude {
     pub use crate::filter_traits::*;
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::matrix_traits::*;
-    pub use crate::matrix_types::MatrixData;
+    pub use crate::matrix_types::{IntoInnerData, MatrixData};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
     pub use crate::types::*;
 

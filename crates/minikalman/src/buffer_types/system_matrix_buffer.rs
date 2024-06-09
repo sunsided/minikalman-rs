@@ -3,6 +3,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::{SystemMatrix, SystemMatrixMut};
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::IntoInnerData;
 
 pub struct SystemMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
@@ -135,5 +136,29 @@ where
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
+    }
+}
+
+// -----------------------------------------------------------
+
+impl<const STATES: usize, T, M> IntoInnerData for SystemMatrixBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, STATES, T> + IntoInnerData,
+{
+    type Target = M::Target;
+
+    fn into_inner(self) -> Self::Target {
+        self.0.into_inner()
+    }
+}
+
+impl<const STATES: usize, T, M> IntoInnerData for SystemMatrixMutBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, STATES, T> + IntoInnerData,
+{
+    type Target = M::Target;
+
+    fn into_inner(self) -> Self::Target {
+        self.0.into_inner()
     }
 }
