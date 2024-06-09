@@ -1,12 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use minikalman::{
-    create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
-    create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
-    create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,
-    create_buffer_temp_S_inv, create_buffer_temp_x, create_buffer_u, create_buffer_x,
-    create_buffer_y, create_buffer_z, Kalman, KalmanBuilder, Measurement, MeasurementBuilder,
-};
+use minikalman::prelude::*;
 
 const REAL_DISTANCE: [f32; 15] = [
     0.0, 4.905, 19.62, 44.145, 78.48, 122.63, 176.58, 240.35, 313.92, 397.31, 490.5, 593.51,
@@ -80,11 +74,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         );
 
         // Set initial state.
-        initialize_state_vector(&mut filter);
-        initialize_state_transition_matrix(&mut filter);
-        initialize_state_covariance_matrix(&mut filter);
-        initialize_position_measurement_transformation_matrix(&mut measurement);
-        initialize_position_measurement_process_noise_matrix(&mut measurement);
+        initialize_state_vector(filter.state_vector_mut());
+        initialize_state_transition_matrix(filter.state_transition_mut());
+        initialize_state_covariance_matrix(filter.system_covariance_mut());
+        initialize_position_measurement_transformation_matrix(
+            measurement.measurement_transformation_mut(),
+        );
+        initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
         bencher.iter(|| {
             for t in 0..REAL_DISTANCE.len() {
@@ -124,11 +120,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         );
 
         // Set initial state.
-        initialize_state_vector(&mut filter);
-        initialize_state_transition_matrix(&mut filter);
-        initialize_state_covariance_matrix(&mut filter);
-        initialize_position_measurement_transformation_matrix(&mut measurement);
-        initialize_position_measurement_process_noise_matrix(&mut measurement);
+        initialize_state_vector(filter.state_vector_mut());
+        initialize_state_transition_matrix(filter.state_transition_mut());
+        initialize_state_covariance_matrix(filter.system_covariance_mut());
+        initialize_position_measurement_transformation_matrix(
+            measurement.measurement_transformation_mut(),
+        );
+        initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
         bencher.iter(|| {
             filter.predict();
@@ -162,11 +160,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         );
 
         // Set initial state.
-        initialize_state_vector(&mut filter);
-        initialize_state_transition_matrix(&mut filter);
-        initialize_state_covariance_matrix(&mut filter);
-        initialize_position_measurement_transformation_matrix(&mut measurement);
-        initialize_position_measurement_process_noise_matrix(&mut measurement);
+        initialize_state_vector(filter.state_vector_mut());
+        initialize_state_transition_matrix(filter.state_transition_mut());
+        initialize_state_covariance_matrix(filter.system_covariance_mut());
+        initialize_position_measurement_transformation_matrix(
+            measurement.measurement_transformation_mut(),
+        );
+        initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
         measurement.measurement_vector_apply(|z| {
             z[0] = black_box(REAL_DISTANCE[0]) + black_box(MEASUREMENT_ERROR[0])
@@ -179,8 +179,8 @@ fn criterion_benchmark(c: &mut Criterion) {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut Kalman<NUM_STATES, NUM_INPUTS>) {
-    filter.state_vector_apply(|state| {
+fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, f32>) {
+    filter.apply(|state| {
         state[0] = 0 as _; // position
         state[1] = 0 as _; // velocity
         state[2] = 6 as _; // acceleration
@@ -195,8 +195,8 @@ fn initialize_state_vector(filter: &mut Kalman<NUM_STATES, NUM_INPUTS>) {
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut Kalman<NUM_STATES, NUM_INPUTS>) {
-    filter.state_transition_apply(|a| {
+fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, f32>) {
+    filter.apply(|a| {
         // Time constant.
         const T: f32 = 1 as _;
 
@@ -222,8 +222,8 @@ fn initialize_state_transition_matrix(filter: &mut Kalman<NUM_STATES, NUM_INPUTS
 /// This defines how different states (linearly) influence each other
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut Kalman<NUM_STATES, NUM_INPUTS>) {
-    filter.system_covariance_apply(|p| {
+fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<NUM_STATES, f32>) {
+    filter.apply(|p| {
         p.set_symmetric(0, 0, 0.1 as _); // var(s)
         p.set_symmetric(0, 1, 0 as _); // cov(s, v)
         p.set_symmetric(0, 2, 0 as _); // cov(s, g)
@@ -243,9 +243,9 @@ fn initialize_state_covariance_matrix(filter: &mut Kalman<NUM_STATES, NUM_INPUTS
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut Measurement<NUM_STATES, NUM_MEASUREMENTS>,
+    measurement: &mut impl MeasurementTransformationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
 ) {
-    measurement.measurement_transformation_apply(|h| {
+    measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
         h.set(0, 1, 0 as _); //   + 0*v
         h.set(0, 2, 0 as _); //   + 0*g
@@ -258,9 +258,9 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut Measurement<NUM_STATES, NUM_MEASUREMENTS>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, f32>,
 ) {
-    measurement.process_noise_apply(|r| {
+    measurement.apply(|r| {
         r.set_symmetric(0, 0, 0.5 as _); // var(s)
     });
 }

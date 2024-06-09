@@ -1,14 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use fixed::types::I16F16;
 use lazy_static::lazy_static;
 
-use minikalman::{
-    create_buffer_A, create_buffer_B, create_buffer_H, create_buffer_K, create_buffer_P,
-    create_buffer_Q, create_buffer_R, create_buffer_S, create_buffer_temp_BQ,
-    create_buffer_temp_HP, create_buffer_temp_KHP, create_buffer_temp_P, create_buffer_temp_PHt,
-    create_buffer_temp_S_inv, create_buffer_temp_x, create_buffer_u, create_buffer_x,
-    create_buffer_y, create_buffer_z, Kalman, KalmanBuilder, Measurement, MeasurementBuilder,
-};
+use minikalman::prelude::{fixed::I16F16, *};
 
 lazy_static! {
     /// Measurements.
@@ -143,7 +136,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("predict (fixed-point)", |bencher| {
-        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS, I16F16>::new_direct(
+        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, I16F16>(
             gravity_A,
             gravity_x,
             gravity_B,
@@ -155,7 +148,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS, I16F16>::new_direct(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, I16F16>(
             gravity_H,
             gravity_z,
             gravity_R,
@@ -181,7 +174,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("update (fixed-point)", |bencher| {
-        let mut filter = Kalman::<NUM_STATES, NUM_INPUTS, I16F16>::new_direct(
+        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, I16F16>(
             gravity_A,
             gravity_x,
             gravity_B,
@@ -193,7 +186,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             gravity_temp_BQ,
         );
 
-        let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS, I16F16>::new_direct(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, I16F16>(
             gravity_H,
             gravity_z,
             gravity_R,
@@ -224,8 +217,8 @@ fn criterion_benchmark(c: &mut Criterion) {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F16>) {
-    filter.state_vector_apply(|state| {
+fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, I16F16>) {
+    filter.apply(|state| {
         state[0] = I16F16::ZERO; // position
         state[1] = I16F16::ZERO; // velocity
         state[2] = I16F16::from_num(6.0); // acceleration
@@ -240,8 +233,8 @@ fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F1
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F16>) {
-    filter.state_transition_apply(|a| {
+fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, I16F16>) {
+    filter.apply(|a| {
         // Time constant.
         const T: I16F16 = I16F16::ONE;
 
@@ -267,8 +260,10 @@ fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// This defines how different states (linearly) influence each other
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F16>) {
-    filter.system_covariance_apply(|p| {
+fn initialize_state_covariance_matrix(
+    filter: &mut impl SystemCovarianceMatrix<NUM_STATES, I16F16>,
+) {
+    filter.apply(|p| {
         p.set(0, 0, I16F16::from_num(0.1)); // var(s)
         p.set(0, 1, I16F16::ZERO); // cov(s, v)
         p.set(0, 2, I16F16::ZERO); // cov(s, g)
@@ -288,9 +283,9 @@ fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS, I16F16>,
+    measurement: &mut impl MeasurementTransformationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, I16F16>,
 ) {
-    measurement.measurement_transformation_apply(|h| {
+    measurement.apply(|h| {
         h.set(0, 0, I16F16::ONE); // z = 1*s
         h.set(0, 1, I16F16::ZERO); //   + 0*v
         h.set(0, 2, I16F16::ZERO); //   + 0*g
@@ -303,9 +298,9 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS, I16F16>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, I16F16>,
 ) {
-    measurement.process_noise_apply(|r| {
+    measurement.apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)
     });
 }

@@ -18,7 +18,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let a = MatrixData::new_owned::<3, 3, 9, f32>(a_buf);
 
         let inv_buf = [0f32; 3 * 3];
-        let mut inv = MatrixData::new_owned::<3, 3, 9, f32>::new(inv_buf);
+        let mut inv = MatrixData::new_owned::<3, 3, 9, f32>(inv_buf);
 
         bencher.iter(|| a.invert_l_cholesky(black_box(&mut inv)))
     });
