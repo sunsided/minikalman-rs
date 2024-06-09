@@ -3,11 +3,35 @@ use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::InnovationVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct InnovationVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<MEASUREMENTS, 1, T>;
+
+// -----------------------------------------------------------
+
+impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
+    for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataMut<'a, MEASUREMENTS, 1, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS, value.len());
+        }
+        Self::new(MatrixData::new_mut::<MEASUREMENTS, 1, T>(value))
+    }
+}
+
+impl<'a, const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
+    for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataOwned<MEASUREMENTS, 1, MEASUREMENTS, T>>
+{
+    fn from(value: [T; MEASUREMENTS]) -> Self {
+        Self::new(MatrixData::new_owned::<MEASUREMENTS, 1, MEASUREMENTS, T>(
+            value,
+        ))
+    }
+}
 
 // -----------------------------------------------------------
 

@@ -3,7 +3,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::{SystemMatrix, SystemMatrixMut};
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
 
 pub struct SystemMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
@@ -15,9 +15,59 @@ where
 
 // -----------------------------------------------------------
 
+impl<'a, const STATES: usize, T> From<&'a [T]>
+    for SystemMatrixBuffer<STATES, T, MatrixDataRef<'a, STATES, STATES, T>>
+{
+    fn from(value: &'a [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * STATES, value.len());
+        }
+        Self::new(MatrixData::new_ref::<STATES, STATES, T>(value))
+    }
+}
+
+impl<'a, const STATES: usize, T> From<&'a mut [T]>
+    for SystemMatrixBuffer<STATES, T, MatrixDataRef<'a, STATES, STATES, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * STATES, value.len());
+        }
+        Self::new(MatrixData::new_ref::<STATES, STATES, T>(value))
+    }
+}
+
+impl<'a, const STATES: usize, T> From<&'a mut [T]>
+    for SystemMatrixMutBuffer<STATES, T, MatrixDataMut<'a, STATES, STATES, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * STATES, value.len());
+        }
+        Self::new(MatrixData::new_mut::<STATES, STATES, T>(value))
+    }
+}
+
+impl<'a, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for SystemMatrixMutBuffer<STATES, T, MatrixDataOwned<STATES, STATES, TOTAL, T>>
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * STATES, TOTAL);
+        }
+        Self::new(MatrixData::new_owned::<STATES, STATES, TOTAL, T>(value))
+    }
+}
+
+// -----------------------------------------------------------
+
 impl<const STATES: usize, T, M> SystemMatrixBuffer<STATES, T, M>
 where
-    M: MatrixMut<STATES, STATES, T>,
+    M: Matrix<STATES, STATES, T>,
 {
     pub fn new(matrix: M) -> Self {
         Self(matrix, PhantomData::default())

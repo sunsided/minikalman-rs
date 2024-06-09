@@ -1,6 +1,6 @@
 use crate::filter_traits::MeasurementProcessNoiseCovarianceMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -10,6 +10,40 @@ pub struct MeasurementProcessNoiseCovarianceMatrixBuffer<const MEASUREMENT: usiz
 )
 where
     M: MatrixMut<MEASUREMENT, MEASUREMENT, T>;
+
+// -----------------------------------------------------------
+
+impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<
+        MEASUREMENTS,
+        T,
+        MatrixDataMut<'a, MEASUREMENTS, MEASUREMENTS, T>,
+    >
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS * MEASUREMENTS, value.len());
+        }
+        Self::new(MatrixData::new_mut::<MEASUREMENTS, MEASUREMENTS, T>(value))
+    }
+}
+
+impl<'a, const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<
+        MEASUREMENTS,
+        T,
+        MatrixDataOwned<MEASUREMENTS, MEASUREMENTS, TOTAL, T>,
+    >
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS * MEASUREMENTS, TOTAL);
+        }
+        Self::new(MatrixData::new_owned::<MEASUREMENTS, MEASUREMENTS, TOTAL, T>(value))
+    }
+}
 
 // -----------------------------------------------------------
 

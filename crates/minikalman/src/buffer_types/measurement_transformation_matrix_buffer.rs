@@ -3,7 +3,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::{MeasurementTransformationMatrix, MeasurementTransformationMatrixMut};
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
 
 pub struct MeasurementTransformationMatrixBuffer<
     const MEASUREMENTS: usize,
@@ -25,10 +25,82 @@ where
 
 // -----------------------------------------------------------
 
+impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a [T]>
+    for MeasurementTransformationMatrixBuffer<
+        MEASUREMENTS,
+        STATES,
+        T,
+        MatrixDataRef<'a, MEASUREMENTS, STATES, T>,
+    >
+{
+    fn from(value: &'a [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS * STATES, value.len());
+        }
+        Self::new(MatrixData::new_ref::<MEASUREMENTS, STATES, T>(value))
+    }
+}
+
+impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
+    for MeasurementTransformationMatrixBuffer<
+        MEASUREMENTS,
+        STATES,
+        T,
+        MatrixDataRef<'a, MEASUREMENTS, STATES, T>,
+    >
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS * STATES, value.len());
+        }
+        Self::new(MatrixData::new_ref::<MEASUREMENTS, STATES, T>(value))
+    }
+}
+
+impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
+    for MeasurementTransformationMatrixMutBuffer<
+        MEASUREMENTS,
+        STATES,
+        T,
+        MatrixDataMut<'a, MEASUREMENTS, STATES, T>,
+    >
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS * STATES, value.len());
+        }
+        Self::new(MatrixData::new_mut::<MEASUREMENTS, STATES, T>(value))
+    }
+}
+
+impl<'a, const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for MeasurementTransformationMatrixMutBuffer<
+        MEASUREMENTS,
+        STATES,
+        T,
+        MatrixDataOwned<MEASUREMENTS, STATES, TOTAL, T>,
+    >
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS * STATES, TOTAL);
+        }
+        Self::new(MatrixData::new_owned::<MEASUREMENTS, STATES, TOTAL, T>(
+            value,
+        ))
+    }
+}
+
+// -----------------------------------------------------------
+
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
     MeasurementTransformationMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: Matrix<MEASUREMENTS, STATES, T>,
 {
     pub fn new(matrix: M) -> Self {
         Self(matrix, PhantomData::default())

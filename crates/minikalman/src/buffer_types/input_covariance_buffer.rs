@@ -1,6 +1,6 @@
 use crate::filter_traits::{InputCovarianceMatrix, InputCovarianceMatrixMut};
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -14,9 +14,59 @@ where
 
 // -----------------------------------------------------------
 
+impl<'a, const INPUTS: usize, T> From<&'a [T]>
+    for InputCovarianceMatrixBuffer<INPUTS, T, MatrixDataRef<'a, INPUTS, INPUTS, T>>
+{
+    fn from(value: &'a [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(INPUTS * INPUTS, value.len());
+        }
+        Self::new(MatrixData::new_ref::<INPUTS, INPUTS, T>(value))
+    }
+}
+
+impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
+    for InputCovarianceMatrixBuffer<INPUTS, T, MatrixDataRef<'a, INPUTS, INPUTS, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(INPUTS * INPUTS, value.len());
+        }
+        Self::new(MatrixData::new_ref::<INPUTS, INPUTS, T>(value))
+    }
+}
+
+impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
+    for InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataMut<'a, INPUTS, INPUTS, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(INPUTS * INPUTS, value.len());
+        }
+        Self::new(MatrixData::new_mut::<INPUTS, INPUTS, T>(value))
+    }
+}
+
+impl<'a, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataOwned<INPUTS, INPUTS, TOTAL, T>>
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(INPUTS * INPUTS, TOTAL);
+        }
+        Self::new(MatrixData::new_owned::<INPUTS, INPUTS, TOTAL, T>(value))
+    }
+}
+
+// -----------------------------------------------------------
+
 impl<const INPUTS: usize, T, M> InputCovarianceMatrixBuffer<INPUTS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: Matrix<INPUTS, INPUTS, T>,
 {
     pub fn new(matrix: M) -> Self {
         Self(matrix, PhantomData::default())

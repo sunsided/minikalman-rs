@@ -131,6 +131,38 @@ impl<'a, const ROWS: usize, const COLS: usize, T> IntoInnerData
     }
 }
 
+impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for MatrixDataOwned<ROWS, COLS, TOTAL, T>
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> From<&'a [T]>
+    for MatrixDataRef<'a, ROWS, COLS, T>
+{
+    fn from(value: &'a [T]) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> From<&'a mut [T]>
+    for MatrixDataRef<'a, ROWS, COLS, T>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> From<&'a mut [T]>
+    for MatrixDataMut<'a, ROWS, COLS, T>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        Self::new(value)
+    }
+}
+
 impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> Matrix<ROWS, COLS, T>
     for MatrixDataOwned<ROWS, COLS, TOTAL, T>
 {

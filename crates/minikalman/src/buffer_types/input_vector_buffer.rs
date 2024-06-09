@@ -4,11 +4,33 @@ use core::ops::{Index, IndexMut};
 use crate::filter_traits::InputVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::prelude::InputVectorMut;
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct InputVectorBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<INPUTS, 1, T>;
+
+// -----------------------------------------------------------
+
+impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
+    for InputVectorBuffer<INPUTS, T, MatrixDataMut<'a, INPUTS, 1, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(INPUTS, value.len());
+        }
+        Self::new(MatrixData::new_mut::<INPUTS, 1, T>(value))
+    }
+}
+
+impl<'a, const INPUTS: usize, T> From<[T; INPUTS]>
+    for InputVectorBuffer<INPUTS, T, MatrixDataOwned<INPUTS, 1, INPUTS, T>>
+{
+    fn from(value: [T; INPUTS]) -> Self {
+        Self::new(MatrixData::new_owned::<INPUTS, 1, INPUTS, T>(value))
+    }
+}
 
 // -----------------------------------------------------------
 

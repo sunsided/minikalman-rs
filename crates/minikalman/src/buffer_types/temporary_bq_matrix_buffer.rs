@@ -3,7 +3,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::TemporaryBQMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct TemporaryBQMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(
     M,
@@ -11,6 +11,32 @@ pub struct TemporaryBQMatrixBuffer<const STATES: usize, const INPUTS: usize, T, 
 )
 where
     M: MatrixMut<STATES, INPUTS, T>;
+
+// -----------------------------------------------------------
+
+impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
+    for TemporaryBQMatrixBuffer<STATES, INPUTS, T, MatrixDataMut<'a, STATES, INPUTS, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * INPUTS, value.len());
+        }
+        Self::new(MatrixData::new_mut::<STATES, INPUTS, T>(value))
+    }
+}
+
+impl<'a, const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for TemporaryBQMatrixBuffer<STATES, INPUTS, T, MatrixDataOwned<STATES, INPUTS, TOTAL, T>>
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * INPUTS, TOTAL);
+        }
+        Self::new(MatrixData::new_owned::<STATES, INPUTS, TOTAL, T>(value))
+    }
+}
 
 // -----------------------------------------------------------
 

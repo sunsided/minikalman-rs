@@ -3,7 +3,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::filter_traits::TemporaryPHTMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct TemporaryPHTMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(
     M,
@@ -11,6 +11,44 @@ pub struct TemporaryPHTMatrixBuffer<const STATES: usize, const MEASUREMENTS: usi
 )
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>;
+
+// -----------------------------------------------------------
+
+impl<'a, const STATES: usize, const MEASUREMENTS: usize, T> From<&'a mut [T]>
+    for TemporaryPHTMatrixBuffer<
+        STATES,
+        MEASUREMENTS,
+        T,
+        MatrixDataMut<'a, STATES, MEASUREMENTS, T>,
+    >
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * MEASUREMENTS, value.len());
+        }
+        Self::new(MatrixData::new_mut::<STATES, MEASUREMENTS, T>(value))
+    }
+}
+
+impl<'a, const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for TemporaryPHTMatrixBuffer<
+        STATES,
+        MEASUREMENTS,
+        T,
+        MatrixDataOwned<STATES, MEASUREMENTS, TOTAL, T>,
+    >
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * MEASUREMENTS, TOTAL);
+        }
+        Self::new(MatrixData::new_owned::<STATES, MEASUREMENTS, TOTAL, T>(
+            value,
+        ))
+    }
+}
 
 // -----------------------------------------------------------
 

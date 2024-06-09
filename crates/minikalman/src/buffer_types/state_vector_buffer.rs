@@ -1,12 +1,34 @@
 use crate::filter_traits::StateVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
-use crate::IntoInnerData;
+use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
 pub struct StateVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, 1, T>;
+
+// -----------------------------------------------------------
+
+impl<'a, const STATES: usize, T> From<&'a mut [T]>
+    for StateVectorBuffer<STATES, T, MatrixDataMut<'a, STATES, 1, T>>
+{
+    fn from(value: &'a mut [T]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES, value.len());
+        }
+        Self::new(MatrixData::new_mut::<STATES, 1, T>(value))
+    }
+}
+
+impl<'a, const STATES: usize, T> From<[T; STATES]>
+    for StateVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>
+{
+    fn from(value: [T; STATES]) -> Self {
+        Self::new(MatrixData::new_owned::<STATES, 1, STATES, T>(value))
+    }
+}
 
 // -----------------------------------------------------------
 
