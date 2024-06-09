@@ -1,14 +1,4 @@
-use minikalman::buffer_types::{
-    InnovationResidualCovarianceMatrixBuffer, InnovationVectorBuffer,
-    InputCovarianceMatrixMutBuffer, InputMatrixMutBuffer, InputVectorBuffer,
-    KalmanGainMatrixBuffer, MeasurementProcessNoiseCovarianceMatrixBuffer,
-    MeasurementTransformationMatrixMutBuffer, MeasurementVectorBuffer, StatePredictionVectorBuffer,
-    StateVectorBuffer, SystemCovarianceMatrixBuffer, SystemMatrixMutBuffer,
-    TemporaryBQMatrixBuffer, TemporaryHPMatrixBuffer, TemporaryKHPMatrixBuffer,
-    TemporaryPHTMatrixBuffer, TemporaryResidualCovarianceInvertedMatrixBuffer,
-    TemporaryStateMatrixBuffer,
-};
-use minikalman::{prelude::*, MatrixDataOwned};
+use minikalman::prelude::{buffer_types::*, *};
 
 /// Measurements.
 const NUM_STATES: usize = 3;
@@ -42,35 +32,35 @@ const MEASUREMENT_ERROR: [f32; 15] = [
 #[allow(non_upper_case_globals)]
 pub fn predict_gravity() -> f32 {
     // System buffers.
-    impl_static_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
-    impl_static_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
-    impl_static_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    impl_buffer_x!(static mut gravity_x, NUM_STATES, f32, 0.0);
+    impl_buffer_A!(static mut gravity_A, NUM_STATES, f32, 0.0);
+    impl_buffer_P!(static mut gravity_P, NUM_STATES, f32, 0.0);
 
     // Input buffers.
-    impl_static_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    impl_static_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    impl_static_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
+    impl_buffer_u!(static mut gravity_u, NUM_INPUTS, f32, 0.0);
+    impl_buffer_B!(static mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
+    impl_buffer_Q!(static mut gravity_Q, NUM_INPUTS, f32, 0.0);
 
     // Measurement buffers.
-    impl_static_buffer_Q!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
-    impl_static_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    impl_static_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
-    impl_static_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
-    impl_static_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
-    impl_static_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    impl_buffer_Q!(static mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
+    impl_buffer_H!(static mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    impl_buffer_R!(static mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
+    impl_buffer_y!(static mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
+    impl_buffer_S!(static mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
+    impl_buffer_K!(static mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
 
     // Filter temporaries.
-    impl_static_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
-    impl_static_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    impl_static_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+    impl_buffer_temp_x!(static mut gravity_temp_x, NUM_STATES, f32, 0.0);
+    impl_buffer_temp_P!(static mut gravity_temp_P, NUM_STATES, f32, 0.0);
+    impl_buffer_temp_BQ!(static mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
 
     // Measurement temporaries.
-    impl_static_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
+    impl_buffer_temp_S_inv!(static mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
 
     // Measurement temporaries.
-    impl_static_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    impl_static_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
-    impl_static_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
+    impl_buffer_temp_HP!(static mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
         SystemMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),

@@ -14,7 +14,7 @@
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_x!(static mut X, NUM_STATES, f32, 0.0);
+/// impl_buffer_x!(static mut X, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(X.len(), 3);
@@ -27,32 +27,32 @@
 /// ```
 /// # use minikalman::prelude::*;
 /// # const NUM_STATES: usize = 3;
-/// impl_static_buffer_x!(x, NUM_STATES, f32, 0.0);
-/// impl_static_buffer_x!(mut x, NUM_STATES, f32, 0.0);
-/// impl_static_buffer_x!(let mut x, NUM_STATES, f32, 0.0);
+/// impl_buffer_x!(x, NUM_STATES, f32, 0.0);
+/// impl_buffer_x!(mut x, NUM_STATES, f32, 0.0);
+/// impl_buffer_x!(let mut x, NUM_STATES, f32, 0.0);
 ///
 /// assert_eq!(x.len(), 3);
 /// assert_eq!(x[0], 0.0_f32);
 /// ```
 #[macro_export]
-macro_rules! impl_static_buffer_x {
+macro_rules! impl_buffer_x {
     (mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_x!($vec_name, $num_states, $t, $init, let mut)
     };
     ($vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_x!($vec_name, $num_states, $t, $init, let)
     };
     (let mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_x!($vec_name, $num_states, $t, $init, let mut)
     };
     (let $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_x!($vec_name, $num_states, $t, $init, let)
     };
     (static mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_x!($vec_name, $num_states, $t, $init, static mut)
     };
     (static $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_x!($vec_name, $num_states, $t, $init, static)
+        $crate::impl_buffer_x!($vec_name, $num_states, $t, $init, static)
     };
     ($vec_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $vec_name: $crate::buffer_types::StateVectorBuffer<
@@ -71,7 +71,7 @@ macro_rules! impl_static_buffer_x {
 
 /// Creates a static buffer fitting the square state transition matrix (`num_states` × `num_states`).
 ///
-/// This will create a [`SystemMatrixBuffer`](crate::buffer_types::SystemMatrixBuffer)
+/// This will create a [`SystemMatrixMutBuffer`](crate::buffer_types::SystemMatrixMutBuffer)
 /// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
 ///
 /// ## Arguments
@@ -85,7 +85,7 @@ macro_rules! impl_static_buffer_x {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_A!(static mut A, NUM_STATES, f32, 0.0);
+/// impl_buffer_A!(static mut A, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(A.len(), 9);
@@ -98,38 +98,38 @@ macro_rules! impl_static_buffer_x {
 /// ```
 /// # use minikalman::prelude::*;
 /// # const NUM_STATES: usize = 3;
-/// impl_static_buffer_A!(let mut A, NUM_STATES, f32, 0.0);
+/// impl_buffer_A!(let mut A, NUM_STATES, f32, 0.0);
 ///
 /// assert_eq!(A.len(), 9);
 /// assert_eq!(A[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_A {
+macro_rules! impl_buffer_A {
     (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_A!($mat_name, $num_states, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_A!($mat_name, $num_states, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_A!($mat_name, $num_states, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_A!($mat_name, $num_states, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_A!($mat_name, $num_states, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_A!($mat_name, $num_states, $t, $init, static)
+        $crate::impl_buffer_A!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::SystemMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffer_types::SystemMatrixMutBuffer<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::SystemMatrixBuffer::<
+        > = $crate::buffer_types::SystemMatrixMutBuffer::<
             $num_states,
             $t,
             $crate::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
@@ -155,7 +155,7 @@ macro_rules! impl_static_buffer_A {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_P!(static mut P, NUM_STATES, f32, 0.0);
+/// impl_buffer_P!(static mut P, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(P.len(), 9);
@@ -164,24 +164,24 @@ macro_rules! impl_static_buffer_A {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_P {
+macro_rules! impl_buffer_P {
     (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_P!($mat_name, $num_states, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_P!($mat_name, $num_states, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_P!($mat_name, $num_states, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_P!($mat_name, $num_states, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_P!($mat_name, $num_states, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_P!($mat_name, $num_states, $t, $init, static)
+        $crate::impl_buffer_P!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::SystemCovarianceMatrixBuffer<
@@ -214,7 +214,7 @@ macro_rules! impl_static_buffer_P {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_u!(static mut U, NUM_INPUTS, f32, 0.0);
+/// impl_buffer_u!(static mut U, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(U.len(), 2);
@@ -222,24 +222,24 @@ macro_rules! impl_static_buffer_P {
 /// }
 /// ```
 #[macro_export]
-macro_rules! impl_static_buffer_u {
+macro_rules! impl_buffer_u {
     (mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
     };
     ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let)
     };
     (let mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
     };
     (let $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let)
     };
     (static mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, static mut)
+        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, static mut)
     };
     (static $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_u!($vec_name, $num_inputs, $t, $init, static)
+        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, static)
     };
     ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $vec_name: $crate::buffer_types::InputVectorBuffer<
@@ -274,7 +274,7 @@ macro_rules! impl_static_buffer_u {
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_B!(static mut B, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// impl_buffer_B!(static mut B, NUM_STATES, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(B.len(), 6);
@@ -283,24 +283,24 @@ macro_rules! impl_static_buffer_u {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_B {
+macro_rules! impl_buffer_B {
     (mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static)
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::InputMatrixMutBuffer<
@@ -335,7 +335,7 @@ macro_rules! impl_static_buffer_B {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_Q!(static mut Q, NUM_INPUTS, f32, 0.0);
+/// impl_buffer_Q!(static mut Q, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Q.len(), 4);
@@ -344,24 +344,24 @@ macro_rules! impl_static_buffer_B {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_Q {
+macro_rules! impl_buffer_Q {
     (mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
     };
     ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, static mut)
+        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_Q!($mat_name, $num_inputs, $t, $init, static)
+        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::InputCovarianceMatrixMutBuffer<
@@ -394,7 +394,7 @@ macro_rules! impl_static_buffer_Q {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_z!(static mut Z, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_buffer_z!(static mut Z, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Z.len(), 5);
@@ -402,24 +402,24 @@ macro_rules! impl_static_buffer_Q {
 /// }
 /// ```
 #[macro_export]
-macro_rules! impl_static_buffer_z {
+macro_rules! impl_buffer_z {
     (mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, let mut)
     };
     ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, let)
     };
     (let mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, let mut)
     };
     (let $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, let)
     };
     (static mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, static mut)
+        $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, static mut)
     };
     (static $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_z!($vec_name, $num_measurements, $t, $init, static)
+        $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, static)
     };
     ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $vec_name: $crate::buffer_types::MeasurementVectorBuffer<
@@ -454,7 +454,7 @@ macro_rules! impl_static_buffer_z {
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_H!(static mut H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+/// impl_buffer_H!(static mut H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(H.len(), 15);
@@ -463,24 +463,24 @@ macro_rules! impl_static_buffer_z {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_H {
+macro_rules! impl_buffer_H {
     (mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let)
+        $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let)
+        $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static)
+        $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::MeasurementTransformationMatrixMutBuffer<
@@ -525,7 +525,7 @@ macro_rules! impl_static_buffer_H {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_R!(static mut R, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_buffer_R!(static mut R, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(R.len(), 25);
@@ -534,24 +534,24 @@ macro_rules! impl_static_buffer_H {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_R {
+macro_rules! impl_buffer_R {
     (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, let mut)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, static mut)
+        $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_R!($mat_name, $num_measurements, $t, $init, static)
+        $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer<
@@ -594,7 +594,7 @@ macro_rules! impl_static_buffer_R {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_y!(static mut Y, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_buffer_y!(static mut Y, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Y.len(), 5);
@@ -602,24 +602,24 @@ macro_rules! impl_static_buffer_R {
 /// }
 /// ```
 #[macro_export]
-macro_rules! impl_static_buffer_y {
+macro_rules! impl_buffer_y {
     (mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_y!($vec_name, $num_measurements, $t, $init, let mut)
     };
     ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_y!($vec_name, $num_measurements, $t, $init, let)
     };
     (let mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_y!($vec_name, $num_measurements, $t, $init, let mut)
     };
     (let $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_y!($vec_name, $num_measurements, $t, $init, let)
     };
     (static mut $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, static mut)
+        $crate::impl_buffer_y!($vec_name, $num_measurements, $t, $init, static mut)
     };
     (static $vec_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_y!($vec_name, $num_measurements, $t, $init, static)
+        $crate::impl_buffer_y!($vec_name, $num_measurements, $t, $init, static)
     };
     ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $vec_name: $crate::buffer_types::InnovationVectorBuffer<
@@ -652,7 +652,7 @@ macro_rules! impl_static_buffer_y {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_S!(static mut S, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_buffer_S!(static mut S, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(S.len(), 25);
@@ -661,24 +661,24 @@ macro_rules! impl_static_buffer_y {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_S {
+macro_rules! impl_buffer_S {
     (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_S!($mat_name, $num_measurements, $t, $init, let mut)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_S!($mat_name, $num_measurements, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_S!($mat_name, $num_measurements, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_S!($mat_name, $num_measurements, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, static mut)
+        $crate::impl_buffer_S!($mat_name, $num_measurements, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_S!($mat_name, $num_measurements, $t, $init, static)
+        $crate::impl_buffer_S!($mat_name, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer<
@@ -723,7 +723,7 @@ macro_rules! impl_static_buffer_S {
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_K!(static mut K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_buffer_K!(static mut K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(K.len(), 15);
@@ -732,24 +732,24 @@ macro_rules! impl_static_buffer_S {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_K {
+macro_rules! impl_buffer_K {
     (mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, static mut)
+        $crate::impl_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, static)
+        $crate::impl_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::KalmanGainMatrixBuffer<
@@ -794,7 +794,7 @@ macro_rules! impl_static_buffer_K {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_x!(static mut TX, NUM_STATES, f32, 0.0);
+/// impl_buffer_temp_x!(static mut TX, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TX.len(), 3);
@@ -802,24 +802,24 @@ macro_rules! impl_static_buffer_K {
 /// }
 /// ```
 #[macro_export]
-macro_rules! impl_static_buffer_temp_x {
+macro_rules! impl_buffer_temp_x {
     (mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_x!($vec_name, $num_states, $t, $init, let mut)
     };
     ($vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_x!($vec_name, $num_states, $t, $init, let)
     };
     (let mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_x!($vec_name, $num_states, $t, $init, let mut)
     };
     (let $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_x!($vec_name, $num_states, $t, $init, let)
     };
     (static mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_temp_x!($vec_name, $num_states, $t, $init, static mut)
     };
     (static $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_x!($vec_name, $num_states, $t, $init, static)
+        $crate::impl_buffer_temp_x!($vec_name, $num_states, $t, $init, static)
     };
     ($vec_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $vec_name: $crate::buffer_types::StatePredictionVectorBuffer<
@@ -852,7 +852,7 @@ macro_rules! impl_static_buffer_temp_x {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_P!(static mut TP, NUM_STATES, f32, 0.0);
+/// impl_buffer_temp_P!(static mut TP, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TP.len(), 9);
@@ -861,24 +861,24 @@ macro_rules! impl_static_buffer_temp_x {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_temp_P {
+macro_rules! impl_buffer_temp_P {
     (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_P!($mat_name, $num_states, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_P!($mat_name, $num_states, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_P!($mat_name, $num_states, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_P!($mat_name, $num_states, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_temp_P!($mat_name, $num_states, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_P!($mat_name, $num_states, $t, $init, static)
+        $crate::impl_buffer_temp_P!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryStateMatrixBuffer<
@@ -913,7 +913,7 @@ macro_rules! impl_static_buffer_temp_P {
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_INPUTS: usize = 2;
-/// impl_static_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// impl_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TBQ.len(), 6);
@@ -922,24 +922,24 @@ macro_rules! impl_static_buffer_temp_P {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_temp_BQ {
+macro_rules! impl_buffer_temp_BQ {
     (mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static)
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryBQMatrixBuffer<
@@ -974,7 +974,7 @@ macro_rules! impl_static_buffer_temp_BQ {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_S_inv!(static mut TSINV, NUM_STATES, f32, 0.0);
+/// impl_buffer_temp_S_inv!(static mut TSINV, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TSINV.len(), 9);
@@ -983,24 +983,24 @@ macro_rules! impl_static_buffer_temp_BQ {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_temp_S_inv {
+macro_rules! impl_buffer_temp_S_inv {
     (mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let mut)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, static mut)
+        $crate::impl_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, static)
+        $crate::impl_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer<
@@ -1045,7 +1045,7 @@ macro_rules! impl_static_buffer_temp_S_inv {
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_temp_HP!(static mut THP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+/// impl_buffer_temp_HP!(static mut THP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(THP.len(), 15);
@@ -1054,24 +1054,24 @@ macro_rules! impl_static_buffer_temp_S_inv {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_temp_HP {
+macro_rules! impl_buffer_temp_HP {
     (mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, static)
+        $crate::impl_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryHPMatrixBuffer<
@@ -1118,7 +1118,7 @@ macro_rules! impl_static_buffer_temp_HP {
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// const NUM_MEASUREMENTS: usize = 5;
-/// impl_static_buffer_temp_PHt!(static mut TPHT, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+/// impl_buffer_temp_PHt!(static mut TPHT, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TPHT.len(), 15);
@@ -1127,24 +1127,24 @@ macro_rules! impl_static_buffer_temp_HP {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_temp_PHt {
+macro_rules! impl_buffer_temp_PHt {
     (mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
+        $crate::impl_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let)
+        $crate::impl_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, static mut)
+        $crate::impl_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, static)
+        $crate::impl_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryPHTMatrixBuffer<
@@ -1189,7 +1189,7 @@ macro_rules! impl_static_buffer_temp_PHt {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// impl_static_buffer_temp_KHP!(static mut TKHP, NUM_STATES, f32, 0.0);
+/// impl_buffer_temp_KHP!(static mut TKHP, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TKHP.len(), 9);
@@ -1198,24 +1198,24 @@ macro_rules! impl_static_buffer_temp_PHt {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_static_buffer_temp_KHP {
+macro_rules! impl_buffer_temp_KHP {
     (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let mut)
+        $crate::impl_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let)
+        $crate::impl_buffer_temp_KHP!($mat_name, $num_states, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, static mut)
+        $crate::impl_buffer_temp_KHP!($mat_name, $num_states, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_static_buffer_temp_KHP!($mat_name, $num_states, $t, $init, static)
+        $crate::impl_buffer_temp_KHP!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryKHPMatrixBuffer<

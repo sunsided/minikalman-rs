@@ -47,18 +47,18 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// # const NUM_INPUTS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// // Measurement buffers.
-    /// let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-    /// let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    /// let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-    /// let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-    /// let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-    /// let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    /// impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
     ///
     /// // Measurement temporaries.
-    /// let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    /// let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    /// let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    /// let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    /// impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     ///
     /// let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
     ///     gravity_H,
@@ -236,19 +236,19 @@ impl<
     /// # const NUM_INPUTS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// # // System buffers.
-    /// # let gravity_x = create_buffer_x!(NUM_STATES);
-    /// # let gravity_A = create_buffer_A!(NUM_STATES);
-    /// # let gravity_P = create_buffer_P!(NUM_STATES);
+    /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
     /// #
     /// # // Input buffers.
-    /// # let gravity_u = create_buffer_u!(NUM_INPUTS);
-    /// # let gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
-    /// # let gravity_Q = create_buffer_Q!(NUM_INPUTS);
+    /// # impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
+    /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
+    /// # impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
     /// #
     /// # // Filter temporaries.
-    /// # let gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-    /// # let gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-    /// # let gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
     /// #
     /// # let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
     /// #     gravity_A,
@@ -263,18 +263,18 @@ impl<
     /// #  );
     /// #
     /// # // Measurement buffers.
-    /// # let gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-    /// # let gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    /// # let gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-    /// # let gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-    /// # let gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-    /// # let gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    /// # impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
     /// #
     /// # // Measurement temporaries.
-    /// # let gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    /// # let gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    /// # let gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    /// # let gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     /// #
     /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
     /// #     gravity_H,
