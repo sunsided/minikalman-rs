@@ -1,7 +1,6 @@
-use core::ptr::addr_of_mut;
 use minikalman::buffer_types::{
     InnovationResidualCovarianceMatrixBuffer, InnovationVectorBuffer,
-    InputCovarianceMatrixMutBuffer, InputMatrixBuffer, InputMatrixMutBuffer, InputVectorBuffer,
+    InputCovarianceMatrixMutBuffer, InputMatrixMutBuffer, InputVectorBuffer,
     KalmanGainMatrixBuffer, MeasurementProcessNoiseCovarianceMatrixBuffer,
     MeasurementTransformationMatrixMutBuffer, MeasurementVectorBuffer, StatePredictionVectorBuffer,
     StateVectorBuffer, SystemCovarianceMatrixBuffer, SystemMatrixMutBuffer,
@@ -9,7 +8,7 @@ use minikalman::buffer_types::{
     TemporaryPHTMatrixBuffer, TemporaryResidualCovarianceInvertedMatrixBuffer,
     TemporaryStateMatrixBuffer,
 };
-use minikalman::{prelude::*, Kalman, MatrixDataOwned, Measurement};
+use minikalman::{prelude::*, MatrixDataOwned};
 
 /// Measurements.
 const NUM_STATES: usize = 3;
@@ -61,49 +60,53 @@ pub fn predict_gravity() -> f32 {
     impl_static_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
 
     // Filter temporaries.
-    impl_static_buffer_temp_x!(gravity_temp_x, NUM_STATES, f32, 0.0);
-    impl_static_buffer_temp_P!(gravity_temp_P, NUM_STATES, f32, 0.0);
-    impl_static_buffer_temp_BQ!(gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+    impl_static_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
+    impl_static_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
+    impl_static_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
 
     // Measurement temporaries.
-    impl_static_buffer_temp_S_inv!(gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
+    impl_static_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
 
     // Measurement temporaries.
-    impl_static_buffer_temp_HP!(gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    impl_static_buffer_temp_PHt!(gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
-    impl_static_buffer_temp_KHP!(gravity_temp_KHP, NUM_STATES, f32, 0.0);
+    impl_static_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+    impl_static_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    impl_static_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
-        unsafe { &mut *addr_of_mut!(gravity_A) },
-        unsafe { &mut *addr_of_mut!(gravity_x) },
-        unsafe { &mut *addr_of_mut!(gravity_B) },
-        unsafe { &mut *addr_of_mut!(gravity_u) },
-        unsafe { &mut *addr_of_mut!(gravity_P) },
-        unsafe { &mut *addr_of_mut!(gravity_Q) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_x) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_P) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_BQ) },
+        SystemMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
+        StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
+        InputMatrixMutBuffer::from(unsafe { gravity_B.as_mut() }),
+        InputVectorBuffer::from(unsafe { gravity_u.as_mut() }),
+        SystemCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
+        InputCovarianceMatrixMutBuffer::from(unsafe { gravity_Q.as_mut() }),
+        StatePredictionVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
+        TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
+        TemporaryBQMatrixBuffer::from(unsafe { gravity_temp_BQ.as_mut() }),
     );
 
     let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-        unsafe { &mut *addr_of_mut!(gravity_H) },
-        unsafe { &mut *addr_of_mut!(gravity_z) },
-        unsafe { &mut *addr_of_mut!(gravity_R) },
-        unsafe { &mut *addr_of_mut!(gravity_y) },
-        unsafe { &mut *addr_of_mut!(gravity_S) },
-        unsafe { &mut *addr_of_mut!(gravity_K) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_S_inv) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_HP) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_PHt) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_KHP) },
+        MeasurementTransformationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
+        MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
+        MeasurementProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
+        InnovationVectorBuffer::from(unsafe { gravity_y.as_mut() }),
+        InnovationResidualCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut() }),
+        KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut() }),
+        TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
+            gravity_temp_S_inv.as_mut()
+        }),
+        TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut() }),
+        TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut() }),
+        TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut() }),
     );
 
     // Set initial state.
-    initialize_state_vector(&mut filter);
-    initialize_state_transition_matrix(&mut filter);
-    initialize_state_covariance_matrix(&mut filter);
-    initialize_position_measurement_transformation_matrix(&mut measurement);
-    initialize_position_measurement_process_noise_matrix(&mut measurement);
+    initialize_state_vector(filter.state_vector_mut());
+    initialize_state_transition_matrix(filter.state_transition_mut());
+    initialize_state_covariance_matrix(filter.system_covariance_mut());
+    initialize_position_measurement_transformation_matrix(
+        measurement.measurement_transformation_mut(),
+    );
+    initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
     // Filter!
     for t in 0..REAL_DISTANCE.len() {
