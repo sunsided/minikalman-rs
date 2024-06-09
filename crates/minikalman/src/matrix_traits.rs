@@ -1,6 +1,7 @@
-use crate::more_matrix_types::MatrixData;
+use crate::matrix_types::MatrixData;
 use crate::{FastInt16, FastUInt16, FastUInt8, MatrixDataType};
 use core::ops::Index;
+use std::ops::IndexMut;
 
 /// Replaces `x` with `(x) as usize` to simplify index accesses.
 macro_rules! idx {
@@ -10,7 +11,9 @@ macro_rules! idx {
 }
 
 /// A matrix wrapping a data buffer.
-pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>: AsRef<[T]> {
+pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
+    AsRef<[T]> + Index<usize, Output = T>
+{
     /// Returns the number of rows of this matrix.
     fn rows(&self) -> FastUInt8 {
         ROWS as _
@@ -795,7 +798,7 @@ impl<const N: usize, T, M> SquareMatrixMut<N, T> for M where M: MatrixMut<N, N, 
 
 /// A mutable matrix wrapping a data buffer.
 pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
-    AsMut<[T]> + Matrix<ROWS, COLS, T>
+    AsMut<[T]> + Matrix<ROWS, COLS, T> + IndexMut<usize, Output = T>
 {
     /// Sets a matrix element
     ///

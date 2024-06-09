@@ -1,4 +1,4 @@
-use crate::more_matrix_traits::{Matrix, MatrixMut};
+use crate::matrix_traits::{Matrix, MatrixMut};
 use std::ops::{Index, IndexMut};
 
 /// A builder for a Kalman filter measurements.
@@ -184,6 +184,38 @@ impl<'a, const ROWS: usize, const COLS: usize, T> IndexMut<usize>
     }
 }
 
+impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
+    From<MatrixDataOwned<ROWS, COLS, TOTAL, T>> for [T; TOTAL]
+{
+    fn from(value: MatrixDataOwned<ROWS, COLS, TOTAL, T>) -> Self {
+        value.0
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> From<MatrixDataRef<'a, ROWS, COLS, T>>
+    for &'a [T]
+{
+    fn from(value: MatrixDataRef<'a, ROWS, COLS, T>) -> Self {
+        value.0
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> From<MatrixDataMut<'a, ROWS, COLS, T>>
+    for &'a [T]
+{
+    fn from(value: MatrixDataMut<'a, ROWS, COLS, T>) -> Self {
+        value.0
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> From<MatrixDataMut<'a, ROWS, COLS, T>>
+    for &'a mut [T]
+{
+    fn from(value: MatrixDataMut<'a, ROWS, COLS, T>) -> Self {
+        value.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,6 +266,41 @@ mod tests {
         assert_f32_near!(a[0], 1.);
         assert_f32_near!(a[1], 2.);
         assert_f32_near!(a[2], 13.);
+        assert_f32_near!(a[3], 4.);
+        assert_f32_near!(a[4], 5.);
+        assert_f32_near!(a[5], 6.);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn static_buffer() {
+        static BUFFER: [f32; 6] = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+
+        let mut a = MatrixData::new_ref::<2, 3, f32>(&BUFFER);
+
+        assert_f32_near!(a[0], 1.);
+        assert_f32_near!(a[1], 2.);
+        assert_f32_near!(a[2], 3.);
+        assert_f32_near!(a[3], 4.);
+        assert_f32_near!(a[4], 5.);
+        assert_f32_near!(a[5], 6.);
+    }
+
+    #[test]
+    #[cfg(feature = "unsafe")]
+    #[rustfmt::skip]
+    fn static_mut_buffer() {
+        static mut BUFFER: [f32; 6] = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+
+        let mut a = unsafe { MatrixData::new_mut::<2, 3, f32>(&mut BUFFER) };
+
+        assert_f32_near!(a[0], 1.);
+        assert_f32_near!(a[1], 2.);
+        assert_f32_near!(a[2], 3.);
         assert_f32_near!(a[3], 4.);
         assert_f32_near!(a[4], 5.);
         assert_f32_near!(a[5], 6.);
