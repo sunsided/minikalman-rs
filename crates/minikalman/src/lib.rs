@@ -1423,11 +1423,10 @@ macro_rules! create_buffer_temp_PHt {
     }};
 }
 
-/// Sizes a buffer fitting the temporary K×(H×P) buffer (`num_states` × `num_measurements`).
+/// Sizes a buffer fitting the temporary K×(H×P) buffer (`num_states` × `num_states`).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
-/// * `num_measurements` - The number of measurements.
 ///
 /// ## Example
 /// ```
