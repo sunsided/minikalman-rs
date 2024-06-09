@@ -991,12 +991,12 @@ mod tests {
         let a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
-        let mut b_buf = [
+        let b_buf = [
             10.0, 11.0,
             20.0, 21.0,
             30.0, 31.0];
         let a = MatrixData::new_owned::<2, 3, 6, f32>(a_buf);
-        let b = MatrixData::new_ref::<3, 2, f32>(&mut b_buf);
+        let b = MatrixData::new_ref::<3, 2, f32>(&b_buf);
 
         let mut c_buf = [0f32; 2 * 2];
         let mut c = MatrixData::new_mut::<2, 2, f32>(&mut c_buf);
@@ -1184,15 +1184,15 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn multadd_rowvector() {
-        let mut a_buf = [
+        let a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
-        let mut b_buf = [
+        let b_buf = [
             10.0,
             20.0,
             30.0];
-        let a = MatrixData::new_ref::<2, 3, f32>(&mut a_buf);
-        let b = MatrixData::new_ref::<3, 1, f32>(&mut b_buf);
+        let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
+        let b = MatrixData::new_ref::<3, 1, f32>(&b_buf);
 
         let mut c_buf = [1000., 2000.];
         let mut c = MatrixData::new_mut::<2, 1, f32>(&mut c_buf);
@@ -1205,10 +1205,10 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn get_row_pointer() {
-        let mut a_buf = [
+        let a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
-        let a = MatrixData::new_ref::<2, 3, f32>(&mut a_buf);
+        let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
 
         let mut a_out = [0.0; 3].as_slice();
         a.get_row_pointer(0, &mut a_out);
@@ -1221,14 +1221,14 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn sub() {
-        let mut a_buf = [
+        let a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
-        let mut b_buf = [
+        let b_buf = [
             10.0, 20.0, 30.0,
             11.0, 21.0, 31.0];
-        let a = MatrixData::new_ref::<2, 3, f32>(&mut a_buf);
-        let b = MatrixData::new_ref::<2, 3, f32>(&mut b_buf);
+        let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
+        let b = MatrixData::new_ref::<2, 3, f32>(&b_buf);
 
         let mut c_buf = [0f32; 2 * 3];
         let mut c = MatrixData::new_mut::<2, 3, f32>(&mut c_buf);
@@ -1242,13 +1242,13 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn sub_inplace() {
-        let mut a_buf = [
+        let a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
         let mut b_buf = [
             10.0, 20.0, 30.0,
             11.0, 21.0, 31.0];
-        let a = MatrixData::new_ref::<2, 3, f32>(&mut a_buf);
+        let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
         let mut b = MatrixData::new_mut::<2, 3, f32>(&mut b_buf);
 
         a.sub_inplace_b(&mut b);
@@ -1260,13 +1260,13 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn add_inplace() {
-        let mut a_buf = [
+        let a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
         let mut b_buf = [
             10.0, 20.0, 30.0,
             11.0, 21.0, 31.0];
-        let a = MatrixData::new_ref::<2, 3, f32>(&mut a_buf);
+        let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
         let mut b = MatrixData::new_mut::<2, 3, f32>(&mut b_buf);
 
         a.add_inplace_b(&mut b);

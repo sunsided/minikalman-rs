@@ -1,4 +1,4 @@
-/// Creates a static buffer fitting the state covariance matrix (`num_states` × `num_states`).
+/// Creates a static buffer fitting the state vector (`num_states` × `1`).
 ///
 /// This will create a [`StateVectorBuffer`](crate::buffer_types::StateVectorBuffer)
 /// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
@@ -707,7 +707,7 @@ macro_rules! impl_buffer_S {
 
 /// Creates a static buffer fitting the Kalman gain matrix (`num_states` × `num_measurements`).
 ///
-/// This will create a [`InnovationResidualCovarianceMatrixBuffer`](crate::buffer_types::InnovationResidualCovarianceMatrixBuffer)
+/// This will create a [`KalmanGainMatrixBuffer`](crate::buffer_types::KalmanGainMatrixBuffer)
 /// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
 ///
 /// ## Arguments
@@ -960,7 +960,7 @@ macro_rules! impl_buffer_temp_BQ {
 
 /// Creates a static buffer fitting the square temporary S-inverted (`num_measurements` × `num_measurements`).
 ///
-/// This will create a [`TemporaryBQMatrixBuffer`](crate::buffer_types::TemporaryBQMatrixBuffer)
+/// This will create a [`TemporaryResidualCovarianceInvertedMatrixBuffer`](crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer)
 /// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
 ///
 /// ## Arguments

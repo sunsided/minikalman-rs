@@ -41,33 +41,34 @@ const NUM_MEASUREMENTS: usize = 1;
 #[allow(non_snake_case)]
 fn main() {
     // System buffers.
-    impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
-    impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
-    impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    let gravity_x = BufferBuilder::state_vector_x::<NUM_STATES>().new(0.0_f32);
+    let gravity_A = BufferBuilder::system_state_transition_A::<NUM_STATES>().new(0.0_f32);
+    let gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
     // Input buffers.
-    impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
+    let gravity_u = BufferBuilder::input_vector_u::<NUM_INPUTS>().new(0.0_f32);
+    let gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
+    let gravity_Q = BufferBuilder::input_covariance_Q::<NUM_INPUTS>().new(0.0_f32);
 
     // Measurement buffers.
-    impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
-    impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
-    impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
-    impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
-    impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    let gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let gravity_H =
+        BufferBuilder::measurement_transformation_H::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
+    let gravity_R = BufferBuilder::measurement_covariance_R::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let gravity_y = BufferBuilder::innovation_vector_y::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let gravity_S = BufferBuilder::innovation_covariance_S::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let gravity_K = BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
 
     // Filter temporaries.
-    impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
-    impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+    let gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
+    let gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
+    let gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
 
     // Measurement temporaries.
-    impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
-    impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
-    impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
+    let gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let gravity_temp_HP = BufferBuilder::temp_HP::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
+    let gravity_temp_PHt = BufferBuilder::temp_PHt::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
+    let gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(0.0_f32);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
         gravity_A,

@@ -29,33 +29,35 @@ const NUM_MEASUREMENTS: usize = 1;
 #[allow(non_snake_case)]
 fn criterion_benchmark(c: &mut Criterion) {
     // System buffers.
-    let mut gravity_x = create_buffer_x!(NUM_STATES);
-    let mut gravity_A = create_buffer_A!(NUM_STATES);
-    let mut gravity_P = create_buffer_P!(NUM_STATES);
+    let mut gravity_x = BufferBuilder::state_vector_x::<NUM_STATES>().new(0.0_f32);
+    let mut gravity_A = BufferBuilder::system_state_transition_A::<NUM_STATES>().new(0.0_f32);
+    let mut gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
     // Input buffers.
-    let mut gravity_u = create_buffer_u!(NUM_INPUTS);
-    let mut gravity_B = create_buffer_B!(NUM_STATES, NUM_INPUTS);
-    let mut gravity_Q = create_buffer_Q!(NUM_INPUTS);
+    let mut gravity_u = BufferBuilder::input_vector_u::<NUM_INPUTS>().new(0.0_f32);
+    let mut gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
+    let mut gravity_Q = BufferBuilder::input_covariance_Q::<NUM_INPUTS>().new(0.0_f32);
 
     // Measurement buffers.
-    let mut gravity_z = create_buffer_z!(NUM_MEASUREMENTS);
-    let mut gravity_H = create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES);
-    let mut gravity_R = create_buffer_R!(NUM_MEASUREMENTS);
-    let mut gravity_y = create_buffer_y!(NUM_MEASUREMENTS);
-    let mut gravity_S = create_buffer_S!(NUM_MEASUREMENTS);
-    let mut gravity_K = create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS);
+    let mut gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let mut gravity_H =
+        BufferBuilder::measurement_transformation_H::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
+    let mut gravity_R = BufferBuilder::measurement_covariance_R::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let mut gravity_y = BufferBuilder::innovation_vector_y::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let mut gravity_S = BufferBuilder::innovation_covariance_S::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let mut gravity_K = BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
 
     // Filter temporaries.
-    let mut gravity_temp_x = create_buffer_temp_x!(NUM_STATES);
-    let mut gravity_temp_P = create_buffer_temp_P!(NUM_STATES);
-    let mut gravity_temp_BQ = create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS);
+    let mut gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
+    let mut gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
+    let mut gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
 
     // Measurement temporaries.
-    let mut gravity_temp_S_inv = create_buffer_temp_S_inv!(NUM_MEASUREMENTS);
-    let mut gravity_temp_HP = create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES);
-    let mut gravity_temp_PHt = create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS);
-    let mut gravity_temp_KHP = create_buffer_temp_KHP!(NUM_STATES);
+    let mut gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let mut gravity_temp_HP = BufferBuilder::temp_HP::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
+    let mut gravity_temp_PHt =
+        BufferBuilder::temp_PHt::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
+    let mut gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(0.0_f32);
 
     c.bench_function("filter loop", |bencher| {
         let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(

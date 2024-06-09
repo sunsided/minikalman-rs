@@ -21,12 +21,16 @@
 // the `docsrs` configuration attribute is defined
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // Enable `no_std` if the `no_std` crate feature is enabled.
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(any(feature = "std", feature = "alloc")), no_std)]
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 // Attempt to disable allocations.
-#![forbid(box_pointers)]
+#![cfg_attr(not(feature = "alloc"), forbid(box_pointers))]
 
+#[cfg(any(feature = "std", feature = "alloc"))]
+extern crate alloc;
+
+mod buffer_builder;
 pub mod buffer_types;
 mod filter_traits;
 mod kalman;
@@ -36,6 +40,7 @@ mod measurement;
 mod static_macros;
 mod types;
 
+pub use crate::buffer_builder::BufferBuilder;
 pub use crate::kalman::{Kalman, KalmanBuilder};
 pub use crate::matrix_types::*;
 pub use crate::measurement::{Measurement, MeasurementBuilder};
@@ -46,6 +51,7 @@ pub use num_traits;
 
 /// Exports all macros and common types.
 pub mod prelude {
+    pub use crate::buffer_builder::BufferBuilder;
     pub use crate::buffer_types::*;
     pub use crate::filter_traits::*;
     pub use crate::kalman::{Kalman, KalmanBuilder};
