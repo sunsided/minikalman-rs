@@ -1,4 +1,3 @@
-use crate::kalman_filter_trait::*;
 use core::marker::PhantomData;
 use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::MatrixDataType;
@@ -574,7 +573,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::kalman_filter_trait::KalmanFilterMeasurement;
     use core::ops::{Index, IndexMut};
     use minikalman_traits::matrix::{Matrix, MatrixMut};
 

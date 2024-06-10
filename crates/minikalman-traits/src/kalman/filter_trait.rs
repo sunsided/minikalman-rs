@@ -1,8 +1,8 @@
-use minikalman_traits::kalman::{
+use crate::kalman::{
     MeasurementProcessNoiseCovarianceMatrix, MeasurementTransformationMatrix,
     MeasurementTransformationMatrixMut, MeasurementVector, MeasurementVectorMut,
 };
-use minikalman_traits::matrix::{Matrix, MatrixMut};
+use crate::matrix::{Matrix, MatrixMut};
 
 pub trait KalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>

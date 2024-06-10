@@ -36,7 +36,6 @@ extern crate alloc;
 mod buffer_builder;
 pub mod buffer_types;
 mod kalman;
-mod kalman_filter_trait;
 mod measurement;
 mod static_macros;
 
