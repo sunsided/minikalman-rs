@@ -1,6 +1,6 @@
-use crate::filter_traits::MeasurementVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::prelude::MeasurementVectorMut;
+use crate::type_traits::MeasurementVector;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};

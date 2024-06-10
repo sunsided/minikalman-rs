@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::filter_traits::*;
+use crate::type_traits::*;
 use crate::{FastUInt8, MatrixDataType};
 
 /// A builder for a Kalman filter [`Measurement`] instances.
@@ -380,8 +380,8 @@ where
 mod tests {
     use core::ops::{Index, IndexMut};
 
-    use crate::filter_traits::{MeasurementTransformationMatrixMut, MeasurementVectorMut};
     use crate::matrix_traits::{Matrix, MatrixMut};
+    use crate::type_traits::{MeasurementTransformationMatrixMut, MeasurementVectorMut};
 
     use super::*;
 

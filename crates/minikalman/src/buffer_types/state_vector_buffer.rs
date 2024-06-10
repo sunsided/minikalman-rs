@@ -1,5 +1,5 @@
-use crate::filter_traits::StateVector;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::StateVector;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};

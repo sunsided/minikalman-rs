@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::ResidualCovarianceMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::ResidualCovarianceMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 /// Buffer for the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).

@@ -1,5 +1,5 @@
-use crate::filter_traits::{InputCovarianceMatrix, InputCovarianceMatrixMut};
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::{InputCovarianceMatrix, InputCovarianceMatrixMut};
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};

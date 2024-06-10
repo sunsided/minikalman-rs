@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::{InputMatrix, InputMatrixMut};
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::{InputMatrix, InputMatrixMut};
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
 
 pub struct InputMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)

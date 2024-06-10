@@ -1,6 +1,8 @@
 use core::marker::PhantomData;
 
-use crate::filter_traits::{
+use crate::matrix_traits::{Matrix, MatrixMut, SquareMatrix};
+use crate::measurement::Measurement;
+use crate::type_traits::{
     InnovationVector, InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut,
     InputVector, InputVectorMut, KalmanGainMatrix, MeasurementProcessNoiseCovarianceMatrix,
     MeasurementTransformationMatrix, MeasurementVector, ResidualCovarianceMatrix,
@@ -8,8 +10,6 @@ use crate::filter_traits::{
     TemporaryBQMatrix, TemporaryHPMatrix, TemporaryKHPMatrix, TemporaryPHTMatrix,
     TemporaryResidualCovarianceInvertedMatrix, TemporaryStateMatrix,
 };
-use crate::matrix_traits::{Matrix, MatrixMut, SquareMatrix};
-use crate::measurement::Measurement;
 use crate::{FastUInt8, MatrixDataType};
 
 /// A builder for a [`Kalman`] filter instances.

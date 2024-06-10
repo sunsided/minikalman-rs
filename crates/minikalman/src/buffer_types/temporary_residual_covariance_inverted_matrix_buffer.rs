@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::TemporaryResidualCovarianceInvertedMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::TemporaryResidualCovarianceInvertedMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct TemporaryResidualCovarianceInvertedMatrixBuffer<const MEASUREMENTS: usize, T, M>(

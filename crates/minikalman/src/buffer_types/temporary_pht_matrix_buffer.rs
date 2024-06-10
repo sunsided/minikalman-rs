@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::TemporaryPHTMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::TemporaryPHTMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct TemporaryPHTMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(

@@ -35,12 +35,12 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 mod buffer_builder;
 pub mod buffer_types;
-mod filter_traits;
 mod kalman;
 mod matrix_traits;
 mod matrix_types;
 mod measurement;
 mod static_macros;
+mod type_traits;
 mod types;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -60,11 +60,11 @@ pub mod prelude {
     #[cfg(feature = "alloc")]
     pub use crate::buffer_builder::BufferBuilder;
     pub use crate::buffer_types::*;
-    pub use crate::filter_traits::*;
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::matrix_traits::*;
     pub use crate::matrix_types::{IntoInnerData, MatrixData};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
+    pub use crate::type_traits::*;
     pub use crate::types::*;
 
     pub use crate::{

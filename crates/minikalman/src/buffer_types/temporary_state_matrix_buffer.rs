@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::TemporaryStateMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::TemporaryStateMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct TemporaryStateMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)

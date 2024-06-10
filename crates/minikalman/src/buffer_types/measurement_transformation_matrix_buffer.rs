@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::{MeasurementTransformationMatrix, MeasurementTransformationMatrixMut};
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::{MeasurementTransformationMatrix, MeasurementTransformationMatrixMut};
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
 
 pub struct MeasurementTransformationMatrixBuffer<

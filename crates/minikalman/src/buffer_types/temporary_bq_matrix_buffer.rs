@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::TemporaryBQMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::TemporaryBQMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct TemporaryBQMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(

@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::filter_traits::TemporaryKHPMatrix;
 use crate::matrix_traits::{Matrix, MatrixMut};
+use crate::type_traits::TemporaryKHPMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 
 pub struct TemporaryKHPMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
