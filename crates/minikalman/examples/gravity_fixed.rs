@@ -10,12 +10,9 @@
 use colored::Colorize;
 use lazy_static::lazy_static;
 
-use minikalman::prelude::{fixed::I16F16, *};
-use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::*;
+use minikalman::prelude::*;
 
 const NUM_STATES: usize = 3;
-const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 lazy_static! {
@@ -76,11 +73,6 @@ fn main() {
     let gravity_A = BufferBuilder::system_state_transition_A::<NUM_STATES>().new(I16F16::ZERO);
     let gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(I16F16::ZERO);
 
-    // Input buffers.
-    let gravity_u = BufferBuilder::input_vector_u::<NUM_INPUTS>().new(I16F16::ZERO);
-    let gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_INPUTS>().new(I16F16::ZERO);
-    let gravity_Q = BufferBuilder::input_covariance_Q::<NUM_INPUTS>().new(I16F16::ZERO);
-
     // Measurement buffers.
     let gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(I16F16::ZERO);
     let gravity_H = BufferBuilder::measurement_transformation_H::<NUM_MEASUREMENTS, NUM_STATES>()
@@ -94,7 +86,6 @@ fn main() {
     // Filter temporaries.
     let gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(I16F16::ZERO);
     let gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(I16F16::ZERO);
-    let gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_INPUTS>().new(I16F16::ZERO);
 
     // Measurement temporaries.
     let gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(I16F16::ZERO);
