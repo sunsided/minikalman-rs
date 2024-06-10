@@ -251,7 +251,7 @@ impl<
     /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
     /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
     /// #
-    /// # let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+    /// # let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
     /// #     gravity_A,
     /// #     gravity_x,
     /// #     gravity_P,
@@ -673,7 +673,7 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterMeasurementCorrect<STATES, T>
+    > KalmanFilterMeasurementCorrectFilter<STATES, T>
     for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
     H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,

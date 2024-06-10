@@ -11,6 +11,7 @@ pub trait KalmanFilter<const STATES: usize, T>:
     + KalmanFilterStateTransition<STATES, T>
     + KalmanFilterSystemCovarianceMut<STATES, T>
     + KalmanFilterPredict<STATES, T>
+    + KalmanFilterApplyInput<STATES, T>
     + KalmanFilterUpdate<STATES, T>
 {
 }
@@ -40,6 +41,7 @@ impl<const STATES: usize, T, Filter> KalmanFilter<STATES, T> for Filter where
         + KalmanFilterStateTransition<STATES, T>
         + KalmanFilterSystemCovarianceMut<STATES, T>
         + KalmanFilterPredict<STATES, T>
+        + KalmanFilterApplyInput<STATES, T>
         + KalmanFilterUpdate<STATES, T>
 {
 }
@@ -52,7 +54,8 @@ where
         + KalmanFilterNumInputs<INPUTS>
         + KalmanFilterInputVectorMut<INPUTS, T>
         + KalmanFilterInputTransition<STATES, INPUTS, T>
-        + KalmanFilterInputCovarianceMut<INPUTS, T>,
+        + KalmanFilterInputCovarianceMut<INPUTS, T>
+        + KalmanFilterInputApplyToFilter<STATES, T>,
 {
 }
 
@@ -65,7 +68,7 @@ where
         + KalmanFilterMeasurementVectorMut<MEASUREMENTS, T>
         + KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
         + KalmanFilterMeasurementProcessNoiseMut<MEASUREMENTS, T>
-        + KalmanFilterMeasurementCorrect<STATES, T>,
+        + KalmanFilterMeasurementCorrectFilter<STATES, T>,
 {
 }
 
@@ -87,6 +90,16 @@ pub trait KalmanFilterPredict<const STATES: usize, T> {
     fn predict(&mut self);
 }
 
+pub trait KalmanFilterApplyInput<const STATES: usize, T> {
+    /// Performs the measurement update step.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement to update the state prediction with.
+    fn input<const INPUTS: usize, I>(&mut self, input: &mut I)
+    where
+        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<INPUTS>;
+}
+
 pub trait KalmanFilterUpdate<const STATES: usize, T> {
     /// Performs the measurement update step.
     ///
@@ -94,20 +107,8 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     /// * `measurement` - The measurement to update the state prediction with.
     fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
     where
-        M: KalmanFilterMeasurementCorrect<STATES, T> + KalmanFilterNumMeasurements<MEASUREMENTS>;
-}
-
-pub trait KalmanFilterMeasurementCorrect<const STATES: usize, T> {
-    /// Performs the measurement update step.
-    ///
-    /// ## Arguments
-    /// * `x` - The state vector.
-    /// * `P` - The system covariance matrix.
-    #[allow(non_snake_case)]
-    fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
-    where
-        X: StateVector<STATES, T>,
-        P: SystemCovarianceMatrix<STATES, T>;
+        M: KalmanFilterMeasurementCorrectFilter<STATES, T>
+            + KalmanFilterNumMeasurements<MEASUREMENTS>;
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {
@@ -194,6 +195,19 @@ pub trait KalmanFilterNumInputs<const INPUTS: usize> {
     fn inputs(&self) -> usize {
         INPUTS
     }
+}
+
+pub trait KalmanFilterInputApplyToFilter<const STATES: usize, T> {
+    /// Applies an input to the state.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    #[allow(non_snake_case)]
+    fn apply_to<X, P>(&mut self, x: &mut X, P: &mut P)
+    where
+        X: StateVector<STATES, T>,
+        P: SystemCovarianceMatrix<STATES, T>;
 }
 
 pub trait KalmanFilterInputVector<const INPUTS: usize, T> {
@@ -283,6 +297,19 @@ pub trait KalmanFilterNumMeasurements<const MEASUREMENTS: usize> {
     fn measurements(&self) -> usize {
         MEASUREMENTS
     }
+}
+
+pub trait KalmanFilterMeasurementCorrectFilter<const STATES: usize, T> {
+    /// Performs the measurement update step.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    #[allow(non_snake_case)]
+    fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
+    where
+        X: StateVector<STATES, T>,
+        P: SystemCovarianceMatrix<STATES, T>;
 }
 
 pub trait KalmanFilterMeasurementVector<const MEASUREMENTS: usize, T> {

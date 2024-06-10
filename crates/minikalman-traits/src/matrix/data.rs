@@ -449,6 +449,8 @@ impl<'a, const ROWS: usize, const COLS: usize, T> From<MatrixDataMut<'a, ROWS, C
 mod tests {
     use super::*;
     use assert_float_eq::*;
+
+    #[cfg(feature = "unsafe")]
     use core::ptr::addr_of;
 
     #[test]

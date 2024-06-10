@@ -104,7 +104,7 @@ fn main() {
         BufferBuilder::temp_PHt::<NUM_STATES, NUM_MEASUREMENTS>().new(I16F16::ZERO);
     let gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(I16F16::ZERO);
 
-    let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, I16F16>(
+    let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
         gravity_A,
         gravity_x,
         gravity_P,

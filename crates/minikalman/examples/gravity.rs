@@ -72,7 +72,7 @@ fn main() {
     let gravity_temp_PHt = BufferBuilder::temp_PHt::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
     let gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(0.0_f32);
 
-    let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+    let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
         gravity_A,
         gravity_x,
         gravity_P,
