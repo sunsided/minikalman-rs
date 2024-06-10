@@ -1,16 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use minikalman::buffer_types::{
-    InnovationResidualCovarianceMatrixBuffer, InnovationVectorBuffer,
-    InputCovarianceMatrixMutBuffer, InputMatrixMutBuffer, InputVectorBuffer,
-    KalmanGainMatrixBuffer, MeasurementProcessNoiseCovarianceMatrixBuffer,
-    MeasurementTransformationMatrixMutBuffer, MeasurementVectorBuffer, StatePredictionVectorBuffer,
-    StateVectorBuffer, SystemCovarianceMatrixBuffer, SystemMatrixMutBuffer,
-    TemporaryBQMatrixBuffer, TemporaryHPMatrixBuffer, TemporaryKHPMatrixBuffer,
-    TemporaryPHTMatrixBuffer, TemporaryResidualCovarianceInvertedMatrixBuffer,
-    TemporaryStateMatrixBuffer,
-};
+use minikalman::buffer_types::*;
+use minikalman::{BufferBuilder, KalmanBuilder, MeasurementBuilder};
 
-use minikalman::prelude::*;
+use minikalman_traits::kalman::*;
+use minikalman_traits::matrix::*;
 
 const REAL_DISTANCE: [f32; 15] = [
     0.0, 4.905, 19.62, 44.145, 78.48, 122.63, 176.58, 240.35, 313.92, 397.31, 490.5, 593.51,
@@ -23,7 +16,7 @@ const MEASUREMENT_ERROR: [f32; 15] = [
 ];
 
 const NUM_STATES: usize = 3;
-const NUM_INPUTS: usize = 0;
+// const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 #[allow(non_snake_case)]
@@ -34,9 +27,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
     // Input buffers.
-    let mut gravity_u = BufferBuilder::input_vector_u::<NUM_INPUTS>().new(0.0_f32);
-    let mut gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
-    let mut gravity_Q = BufferBuilder::input_covariance_Q::<NUM_INPUTS>().new(0.0_f32);
+    // let mut gravity_u = BufferBuilder::input_vector_u::<NUM_INPUTS>().new(0.0_f32);
+    // let mut gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
+    // let mut gravity_Q = BufferBuilder::input_covariance_Q::<NUM_INPUTS>().new(0.0_f32);
 
     // Measurement buffers.
     let mut gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(0.0_f32);
@@ -50,7 +43,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Filter temporaries.
     let mut gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
     let mut gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
-    let mut gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
+    // let mut gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
 
     // Measurement temporaries.
     let mut gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(0.0_f32);
@@ -60,16 +53,12 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(0.0_f32);
 
     c.bench_function("filter loop", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
             SystemMatrixMutBuffer::from(gravity_A.as_mut()),
             StateVectorBuffer::from(gravity_x.as_mut()),
-            InputMatrixMutBuffer::from(gravity_B.as_mut()),
-            InputVectorBuffer::from(gravity_u.as_mut()),
             SystemCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            InputCovarianceMatrixMutBuffer::from(gravity_Q.as_mut()),
             StatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
-            TemporaryBQMatrixBuffer::from(gravity_temp_BQ.as_mut()),
         );
 
         let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
@@ -106,16 +95,12 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("predict", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
             SystemMatrixMutBuffer::from(gravity_A.as_mut()),
             StateVectorBuffer::from(gravity_x.as_mut()),
-            InputMatrixMutBuffer::from(gravity_B.as_mut()),
-            InputVectorBuffer::from(gravity_u.as_mut()),
             SystemCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            InputCovarianceMatrixMutBuffer::from(gravity_Q.as_mut()),
             StatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
-            TemporaryBQMatrixBuffer::from(gravity_temp_BQ.as_mut()),
         );
 
         let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
@@ -146,16 +131,12 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("update", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
             SystemMatrixMutBuffer::from(gravity_A.as_mut()),
             StateVectorBuffer::from(gravity_x.as_mut()),
-            InputMatrixMutBuffer::from(gravity_B.as_mut()),
-            InputVectorBuffer::from(gravity_u.as_mut()),
             SystemCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            InputCovarianceMatrixMutBuffer::from(gravity_Q.as_mut()),
             StatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
-            TemporaryBQMatrixBuffer::from(gravity_temp_BQ.as_mut()),
         );
 
         let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(

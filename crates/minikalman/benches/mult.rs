@@ -1,6 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use minikalman::prelude::Matrix;
-use minikalman::MatrixData;
+use minikalman_traits::matrix::*;
 use rand::Rng;
 
 fn criterion_benchmark(c: &mut Criterion) {
