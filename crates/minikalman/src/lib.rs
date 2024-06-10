@@ -36,6 +36,7 @@ extern crate alloc;
 mod buffer_builder;
 pub mod buffer_types;
 mod kalman;
+mod kalman_filter_trait;
 mod matrix_traits;
 mod matrix_types;
 mod measurement;

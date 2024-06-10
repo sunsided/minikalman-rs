@@ -227,6 +227,7 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
 
     /// Gets a reference to the input vector u.
     #[inline(always)]
+    #[doc(alias = "kalman_get_input_vector")]
     pub fn input_vector_ref(&self) -> &U {
         &self.u
     }
@@ -567,6 +568,8 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
 
         A.mult_rowvector(x, x_predicted);
         x_predicted.copy(x);
+
+        // TODO: Add missing input
     }
 
     #[allow(non_snake_case)]
