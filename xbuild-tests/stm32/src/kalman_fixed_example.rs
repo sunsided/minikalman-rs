@@ -1,10 +1,8 @@
-use core::ptr::addr_of_mut;
 use lazy_static::lazy_static;
-use minikalman::{prelude::fixed::*, prelude::*, Kalman, Measurement};
+use minikalman::prelude::*;
 
 /// Measurements.
 const NUM_STATES: usize = 3;
-const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 lazy_static! {
@@ -64,82 +62,90 @@ lazy_static! {
 #[allow(non_upper_case_globals)]
 pub fn predict_gravity() -> I16F16 {
     // System buffers.
-    static mut gravity_x: [I16F16; size_buffer_x!(NUM_STATES)] =
-        create_buffer_x!(NUM_STATES, I16F16, I16F16::ZERO);
-    static mut gravity_A: [I16F16; size_buffer_A!(NUM_STATES)] =
-        create_buffer_A!(NUM_STATES, I16F16, I16F16::ZERO);
-    static mut gravity_P: [I16F16; size_buffer_P!(NUM_STATES)] =
-        create_buffer_P!(NUM_STATES, I16F16, I16F16::ZERO);
-
-    // Input buffers.
-    static mut gravity_u: [I16F16; size_buffer_u!(0)] = create_buffer_u!(0, I16F16, I16F16::ZERO);
-    static mut gravity_B: [I16F16; size_buffer_B!(0, 0)] =
-        create_buffer_B!(0, 0, I16F16, I16F16::ZERO);
-    static mut gravity_Q: [I16F16; size_buffer_Q!(0)] = create_buffer_Q!(0, I16F16, I16F16::ZERO);
+    impl_buffer_x!(static mut gravity_x, NUM_STATES, I16F16, I16F16::ZERO);
+    impl_buffer_A!(static mut gravity_A, NUM_STATES, I16F16, I16F16::ZERO);
+    impl_buffer_P!(static mut gravity_P, NUM_STATES, I16F16, I16F16::ZERO);
 
     // Measurement buffers.
-    static mut gravity_z: [I16F16; size_buffer_z!(NUM_MEASUREMENTS)] =
-        create_buffer_z!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    static mut gravity_H: [I16F16; size_buffer_H!(NUM_MEASUREMENTS, NUM_STATES)] =
-        create_buffer_H!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
-    static mut gravity_R: [I16F16; size_buffer_R!(NUM_MEASUREMENTS)] =
-        create_buffer_R!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    static mut gravity_y: [I16F16; size_buffer_y!(NUM_MEASUREMENTS)] =
-        create_buffer_y!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    static mut gravity_S: [I16F16; size_buffer_S!(NUM_MEASUREMENTS)] =
-        create_buffer_S!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    static mut gravity_K: [I16F16; size_buffer_K!(NUM_STATES, NUM_MEASUREMENTS)] =
-        create_buffer_K!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-
-    // Filter temporaries.
-    static mut gravity_temp_x: [I16F16; size_buffer_temp_x!(NUM_STATES)] =
-        create_buffer_temp_x!(NUM_STATES, I16F16, I16F16::ZERO);
-    static mut gravity_temp_P: [I16F16; size_buffer_temp_P!(NUM_STATES)] =
-        create_buffer_temp_P!(NUM_STATES, I16F16, I16F16::ZERO);
-    static mut gravity_temp_BQ: [I16F16; size_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS)] =
-        create_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS, I16F16, I16F16::ZERO);
-
-    // Measurement temporaries.
-    static mut gravity_temp_S_inv: [I16F16; size_buffer_temp_S_inv!(NUM_MEASUREMENTS)] =
-        create_buffer_temp_S_inv!(NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    static mut gravity_temp_HP: [I16F16; size_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES)] =
-        create_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES, I16F16, I16F16::ZERO);
-    static mut gravity_temp_PHt: [I16F16; size_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS)] =
-        create_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    static mut gravity_temp_KHP: [I16F16; size_buffer_temp_KHP!(NUM_STATES)] =
-        create_buffer_temp_KHP!(NUM_STATES, I16F16, I16F16::ZERO);
-
-    let mut filter = Kalman::<NUM_STATES, NUM_INPUTS, I16F16>::new_direct(
-        unsafe { &mut *addr_of_mut!(gravity_A) },
-        unsafe { &mut *addr_of_mut!(gravity_x) },
-        unsafe { &mut *addr_of_mut!(gravity_B) },
-        unsafe { &mut *addr_of_mut!(gravity_u) },
-        unsafe { &mut *addr_of_mut!(gravity_P) },
-        unsafe { &mut *addr_of_mut!(gravity_Q) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_x) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_P) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_BQ) },
+    impl_buffer_Q!(static mut gravity_z, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    impl_buffer_H!(
+        static mut gravity_H,
+        NUM_MEASUREMENTS,
+        NUM_STATES,
+        I16F16,
+        I16F16::ZERO
+    );
+    impl_buffer_R!(static mut gravity_R, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    impl_buffer_y!(static mut gravity_y, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    impl_buffer_S!(static mut gravity_S, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    impl_buffer_K!(
+        static mut gravity_K,
+        NUM_STATES,
+        NUM_MEASUREMENTS,
+        I16F16,
+        I16F16::ZERO
     );
 
-    let mut measurement = Measurement::<NUM_STATES, NUM_MEASUREMENTS, I16F16>::new_direct(
-        unsafe { &mut *addr_of_mut!(gravity_H) },
-        unsafe { &mut *addr_of_mut!(gravity_z) },
-        unsafe { &mut *addr_of_mut!(gravity_R) },
-        unsafe { &mut *addr_of_mut!(gravity_y) },
-        unsafe { &mut *addr_of_mut!(gravity_S) },
-        unsafe { &mut *addr_of_mut!(gravity_K) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_S_inv) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_HP) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_PHt) },
-        unsafe { &mut *addr_of_mut!(gravity_temp_KHP) },
+    // Filter temporaries.
+    impl_buffer_temp_x!(static mut gravity_temp_x, NUM_STATES, I16F16, I16F16::ZERO);
+    impl_buffer_temp_P!(static mut gravity_temp_P, NUM_STATES, I16F16, I16F16::ZERO);
+
+    // Measurement temporaries.
+    impl_buffer_temp_S_inv!(
+        static mut gravity_temp_S_inv,
+        NUM_MEASUREMENTS,
+        I16F16,
+        I16F16::ZERO
+    );
+
+    // Measurement temporaries.
+    impl_buffer_temp_HP!(
+        static mut gravity_temp_HP,
+        NUM_MEASUREMENTS,
+        NUM_STATES,
+        I16F16,
+        I16F16::ZERO
+    );
+    impl_buffer_temp_PHt!(
+        static mut gravity_temp_PHt,
+        NUM_STATES,
+        NUM_MEASUREMENTS,
+        I16F16,
+        I16F16::ZERO
+    );
+    impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, I16F16, I16F16::ZERO);
+
+    let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
+        SystemMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
+        StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
+        SystemCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
+        StatePredictionVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
+        TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
+    );
+
+    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, I16F16>(
+        MeasurementObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
+        MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
+        MeasurementProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
+        InnovationVectorBuffer::from(unsafe { gravity_y.as_mut() }),
+        InnovationResidualCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut() }),
+        KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut() }),
+        TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
+            gravity_temp_S_inv.as_mut()
+        }),
+        TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut() }),
+        TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut() }),
+        TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut() }),
     );
 
     // Set initial state.
-    initialize_state_vector(&mut filter);
-    initialize_state_transition_matrix(&mut filter);
-    initialize_state_covariance_matrix(&mut filter);
-    initialize_position_measurement_transformation_matrix(&mut measurement);
-    initialize_position_measurement_process_noise_matrix(&mut measurement);
+    initialize_state_vector(filter.state_vector_mut());
+    initialize_state_transition_matrix(filter.state_transition_mut());
+    initialize_state_covariance_matrix(filter.system_covariance_mut());
+    initialize_position_measurement_transformation_matrix(
+        measurement.measurement_transformation_mut(),
+    );
+    initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
     // Filter!
     for t in 0..REAL_DISTANCE.len() {
@@ -159,8 +165,8 @@ pub fn predict_gravity() -> I16F16 {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F16>) {
-    filter.state_vector_apply(|state| {
+fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, I16F16>) {
+    filter.apply(|state| {
         state[0] = I16F16::ZERO; // position
         state[1] = I16F16::ZERO; // velocity
         state[2] = I16F16::from_num(6.0); // acceleration
@@ -175,8 +181,8 @@ fn initialize_state_vector(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F1
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F16>) {
-    filter.state_transition_apply(|a| {
+fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, I16F16>) {
+    filter.apply(|a| {
         // Time constant.
         const T: I16F16 = I16F16::ONE;
 
@@ -202,8 +208,10 @@ fn initialize_state_transition_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// This defines how different states (linearly) influence each other
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_INPUTS, I16F16>) {
-    filter.system_covariance_apply(|p| {
+fn initialize_state_covariance_matrix(
+    filter: &mut impl SystemCovarianceMatrix<NUM_STATES, I16F16>,
+) {
+    filter.apply(|p| {
         p.set(0, 0, I16F16::from_num(0.1)); // var(s)
         p.set(0, 1, I16F16::ZERO); // cov(s, v)
         p.set(0, 2, I16F16::ZERO); // cov(s, g)
@@ -223,9 +231,9 @@ fn initialize_state_covariance_matrix(filter: &mut Kalman<'_, NUM_STATES, NUM_IN
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS, I16F16>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, I16F16>,
 ) {
-    measurement.measurement_transformation_apply(|h| {
+    measurement.apply(|h| {
         h.set(0, 0, I16F16::ONE); // z = 1*s
         h.set(0, 1, I16F16::ZERO); //   + 0*v
         h.set(0, 2, I16F16::ZERO); //   + 0*g
@@ -238,9 +246,9 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut Measurement<'_, NUM_STATES, NUM_MEASUREMENTS, I16F16>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, I16F16>,
 ) {
-    measurement.process_noise_apply(|r| {
+    measurement.apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)
     });
 }

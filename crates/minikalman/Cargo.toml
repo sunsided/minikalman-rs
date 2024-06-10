@@ -32,26 +32,27 @@ required-features = ["fixed"]
 [[example]]
 name = "gravity"
 path = "examples/gravity.rs"
-required-features = ["float", "std"]
+required-features = ["float", "std", "alloc"]
 
 [[example]]
 name = "fixed"
 path = "examples/gravity_fixed.rs"
-required-features = ["fixed", "std"]
+required-features = ["fixed", "std", "alloc"]
 
 [features]
-default = ["float", "libm"]
-std = ["num-traits/std"]
-libm = ["dep:libm", "num-traits/libm"]
-float = []
-stdint = ["dep:stdint", "stdint/std", "std"]
+default = ["float", "libm", "alloc", "minikalman-traits/default"]
+std = ["num-traits/std", "alloc", "minikalman-traits/std"]
+libm = ["dep:libm", "num-traits/libm", "minikalman-traits/libm"]
+float = ["minikalman-traits/float"]
 unsafe = []
-fixed = ["dep:fixed", "fixed/num-traits"]
-no_assert = []
+fixed = ["dep:fixed", "fixed/num-traits", "minikalman-traits/fixed"]
+no_assert = ["minikalman-traits/no_assert"]
+alloc = ["minikalman-traits/alloc"]
 
 [dependencies]
 fixed = { version = "1.27.0", optional = true }
 libm = { version = "0.2.8", optional = true }
+minikalman-traits = { version = "*", path = "../minikalman-traits", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
 stdint = { version = "1.0.0", default-features = false, optional = true }
 
@@ -61,6 +62,7 @@ colored = { version = "2.1.0" }
 criterion = "0.5.1"
 lazy_static = "1.4.0"
 rand = "0.8.5"
+rand_distr = "0.4.3"
 
 [package.metadata.docs.rs]
 all-features = true

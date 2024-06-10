@@ -1,0 +1,21 @@
+[package]
+name = "minikalman-traits"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["float"]
+std = ["num-traits/std", "alloc"]
+float = []
+fixed = ["dep:fixed", "fixed/num-traits"]
+libm = ["dep:libm", "num-traits/libm"]
+no_assert = []
+alloc = []
+
+[dependencies]
+fixed = { version = "1.27.0", optional = true }
+libm = { version = "0.2.8", optional = true }
+num-traits = { version = "0.2.19", default-features = false }
+
+[dev-dependencies]
+assert_float_eq = "1.1.3"
