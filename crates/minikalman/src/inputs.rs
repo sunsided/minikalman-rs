@@ -368,35 +368,35 @@ mod tests {
 
         // State transition is identity.
         filter.state_transition_apply(|mat| {
-            mat[0 * NUM_STATES + 0] = 1.0;
+            mat[0 * NUM_STATES] = 1.0;
             mat[0 * NUM_STATES + 1] = 1.0;
             mat[0 * NUM_STATES + 2] = 1.0;
             mat[0 * NUM_STATES + 3] = 1.0;
 
-            mat[1 * NUM_STATES + 1] = 1.0;
+            mat[NUM_STATES + 1] = 1.0;
             mat[2 * NUM_STATES + 2] = 1.0;
             mat[3 * NUM_STATES + 3] = 1.0;
         });
 
         // State covariance is identity.
         filter.system_covariance_apply(|mat| {
-            mat[0 * NUM_STATES + 0] = 1.0;
-            mat[1 * NUM_STATES + 1] = 1.0;
+            mat[0 * NUM_STATES] = 1.0;
+            mat[NUM_STATES + 1] = 1.0;
             mat[2 * NUM_STATES + 2] = 1.0;
             mat[3 * NUM_STATES + 3] = 1.0;
         });
 
         // Input applies linearly to state.
         input.input_transition_apply(|mat| {
-            mat[1 * NUM_INPUTS + 0] = 1.0;
+            mat[NUM_INPUTS] = 1.0;
             mat[2 * NUM_INPUTS + 1] = 1.0;
             mat[3 * NUM_INPUTS + 2] = 1.0;
         });
 
         // Input covariance is identity.
         input.input_covariance_apply(|mat| {
-            mat[0 * NUM_INPUTS + 0] = 1.0;
-            mat[1 * NUM_INPUTS + 1] = 1.0;
+            mat[0 * NUM_INPUTS] = 1.0;
+            mat[NUM_INPUTS + 1] = 1.0;
             mat[2 * NUM_INPUTS + 2] = 1.0;
         });
 

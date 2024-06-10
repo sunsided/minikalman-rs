@@ -6,7 +6,6 @@
 #![forbid(unsafe_code)]
 
 use minikalman::prelude::*;
-use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::MatrixMut;
 
 /// Measurements.
@@ -33,7 +32,6 @@ const MEASUREMENT_ERROR: [f32; 15] = [
 ];
 
 const NUM_STATES: usize = 3;
-const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 #[allow(non_snake_case)]

@@ -78,7 +78,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         // also, the source index is the column..th index
         let stride: isize = self.cols() as _;
-        let mut source_index = (target_index as isize) * stride + (column as isize);
+        let mut source_index = (target_index) * stride + (column as isize);
 
         let src = self.as_ref();
 
@@ -104,7 +104,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         T: Copy,
     {
         let mut target_index: usize = (self.cols() - 1) as _;
-        let mut source_index: usize = (row as usize + 1) * (self.cols() - 1) as usize;
+        let mut source_index: usize = (row + 1) * (self.cols() - 1);
 
         let data = self.as_ref();
         row_data[idx!(target_index)] = data[idx!(source_index)];
@@ -197,15 +197,15 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             let crows = c.rows();
 
             // test dimensions of a and b
-            debug_assert_eq!(COLS, brows as usize);
+            debug_assert_eq!(COLS, brows);
 
             // test dimension of c
-            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ROWS, crows);
             debug_assert_eq!(bcols, ccols);
 
             // Test aux dimensions.
             debug_assert_eq!(baux.len(), { COLS });
-            debug_assert_eq!(baux.len(), brows as usize);
+            debug_assert_eq!(baux.len(), brows);
         }
 
         let adata = self.as_ref();
@@ -270,19 +270,19 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         T: MatrixDataType,
     {
         let arows = ROWS;
-        let bcols = b.cols() as usize;
-        let brows = b.rows() as usize;
-        let ccols = c.cols() as usize;
+        let bcols = b.cols();
+        let brows = b.rows();
+        let ccols = c.cols();
 
         #[cfg(not(feature = "no_assert"))]
         {
-            let crows = c.rows() as usize;
+            let crows = c.rows();
 
             // test dimensions of a and b
-            debug_assert_eq!(COLS, { brows });
+            debug_assert_eq!(COLS, brows);
 
             // test dimension of c
-            debug_assert_eq!(ROWS, { crows });
+            debug_assert_eq!(ROWS, crows);
             debug_assert_eq!(bcols, ccols);
         }
 
@@ -329,10 +329,10 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             let ccols = c.cols();
 
             // test dimensions of a and b
-            debug_assert_eq!(COLS, xrows as usize);
+            debug_assert_eq!(COLS, xrows);
 
             // test dimension of c
-            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ROWS, crows);
             debug_assert_eq!(ccols, 1);
         }
 
@@ -381,10 +381,10 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             let ccols = c.cols();
 
             // test dimensions of a and b
-            debug_assert_eq!(COLS, xrows as usize);
+            debug_assert_eq!(COLS, xrows);
 
             // test dimension of c
-            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ROWS, crows);
             debug_assert_eq!(ccols, 1);
         }
 
@@ -433,10 +433,10 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             let crows = c.rows();
 
             // test dimensions of a and b
-            debug_assert_eq!(COLS, bcols as usize);
+            debug_assert_eq!(COLS, bcols);
 
             // test dimension of c
-            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ROWS, crows);
             debug_assert_eq!(b.rows(), ccols);
         }
 
@@ -448,7 +448,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let mut a_index_start: usize = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as usize;
+            let end = a_index_start + bcols;
             let mut index_b: usize = 0;
 
             for _ in 0..brows {
@@ -462,7 +462,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
                 cdata[idx!(c_index)] = total;
                 c_index += 1;
             }
-            a_index_start += acols as usize;
+            a_index_start += acols;
         }
     }
 
@@ -493,10 +493,10 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             let crows = c.rows();
 
             // test dimensions of a and b
-            debug_assert_eq!(COLS, bcols as usize);
+            debug_assert_eq!(COLS, bcols);
 
             // test dimension of c
-            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ROWS, crows);
             debug_assert_eq!(brows, ccols);
         }
 
@@ -508,7 +508,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let mut a_index_start: usize = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as usize;
+            let end = a_index_start + bcols;
             let mut index_b: usize = 0;
 
             for _ in 0..brows {
@@ -522,7 +522,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
                 cdata[idx!(c_index)] += total;
                 c_index += 1;
             }
-            a_index_start += acols as usize;
+            a_index_start += acols;
         }
     }
 
@@ -553,7 +553,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         {
             let ccols = c.cols();
             let crows = c.rows();
-            debug_assert_eq!(ROWS, crows as usize);
+            debug_assert_eq!(ROWS, crows);
             debug_assert_eq!(brows, ccols);
         }
 
@@ -564,14 +564,14 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         // test dimensions of a and b
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(COLS, bcols as usize);
+            debug_assert_eq!(COLS, bcols);
         }
 
         let mut c_index: usize = 0;
         let mut a_index_start: usize = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as usize;
+            let end = a_index_start + bcols;
             let mut index_b: usize = 0;
 
             for _ in 0..brows {
@@ -585,7 +585,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
                 cdata[idx!(c_index)] = total * scale;
                 c_index += 1;
             }
-            a_index_start += acols as usize;
+            a_index_start += acols;
         }
     }
 

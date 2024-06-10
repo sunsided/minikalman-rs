@@ -6,7 +6,6 @@
 #![forbid(unsafe_code)]
 
 use minikalman::prelude::*;
-use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::MatrixMut;
 
 /// Measurements.
@@ -44,11 +43,6 @@ fn test_gravity_estimation_tuned() {
     impl_buffer_A!(mut gravity_A, NUM_STATES, f64, 0.0);
     impl_buffer_P!(mut gravity_P, NUM_STATES, f64, 0.0);
 
-    // Input buffers.
-    impl_buffer_u!(mut gravity_u, NUM_INPUTS, f64, 0.0);
-    impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f64, 0.0);
-    impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f64, 0.0);
-
     // Measurement buffers.
     impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f64, 0.0);
     impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
@@ -60,7 +54,6 @@ fn test_gravity_estimation_tuned() {
     // Filter temporaries.
     impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f64, 0.0);
     impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f64, 0.0);
-    impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f64, 0.0);
 
     // Measurement temporaries.
     impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f64, 0.0);
