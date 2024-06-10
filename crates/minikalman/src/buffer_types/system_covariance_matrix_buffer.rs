@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
+use minikalman_traits::kalman::SystemCovarianceMatrix;
 
-use crate::type_traits::SystemCovarianceMatrix;
-use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
-use minikalman_traits::{Matrix, MatrixMut};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct SystemCovarianceMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where

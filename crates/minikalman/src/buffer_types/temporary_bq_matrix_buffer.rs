@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
+use minikalman_traits::kalman::TemporaryBQMatrix;
 
-use crate::type_traits::TemporaryBQMatrix;
-use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
-use minikalman_traits::{Matrix, MatrixMut};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct TemporaryBQMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(
     M,

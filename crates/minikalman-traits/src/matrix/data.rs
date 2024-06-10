@@ -1,6 +1,6 @@
 use core::ops::{Index, IndexMut};
-use minikalman_traits::{Matrix, MatrixMut};
 
+use crate::matrix::traits::{Matrix, MatrixMut};
 #[cfg(any(feature = "alloc", feature = "std"))]
 use alloc::boxed::Box;
 

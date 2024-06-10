@@ -1,13 +1,7 @@
+use crate::kalman_filter_trait::*;
 use core::marker::PhantomData;
-use minikalman_traits::MatrixDataType;
-
-use crate::kalman_filter_trait::{
-    KalmanFilterMeasurementProcessNoise, KalmanFilterMeasurementProcessNoiseMut,
-    KalmanFilterMeasurementTransformation, KalmanFilterMeasurementTransformationMut,
-    KalmanFilterMeasurementVector, KalmanFilterMeasurementVectorMut, KalmanFilterNumMeasurements,
-    KalmanFilterNumStates,
-};
-use crate::type_traits::*;
+use minikalman_traits::kalman::*;
+use minikalman_traits::matrix::MatrixDataType;
 
 /// A builder for a Kalman filter [`Measurement`] instances.
 #[allow(clippy::type_complexity)]
@@ -582,9 +576,7 @@ where
 mod tests {
     use crate::kalman_filter_trait::KalmanFilterMeasurement;
     use core::ops::{Index, IndexMut};
-
-    use crate::type_traits::{MeasurementTransformationMatrixMut, MeasurementVectorMut};
-    use minikalman_traits::{Matrix, MatrixMut};
+    use minikalman_traits::matrix::{Matrix, MatrixMut};
 
     use super::*;
 

@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
+use minikalman_traits::kalman::TemporaryResidualCovarianceInvertedMatrix;
 
-use crate::type_traits::TemporaryResidualCovarianceInvertedMatrix;
-use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
-use minikalman_traits::{Matrix, MatrixMut};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct TemporaryResidualCovarianceInvertedMatrixBuffer<const MEASUREMENTS: usize, T, M>(
     M,

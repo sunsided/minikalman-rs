@@ -1,9 +1,11 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
+use minikalman_traits::kalman::{InputMatrix, InputMatrixMut};
 
-use crate::type_traits::{InputMatrix, InputMatrixMut};
-use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
-use minikalman_traits::{Matrix, MatrixMut};
+use minikalman_traits::matrix::{
+    IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef,
+};
+use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct InputMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
 where

@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{MatrixDataBoxed, MatrixDataOwned};
+use minikalman_traits::matrix::{MatrixData, MatrixDataBoxed, MatrixDataOwned};
 
 /// A builder for buffers.
 

@@ -1,9 +1,8 @@
-use crate::prelude::MeasurementVectorMut;
-use crate::type_traits::MeasurementVector;
-use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::{Matrix, MatrixMut};
+use minikalman_traits::kalman::{MeasurementVector, MeasurementVectorMut};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct MeasurementVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
 where

@@ -11,6 +11,8 @@ use colored::Colorize;
 use lazy_static::lazy_static;
 
 use minikalman::prelude::{fixed::I16F16, *};
+use minikalman_traits::kalman::*;
+use minikalman_traits::matrix::*;
 
 const NUM_STATES: usize = 3;
 const NUM_INPUTS: usize = 0;

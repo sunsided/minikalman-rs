@@ -1,15 +1,16 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::{Matrix, MatrixMut};
-
-use crate::type_traits::ResidualCovarianceMatrix;
-use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::kalman::ResidualCovarianceMatrix;
+use minikalman_traits::matrix::{
+    IntoInnerData, Matrix, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixMut,
+};
 
 /// Buffer for the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
 ///
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = InnovationResidualCovarianceMatrixBuffer::new(MatrixData::new_owned::<2, 2, 4, f32>([0.0; 4]));

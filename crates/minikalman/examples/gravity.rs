@@ -10,6 +10,8 @@
 use colored::Colorize;
 
 use minikalman::prelude::*;
+use minikalman_traits::kalman::*;
+use minikalman_traits::matrix::MatrixMut;
 
 /// Measurements.
 ///

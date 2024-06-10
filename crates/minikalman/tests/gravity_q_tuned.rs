@@ -6,6 +6,8 @@
 #![forbid(unsafe_code)]
 
 use minikalman::prelude::*;
+use minikalman_traits::kalman::*;
+use minikalman_traits::matrix::MatrixMut;
 
 /// Measurements.
 ///

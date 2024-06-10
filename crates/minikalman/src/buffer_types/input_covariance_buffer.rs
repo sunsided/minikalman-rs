@@ -1,8 +1,10 @@
-use crate::type_traits::{InputCovarianceMatrix, InputCovarianceMatrixMut};
-use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::{Matrix, MatrixMut};
+use minikalman_traits::kalman::{InputCovarianceMatrix, InputCovarianceMatrixMut};
+use minikalman_traits::matrix::{
+    IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef,
+};
+use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct InputCovarianceMatrixBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
 where

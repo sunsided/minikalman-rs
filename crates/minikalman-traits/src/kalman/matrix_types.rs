@@ -1,4 +1,4 @@
-use minikalman_traits::{Matrix, MatrixMut};
+use crate::matrix::{Matrix, MatrixMut};
 
 /// State vector.
 ///

@@ -41,13 +41,13 @@ required-features = ["fixed", "std", "alloc"]
 
 [features]
 default = ["float", "libm", "alloc", "minikalman-traits/default"]
-std = ["num-traits/std", "alloc"]
+std = ["num-traits/std", "alloc", "minikalman-traits/std"]
 libm = ["dep:libm", "num-traits/libm", "minikalman-traits/libm"]
 float = ["minikalman-traits/float"]
 unsafe = []
 fixed = ["dep:fixed", "fixed/num-traits", "minikalman-traits/fixed"]
 no_assert = []
-alloc = []
+alloc = ["minikalman-traits/alloc"]
 
 [dependencies]
 fixed = { version = "1.27.0", optional = true }
