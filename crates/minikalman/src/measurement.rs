@@ -583,8 +583,8 @@ mod tests {
     use crate::kalman_filter_trait::KalmanFilterMeasurement;
     use core::ops::{Index, IndexMut};
 
-    use crate::matrix_traits::{Matrix, MatrixMut};
     use crate::type_traits::{MeasurementTransformationMatrixMut, MeasurementVectorMut};
+    use minikalman_traits::{Matrix, MatrixMut};
 
     use super::*;
 

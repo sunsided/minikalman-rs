@@ -1,5 +1,5 @@
+use crate::MatrixDataType;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::MatrixDataType;
 
 /// Replaces `x` with `(x) as usize` to simplify index accesses.
 macro_rules! idx {

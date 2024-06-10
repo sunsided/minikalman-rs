@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use minikalman_traits::{Matrix, MatrixMut};
 
 pub trait KalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>

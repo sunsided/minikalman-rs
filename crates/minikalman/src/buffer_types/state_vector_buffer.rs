@@ -1,8 +1,8 @@
-use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::type_traits::StateVector;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
+use minikalman_traits::{Matrix, MatrixMut};
 
 pub struct StateVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where

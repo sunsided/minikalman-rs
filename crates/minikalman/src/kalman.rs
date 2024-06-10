@@ -1,7 +1,6 @@
 use core::marker::PhantomData;
 use minikalman_traits::MatrixDataType;
 
-use crate::matrix_traits::{Matrix, MatrixMut, SquareMatrix};
 use crate::measurement::Measurement;
 use crate::type_traits::{
     InnovationVector, InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut,
@@ -11,6 +10,7 @@ use crate::type_traits::{
     TemporaryBQMatrix, TemporaryHPMatrix, TemporaryKHPMatrix, TemporaryPHTMatrix,
     TemporaryResidualCovarianceInvertedMatrix, TemporaryStateMatrix,
 };
+use minikalman_traits::{Matrix, MatrixMut, SquareMatrix};
 
 /// A builder for a [`Kalman`] filter instances.
 #[allow(clippy::type_complexity)]
@@ -835,7 +835,7 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
 mod tests {
     use core::ops::{Index, IndexMut};
 
-    use crate::matrix_traits::MatrixMut;
+    use minikalman_traits::MatrixMut;
 
     use super::*;
 

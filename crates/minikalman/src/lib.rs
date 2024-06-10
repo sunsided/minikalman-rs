@@ -37,7 +37,6 @@ mod buffer_builder;
 pub mod buffer_types;
 mod kalman;
 mod kalman_filter_trait;
-mod matrix_traits;
 mod matrix_types;
 mod measurement;
 mod static_macros;
@@ -61,9 +60,9 @@ pub mod prelude {
     pub use crate::buffer_builder::BufferBuilder;
     pub use crate::buffer_types::*;
     pub use crate::kalman::{Kalman, KalmanBuilder};
-    pub use crate::matrix_traits::*;
     pub use crate::matrix_types::{IntoInnerData, MatrixData};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
+    pub use crate::traits::*;
     pub use crate::type_traits::*;
 
     pub use crate::{

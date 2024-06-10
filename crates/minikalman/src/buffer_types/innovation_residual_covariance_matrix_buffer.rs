@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
+use minikalman_traits::{Matrix, MatrixMut};
 
-use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::type_traits::ResidualCovarianceMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
 

@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::type_traits::TemporaryPHTMatrix;
 use crate::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::{Matrix, MatrixMut};
 
 pub struct TemporaryPHTMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(
     M,
