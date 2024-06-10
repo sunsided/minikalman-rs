@@ -1,5 +1,12 @@
 use core::marker::PhantomData;
 
+use crate::kalman_filter_trait::{
+    KalmanFilterMeasurement, KalmanFilterMeasurementProcessNoise,
+    KalmanFilterMeasurementProcessNoiseMut, KalmanFilterMeasurementTransformation,
+    KalmanFilterMeasurementTransformationMut, KalmanFilterMeasurementVector,
+    KalmanFilterMeasurementVectorMut, KalmanFilterNumMeasurements, KalmanFilterNumStates,
+};
+use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::type_traits::*;
 use crate::{FastUInt8, MatrixDataType};
 
@@ -376,6 +383,200 @@ where
     }
 }
 
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterNumStates<STATES>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+{
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterNumMeasurements<MEASUREMENTS>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+{
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterMeasurementVector<MEASUREMENTS, T>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    Z: MeasurementVector<MEASUREMENTS, T>,
+{
+    type MeasurementVector = Z;
+
+    fn measurement_vector_ref(&self) -> &Self::MeasurementVector {
+        self.measurement_vector_ref()
+    }
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterMeasurementVectorMut<MEASUREMENTS, T>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    Z: MeasurementVectorMut<MEASUREMENTS, T>,
+{
+    type MeasurementVectorMut = Z;
+
+    fn measurement_vector_mut(&mut self) -> &mut Self::MeasurementVectorMut {
+        self.measurement_vector_mut()
+    }
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+{
+    type MeasurementTransformationMatrix = H;
+
+    fn measurement_transformation_ref(&self) -> &Self::MeasurementTransformationMatrix {
+        self.measurement_transformation_ref()
+    }
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterMeasurementTransformationMut<STATES, MEASUREMENTS, T>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: MeasurementTransformationMatrixMut<MEASUREMENTS, STATES, T>,
+{
+    type MeasurementTransformationMatrixMut = H;
+
+    fn measurement_transformation_mut(&mut self) -> &mut Self::MeasurementTransformationMatrixMut {
+        self.measurement_transformation_mut()
+    }
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterMeasurementProcessNoise<MEASUREMENTS, T>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
+{
+    type MeasurementProcessNoiseMatrix = R;
+
+    fn process_noise_ref(&self) -> &Self::MeasurementProcessNoiseMatrix {
+        self.process_noise_ref()
+    }
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterMeasurementProcessNoiseMut<MEASUREMENTS, T>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
+{
+    type MeasurementProcessNoiseMatrixMut = R;
+
+    fn process_noise_mut(&mut self) -> &mut Self::MeasurementProcessNoiseMatrixMut {
+        self.process_noise_mut()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::ops::{Index, IndexMut};
@@ -385,9 +586,15 @@ mod tests {
 
     use super::*;
 
+    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(measurement: M)
+    where
+        M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>,
+    {
+    }
+
     #[test]
     fn builder_simple() {
-        let _filter = MeasurementBuilder::new::<3, 1, f32>(
+        let measurement = MeasurementBuilder::new::<3, 1, f32>(
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
@@ -399,6 +606,8 @@ mod tests {
             Dummy::default(),
             Dummy::default(),
         );
+
+        trait_impl(measurement);
     }
 
     #[derive(Default)]

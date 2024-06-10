@@ -1,4 +1,4 @@
-use crate::prelude::{Matrix, MatrixMut};
+use crate::prelude::*;
 
 pub trait KalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>
@@ -22,7 +22,7 @@ pub trait KalmanFilterMeasurement<const STATES: usize, const MEASUREMENTS: usize
     KalmanFilterNumStates<STATES>
     + KalmanFilterNumMeasurements<MEASUREMENTS>
     + KalmanFilterMeasurementVectorMut<MEASUREMENTS, T>
-    + KalmanFilterMeasurementTransformation<MEASUREMENTS, STATES, T>
+    + KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
     + KalmanFilterMeasurementProcessNoiseMut<MEASUREMENTS, T>
 {
 }
@@ -56,7 +56,7 @@ where
     Measurement: KalmanFilterNumStates<STATES>
         + KalmanFilterNumMeasurements<MEASUREMENTS>
         + KalmanFilterMeasurementVectorMut<MEASUREMENTS, T>
-        + KalmanFilterMeasurementTransformation<MEASUREMENTS, STATES, T>
+        + KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
         + KalmanFilterMeasurementProcessNoiseMut<MEASUREMENTS, T>,
 {
 }
@@ -256,7 +256,7 @@ pub trait KalmanFilterNumMeasurements<const MEASUREMENTS: usize> {
 }
 
 pub trait KalmanFilterMeasurementVector<const MEASUREMENTS: usize, T> {
-    type MeasurementVector: Matrix<MEASUREMENTS, 1, T>;
+    type MeasurementVector: MeasurementVector<MEASUREMENTS, T>;
 
     /// Gets a reference to the measurement vector z.
     fn measurement_vector_ref(&self) -> &Self::MeasurementVector;
@@ -265,7 +265,7 @@ pub trait KalmanFilterMeasurementVector<const MEASUREMENTS: usize, T> {
 pub trait KalmanFilterMeasurementVectorMut<const MEASUREMENTS: usize, T>:
     KalmanFilterMeasurementVector<MEASUREMENTS, T>
 {
-    type MeasurementVectorMut: MatrixMut<MEASUREMENTS, 1, T>;
+    type MeasurementVectorMut: MeasurementVectorMut<MEASUREMENTS, T>;
 
     /// Gets a mutable reference to the measurement vector z.
     #[doc(alias = "kalman_get_measurement_vector")]
@@ -280,20 +280,24 @@ pub trait KalmanFilterMeasurementVectorMut<const MEASUREMENTS: usize, T>:
     }
 }
 
-pub trait KalmanFilterMeasurementTransformation<const MEASUREMENTS: usize, const STATES: usize, T> {
-    type MeasurementTransformationMatrix: Matrix<MEASUREMENTS, STATES, T>;
+pub trait KalmanFilterMeasurementTransformation<const STATES: usize, const MEASUREMENTS: usize, T> {
+    type MeasurementTransformationMatrix: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>;
 
     /// Gets a reference to the measurement transformation matrix H.
     fn measurement_transformation_ref(&self) -> &Self::MeasurementTransformationMatrix;
 }
 
 pub trait KalmanFilterMeasurementTransformationMut<
-    const MEASUREMENTS: usize,
     const STATES: usize,
+    const MEASUREMENTS: usize,
     T,
->: KalmanFilterMeasurementTransformation<MEASUREMENTS, STATES, T>
+>: KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
 {
-    type MeasurementTransformationMatrixMut: MatrixMut<MEASUREMENTS, STATES, T>;
+    type MeasurementTransformationMatrixMut: MeasurementTransformationMatrixMut<
+        MEASUREMENTS,
+        STATES,
+        T,
+    >;
 
     /// Gets a mutable reference to the measurement transformation matrix H.
     #[doc(alias = "kalman_get_measurement_transformation")]
@@ -310,7 +314,7 @@ pub trait KalmanFilterMeasurementTransformationMut<
 }
 
 pub trait KalmanFilterMeasurementProcessNoise<const MEASUREMENTS: usize, T> {
-    type MeasurementProcessNoiseMatrix: Matrix<MEASUREMENTS, MEASUREMENTS, T>;
+    type MeasurementProcessNoiseMatrix: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>;
 
     /// Gets a reference to the process noise matrix R.
     fn process_noise_ref(&self) -> &Self::MeasurementProcessNoiseMatrix;
@@ -319,7 +323,7 @@ pub trait KalmanFilterMeasurementProcessNoise<const MEASUREMENTS: usize, T> {
 pub trait KalmanFilterMeasurementProcessNoiseMut<const MEASUREMENTS: usize, T>:
     KalmanFilterMeasurementProcessNoise<MEASUREMENTS, T>
 {
-    type MeasurementProcessNoiseMatrixMut: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>;
+    type MeasurementProcessNoiseMatrixMut: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>;
 
     /// Gets a mutable reference to the process noise matrix R.
     #[doc(alias = "kalman_get_process_noise")]
