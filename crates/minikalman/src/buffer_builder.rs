@@ -371,7 +371,7 @@ impl<const MEASUREMENTS: usize> MeasurementVectorBufferBuilder<MEASUREMENTS> {
 impl<const MEASUREMENTS: usize, const STATES: usize>
     MeasurementTransformationMatrixBufferBuilder<MEASUREMENTS, STATES>
 {
-    /// Builds a new [`MeasurementTransformationMatrixMutBuffer`] that owns its data.
+    /// Builds a new [`MeasurementObservationMatrixMutBuffer`] that owns its data.
     ///
     /// ## Example
     /// ```
@@ -379,7 +379,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize>
     ///
     /// let buffer = BufferBuilder::measurement_transformation_H::<5, 3>().new(0.0);
     ///
-    /// let buffer: MeasurementTransformationMatrixMutBuffer<5, 3, f32, _> = buffer;
+    /// let buffer: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 15);
     /// ```
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
@@ -388,7 +388,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize>
     pub fn new<T>(
         &self,
         init: T,
-    ) -> MeasurementTransformationMatrixMutBuffer<
+    ) -> MeasurementObservationMatrixMutBuffer<
         MEASUREMENTS,
         STATES,
         T,
@@ -397,7 +397,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize>
     where
         T: Copy,
     {
-        MeasurementTransformationMatrixMutBuffer::<
+        MeasurementObservationMatrixMutBuffer::<
             MEASUREMENTS,
             STATES,
             T,

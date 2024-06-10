@@ -9,36 +9,13 @@
 #[allow(unused)]
 use colored::Colorize;
 
+use rand_distr::{Distribution, Normal};
+
 use minikalman::prelude::*;
-use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::MatrixMut;
 
-/// Measurements.
-///
-/// MATLAB source:
-/// ```matlab
-/// s = s + v*T + g*0.5*T^2;
-/// v = v + g*T;
-/// ```
-const REAL_DISTANCE: [f32; 15] = [
-    0.0, 4.905, 19.62, 44.145, 78.48, 122.63, 176.58, 240.35, 313.92, 397.31, 490.5, 593.51,
-    706.32, 828.94, 961.38,
-];
-
-/// Measurement noise with variance 0.5
-///
-/// MATLAB source:
-/// ```matlab
-/// noise = 0.5^2*randn(15,1);
-/// ```
-const MEASUREMENT_ERROR: [f32; 15] = [
-    0.13442, 0.45847, -0.56471, 0.21554, 0.079691, -0.32692, -0.1084, 0.085656, 0.8946, 0.69236,
-    -0.33747, 0.75873, 0.18135, -0.015764, 0.17869,
-];
-
-const NUM_STATES: usize = 3;
-const NUM_INPUTS: usize = 0;
-const NUM_MEASUREMENTS: usize = 1;
+const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
+const NUM_INPUTS: usize = 1; // constant velocity
+const NUM_MEASUREMENTS: usize = 1; // position
 
 #[allow(non_snake_case)]
 fn main() {
@@ -80,6 +57,13 @@ fn main() {
         gravity_temp_P,
     );
 
+    let mut input = InputBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
+        gravity_B,
+        gravity_u,
+        gravity_Q,
+        gravity_temp_BQ,
+    );
+
     let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
         gravity_H,
         gravity_z,
@@ -97,21 +81,37 @@ fn main() {
     initialize_state_vector(filter.state_vector_mut());
     initialize_state_transition_matrix(filter.state_transition_mut());
     initialize_state_covariance_matrix(filter.system_covariance_mut());
+
+    // Set up inputs.
+    initialize_input_vector(input.input_vector_mut());
+    initialize_input_matrix(input.input_transition_mut());
+    initialize_input_covariance_matrix(input.input_covariance_mut());
+
+    // Set up measurements.
     initialize_position_measurement_transformation_matrix(
         measurement.measurement_transformation_mut(),
     );
     initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
+    // Generate the data.
+    let measurements = generate_values(100);
+    let measurement_noise = generate_error(100);
+
     // Filter!
-    for t in 0..REAL_DISTANCE.len() {
-        // Prediction.
+    for (t, (m, err)) in measurements
+        .iter()
+        .copied()
+        .zip(measurement_noise)
+        .enumerate()
+    {
+        // Update prediction and apply the inputs.
         filter.predict();
+        filter.input(&mut input);
         print_state_prediction(t, filter.state_vector_ref());
 
         // Measure ...
-        let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
-        measurement.measurement_vector_apply(|z| z[0] = m);
-        print_measurement(t);
+        measurement.measurement_vector_apply(|z| z[0] = m + err);
+        print_measurement(t, m, err);
 
         // Update.
         filter.correct(&mut measurement);
@@ -124,12 +124,44 @@ fn main() {
     assert!(g_estimated > 9.0 && g_estimated < 10.0);
 }
 
+fn generate_values(n: usize) -> Vec<f32> {
+    let g = 9.81; // acceleration due to gravity
+    let mut s = 0.0; // initial displacement
+    let mut v = 0.0; // initial velocity
+    let delta_t = 1.0; // time duration (1 second)
+
+    let mut values = vec![0.0; n]; // vector to store the generated values
+
+    for i in 0..n {
+        s = s + v * delta_t + g * 0.5 * delta_t * delta_t;
+        v = v + g * delta_t;
+        values[i] = s;
+    }
+
+    values // return the generated values
+}
+
+/// Generate measurement error with variance 0.5
+/// MATLAB source: noise = 0.5^2*randn(15,1);
+fn generate_error(n: usize) -> Vec<f32> {
+    let normal = Normal::new(0.0, 1.0).unwrap();
+    let mut rng = rand::thread_rng();
+
+    let mut error = vec![0.0; n]; // vector to store the generated errors
+
+    for i in 0..n {
+        error[i] = 0.5 * 0.5 * normal.sample(&mut rng);
+    }
+
+    error // return the generated errors
+}
+
 /// Initializes the state vector with initial assumptions.
 fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, f32>) {
     filter.apply(|state| {
         state[0] = 0 as _; // position
         state[1] = 0 as _; // velocity
-        state[2] = 6 as _; // acceleration
+        state[2] = 6 as _; // acceleration (guess)
     });
 }
 
@@ -181,6 +213,32 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
     });
 }
 
+/// Initializes the input vector.
+fn initialize_input_vector(filter: &mut impl InputVectorMut<NUM_INPUTS, f32>) {
+    filter.apply(|state| {
+        state[0] = 0.0 as _; // acceleration
+    });
+}
+
+/// Initializes the input transformation matrix.
+fn initialize_input_matrix(filter: &mut impl InputMatrixMut<NUM_STATES, NUM_INPUTS, f32>) {
+    filter.apply(|mat| {
+        // Time constant.
+        const T: f32 = 1 as _;
+
+        mat[0] = 0.0;
+        mat[1] = 0.0;
+        mat[2] = 1.0;
+    });
+}
+
+/// Initializes the input covariance.
+fn initialize_input_covariance_matrix(filter: &mut impl InputCovarianceMatrixMut<NUM_INPUTS, f32>) {
+    filter.apply(|mat| {
+        mat[0] = 1.0; // :)
+    });
+}
+
 /// Initializes the measurement transformation matrix.
 ///
 /// This matrix describes how a single measurement is obtained from the
@@ -189,7 +247,7 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementTransformationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
@@ -247,12 +305,12 @@ where
 
 /// Print the current measurement. Will do nothing on `no_std` features.
 #[allow(unused)]
-fn print_measurement(t: usize) {
+fn print_measurement(t: usize, real: f32, error: f32) {
     #[cfg(feature = "std")]
     println!(
         "At t = {}, measurement: s = {}, noise ε = {}",
         format!("{}", t).bright_white(),
-        format!("{} m", REAL_DISTANCE[t]).green(),
-        format!("{} m", MEASUREMENT_ERROR[t]).blue()
+        format!("{} m", real).green(),
+        format!("{} m", error).blue()
     );
 }

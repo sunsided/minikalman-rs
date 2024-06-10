@@ -438,7 +438,7 @@ macro_rules! impl_buffer_z {
 
 /// Creates a static buffer fitting the measurement transformation matrix (`num_measurements` × `num_states`).
 ///
-/// This will create a [`MeasurementTransformationMatrixMutBuffer`](crate::buffer_types::MeasurementTransformationMatrixMutBuffer)
+/// This will create a [`MeasurementTransformationMatrixMutBuffer`](crate::buffer_types::MeasurementObservationMatrixMutBuffer)
 /// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
 ///
 /// ## Arguments
@@ -483,7 +483,7 @@ macro_rules! impl_buffer_H {
         $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::MeasurementTransformationMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffer_types::MeasurementObservationMatrixMutBuffer<
             $num_measurements,
             $num_states,
             $t,
@@ -493,7 +493,7 @@ macro_rules! impl_buffer_H {
                 { $num_measurements * $num_states },
                 $t,
             >,
-        > = $crate::buffer_types::MeasurementTransformationMatrixMutBuffer::<
+        > = $crate::buffer_types::MeasurementObservationMatrixMutBuffer::<
             $num_measurements,
             $num_states,
             $t,

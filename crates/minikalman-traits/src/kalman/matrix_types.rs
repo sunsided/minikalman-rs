@@ -217,8 +217,8 @@ pub trait MeasurementVectorMut<const MEASUREMENTS: usize, T = f32>:
 
 /// Measurement transformation matrix.
 ///
-/// Immutable variant. For a mutable variant, see [`MeasurementTransformationMatrixMut`].
-pub trait MeasurementTransformationMatrix<const MEASUREMENTS: usize, const STATES: usize, T = f32> {
+/// Immutable variant. For a mutable variant, see [`MeasurementObservationMatrixMut`].
+pub trait MeasurementObservationMatrix<const MEASUREMENTS: usize, const STATES: usize, T = f32> {
     type Target: Matrix<MEASUREMENTS, STATES, T>;
 
     fn as_matrix(&self) -> &Self::Target;
@@ -226,12 +226,9 @@ pub trait MeasurementTransformationMatrix<const MEASUREMENTS: usize, const STATE
 
 /// Measurement transformation matrix.
 ///
-/// Mutable variant. For a immutable variant, see [`MeasurementTransformationMatrix`].
-pub trait MeasurementTransformationMatrixMut<
-    const MEASUREMENTS: usize,
-    const STATES: usize,
-    T = f32,
->: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>
+/// Mutable variant. For a immutable variant, see [`MeasurementObservationMatrix`].
+pub trait MeasurementObservationMatrixMut<const MEASUREMENTS: usize, const STATES: usize, T = f32>:
+    MeasurementObservationMatrix<MEASUREMENTS, STATES, T>
 {
     type TargetMut: MatrixMut<MEASUREMENTS, STATES, T>;
 

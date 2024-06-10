@@ -1,24 +1,20 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::kalman::{
-    MeasurementTransformationMatrix, MeasurementTransformationMatrixMut,
-};
+use minikalman_traits::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMut};
 
 use minikalman_traits::matrix::{
     IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef,
 };
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
-pub struct MeasurementTransformationMatrixBuffer<
-    const MEASUREMENTS: usize,
-    const STATES: usize,
-    T,
+pub struct MeasurementObservationMatrixBuffer<const MEASUREMENTS: usize, const STATES: usize, T, M>(
     M,
->(M, PhantomData<T>)
+    PhantomData<T>,
+)
 where
     M: Matrix<MEASUREMENTS, STATES, T>;
 
-pub struct MeasurementTransformationMatrixMutBuffer<
+pub struct MeasurementObservationMatrixMutBuffer<
     const MEASUREMENTS: usize,
     const STATES: usize,
     T,
@@ -30,7 +26,7 @@ where
 // -----------------------------------------------------------
 
 impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a [T]>
-    for MeasurementTransformationMatrixBuffer<
+    for MeasurementObservationMatrixBuffer<
         MEASUREMENTS,
         STATES,
         T,
@@ -47,7 +43,7 @@ impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a [T]>
 }
 
 impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
-    for MeasurementTransformationMatrixBuffer<
+    for MeasurementObservationMatrixBuffer<
         MEASUREMENTS,
         STATES,
         T,
@@ -64,7 +60,7 @@ impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
-    for MeasurementTransformationMatrixMutBuffer<
+    for MeasurementObservationMatrixMutBuffer<
         MEASUREMENTS,
         STATES,
         T,
@@ -81,7 +77,7 @@ impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for MeasurementTransformationMatrixMutBuffer<
+    for MeasurementObservationMatrixMutBuffer<
         MEASUREMENTS,
         STATES,
         T,
@@ -102,7 +98,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
 // -----------------------------------------------------------
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
-    MeasurementTransformationMatrixBuffer<MEASUREMENTS, STATES, T, M>
+    MeasurementObservationMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: Matrix<MEASUREMENTS, STATES, T>,
 {
@@ -120,7 +116,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> AsRef<[T]>
-    for MeasurementTransformationMatrixBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: Matrix<MEASUREMENTS, STATES, T>,
 {
@@ -130,15 +126,15 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> Matrix<MEASUREMENTS, STATES, T>
-    for MeasurementTransformationMatrixBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: Matrix<MEASUREMENTS, STATES, T>,
 {
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
-    MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>
-    for MeasurementTransformationMatrixBuffer<MEASUREMENTS, STATES, T, M>
+    MeasurementObservationMatrix<MEASUREMENTS, STATES, T>
+    for MeasurementObservationMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: Matrix<MEASUREMENTS, STATES, T>,
 {
@@ -150,7 +146,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
-    MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
@@ -168,7 +164,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> AsRef<[T]>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
@@ -178,7 +174,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> AsMut<[T]>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
@@ -188,22 +184,22 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> Matrix<MEASUREMENTS, STATES, T>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> MatrixMut<MEASUREMENTS, STATES, T>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
-    MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    MeasurementObservationMatrix<MEASUREMENTS, STATES, T>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
@@ -215,8 +211,8 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
-    MeasurementTransformationMatrixMut<MEASUREMENTS, STATES, T>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
@@ -228,7 +224,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> Index<usize>
-    for MeasurementTransformationMatrixBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: Matrix<MEASUREMENTS, STATES, T>,
 {
@@ -240,7 +236,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> Index<usize>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
@@ -252,7 +248,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> IndexMut<usize>
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T>,
 {
@@ -264,7 +260,7 @@ where
 // -----------------------------------------------------------
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> IntoInnerData
-    for MeasurementTransformationMatrixBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T> + IntoInnerData,
 {
@@ -276,7 +272,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> IntoInnerData
-    for MeasurementTransformationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
+    for MeasurementObservationMatrixMutBuffer<MEASUREMENTS, STATES, T, M>
 where
     M: MatrixMut<MEASUREMENTS, STATES, T> + IntoInnerData,
 {

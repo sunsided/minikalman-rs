@@ -90,7 +90,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     where
         T: MatrixDataType,
         Z: MeasurementVector<MEASUREMENTS, T>,
-        H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+        H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
         R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
         Y: InnovationVector<MEASUREMENTS, T>,
         S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
@@ -354,7 +354,7 @@ impl<
         TempPHt,
     > Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
     K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
     S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
     R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
@@ -446,7 +446,7 @@ impl<
         TempKHP,
     > Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementTransformationMatrixMut<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T>,
 {
     /// Gets a mutable reference to the measurement transformation matrix H.
     #[inline(always)]
@@ -572,7 +572,7 @@ impl<
     > KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
     for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
 {
     type MeasurementTransformationMatrix = H;
 
@@ -598,7 +598,7 @@ impl<
     > KalmanFilterMeasurementTransformationMut<STATES, MEASUREMENTS, T>
     for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementTransformationMatrixMut<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T>,
 {
     type MeasurementTransformationMatrixMut = H;
 
@@ -676,7 +676,7 @@ impl<
     > KalmanFilterMeasurementCorrectFilter<STATES, T>
     for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
     K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
     S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
     R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
@@ -752,7 +752,7 @@ mod tests {
     }
 
     impl<const MEASUREMENTS: usize, const STATES: usize, T>
-        MeasurementTransformationMatrix<MEASUREMENTS, STATES, T> for Dummy<T>
+        MeasurementObservationMatrix<MEASUREMENTS, STATES, T> for Dummy<T>
     {
         type Target = DummyMatrix<T>;
 
@@ -762,7 +762,7 @@ mod tests {
     }
 
     impl<const MEASUREMENTS: usize, const STATES: usize, T>
-        MeasurementTransformationMatrixMut<MEASUREMENTS, STATES, T> for Dummy<T>
+        MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T> for Dummy<T>
     {
         type TargetMut = DummyMatrix<T>;
 

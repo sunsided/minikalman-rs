@@ -64,7 +64,7 @@ pub fn predict_gravity() -> f32 {
     );
 
     let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-        MeasurementTransformationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
+        MeasurementObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
         MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
         MeasurementProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
         InnovationVectorBuffer::from(unsafe { gravity_y.as_mut() }),
@@ -169,7 +169,7 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementTransformationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1.0); // z = 1*s

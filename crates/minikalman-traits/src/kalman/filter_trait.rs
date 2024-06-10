@@ -1,7 +1,7 @@
 use crate::kalman::{
     InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut, InputVector,
-    InputVectorMut, MeasurementProcessNoiseCovarianceMatrix, MeasurementTransformationMatrix,
-    MeasurementTransformationMatrixMut, MeasurementVector, MeasurementVectorMut, StateVector,
+    InputVectorMut, MeasurementObservationMatrix, MeasurementObservationMatrixMut,
+    MeasurementProcessNoiseCovarianceMatrix, MeasurementVector, MeasurementVectorMut, StateVector,
     SystemCovarianceMatrix, SystemMatrix, SystemMatrixMut,
 };
 
@@ -338,7 +338,7 @@ pub trait KalmanFilterMeasurementVectorMut<const MEASUREMENTS: usize, T>:
 }
 
 pub trait KalmanFilterMeasurementTransformation<const STATES: usize, const MEASUREMENTS: usize, T> {
-    type MeasurementTransformationMatrix: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>;
+    type MeasurementTransformationMatrix: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>;
 
     /// Gets a reference to the measurement transformation matrix H.
     fn measurement_transformation_ref(&self) -> &Self::MeasurementTransformationMatrix;
@@ -350,7 +350,7 @@ pub trait KalmanFilterMeasurementTransformationMut<
     T,
 >: KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
 {
-    type MeasurementTransformationMatrixMut: MeasurementTransformationMatrixMut<
+    type MeasurementTransformationMatrixMut: MeasurementObservationMatrixMut<
         MEASUREMENTS,
         STATES,
         T,

@@ -60,6 +60,7 @@ pub mod prelude {
     #[cfg(feature = "alloc")]
     pub use crate::buffer_builder::BufferBuilder;
     pub use crate::buffer_types::*;
+    pub use crate::inputs::{Input, InputBuilder};
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
 

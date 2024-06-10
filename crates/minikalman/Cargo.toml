@@ -62,6 +62,7 @@ colored = { version = "2.1.0" }
 criterion = "0.5.1"
 lazy_static = "1.4.0"
 rand = "0.8.5"
+rand_distr = "0.4.3"
 
 [package.metadata.docs.rs]
 all-features = true

@@ -62,7 +62,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         );
 
         let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-            MeasurementTransformationMatrixMutBuffer::from(gravity_H.as_mut()),
+            MeasurementObservationMatrixMutBuffer::from(gravity_H.as_mut()),
             MeasurementVectorBuffer::from(gravity_z.as_mut()),
             MeasurementProcessNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
             InnovationVectorBuffer::from(gravity_y.as_mut()),
@@ -104,7 +104,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         );
 
         let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-            MeasurementTransformationMatrixMutBuffer::from(gravity_H.as_mut()),
+            MeasurementObservationMatrixMutBuffer::from(gravity_H.as_mut()),
             MeasurementVectorBuffer::from(gravity_z.as_mut()),
             MeasurementProcessNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
             InnovationVectorBuffer::from(gravity_y.as_mut()),
@@ -140,7 +140,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         );
 
         let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-            MeasurementTransformationMatrixMutBuffer::from(gravity_H.as_mut()),
+            MeasurementObservationMatrixMutBuffer::from(gravity_H.as_mut()),
             MeasurementVectorBuffer::from(gravity_z.as_mut()),
             MeasurementProcessNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
             InnovationVectorBuffer::from(gravity_y.as_mut()),
@@ -236,7 +236,7 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementTransformationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
