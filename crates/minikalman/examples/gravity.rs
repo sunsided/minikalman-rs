@@ -120,7 +120,7 @@ fn main() {
 
     // Fetch estimated gravity constant.
     let gravity_x = filter.state_vector_ref();
-    let g_estimated = gravity_x[2];
+    let g_estimated = gravity_x.get(0, 2);
     assert!(g_estimated > 9.0 && g_estimated < 10.0);
 }
 
@@ -223,9 +223,6 @@ fn initialize_input_vector(filter: &mut impl InputVectorMut<NUM_INPUTS, f32>) {
 /// Initializes the input transformation matrix.
 fn initialize_input_matrix(filter: &mut impl InputMatrixMut<NUM_STATES, NUM_INPUTS, f32>) {
     filter.apply(|mat| {
-        // Time constant.
-        const T: f32 = 1 as _;
-
         mat[0] = 0.0;
         mat[1] = 0.0;
         mat[2] = 1.0;

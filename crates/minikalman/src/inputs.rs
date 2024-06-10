@@ -405,9 +405,9 @@ mod tests {
 
         // Define some test input vector.
         input.input_vector_apply(|vec| {
-            vec[0] = 0.1;
-            vec[1] = 1.0;
-            vec[2] = 10.0;
+            vec.set(0, 0, 0.1);
+            vec.set(1, 0, 1.0);
+            vec.set(2, 0, 10.0);
         });
 
         // Sanity checks.
