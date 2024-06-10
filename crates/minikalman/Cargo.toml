@@ -46,7 +46,7 @@ libm = ["dep:libm", "num-traits/libm", "minikalman-traits/libm"]
 float = ["minikalman-traits/float"]
 unsafe = []
 fixed = ["dep:fixed", "fixed/num-traits", "minikalman-traits/fixed"]
-no_assert = []
+no_assert = ["minikalman-traits/no_assert"]
 alloc = ["minikalman-traits/alloc"]
 
 [dependencies]

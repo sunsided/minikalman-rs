@@ -1,9 +1,8 @@
 use lazy_static::lazy_static;
-use minikalman::{prelude::fixed::*, prelude::*};
+use minikalman::prelude::*;
 
 /// Measurements.
 const NUM_STATES: usize = 3;
-const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 lazy_static! {
@@ -67,11 +66,6 @@ pub fn predict_gravity() -> I16F16 {
     impl_buffer_A!(static mut gravity_A, NUM_STATES, I16F16, I16F16::ZERO);
     impl_buffer_P!(static mut gravity_P, NUM_STATES, I16F16, I16F16::ZERO);
 
-    // Input buffers.
-    impl_buffer_u!(static mut gravity_u, NUM_INPUTS, I16F16, I16F16::ZERO);
-    impl_buffer_B!(static mut gravity_B, NUM_STATES, NUM_INPUTS, I16F16, I16F16::ZERO);
-    impl_buffer_Q!(static mut gravity_Q, NUM_INPUTS, I16F16, I16F16::ZERO);
-
     // Measurement buffers.
     impl_buffer_Q!(static mut gravity_z, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
     impl_buffer_H!(
@@ -95,13 +89,6 @@ pub fn predict_gravity() -> I16F16 {
     // Filter temporaries.
     impl_buffer_temp_x!(static mut gravity_temp_x, NUM_STATES, I16F16, I16F16::ZERO);
     impl_buffer_temp_P!(static mut gravity_temp_P, NUM_STATES, I16F16, I16F16::ZERO);
-    impl_buffer_temp_BQ!(
-        static mut gravity_temp_BQ,
-        NUM_STATES,
-        NUM_INPUTS,
-        I16F16,
-        I16F16::ZERO
-    );
 
     // Measurement temporaries.
     impl_buffer_temp_S_inv!(
@@ -128,16 +115,12 @@ pub fn predict_gravity() -> I16F16 {
     );
     impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, I16F16, I16F16::ZERO);
 
-    let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, I16F16>(
+    let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
         SystemMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
         StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
-        InputMatrixMutBuffer::from(unsafe { gravity_B.as_mut() }),
-        InputVectorBuffer::from(unsafe { gravity_u.as_mut() }),
         SystemCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
-        InputCovarianceMatrixMutBuffer::from(unsafe { gravity_Q.as_mut() }),
         StatePredictionVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
         TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
-        TemporaryBQMatrixBuffer::from(unsafe { gravity_temp_BQ.as_mut() }),
     );
 
     let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, I16F16>(

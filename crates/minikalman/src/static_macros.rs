@@ -58,12 +58,12 @@ macro_rules! impl_buffer_x {
         $($keywords)* $vec_name: $crate::buffer_types::StateVectorBuffer<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
         > = $crate::buffer_types::StateVectorBuffer::<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * 1 }],
         ));
     };
@@ -128,12 +128,12 @@ macro_rules! impl_buffer_A {
         $($keywords)* $mat_name: $crate::buffer_types::SystemMatrixMutBuffer<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::SystemMatrixMutBuffer::<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };
@@ -187,12 +187,12 @@ macro_rules! impl_buffer_P {
         $($keywords)* $mat_name: $crate::buffer_types::SystemCovarianceMatrixBuffer<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::SystemCovarianceMatrixBuffer::<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };
@@ -245,12 +245,12 @@ macro_rules! impl_buffer_u {
         $($keywords)* $vec_name: $crate::buffer_types::InputVectorBuffer<
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_inputs, 1, { $num_inputs * 1 }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_inputs, 1, { $num_inputs * 1 }, $t>,
         > = $crate::buffer_types::InputVectorBuffer::<
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_inputs, 1, { $num_inputs * 1 }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_inputs, 1, { $num_inputs * 1 }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_inputs * 1 }],
         ));
     };
@@ -307,13 +307,13 @@ macro_rules! impl_buffer_B {
             $num_states,
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
         > = $crate::buffer_types::InputMatrixMutBuffer::<
             $num_states,
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_inputs }],
         ));
     };
@@ -367,12 +367,12 @@ macro_rules! impl_buffer_Q {
         $($keywords)* $mat_name: $crate::buffer_types::InputCovarianceMatrixMutBuffer<
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
         > = $crate::buffer_types::InputCovarianceMatrixMutBuffer::<
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_inputs * $num_inputs }],
         ));
     };
@@ -425,12 +425,12 @@ macro_rules! impl_buffer_z {
         $($keywords)* $vec_name: $crate::buffer_types::MeasurementVectorBuffer<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
         > = $crate::buffer_types::MeasurementVectorBuffer::<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_measurements * 1 }],
         ));
     };
@@ -487,7 +487,7 @@ macro_rules! impl_buffer_H {
             $num_measurements,
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
@@ -497,13 +497,13 @@ macro_rules! impl_buffer_H {
             $num_measurements,
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
                 $t,
             >,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_measurements * $num_states }],
         ));
     };
@@ -557,7 +557,7 @@ macro_rules! impl_buffer_R {
         $($keywords)* $mat_name: $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
@@ -566,13 +566,13 @@ macro_rules! impl_buffer_R {
         > = $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer::<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_measurements * $num_measurements }],
         ));
     };
@@ -625,12 +625,12 @@ macro_rules! impl_buffer_y {
         $($keywords)* $vec_name: $crate::buffer_types::InnovationVectorBuffer<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
         > = $crate::buffer_types::InnovationVectorBuffer::<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_measurements * 1 }],
         ));
     };
@@ -684,7 +684,7 @@ macro_rules! impl_buffer_S {
         $($keywords)* $mat_name: $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
@@ -693,13 +693,13 @@ macro_rules! impl_buffer_S {
         > = $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer::<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_measurements * $num_measurements }],
         ));
     };
@@ -756,7 +756,7 @@ macro_rules! impl_buffer_K {
             $num_states,
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
@@ -766,13 +766,13 @@ macro_rules! impl_buffer_K {
             $num_states,
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
                 $t,
             >,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_measurements }],
         ));
     };
@@ -825,12 +825,12 @@ macro_rules! impl_buffer_temp_x {
         $($keywords)* $vec_name: $crate::buffer_types::StatePredictionVectorBuffer<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
         > = $crate::buffer_types::StatePredictionVectorBuffer::<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, 1, { $num_states * 1 }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * 1 }],
         ));
     };
@@ -884,12 +884,12 @@ macro_rules! impl_buffer_temp_P {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryStateMatrixBuffer<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::TemporaryStateMatrixBuffer::<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };
@@ -946,13 +946,13 @@ macro_rules! impl_buffer_temp_BQ {
             $num_states,
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
         > = $crate::buffer_types::TemporaryBQMatrixBuffer::<
             $num_states,
             $num_inputs,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_inputs }],
         ));
     };
@@ -1006,7 +1006,7 @@ macro_rules! impl_buffer_temp_S_inv {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
@@ -1015,13 +1015,13 @@ macro_rules! impl_buffer_temp_S_inv {
         > = $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer::<
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_measurements * $num_measurements }],
         ));
     };
@@ -1078,7 +1078,7 @@ macro_rules! impl_buffer_temp_HP {
             $num_measurements,
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
@@ -1088,13 +1088,13 @@ macro_rules! impl_buffer_temp_HP {
             $num_measurements,
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
                 $t,
             >,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_measurements * $num_states }],
         ));
     };
@@ -1151,7 +1151,7 @@ macro_rules! impl_buffer_temp_PHt {
             $num_states,
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
@@ -1161,13 +1161,13 @@ macro_rules! impl_buffer_temp_PHt {
             $num_states,
             $num_measurements,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<
+            $crate::traits::matrix::MatrixDataOwned<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
                 $t,
             >,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_measurements }],
         ));
     };
@@ -1221,12 +1221,12 @@ macro_rules! impl_buffer_temp_KHP {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryKHPMatrixBuffer<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::TemporaryKHPMatrixBuffer::<
             $num_states,
             $t,
-            minikalman_traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new(minikalman_traits::matrix::MatrixDataOwned::new_unchecked(
+            $crate::traits::matrix::MatrixDataOwned<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::traits::matrix::MatrixDataOwned::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };

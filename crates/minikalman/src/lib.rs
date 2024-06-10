@@ -49,6 +49,11 @@ pub use crate::measurement::{Measurement, MeasurementBuilder};
 /// Re-export `num_traits`.
 pub use num_traits;
 
+pub mod traits {
+    pub use minikalman_traits::kalman;
+    pub use minikalman_traits::matrix;
+}
+
 /// Exports all macros and common types.
 pub mod prelude {
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -57,6 +62,9 @@ pub mod prelude {
     pub use crate::buffer_types::*;
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
+
+    pub use minikalman_traits::kalman::*;
+    pub use minikalman_traits::matrix::*;
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,
@@ -76,9 +84,7 @@ pub mod prelude {
 
     #[cfg_attr(docsrs, doc(cfg(feature = "fixed")))]
     #[cfg(feature = "fixed")]
-    pub mod fixed {
-        pub use fixed::types::{I16F16, I32F32};
-    }
+    pub use fixed::types::{I16F16, I32F32};
 }
 
 /// Sizes a buffer fitting the state transition matrix (`num_states` × `num_states`).
