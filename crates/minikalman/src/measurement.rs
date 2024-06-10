@@ -699,6 +699,7 @@ where
 }
 
 #[cfg(test)]
+#[cfg(feature = "float")]
 mod tests {
     use core::ops::{Index, IndexMut};
     use minikalman_traits::matrix::{Matrix, MatrixMut};

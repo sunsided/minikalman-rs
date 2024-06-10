@@ -4,6 +4,7 @@
 //! under earth conditions (i.e. a ≈ 9.807 m/s²) through position observations only.
 
 #![forbid(unsafe_code)]
+#![cfg(feature = "float")]
 
 use minikalman::prelude::*;
 use minikalman_traits::matrix::MatrixMut;

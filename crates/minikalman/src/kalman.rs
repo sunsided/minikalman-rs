@@ -677,6 +677,7 @@ where
 }
 
 #[cfg(test)]
+#[cfg(feature = "float")]
 mod tests {
     use core::ops::{Index, IndexMut};
 

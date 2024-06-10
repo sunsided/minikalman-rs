@@ -4,6 +4,7 @@
 //! under earth conditions (i.e. a ≈ 9.807 m/s²) through position observations only.
 
 #![forbid(unsafe_code)]
+#![cfg(feature = "float")]
 
 use minikalman::prelude::*;
 use minikalman_traits::matrix::MatrixMut;
@@ -32,7 +33,6 @@ const MEASUREMENT_ERROR: [f64; 15] = [
 ];
 
 const NUM_STATES: usize = 3;
-const NUM_INPUTS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 #[allow(non_snake_case)]
