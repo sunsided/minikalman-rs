@@ -1,7 +1,8 @@
 use crate::kalman::{
     InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut, InputVector,
     InputVectorMut, MeasurementProcessNoiseCovarianceMatrix, MeasurementTransformationMatrix,
-    MeasurementTransformationMatrixMut, MeasurementVector, MeasurementVectorMut,
+    MeasurementTransformationMatrixMut, MeasurementVector, MeasurementVectorMut, StateVector,
+    SystemMatrix, SystemMatrixMut,
 };
 use crate::matrix::{Matrix, MatrixMut};
 
@@ -92,14 +93,14 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {
-    type StateVector: Matrix<STATES, 1, T>;
+    type StateVector: StateVector<STATES, T>;
 
     /// Gets a reference to the state vector x.
     fn state_vector_ref(&self) -> &Self::StateVector;
 }
 
 pub trait KalmanFilterStateVectorMut<const STATES: usize, T> {
-    type StateVectorMut: MatrixMut<STATES, 1, T>;
+    type StateVectorMut: StateVector<STATES, T>;
 
     /// Gets a reference to the state vector x.
     #[doc(alias = "kalman_get_state_vector")]
@@ -116,7 +117,7 @@ pub trait KalmanFilterStateVectorMut<const STATES: usize, T> {
 }
 
 pub trait KalmanFilterStateTransition<const STATES: usize, T> {
-    type SystemMatrix: Matrix<STATES, STATES, T>;
+    type SystemMatrix: SystemMatrix<STATES, T>;
 
     /// Gets a reference to the state transition matrix A.
     fn state_transition_ref(&self) -> &Self::SystemMatrix;
@@ -125,7 +126,7 @@ pub trait KalmanFilterStateTransition<const STATES: usize, T> {
 pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
     KalmanFilterStateTransition<STATES, T>
 {
-    type SystemMatrixMut: MatrixMut<STATES, STATES, T>;
+    type SystemMatrixMut: SystemMatrixMut<STATES, T>;
 
     /// Gets a reference to the state transition matrix A.
     #[doc(alias = "kalman_get_state_transition")]

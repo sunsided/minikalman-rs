@@ -716,6 +716,81 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
     }
 }
 
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP> KalmanFilterNumStates<STATES>
+    for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+{
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    KalmanFilterStateVector<STATES, T> for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    X: StateVector<STATES, T>,
+{
+    type StateVector = X;
+
+    fn state_vector_ref(&self) -> &Self::StateVector {
+        self.state_vector_ref()
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    KalmanFilterStateVectorMut<STATES, T> for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    X: StateVector<STATES, T>,
+{
+    type StateVectorMut = X;
+
+    fn state_vector_mut(&mut self) -> &mut Self::StateVectorMut {
+        self.state_vector_mut()
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    KalmanFilterStateTransition<STATES, T> for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    A: SystemMatrix<STATES, T>,
+{
+    type SystemMatrix = A;
+
+    fn state_transition_ref(&self) -> &Self::SystemMatrix {
+        self.state_transition_ref()
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    KalmanFilterStateTransitionMut<STATES, T> for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    A: SystemMatrixMut<STATES, T>,
+{
+    type SystemMatrixMut = A;
+
+    fn state_transition_mut(&mut self) -> &mut Self::SystemMatrixMut {
+        self.state_transition_mut()
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP> KalmanFilterPredict<STATES, T>
+    for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    X: StateVector<STATES, T>,
+    A: SystemMatrix<STATES, T>,
+    PX: StatePredictionVector<STATES, T>,
+    P: SystemCovarianceMatrix<STATES, T>,
+    TempP: TemporaryStateMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    fn predict(&mut self) {
+        self.predict()
+    }
+}
+
+/*
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP> KalmanFilterUpdate<STATES, T>
+for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+{
+}
+*/
+
 #[cfg(test)]
 mod tests {
     use core::ops::{Index, IndexMut};
