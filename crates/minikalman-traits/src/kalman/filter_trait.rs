@@ -2,7 +2,7 @@ use crate::kalman::{
     InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut, InputVector,
     InputVectorMut, MeasurementProcessNoiseCovarianceMatrix, MeasurementTransformationMatrix,
     MeasurementTransformationMatrixMut, MeasurementVector, MeasurementVectorMut, StateVector,
-    SystemMatrix, SystemMatrixMut,
+    SystemCovarianceMatrix, SystemMatrix, SystemMatrixMut,
 };
 use crate::matrix::{Matrix, MatrixMut};
 
@@ -63,7 +63,8 @@ where
         + KalmanFilterNumMeasurements<MEASUREMENTS>
         + KalmanFilterMeasurementVectorMut<MEASUREMENTS, T>
         + KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
-        + KalmanFilterMeasurementProcessNoiseMut<MEASUREMENTS, T>,
+        + KalmanFilterMeasurementProcessNoiseMut<MEASUREMENTS, T>
+        + KalmanFilterMeasurementCorrect<STATES, T>,
 {
 }
 
@@ -90,6 +91,19 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
     where
         M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>;
+}
+
+pub trait KalmanFilterMeasurementCorrect<const STATES: usize, T> {
+    /// Performs the measurement update step.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    #[allow(non_snake_case)]
+    fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
+    where
+        X: StateVector<STATES, T>,
+        P: SystemCovarianceMatrix<STATES, T>;
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {

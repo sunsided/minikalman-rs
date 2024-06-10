@@ -659,6 +659,44 @@ where
     }
 }
 
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterMeasurementCorrect<STATES, T>
+    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+    K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
+    S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
+    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
+    Y: InnovationVector<MEASUREMENTS, T>,
+    Z: MeasurementVector<MEASUREMENTS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
+    TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
+    where
+        X: StateVector<STATES, T>,
+        P: SystemCovarianceMatrix<STATES, T>,
+    {
+        self.correct(x, P)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::ops::{Index, IndexMut};
