@@ -1,5 +1,5 @@
-use crate::{FastInt16, FastUInt16, FastUInt8, MatrixDataType};
 use core::ops::{Index, IndexMut};
+use minikalman_traits::MatrixDataType;
 
 /// Replaces `x` with `(x) as usize` to simplify index accesses.
 macro_rules! idx {
@@ -13,13 +13,13 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
     /// Returns the number of rows of this matrix.
-    fn rows(&self) -> FastUInt8 {
-        ROWS as _
+    fn rows(&self) -> usize {
+        ROWS
     }
 
     /// Returns the number of columns of this matrix.
-    fn cols(&self) -> FastUInt8 {
-        COLS as _
+    fn cols(&self) -> usize {
+        COLS
     }
 
     /// Gets the number of elements of this matrix.
@@ -43,11 +43,11 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// The value at the given cell.
     #[inline(always)]
     #[doc(alias = "matrix_get")]
-    fn get(&self, row: FastUInt8, column: FastUInt8) -> T
+    fn get(&self, row: usize, column: usize) -> T
     where
         T: Copy,
     {
-        self.as_ref()[idx!(row * (self.cols() as FastUInt8) + column)]
+        self.as_ref()[idx!(row * self.cols() + column)]
     }
 
     /// Gets a pointer to a matrix row
@@ -57,7 +57,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// * `rows` - The row
     /// *  `row_data` - A pointer to the given matrix row
     #[doc(alias = "matrix_get_row_pointer")]
-    fn get_row_pointer<'a>(&'a self, row: FastUInt8, row_data: &mut &'a [T]) {
+    fn get_row_pointer<'a>(&'a self, row: usize, row_data: &mut &'a [T]) {
         let data = self.as_ref();
         *row_data = &data[idx!(row * self.cols())..idx!((row + 1) * self.cols())];
     }
@@ -69,16 +69,16 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// * `column` - The column
     /// * `col_data` - Pointer to an array of the correct length to hold a column of matrix `mat`.
     #[doc(alias = "matrix_get_column_copy")]
-    fn get_column_copy(&self, column: FastUInt8, col_data: &mut [T])
+    fn get_column_copy(&self, column: usize, col_data: &mut [T])
     where
         T: Copy,
     {
         // start from the back, so target index is equal to the index of the last row.
-        let mut target_index: FastInt16 = (self.rows() - 1) as _;
+        let mut target_index: isize = (self.rows() - 1) as _;
 
         // also, the source index is the column..th index
-        let stride: FastInt16 = self.cols() as _;
-        let mut source_index = (target_index as FastInt16) * stride + (column as FastInt16);
+        let stride: isize = self.cols() as _;
+        let mut source_index = (target_index as isize) * stride + (column as isize);
 
         let src = self.as_ref();
 
@@ -99,13 +99,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// * `rows` - The row
     /// * `row_data` - Pointer to an array of the correct length to hold a row of matrix `mat`.
     #[doc(alias = "matrix_get_row_copy")]
-    fn get_row_copy(&self, row: FastUInt8, row_data: &mut [T])
+    fn get_row_copy(&self, row: usize, row_data: &mut [T])
     where
         T: Copy,
     {
-        let mut target_index: FastUInt16 = (self.cols() - 1) as _;
-        let mut source_index: FastUInt16 =
-            (row as FastUInt16 + 1) * (self.cols() - 1) as FastUInt16;
+        let mut target_index: usize = (self.cols() - 1) as _;
+        let mut source_index: usize = (row as usize + 1) * (self.cols() - 1) as usize;
 
         let data = self.as_ref();
         row_data[idx!(target_index)] = data[idx!(source_index)];
@@ -217,7 +216,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             // create a copy of the column in B to avoid cache issues
             b.get_column_copy(j as _, baux);
 
-            let mut index_a: FastUInt16 = 0;
+            let mut index_a: usize = 0;
             for i in 0..arows {
                 let mut total = T::zero();
                 for k in 0..brows {
@@ -294,7 +293,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let cdata = c.as_mut();
 
         for j in (0..bcols).rev() {
-            let mut index_a: FastUInt16 = 0;
+            let mut index_a: usize = 0;
             for i in 0..arows {
                 let mut total = T::zero();
                 for k in 0..brows {
@@ -343,7 +342,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let xdata = x.as_ref();
         let cdata = c.as_mut();
 
-        let mut index_a: FastUInt16 = 0;
+        let mut index_a: usize = 0;
         let b0 = xdata[0];
 
         for index_c in 0..arows {
@@ -395,7 +394,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let xdata = x.as_ref();
         let cdata = c.as_mut();
 
-        let mut index_a: FastUInt16 = 0;
+        let mut index_a: usize = 0;
         let b0 = xdata[0];
 
         for index_c in 0..arows {
@@ -447,12 +446,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let bdata = b.as_ref();
         let cdata = c.as_mut();
 
-        let mut c_index: FastUInt16 = 0;
-        let mut a_index_start: FastUInt16 = 0;
+        let mut c_index: usize = 0;
+        let mut a_index_start: usize = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as FastUInt16;
-            let mut index_b: FastUInt16 = 0;
+            let end = a_index_start + bcols as usize;
+            let mut index_b: usize = 0;
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
@@ -465,7 +464,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
                 cdata[idx!(c_index)] = total;
                 c_index += 1;
             }
-            a_index_start += acols as FastUInt16;
+            a_index_start += acols as usize;
         }
     }
 
@@ -507,12 +506,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let bdata = b.as_ref();
         let cdata = c.as_mut();
 
-        let mut c_index: FastUInt16 = 0;
-        let mut a_index_start: FastUInt16 = 0;
+        let mut c_index: usize = 0;
+        let mut a_index_start: usize = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as FastUInt16;
-            let mut index_b: FastUInt16 = 0;
+            let end = a_index_start + bcols as usize;
+            let mut index_b: usize = 0;
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
@@ -525,7 +524,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
                 cdata[idx!(c_index)] += total;
                 c_index += 1;
             }
-            a_index_start += acols as FastUInt16;
+            a_index_start += acols as usize;
         }
     }
 
@@ -570,12 +569,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(COLS, bcols as usize);
         }
 
-        let mut c_index: FastUInt16 = 0;
-        let mut a_index_start: FastUInt16 = 0;
+        let mut c_index: usize = 0;
+        let mut a_index_start: usize = 0;
 
         for _ in 0..arows {
-            let end = a_index_start + bcols as FastUInt16;
-            let mut index_b: FastUInt16 = 0;
+            let end = a_index_start + bcols as usize;
+            let mut index_b: usize = 0;
 
             for _ in 0..brows {
                 let mut index_a = a_index_start;
@@ -588,7 +587,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
                 cdata[idx!(c_index)] = total * scale;
                 c_index += 1;
             }
-            a_index_start += acols as FastUInt16;
+            a_index_start += acols as usize;
         }
     }
 
@@ -809,7 +808,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// * `value` - The value to set
     #[inline(always)]
     #[doc(alias = "matrix_set")]
-    fn set(&mut self, row: FastUInt8, column: FastUInt8, value: T) {
+    fn set(&mut self, row: usize, column: usize, value: T) {
         let cols = self.cols();
         self.as_mut()[idx!(row * cols + column)] = value;
     }
@@ -823,7 +822,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// * `value` - The value to set
     #[inline(always)]
     #[doc(alias = "matrix_set_symmetric")]
-    fn set_symmetric(&mut self, row: FastUInt8, column: FastUInt8, value: T)
+    fn set_symmetric(&mut self, row: usize, column: usize, value: T)
     where
         T: Copy,
     {

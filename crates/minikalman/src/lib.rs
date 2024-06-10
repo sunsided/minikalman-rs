@@ -42,7 +42,6 @@ mod matrix_types;
 mod measurement;
 mod static_macros;
 mod type_traits;
-mod types;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
@@ -50,7 +49,7 @@ pub use crate::buffer_builder::BufferBuilder;
 pub use crate::kalman::{Kalman, KalmanBuilder};
 pub use crate::matrix_types::*;
 pub use crate::measurement::{Measurement, MeasurementBuilder};
-pub use crate::types::*;
+pub use minikalman_traits as traits;
 
 /// Re-export `num_traits`.
 pub use num_traits;
@@ -66,7 +65,6 @@ pub mod prelude {
     pub use crate::matrix_types::{IntoInnerData, MatrixData};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
     pub use crate::type_traits::*;
-    pub use crate::types::*;
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,

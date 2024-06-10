@@ -1,4 +1,5 @@
 use core::marker::PhantomData;
+use minikalman_traits::MatrixDataType;
 
 use crate::matrix_traits::{Matrix, MatrixMut, SquareMatrix};
 use crate::measurement::Measurement;
@@ -10,7 +11,6 @@ use crate::type_traits::{
     TemporaryBQMatrix, TemporaryHPMatrix, TemporaryKHPMatrix, TemporaryPHTMatrix,
     TemporaryResidualCovarianceInvertedMatrix, TemporaryStateMatrix,
 };
-use crate::{FastUInt8, MatrixDataType};
 
 /// A builder for a [`Kalman`] filter instances.
 #[allow(clippy::type_complexity)]
@@ -166,13 +166,13 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
     Kalman<STATES, INPUTS, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
 {
     /// Returns the number of states.
-    pub const fn states(&self) -> FastUInt8 {
-        STATES as _
+    pub const fn states(&self) -> usize {
+        STATES
     }
 
     /// Returns the number of inputs.
-    pub const fn inputs(&self) -> FastUInt8 {
-        INPUTS as _
+    pub const fn inputs(&self) -> usize {
+        INPUTS
     }
 
     /// Gets a reference to the state vector x.

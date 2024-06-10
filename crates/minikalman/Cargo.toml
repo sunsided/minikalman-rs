@@ -40,19 +40,19 @@ path = "examples/gravity_fixed.rs"
 required-features = ["fixed", "std", "alloc"]
 
 [features]
-default = ["float", "libm", "alloc"]
+default = ["float", "libm", "alloc", "minikalman-traits/default"]
 std = ["num-traits/std", "alloc"]
-libm = ["dep:libm", "num-traits/libm"]
-float = []
-stdint = ["dep:stdint", "stdint/std", "std"]
+libm = ["dep:libm", "num-traits/libm", "minikalman-traits/libm"]
+float = ["minikalman-traits/float"]
 unsafe = []
-fixed = ["dep:fixed", "fixed/num-traits"]
+fixed = ["dep:fixed", "fixed/num-traits", "minikalman-traits/fixed"]
 no_assert = []
 alloc = []
 
 [dependencies]
 fixed = { version = "1.27.0", optional = true }
 libm = { version = "0.2.8", optional = true }
+minikalman-traits = { version = "*", path = "../minikalman-traits", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
 stdint = { version = "1.0.0", default-features = false, optional = true }
 

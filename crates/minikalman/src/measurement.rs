@@ -1,14 +1,13 @@
 use core::marker::PhantomData;
+use minikalman_traits::MatrixDataType;
 
 use crate::kalman_filter_trait::{
-    KalmanFilterMeasurement, KalmanFilterMeasurementProcessNoise,
-    KalmanFilterMeasurementProcessNoiseMut, KalmanFilterMeasurementTransformation,
-    KalmanFilterMeasurementTransformationMut, KalmanFilterMeasurementVector,
-    KalmanFilterMeasurementVectorMut, KalmanFilterNumMeasurements, KalmanFilterNumStates,
+    KalmanFilterMeasurementProcessNoise, KalmanFilterMeasurementProcessNoiseMut,
+    KalmanFilterMeasurementTransformation, KalmanFilterMeasurementTransformationMut,
+    KalmanFilterMeasurementVector, KalmanFilterMeasurementVectorMut, KalmanFilterNumMeasurements,
+    KalmanFilterNumStates,
 };
-use crate::matrix_traits::{Matrix, MatrixMut};
 use crate::type_traits::*;
-use crate::{FastUInt8, MatrixDataType};
 
 /// A builder for a Kalman filter [`Measurement`] instances.
 #[allow(clippy::type_complexity)]
@@ -211,13 +210,15 @@ impl<
     > Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 {
     /// Returns then number of measurements.
-    pub const fn measurements() -> FastUInt8 {
-        MEASUREMENTS as _
+    #[inline(always)]
+    pub const fn measurements() -> usize {
+        MEASUREMENTS
     }
 
     /// Returns then number of states.
-    pub const fn states() -> FastUInt8 {
-        STATES as _
+    #[inline(always)]
+    pub const fn states() -> usize {
+        STATES
     }
 
     /// Gets a reference to the measurement vector z.
@@ -579,6 +580,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::kalman_filter_trait::KalmanFilterMeasurement;
     use core::ops::{Index, IndexMut};
 
     use crate::matrix_traits::{Matrix, MatrixMut};
@@ -586,7 +588,7 @@ mod tests {
 
     use super::*;
 
-    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(measurement: M)
+    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(_measurement: M)
     where
         M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>,
     {
