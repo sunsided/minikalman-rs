@@ -144,7 +144,7 @@ fn generate_values(n: usize) -> Vec<f32> {
 /// Generate measurement error with variance 0.5
 /// MATLAB source: noise = 0.5^2*randn(15,1);
 fn generate_error(n: usize) -> Vec<f32> {
-    let normal = Normal::new(0.0, 1.0).unwrap();
+    let normal = Normal::new(0.0, 0.1).unwrap();
     let mut rng = rand::thread_rng();
 
     let mut error = vec![0.0; n]; // vector to store the generated errors

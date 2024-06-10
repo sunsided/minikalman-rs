@@ -1,8 +1,9 @@
 use crate::prelude::*;
 use minikalman_traits::matrix::{MatrixData, MatrixDataBoxed, MatrixDataOwned};
 
-/// A builder for buffers.
+// TODO: Provide Kalman builder that returns impl KalmanFilter, or export a type alias e.g. via associated type.
 
+/// A builder for buffers.
 pub struct BufferBuilder;
 
 impl BufferBuilder {
