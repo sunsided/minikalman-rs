@@ -35,6 +35,7 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 mod buffer_builder;
 pub mod buffer_types;
+mod inputs;
 mod kalman;
 mod measurement;
 mod static_macros;
