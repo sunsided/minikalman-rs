@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::MatrixDataType;
+use minikalman_traits::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 /// A builder for a Kalman filter [`Measurement`] instances.
 #[allow(clippy::type_complexity)]
@@ -335,6 +335,98 @@ impl<
         F: FnMut(&mut R),
     {
         f(&mut self.R)
+    }
+}
+
+impl<
+        const STATES: usize,
+        const MEASUREMENTS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempKHP,
+        TempPHt,
+    > Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+    K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
+    S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
+    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
+    Y: InnovationVector<MEASUREMENTS, T>,
+    Z: MeasurementVector<MEASUREMENTS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
+    TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    /// Applies a correction step to the provided state vector and covariance matrix.
+    #[allow(non_snake_case)]
+    pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
+    where
+        P: SystemCovarianceMatrix<STATES, T>,
+        X: StateVector<STATES, T>,
+    {
+        // matrices and vectors
+        let P = P.as_matrix_mut();
+        let x = x.as_matrix_mut();
+
+        let H = self.H.as_matrix();
+        let K = self.K.as_matrix_mut();
+        let S = self.S.as_matrix_mut();
+        let R = self.R.as_matrix_mut();
+        let y = self.y.as_matrix_mut();
+        let z = self.z.as_matrix();
+
+        // temporaries
+        let S_inv = self.temp_S_inv.as_matrix_mut();
+        let temp_HP = self.temp_HP.as_matrix_mut();
+        let temp_KHP = self.temp_KHP.as_matrix_mut();
+        let temp_PHt = self.temp_PHt.as_matrix_mut();
+
+        //* Calculate innovation and residual covariance
+        //* y = z - H*x
+        //* S = H*P*Hᵀ + R
+
+        // y = z - H*x
+        H.mult_rowvector(x, y);
+        z.sub_inplace_b(y);
+
+        // S = H*P*H' + R
+        H.mult(P, temp_HP); // temp = H*P
+        temp_HP.mult_transb(H, S); // S = temp*Hᵀ
+        S.add_inplace_a(R); // S += R
+
+        //* Calculate Kalman gain
+        //* K = P*Hᵀ * S^-1
+
+        // K = P*Hᵀ * S^-1
+        S.cholesky_decompose_lower();
+        S.invert_l_cholesky(S_inv); // S_inv = S^-1
+                                    // NOTE that to allow aliasing of Sinv and temp_PHt, a copy must be performed here
+        P.mult_transb(H, temp_PHt); // temp = P*H'
+        temp_PHt.mult(S_inv, K); // K = temp*Sinv
+
+        //* Correct state prediction
+        //* x = x + K*y
+
+        // x = x + K*y
+        K.multadd_rowvector(y, x);
+
+        //* Correct state covariances
+        //* P = (I-K*H) * P
+        //*   = P - K*(H*P)
+
+        // P = P - K*(H*P)
+        H.mult(P, temp_HP); // temp_HP = H*P
+        K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
+        P.sub_inplace_a(temp_KHP); // P -= temp_KHP
     }
 }
 

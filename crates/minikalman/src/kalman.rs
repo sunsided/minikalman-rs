@@ -545,7 +545,7 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
     /// Performs the measurement update step.
     ///
     /// ## Arguments
-    /// * `kfm` - The measurement.
+    /// * `measurement` - The measurement.
     ///
     /// ## Example
     /// ```
@@ -628,7 +628,7 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
         TempKHP,
     >(
         &mut self,
-        kfm: &mut Measurement<
+        measurement: &mut Measurement<
             STATES,
             MEASUREMENTS,
             T,
@@ -654,65 +654,11 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
         Z: MeasurementVector<MEASUREMENTS, T>,
         TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
         TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
-
         TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
         TempKHP: TemporaryKHPMatrix<STATES, T>,
         T: MatrixDataType,
     {
-        // matrices and vectors
-        let P = self.P.as_matrix_mut();
-        let x = self.x.as_matrix_mut();
-
-        let H = kfm.H.as_matrix();
-        let K = kfm.K.as_matrix_mut();
-        let S = kfm.S.as_matrix_mut();
-        let R = kfm.R.as_matrix_mut();
-        let y = kfm.y.as_matrix_mut();
-        let z = kfm.z.as_matrix();
-
-        // temporaries
-        let S_inv = kfm.temp_S_inv.as_matrix_mut();
-        let temp_HP = kfm.temp_HP.as_matrix_mut();
-        let temp_KHP = kfm.temp_KHP.as_matrix_mut();
-        let temp_PHt = kfm.temp_PHt.as_matrix_mut();
-
-        //* Calculate innovation and residual covariance
-        //* y = z - H*x
-        //* S = H*P*H' + R
-
-        // y = z - H*x
-        H.mult_rowvector(x, y);
-        z.sub_inplace_b(y);
-
-        // S = H*P*H' + R
-        H.mult(P, temp_HP); // temp = H*P
-        temp_HP.mult_transb(H, S); // S = temp*H'
-        S.add_inplace_a(R); // S += R
-
-        //* Calculate Kalman gain
-        //* K = P*H' * S^-1
-
-        // K = P*H' * S^-1
-        S.cholesky_decompose_lower();
-        S.invert_l_cholesky(S_inv); // S_inv = S^-1
-                                    // NOTE that to allow aliasing of Sinv and temp_PHt, a copy must be performed here
-        P.mult_transb(H, temp_PHt); // temp = P*H'
-        temp_PHt.mult(S_inv, K); // K = temp*Sinv
-
-        //* Correct state prediction
-        //* x = x + K*y
-
-        // x = x + K*y
-        K.multadd_rowvector(y, x);
-
-        //* Correct state covariances
-        //* P = (I-K*H) * P
-        //*   = P - K*(H*P)
-
-        // P = P - K*(H*P)
-        H.mult(P, temp_HP); // temp_HP = H*P
-        K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
-        P.sub_inplace_a(temp_KHP); // P -= temp_KHP
+        measurement.correct(&mut self.x, &mut self.P);
     }
 }
 
@@ -784,10 +730,30 @@ where
     }
 }
 
-/*
+/* TODO: Implement correction step
 impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP> KalmanFilterUpdate<STATES, T>
-for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+    for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    P: SystemCovarianceMatrix<STATES, T>,
+    X: StateVector<STATES, T>,
+    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
+    K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
+    S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
+    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
+    Y: InnovationVector<MEASUREMENTS, T>,
+    Z: MeasurementVector<MEASUREMENTS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
+    TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
 {
+    fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
+    where
+        M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>,
+    {
+        self.correct(measurement)
+    }
 }
 */
 
