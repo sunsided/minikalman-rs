@@ -47,6 +47,14 @@ where
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
+
+    pub const fn len(&self) -> usize {
+        STATES * INPUTS
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        STATES * INPUTS == 0
+    }
 }
 
 impl<const STATES: usize, const INPUTS: usize, T, M> AsRef<[T]>

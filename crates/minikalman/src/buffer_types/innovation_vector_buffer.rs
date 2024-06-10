@@ -42,6 +42,14 @@ where
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
+
+    pub const fn len(&self) -> usize {
+        MEASUREMENTS
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        MEASUREMENTS == 0
+    }
 }
 
 impl<const MEASUREMENTS: usize, T, M> AsRef<[T]> for InnovationVectorBuffer<MEASUREMENTS, T, M>

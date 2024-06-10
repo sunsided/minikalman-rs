@@ -96,8 +96,7 @@ pub mod prelude {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_A {
     ( $num_states:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * NUM_STATES_) as usize
     }};
 }
@@ -117,8 +116,7 @@ macro_rules! size_buffer_A {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_P {
     ( $num_states:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * NUM_STATES_) as usize
     }};
 }
@@ -138,8 +136,7 @@ macro_rules! size_buffer_P {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_x {
     ( $num_states:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * 1) as usize
     }};
 }
@@ -159,9 +156,7 @@ macro_rules! size_buffer_x {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_u {
     ( $num_inputs:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
+        const NUM_INPUTS_: usize = ($num_inputs) as usize;
         (NUM_INPUTS_ * 1) as usize
     }};
 }
@@ -183,9 +178,8 @@ macro_rules! size_buffer_u {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_B {
     ( $num_states:expr, $num_inputs:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
-        const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
+        const NUM_INPUTS_: usize = ($num_inputs) as usize;
         (NUM_STATES_ * NUM_INPUTS_) as usize
     }};
 }
@@ -205,9 +199,7 @@ macro_rules! size_buffer_B {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_Q {
     ( $num_inputs:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
+        const NUM_INPUTS_: usize = ($num_inputs) as usize;
         (NUM_INPUTS_ * NUM_INPUTS_) as usize
     }};
 }
@@ -227,9 +219,7 @@ macro_rules! size_buffer_Q {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_z {
     ( $num_measurements:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
         (NUM_MEASUREMENTS_ * 1) as usize
     }};
 }
@@ -251,10 +241,8 @@ macro_rules! size_buffer_z {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_H {
     ( $num_measurements:expr, $num_states:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_MEASUREMENTS_ * NUM_STATES_) as usize
     }};
 }
@@ -274,9 +262,7 @@ macro_rules! size_buffer_H {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_R {
     ( $num_measurements:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
         (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize
     }};
 }
@@ -296,9 +282,7 @@ macro_rules! size_buffer_R {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_y {
     ( $num_measurements:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
         (NUM_MEASUREMENTS_ * 1) as usize
     }};
 }
@@ -318,8 +302,7 @@ macro_rules! size_buffer_y {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_S {
     ( $num_measurements:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
         (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize
     }};
 }
@@ -341,9 +324,8 @@ macro_rules! size_buffer_S {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_K {
     ( $num_states:expr, $num_measurements:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
         (NUM_STATES_ * NUM_MEASUREMENTS_) as usize
     }};
 }
@@ -363,9 +345,7 @@ macro_rules! size_buffer_K {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_x {
     ( $num_states:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * 1) as usize
     }};
 }
@@ -385,9 +365,7 @@ macro_rules! size_buffer_temp_x {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_P {
     ( $num_states:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * NUM_STATES_) as usize
     }};
 }
@@ -409,10 +387,8 @@ macro_rules! size_buffer_temp_P {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_BQ {
     ( $num_states:expr, $num_inputs:expr ) => {{
-        use $crate::FastUInt16;
-
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
-        const NUM_INPUTS_: FastUInt16 = ($num_inputs) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
+        const NUM_INPUTS_: usize = ($num_inputs) as usize;
         (NUM_STATES_ * NUM_INPUTS_) as usize
     }};
 }
@@ -433,8 +409,7 @@ macro_rules! size_buffer_temp_BQ {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_S_inv {
     ( $num_measurements:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
         (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize
     }};
 }
@@ -456,9 +431,8 @@ macro_rules! size_buffer_temp_S_inv {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_HP {
     ( $num_measurements:expr, $num_states:expr) => {{
-        use $crate::FastUInt16;
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * NUM_MEASUREMENTS_) as usize
     }};
 }
@@ -480,9 +454,8 @@ macro_rules! size_buffer_temp_HP {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_PHt {
     ( $num_states:expr, $num_measurements:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
-        const NUM_MEASUREMENTS_: FastUInt16 = ($num_measurements) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
+        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
         (NUM_STATES_ * NUM_MEASUREMENTS_) as usize
     }};
 }
@@ -502,8 +475,7 @@ macro_rules! size_buffer_temp_PHt {
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_KHP {
     ( $num_states:expr ) => {{
-        use $crate::FastUInt16;
-        const NUM_STATES_: FastUInt16 = ($num_states) as FastUInt16;
+        const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * NUM_STATES_) as usize
     }};
 }

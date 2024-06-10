@@ -71,13 +71,9 @@ fn test_gravity_estimation_tuned() {
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f64>(
         gravity_A,
         gravity_x,
-        gravity_B,
-        gravity_u,
         gravity_P,
-        gravity_Q,
         gravity_temp_x,
         gravity_temp_P,
-        gravity_temp_BQ,
     );
 
     let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f64>(

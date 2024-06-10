@@ -44,11 +44,6 @@ fn test_gravity_estimation() {
     impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
 
-    // Input buffers.
-    impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
-
     // Measurement buffers.
     impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
     impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
@@ -60,7 +55,6 @@ fn test_gravity_estimation() {
     // Filter temporaries.
     impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
     impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
 
     // Measurement temporaries.
     impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
@@ -71,13 +65,9 @@ fn test_gravity_estimation() {
     let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
         gravity_A,
         gravity_x,
-        gravity_B,
-        gravity_u,
         gravity_P,
-        gravity_Q,
         gravity_temp_x,
         gravity_temp_P,
-        gravity_temp_BQ,
     );
 
     let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(

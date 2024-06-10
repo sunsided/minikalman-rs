@@ -73,6 +73,14 @@ where
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
+
+    pub const fn len(&self) -> usize {
+        INPUTS * INPUTS
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        INPUTS == 0
+    }
 }
 
 impl<const INPUTS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixBuffer<INPUTS, T, M>
@@ -109,6 +117,14 @@ where
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
+    }
+
+    pub const fn len(&self) -> usize {
+        INPUTS * INPUTS
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        INPUTS == 0
     }
 }
 

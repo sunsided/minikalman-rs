@@ -40,6 +40,14 @@ where
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
+
+    pub const fn len(&self) -> usize {
+        INPUTS
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        INPUTS == 0
+    }
 }
 
 impl<const INPUTS: usize, T, M> AsRef<[T]> for InputVectorBuffer<INPUTS, T, M>

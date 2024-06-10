@@ -75,6 +75,14 @@ where
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
+
+    pub const fn len(&self) -> usize {
+        STATES * STATES
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        STATES * STATES == 0
+    }
 }
 
 impl<const STATES: usize, T, M> AsRef<[T]> for SystemMatrixBuffer<STATES, T, M>
@@ -108,6 +116,14 @@ where
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
+    }
+
+    pub const fn len(&self) -> usize {
+        STATES * STATES
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        STATES * STATES == 0
     }
 }
 

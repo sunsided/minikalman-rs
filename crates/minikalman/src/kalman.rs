@@ -6,21 +6,17 @@ use crate::measurement::Measurement;
 
 /// A builder for a [`Kalman`] filter instances.
 #[allow(clippy::type_complexity)]
-pub struct KalmanBuilder<A, X, B, U, P, Q, PX, TempP, TempBQ> {
+pub struct KalmanBuilder<A, X, P, PX, TempP> {
     _phantom: (
         PhantomData<A>,
         PhantomData<X>,
-        PhantomData<B>,
-        PhantomData<U>,
         PhantomData<P>,
-        PhantomData<Q>,
         PhantomData<PX>,
         PhantomData<TempP>,
-        PhantomData<TempBQ>,
     ),
 }
 
-impl<A, X, B, U, P, Q, PX, TempP, TempBQ> KalmanBuilder<A, X, B, U, P, Q, PX, TempP, TempBQ> {
+impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     /// Initializes a Kalman filter instance.
     ///
     /// ## Arguments
@@ -47,62 +43,40 @@ impl<A, X, B, U, P, Q, PX, TempP, TempBQ> KalmanBuilder<A, X, B, U, P, Q, PX, Te
     /// impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
     ///
-    /// // Input buffers.
-    /// impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    /// impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    /// impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
-    ///
     /// // Filter temporaries.
     /// impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
     /// impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
     ///
     /// let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
     ///     gravity_A,
     ///     gravity_x,
-    ///     gravity_B,
-    ///     gravity_u,
     ///     gravity_P,
-    ///     gravity_Q,
     ///     gravity_temp_x,
     ///     gravity_temp_P,
-    ///     gravity_temp_BQ,
     ///  );
     /// ```
     #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, const INPUTS: usize, T>(
         A: A,
         x: X,
-        B: B,
-        u: U,
         P: P,
-        Q: Q,
         predicted_x: PX,
         temp_P: TempP,
-        temp_BQ: TempBQ,
-    ) -> Kalman<STATES, INPUTS, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
+    ) -> Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
     where
         T: MatrixDataType,
         A: SystemMatrix<STATES, T>,
         X: StateVector<STATES, T>,
-        B: InputMatrix<STATES, INPUTS, T>,
-        U: InputVector<INPUTS, T>,
         P: SystemCovarianceMatrix<STATES, T>,
-        Q: InputCovarianceMatrix<INPUTS, T>,
         PX: StatePredictionVector<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
-        TempBQ: TemporaryBQMatrix<STATES, INPUTS, T>,
     {
-        Kalman::<STATES, INPUTS, T, _, _, _, _, _, _, _, _, _> {
+        Kalman::<STATES, INPUTS, T, _, _, _, _, _> {
             x,
             A,
             P,
-            u,
-            B,
-            Q,
             predicted_x,
             temp_P,
-            temp_BQ,
             _phantom: Default::default(),
         }
     }
@@ -110,8 +84,7 @@ impl<A, X, B, U, P, Q, PX, TempP, TempBQ> KalmanBuilder<A, X, B, U, P, Q, PX, Te
 
 /// Kalman Filter structure.  See [`KalmanBuilder`] for construction.
 #[allow(non_snake_case, unused)]
-pub struct Kalman<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
-{
+pub struct Kalman<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP> {
     /// State vector.
     x: X,
 
@@ -125,19 +98,6 @@ pub struct Kalman<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q,
     /// See also [`A`].
     P: P,
 
-    /// Input vector.
-    u: U,
-
-    /// Input matrix.
-    ///
-    /// See also [`Q`].
-    B: B,
-
-    /// Input covariance matrix.
-    ///
-    /// See also [`B`].
-    Q: Q,
-
     /// x-sized temporary vector.
     predicted_x: PX,
 
@@ -146,16 +106,11 @@ pub struct Kalman<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q,
     /// The backing field for this temporary MAY be aliased with temporary BQ.
     temp_P: TempP,
 
-    /// B×Q-sized temporary matrix (number of states × number of inputs).
-    ///
-    /// The backing field for this temporary MAY be aliased with temporary P.
-    temp_BQ: TempBQ,
-
     _phantom: PhantomData<T>,
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
-    Kalman<STATES, INPUTS, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
 {
     /// Returns the number of states.
     pub const fn states(&self) -> usize {
@@ -216,29 +171,10 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
     {
         f(&mut self.P)
     }
-
-    /// Gets a reference to the input vector u.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_input_vector")]
-    pub fn input_vector_ref(&self) -> &U {
-        &self.u
-    }
-
-    /// Gets a reference to the input transition matrix B.
-    #[inline(always)]
-    pub fn input_transition_ref(&self) -> &B {
-        &self.B
-    }
-
-    /// Gets a reference to the input covariance matrix Q.
-    #[inline(always)]
-    pub fn input_covariance_ref(&self) -> &Q {
-        &self.Q
-    }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
-    Kalman<STATES, INPUTS, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
 where
     A: SystemMatrixMut<STATES, T>,
 {
@@ -259,75 +195,8 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, X, A, P, U, B, Q, PX, TempP, TempBQ>
-    Kalman<STATES, INPUTS, T, X, A, P, U, B, Q, PX, TempP, TempBQ>
-where
-    U: InputVectorMut<STATES, T>,
-{
-    /// Gets a mutable reference to the input vector u.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_input_vector")]
-    pub fn input_vector_mut(&mut self) -> &mut U {
-        &mut self.u
-    }
-
-    /// Applies a function to the input vector u.
-    #[inline(always)]
-    pub fn input_vector_apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut U),
-    {
-        f(&mut self.u)
-    }
-}
-
-impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
-    Kalman<STATES, INPUTS, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
-where
-    B: InputMatrixMut<STATES, INPUTS, T>,
-{
-    /// Gets a mutable reference to the input transition matrix B.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_input_transition")]
-    pub fn input_transition_mut(&mut self) -> &mut B {
-        &mut self.B
-    }
-
-    /// Applies a function to the input transition matrix B.
-    #[inline(always)]
-    pub fn input_transition_apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut B),
-    {
-        f(&mut self.B)
-    }
-}
-
-impl<const STATES: usize, const INPUTS: usize, T, X, A, P, U, B, Q, PX, TempP, TempBQ>
-    Kalman<STATES, INPUTS, T, X, A, P, U, B, Q, PX, TempP, TempBQ>
-where
-    Q: InputCovarianceMatrixMut<INPUTS, T>,
-{
-    /// Gets a mutable reference to the input covariance matrix Q.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_input_covariance")]
-    pub fn input_covariance_mut(&mut self) -> &mut Q {
-        &mut self.Q
-    }
-
-    /// Applies a function to the input covariance matrix Q.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_input_covariance")]
-    pub fn input_covariance_apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Q),
-    {
-        f(&mut self.Q)
-    }
-}
-
-impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
-    Kalman<STATES, INPUTS, T, A, X, B, U, P, Q, PX, TempP, TempBQ>
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
 {
     /// Performs the time update / prediction step.
     ///
@@ -345,26 +214,16 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
     /// #
-    /// # // Input buffers.
-    /// # impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
-    /// #
     /// # // Filter temporaries.
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
     /// #
     /// # let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
     /// #     gravity_A,
     /// #     gravity_x,
-    /// #     gravity_B,
-    /// #     gravity_u,
     /// #     gravity_P,
-    /// #     gravity_Q,
     /// #     gravity_temp_x,
     /// #     gravity_temp_P,
-    /// #     gravity_temp_BQ,
     /// #  );
     /// #
     /// # // Measurement buffers.
@@ -415,11 +274,8 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
         X: StateVector<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
-        B: InputMatrix<STATES, INPUTS, T>,
-        Q: InputCovarianceMatrix<INPUTS, T>,
         P: SystemCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
-        TempBQ: TemporaryBQMatrix<STATES, INPUTS, T>,
         T: MatrixDataType,
     {
         //* Predict next state using system dynamics
@@ -427,8 +283,11 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
         self.predict_x();
 
         //* Predict next covariance using system dynamics and input
-        //* P = A*P*A' + B*Q*B'
-        self.predict_Q();
+        //* P = A*P*Aᵀ
+        self.predict_P();
+
+        // TODO: Add input support
+        //       P = P + B*Q*Bᵀ
     }
 
     /// Performs the time update / prediction step.
@@ -450,26 +309,16 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
     /// #
-    /// # // Input buffers.
-    /// # impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
-    /// #
     /// # // Filter temporaries.
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
     /// #
     /// # let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
     /// #     gravity_A,
     /// #     gravity_x,
-    /// #     gravity_B,
-    /// #     gravity_u,
     /// #     gravity_P,
-    /// #     gravity_Q,
     /// #     gravity_temp_x,
     /// #     gravity_temp_P,
-    /// #     gravity_temp_BQ,
     /// #  );
     /// #
     /// # // Measurement buffers.
@@ -522,11 +371,8 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
         X: StateVector<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
-        B: InputMatrix<STATES, INPUTS, T>,
-        Q: InputCovarianceMatrix<INPUTS, T>,
         P: SystemCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
-        TempBQ: TemporaryBQMatrix<STATES, INPUTS, T>,
         T: MatrixDataType,
     {
         //* Predict next state using system dynamics
@@ -534,8 +380,11 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
         self.predict_x();
 
         //* Predict next covariance using system dynamics and input
-        //* P = A*P*A' * 1/lambda^2 + B*Q*B'
-        self.predict_Q_tuned(lambda);
+        //* P = A*P*Aᵀ * 1/lambda^2
+        self.predict_P_tuned(lambda);
+
+        // TODO: Add input support
+        //       P = P + B*Q*Bᵀ
     }
 
     /// Performs the time update / prediction step of only the state vector
@@ -565,6 +414,57 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
     }
 
     #[allow(non_snake_case)]
+    #[doc(alias = "kalman_predict_P")]
+    fn predict_P(&mut self)
+    where
+        A: SystemMatrix<STATES, T>,
+        P: SystemCovarianceMatrix<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+    {
+        // matrices and vectors
+        let A = self.A.as_matrix();
+        let P = self.P.as_matrix_mut();
+
+        // temporaries
+        let P_temp = self.temp_P.as_matrix_mut();
+
+        // Predict next covariance using system dynamics (without input)
+
+        // P = A*P*A'
+        A.mult(P, P_temp); // temp = A*P
+        P_temp.mult_transb(A, P); // P = temp*A'
+    }
+
+    #[allow(non_snake_case)]
+    #[doc(alias = "kalman_predict_Q")]
+    fn predict_P_tuned(&mut self, lambda: T)
+    where
+        A: SystemMatrix<STATES, T>,
+        P: SystemCovarianceMatrix<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+    {
+        // matrices and vectors
+        let A = self.A.as_matrix();
+        let P = self.P.as_matrix_mut();
+
+        // temporaries
+        let P_temp = self.temp_P.as_matrix_mut();
+
+        // Predict next covariance using system dynamics (without input)
+        // P = A*P*Aᵀ * 1/lambda^2
+
+        // lambda = 1/lambda^2
+        let lambda = lambda.mul(lambda).recip(); // TODO: This should be precalculated, e.g. using set_lambda(...);
+
+        // P = A*P*A'
+        A.mult(P, P_temp); // temp = A*P
+        P_temp.multscale_transb(A, lambda, P); // P = temp*A' * 1/(lambda^2)
+    }
+
+    /* TODO: Add input support back in
+    #[allow(non_snake_case)]
     #[doc(alias = "kalman_predict_Q")]
     fn predict_Q(&mut self)
     where
@@ -586,8 +486,8 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
         let P_temp = self.temp_P.as_matrix_mut();
         let BQ_temp = self.temp_BQ.as_matrix_mut();
 
-        //* Predict next covariance using system dynamics and input
-        //* P = A*P*A' + B*Q*B'
+        // Predict next covariance using system dynamics and input
+        // P = A*P*A' + B*Q*B'
 
         // P = A*P*A'
         A.mult(P, P_temp); // temp = A*P
@@ -595,11 +495,13 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
 
         // P = P + B*Q*B'
         if !B.is_empty() {
-            B.mult(Q, BQ_temp); // temp = B*Q
+            B.mult(BQ_temp); // temp = B*Q
             BQ_temp.multadd_transb(B, P); // P += temp*B'
         }
     }
+    */
 
+    /*
     #[allow(non_snake_case)]
     #[doc(alias = "kalman_predict_Q")]
     fn predict_Q_tuned(&mut self, lambda: T)
@@ -622,8 +524,8 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
         let P_temp = self.temp_P.as_matrix_mut();
         let BQ_temp = self.temp_BQ.as_matrix_mut();
 
-        //* Predict next covariance using system dynamics and input
-        //* P = A*P*A' * 1/lambda^2 + B*Q*B'
+        // Predict next covariance using system dynamics and input
+        // P = A*P*A' * 1/lambda^2 + B*Q*B'
 
         // lambda = 1/lambda^2
         let lambda = lambda.mul(lambda).recip(); // TODO: This should be precalculated, e.g. using set_lambda(...);
@@ -634,10 +536,11 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
 
         // P = P + B*Q*B'
         if !B.is_empty() {
-            B.mult(Q, BQ_temp); // temp = B*Q
+            B.mult(BQ_temp); // temp = B*Q
             BQ_temp.multadd_transb(B, P); // P += temp*B'
         }
     }
+    */
 
     /// Performs the measurement update step.
     ///
@@ -656,26 +559,16 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, B, U, P, Q, PX, TempP, T
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
     /// #
-    /// # // Input buffers.
-    /// # impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
-    /// #
     /// # // Filter temporaries.
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
     /// #
     /// # let mut filter = KalmanBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
     /// #     gravity_A,
     /// #     gravity_x,
-    /// #     gravity_B,
-    /// #     gravity_u,
     /// #     gravity_P,
-    /// #     gravity_Q,
     /// #     gravity_temp_x,
     /// #     gravity_temp_P,
-    /// #     gravity_temp_BQ,
     /// #  );
     /// #
     /// # // Measurement buffers.
@@ -839,10 +732,6 @@ mod tests {
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
         );
     }
 
@@ -889,48 +778,6 @@ mod tests {
             &mut self.0
         }
     }
-    impl<const INPUTS: usize, T> InputVector<INPUTS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const INPUTS: usize, T> InputVectorMut<INPUTS, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const STATES: usize, const INPUTS: usize, T> InputMatrix<STATES, INPUTS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const STATES: usize, const INPUTS: usize, T> InputMatrixMut<STATES, INPUTS, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const INPUTS: usize, T> InputCovarianceMatrix<INPUTS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const INPUTS: usize, T> InputCovarianceMatrixMut<INPUTS, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
     impl<const STATES: usize, T> StatePredictionVector<STATES, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
@@ -944,20 +791,6 @@ mod tests {
         }
     }
     impl<const STATES: usize, T> TemporaryStateMatrix<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const STATES: usize, const INPUTS: usize, T> TemporaryBQMatrix<STATES, INPUTS, T>
-        for Dummy<T>
-    {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
 

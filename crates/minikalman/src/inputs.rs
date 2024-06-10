@@ -99,31 +99,7 @@ where
 impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ>
     Input<STATES, INPUTS, T, B, U, Q, TempBQ>
 where
-    B: InputMatrix<STATES, INPUTS, T>,
-{
-    /// Gets a reference to the input transition matrix B.
-    #[inline(always)]
-    pub fn input_transition_ref(&self) -> &B {
-        &self.B
-    }
-}
-
-impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, INPUTS, T, B, U, Q, TempBQ>
-where
-    Q: InputCovarianceMatrix<INPUTS, T>,
-{
-    /// Gets a reference to the input covariance matrix Q.
-    #[inline(always)]
-    pub fn input_covariance_ref(&self) -> &Q {
-        &self.Q
-    }
-}
-
-impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, INPUTS, T, B, U, Q, TempBQ>
-where
-    U: InputVectorMut<STATES, T>,
+    U: InputVectorMut<INPUTS, T>,
 {
     /// Gets a mutable reference to the input vector u.
     #[inline(always)]
@@ -139,6 +115,18 @@ where
         F: FnMut(&mut U),
     {
         f(&mut self.u)
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ>
+    Input<STATES, INPUTS, T, B, U, Q, TempBQ>
+where
+    B: InputMatrix<STATES, INPUTS, T>,
+{
+    /// Gets a reference to the input transition matrix B.
+    #[inline(always)]
+    pub fn input_transition_ref(&self) -> &B {
+        &self.B
     }
 }
 
@@ -161,6 +149,18 @@ where
         F: FnMut(&mut B),
     {
         f(&mut self.B)
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ>
+    Input<STATES, INPUTS, T, B, U, Q, TempBQ>
+where
+    Q: InputCovarianceMatrix<INPUTS, T>,
+{
+    /// Gets a reference to the input covariance matrix Q.
+    #[inline(always)]
+    pub fn input_covariance_ref(&self) -> &Q {
+        &self.Q
     }
 }
 
