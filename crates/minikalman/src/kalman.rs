@@ -2,8 +2,6 @@ use core::marker::PhantomData;
 use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::*;
 
-use crate::measurement::Measurement;
-
 /// A builder for a [`Kalman`] filter instances.
 #[allow(clippy::type_complexity)]
 pub struct KalmanBuilder<A, X, P, PX, TempP> {
@@ -614,49 +612,12 @@ impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
     /// }
     /// ```
     #[allow(non_snake_case)]
-    pub fn correct<
-        const MEASUREMENTS: usize,
-        Z,
-        H,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempHP,
-        TempPHt,
-        TempKHP,
-    >(
-        &mut self,
-        measurement: &mut Measurement<
-            STATES,
-            MEASUREMENTS,
-            T,
-            H,
-            Z,
-            R,
-            Y,
-            S,
-            K,
-            TempSInv,
-            TempHP,
-            TempPHt,
-            TempKHP,
-        >,
-    ) where
+    pub fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
+    where
         P: SystemCovarianceMatrix<STATES, T>,
         X: StateVector<STATES, T>,
-        H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
-        K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
-        S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
-        R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
-        Y: InnovationVector<MEASUREMENTS, T>,
-        Z: MeasurementVector<MEASUREMENTS, T>,
-        TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
-        TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
-        TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
-        TempKHP: TemporaryKHPMatrix<STATES, T>,
         T: MatrixDataType,
+        M: KalmanFilterMeasurementCorrect<STATES, T> + KalmanFilterNumMeasurements<MEASUREMENTS>,
     {
         measurement.correct(&mut self.x, &mut self.P);
     }
@@ -674,6 +635,7 @@ where
 {
     type StateVector = X;
 
+    #[inline(always)]
     fn state_vector_ref(&self) -> &Self::StateVector {
         self.state_vector_ref()
     }
@@ -686,6 +648,7 @@ where
 {
     type StateVectorMut = X;
 
+    #[inline(always)]
     fn state_vector_mut(&mut self) -> &mut Self::StateVectorMut {
         self.state_vector_mut()
     }
@@ -698,6 +661,7 @@ where
 {
     type SystemMatrix = A;
 
+    #[inline(always)]
     fn state_transition_ref(&self) -> &Self::SystemMatrix {
         self.state_transition_ref()
     }
@@ -710,8 +674,35 @@ where
 {
     type SystemMatrixMut = A;
 
+    #[inline(always)]
     fn state_transition_mut(&mut self) -> &mut Self::SystemMatrixMut {
         self.state_transition_mut()
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    KalmanFilterSystemCovariance<STATES, T> for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    P: SystemCovarianceMatrix<STATES, T>,
+{
+    type SystemCovarianceMatrix = P;
+
+    #[inline(always)]
+    fn system_covariance_ref(&self) -> &Self::SystemCovarianceMatrix {
+        self.system_covariance_ref()
+    }
+}
+
+impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP>
+    KalmanFilterSystemCovarianceMut<STATES, T> for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
+where
+    P: SystemCovarianceMatrix<STATES, T>,
+{
+    type SystemCovarianceMatrixMut = P;
+
+    #[inline(always)]
+    fn system_covariance_mut(&mut self) -> &mut Self::SystemCovarianceMatrixMut {
+        self.system_covariance_mut()
     }
 }
 
@@ -725,37 +716,27 @@ where
     TempP: TemporaryStateMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    #[inline(always)]
     fn predict(&mut self) {
         self.predict()
     }
 }
 
-/* TODO: Implement correction step
 impl<const STATES: usize, const INPUTS: usize, T, A, X, P, PX, TempP> KalmanFilterUpdate<STATES, T>
     for Kalman<STATES, INPUTS, T, A, X, P, PX, TempP>
 where
     P: SystemCovarianceMatrix<STATES, T>,
     X: StateVector<STATES, T>,
-    H: MeasurementTransformationMatrix<MEASUREMENTS, STATES, T>,
-    K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
-    S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
-    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
-    Y: InnovationVector<MEASUREMENTS, T>,
-    Z: MeasurementVector<MEASUREMENTS, T>,
-    TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
-    TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
-    TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
-    TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    #[inline(always)]
     fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
     where
-        M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>,
+        M: KalmanFilterMeasurementCorrect<STATES, T> + KalmanFilterNumMeasurements<MEASUREMENTS>,
     {
         self.correct(measurement)
     }
 }
-*/
 
 #[cfg(test)]
 mod tests {

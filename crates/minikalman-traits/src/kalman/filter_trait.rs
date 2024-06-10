@@ -4,12 +4,12 @@ use crate::kalman::{
     MeasurementTransformationMatrixMut, MeasurementVector, MeasurementVectorMut, StateVector,
     SystemCovarianceMatrix, SystemMatrix, SystemMatrixMut,
 };
-use crate::matrix::{Matrix, MatrixMut};
 
 pub trait KalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>
     + KalmanFilterStateVectorMut<STATES, T>
     + KalmanFilterStateTransition<STATES, T>
+    + KalmanFilterSystemCovarianceMut<STATES, T>
     + KalmanFilterPredict<STATES, T>
     + KalmanFilterUpdate<STATES, T>
 {
@@ -38,6 +38,7 @@ impl<const STATES: usize, T, Filter> KalmanFilter<STATES, T> for Filter where
     Filter: KalmanFilterNumStates<STATES>
         + KalmanFilterStateVectorMut<STATES, T>
         + KalmanFilterStateTransition<STATES, T>
+        + KalmanFilterSystemCovarianceMut<STATES, T>
         + KalmanFilterPredict<STATES, T>
         + KalmanFilterUpdate<STATES, T>
 {
@@ -69,6 +70,9 @@ where
 }
 
 pub trait KalmanFilterNumStates<const STATES: usize> {
+    /// The number of states.
+    const NUM_STATES: usize = STATES;
+
     /// Returns the number of states.
     fn states(&self) -> usize {
         STATES
@@ -90,7 +94,7 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     /// * `measurement` - The measurement to update the state prediction with.
     fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
     where
-        M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>;
+        M: KalmanFilterMeasurementCorrect<STATES, T> + KalmanFilterNumMeasurements<MEASUREMENTS>;
 }
 
 pub trait KalmanFilterMeasurementCorrect<const STATES: usize, T> {
@@ -157,7 +161,7 @@ pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
 }
 
 pub trait KalmanFilterSystemCovariance<const STATES: usize, T> {
-    type SystemCovarianceMatrix: Matrix<STATES, STATES, T>;
+    type SystemCovarianceMatrix: SystemCovarianceMatrix<STATES, T>;
 
     /// Gets a reference to the system covariance matrix P.
     fn system_covariance_ref(&self) -> &Self::SystemCovarianceMatrix;
@@ -166,7 +170,7 @@ pub trait KalmanFilterSystemCovariance<const STATES: usize, T> {
 pub trait KalmanFilterSystemCovarianceMut<const STATES: usize, T>:
     KalmanFilterSystemCovariance<STATES, T>
 {
-    type SystemCovarianceMatrixMut: MatrixMut<STATES, STATES, T>;
+    type SystemCovarianceMatrixMut: SystemCovarianceMatrix<STATES, T>;
 
     /// Gets a mutable reference to the system covariance matrix P.
     #[doc(alias = "kalman_get_system_covariance")]
@@ -183,6 +187,9 @@ pub trait KalmanFilterSystemCovarianceMut<const STATES: usize, T>:
 }
 
 pub trait KalmanFilterNumInputs<const INPUTS: usize> {
+    /// The number of inputs.
+    const NUM_INPUTS: usize = INPUTS;
+
     /// Returns the number of inputs.
     fn inputs(&self) -> usize {
         INPUTS
@@ -269,6 +276,9 @@ pub trait KalmanFilterInputCovarianceMut<const INPUTS: usize, T>:
 }
 
 pub trait KalmanFilterNumMeasurements<const MEASUREMENTS: usize> {
+    /// The number of measurements.
+    const NUM_MEASUREMENTS: usize = MEASUREMENTS;
+
     /// Returns the number of inputs.
     fn measurements(&self) -> usize {
         MEASUREMENTS

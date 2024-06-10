@@ -370,8 +370,8 @@ where
     #[allow(non_snake_case)]
     pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        P: SystemCovarianceMatrix<STATES, T>,
         X: StateVector<STATES, T>,
+        P: SystemCovarianceMatrix<STATES, T>,
     {
         // matrices and vectors
         let P = P.as_matrix_mut();
@@ -688,6 +688,7 @@ where
     TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    #[allow(non_snake_case)]
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
         X: StateVector<STATES, T>,
