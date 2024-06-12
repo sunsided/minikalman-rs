@@ -154,7 +154,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// Performs a matrix multiplication such that `C = A * B`. This method
     /// uses an auxiliary buffer for keeping one row of `B` cached. This might
     /// improve performance on very wide matrices but is generally slower than
-    /// [`MatrixData::mult`].
+    /// [`Matrix::mult`].
     ///
     /// ## Arguments
     /// * `self` - Matrix A
@@ -164,7 +164,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman_traits::matrix::{Matrix, MatrixData};
+    /// use minikalman::matrix::{Matrix, MatrixData};
     ///
     /// let a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -247,7 +247,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman_traits::matrix::{MatrixData, Matrix};
+    /// use minikalman::matrix::{MatrixData, Matrix};
     ///
     /// let a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -692,7 +692,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 /// A square matrix wrapping a data buffer.
 pub trait SquareMatrix<const N: usize, T = f32>: AsRef<[T]> {
     /// Inverts a square lower triangular matrix. Meant to be used with
-    /// [`MatrixData::cholesky_decompose_lower`].
+    /// [`MatrixDataMut::cholesky_decompose_lower`](crate::matrix::MatrixDataMut::cholesky_decompose_lower).
     ///
     /// This does not validate that the matrix is indeed of
     /// lower triangular form. Note that this does not calculate the inverse
@@ -707,7 +707,7 @@ pub trait SquareMatrix<const N: usize, T = f32>: AsRef<[T]> {
     /// ## Example
     ///
     /// ```
-    /// use minikalman_traits::matrix::{MatrixData, Matrix, MatrixMut, SquareMatrix};
+    /// use minikalman::matrix::{MatrixData, Matrix, MatrixMut, SquareMatrix};
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [
@@ -903,7 +903,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman_traits::matrix::{MatrixData, MatrixMut};
+    /// use minikalman::matrix::{MatrixData, MatrixMut};
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [

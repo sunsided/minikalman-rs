@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/minikalman", "crates/minikalman-traits", "xbuild-tests/stm32"]
+members = ["crates/minikalman", "xbuild-tests/stm32"]
 default-members = ["crates/minikalman"]
 
 [profile.dev]      # Needed for the embedded cross-compilation projects

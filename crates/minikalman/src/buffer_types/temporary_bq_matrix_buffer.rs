@@ -1,16 +1,15 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use minikalman_traits::kalman::TemporaryBQMatrix;
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
-use minikalman_traits::matrix::{Matrix, MatrixMut};
+use crate::kalman::TemporaryBQMatrix;
+use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
+use crate::matrix::{Matrix, MatrixMut};
 
 /// Mutable buffer for the temporary B×Q matrix (`num_states` × `num_inputs`).
 ///
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = TemporaryBQMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));

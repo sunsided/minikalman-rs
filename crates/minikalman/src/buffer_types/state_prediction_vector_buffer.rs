@@ -1,16 +1,15 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use minikalman_traits::kalman::StatePredictionVector;
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
-use minikalman_traits::matrix::{Matrix, MatrixMut};
+use crate::kalman::StatePredictionVector;
+use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
+use crate::matrix::{Matrix, MatrixMut};
 
 /// Mutable buffer for the temporary state prediction vector (`num_states` × `1`).
 ///
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = TemporaryStatePredictionVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));

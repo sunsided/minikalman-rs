@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
-use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::kalman::*;
+use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 /// A builder for a Kalman filter [`Measurement`] instances.
 #[allow(clippy::type_complexity)]
@@ -74,7 +74,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// );
     /// ```
     ///
-    /// See also [`Kalman::new_direct`](crate::Kalman::new_direct) for setting up the Kalman filter itself.
+    /// See also [`KalmanBuilder::new`](KalmanBuilder::new) for setting up the Kalman filter itself.
     #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, const MEASUREMENTS: usize, T>(
         H: H,

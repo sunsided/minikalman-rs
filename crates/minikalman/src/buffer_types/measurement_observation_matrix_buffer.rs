@@ -1,18 +1,15 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use minikalman_traits::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMut};
-use minikalman_traits::matrix::{
-    IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
-};
-use minikalman_traits::matrix::{Matrix, MatrixMut};
+use crate::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMut};
+use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
+use crate::matrix::{Matrix, MatrixMut};
 
 /// Immutable buffer for the observation matrix (`num_inputs` × `num_states`).
 ///
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = MeasurementObservationMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
@@ -33,7 +30,6 @@ where
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = MeasurementObservationMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));

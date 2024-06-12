@@ -1,7 +1,11 @@
 use core::marker::PhantomData;
 
-use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::*;
+mod filter_trait;
+mod matrix_types;
+
+use crate::matrix::{Matrix, MatrixDataType};
+pub use filter_trait::*;
+pub use matrix_types::*;
 
 /// A builder for a [`Kalman`] filter instances.
 #[allow(clippy::type_complexity)]

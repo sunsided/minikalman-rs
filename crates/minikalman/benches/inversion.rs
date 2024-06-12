@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use minikalman_traits::matrix::{MatrixData, SquareMatrix};
+use minikalman::matrix::{MatrixData, SquareMatrix};
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("invert_lower (ref)", |bencher| {
