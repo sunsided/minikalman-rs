@@ -363,6 +363,16 @@ mod tests {
     }
 
     #[test]
+    fn test_from_mut() {
+        let mut data = [0.0_f32; 100];
+        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
+    }
+
+    #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
         let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
