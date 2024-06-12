@@ -8,7 +8,7 @@
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
 //! to create the required arrays (see e.g. [`impl_buffer_A`]).
 //!
-//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanBuilder`] can be
+//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](builder::KalmanFilterBuilder) can be
 //! used to quickly create a [`Kalman`] filter instance with all necessary buffers, alongside
 //! [`Control`] and [`Observation`] instances.
 //!
@@ -20,6 +20,118 @@
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!              compiles the crate as `#![forbid(unsafe)]`.
+//!
+//! ## Example
+//!
+//! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](builder::KalmanFilterBuilder) is enabled. An overly simplified example
+//! for setting up and operating the Kalman Filter could look like this:
+//!
+//! ```
+//! use minikalman::builder::KalmanFilterBuilder;
+//!
+//! const NUM_STATES: usize = 3;
+//! const NUM_CONTROLS: usize = 2;
+//! const NUM_OBSERVATIONS: usize = 1;
+//!
+//! let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+//! let mut filter = builder.build();
+//! let mut control = builder.controls().build::<NUM_CONTROLS>();
+//! let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+//!
+//! // Set up the system dynamics, control matrices, observation matrices, ...
+//!
+//! // Filter!
+//! loop {
+//!     // Update your control vector(s).
+//!     control.control_vector_apply(|u| {
+//!         u[0] = 0.0;
+//!         u[1] = 1.0;
+//!     });
+//!
+//!     // Update your measurement vectors.
+//!     measurement.measurement_vector_apply(|z| {
+//!         z[0] = 42.0;
+//!     });
+//!
+//!     // Update prediction (without controls).
+//!     filter.predict();
+//!
+//!     // Apply any controls to the prediction.
+//!     filter.control(&mut control);
+//!
+//!     // Apply any measurements.
+//!     filter.correct(&mut measurement);
+//!
+//!     // Access the state
+//!     let state = filter.state_vector_ref();
+//!     let covariance = filter.estimate_covariance_ref();
+//! }
+//! ```
+//!
+//! ## `no_std` Example
+//!
+//! Systems without the liberty of heap allocation may make use of the provided helper macros
+//! to wire up new types. This comes at the cost of potentially confusing IDEs due to recursive
+//! macro expansion, so buyer beware. In the example below, types are set up as arrays bound
+//! to `static mut` variables.
+//!
+//! ```
+//! use minikalman::buffers::types::*;
+//! use minikalman::prelude::*;
+//!
+//! const NUM_STATES: usize = 3;
+//! const NUM_OBSERVATIONS: usize = 1;
+//!
+//! // System buffers.
+//! impl_buffer_x!(static mut gravity_x, NUM_STATES, f32, 0.0);
+//! impl_buffer_A!(static mut gravity_A, NUM_STATES, f32, 0.0);
+//! impl_buffer_P!(static mut gravity_P, NUM_STATES, f32, 0.0);
+//!
+//! // Observation buffers.
+//! impl_buffer_Q!(static mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+//! impl_buffer_H!(static mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+//! impl_buffer_R!(static mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+//! impl_buffer_y!(static mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+//! impl_buffer_S!(static mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+//! impl_buffer_K!(static mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
+//!
+//! // Filter temporaries.
+//! impl_buffer_temp_x!(static mut gravity_temp_x, NUM_STATES, f32, 0.0);
+//! impl_buffer_temp_P!(static mut gravity_temp_P, NUM_STATES, f32, 0.0);
+//!
+//! // Observation temporaries.
+//! impl_buffer_temp_S_inv!(static mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+//!
+//! // Observation temporaries.
+//! impl_buffer_temp_HP!(static mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+//! impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
+//! impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
+//!
+//! let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+//!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
+//!     StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
+//!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
+//!     PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
+//!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
+//! );
+//!
+//! let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+//!     ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
+//!     MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
+//!     MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
+//!     InnovationVectorBuffer::from(unsafe { gravity_y.as_mut() }),
+//!     InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut() }),
+//!     KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut() }),
+//!     TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
+//!         gravity_temp_S_inv.as_mut()
+//!     }),
+//!     TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut() }),
+//!     TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut() }),
+//!     TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut() }),
+//! );
+//! ```
+//!
+//! After that, the `filter` and `measurement` variables can be used similar to the example above.
 
 // only enables the `doc_cfg` feature when
 // the `docsrs` configuration attribute is defined

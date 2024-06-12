@@ -8,7 +8,7 @@ use crate::matrix::{Matrix, MatrixMut};
 /// Mutable buffer for the temporary H×P matrix (`num_measurements` × `num_states`).
 ///
 /// # See also
-/// * [`TemporaryPHTMatrixBuffer`](crate::buffer_types::TemporaryPHTMatrixBuffer).
+/// * [`TemporaryPHTMatrixBuffer`](crate::buffers::types::TemporaryPHTMatrixBuffer).
 ///
 /// ## Example
 /// ```

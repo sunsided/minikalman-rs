@@ -8,7 +8,7 @@ use crate::matrix::{Matrix, MatrixMut};
 /// Mutable buffer for the temporary P×Hᵀ matrix (`num_states` × `num_measurements`).
 ///
 /// # See also
-/// * [`TemporaryHPMatrixBuffer`](crate::buffer_types::TemporaryHPMatrixBuffer).
+/// * [`TemporaryHPMatrixBuffer`](crate::buffers::types::TemporaryHPMatrixBuffer).
 ///
 /// ## Example
 /// ```

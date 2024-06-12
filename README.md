@@ -52,7 +52,7 @@ fn example() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
     let mut control = builder.controls().build::<NUM_CONTROLS>();
-    let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
+    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
     // Set up the system dynamics, control matrices, observation matrices, ...
 
@@ -69,10 +69,10 @@ fn example() {
             z[0] = 42.0;
         });
 
-        // Update prediction and apply the controls.
+        // Update prediction (without controls).
         filter.predict();
 
-        // Apply any controls.
+        // Apply any controls to the prediction.
         filter.control(&mut control);
 
         // Apply any measurements.
