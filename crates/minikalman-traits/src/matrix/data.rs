@@ -600,6 +600,13 @@ mod tests {
     }
 
     #[test]
+    fn data_into_array() {
+        let value: MatrixDataArray<4, 1, 4, f32> = [0.0, 1.0, 3.0, 4.0].into();
+        let data: [f32; 4] = value.into();
+        assert_eq!(data, [0.0, 1.0, 3.0, 4.0]);
+    }
+
+    #[test]
     #[rustfmt::skip]
     fn ref_from_mut() {
         let mut a_buf = [
