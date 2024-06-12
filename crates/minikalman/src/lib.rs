@@ -168,15 +168,15 @@ macro_rules! size_buffer_x {
 /// ## Example
 /// ```
 /// # use minikalman::*;
-/// const NUM_INPUTS: usize = 1;
-/// assert_eq!(size_buffer_u!(NUM_INPUTS), 1);
+/// const NUM_CONTROLS: usize = 1;
+/// assert_eq!(size_buffer_u!(NUM_CONTROLS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_u {
     ( $num_inputs:expr ) => {{
-        const NUM_INPUTS_: usize = ($num_inputs) as usize;
-        (NUM_INPUTS_ * 1) as usize
+        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+        (NUM_CONTROLS_ * 1) as usize
     }};
 }
 
@@ -190,16 +190,16 @@ macro_rules! size_buffer_u {
 /// ```
 /// # use minikalman::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_INPUTS: usize = 1;
-/// assert_eq!(size_buffer_B!(NUM_STATES, NUM_INPUTS), 3);
+/// const NUM_CONTROLS: usize = 1;
+/// assert_eq!(size_buffer_B!(NUM_STATES, NUM_CONTROLS), 3);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_B {
     ( $num_states:expr, $num_inputs:expr ) => {{
         const NUM_STATES_: usize = ($num_states) as usize;
-        const NUM_INPUTS_: usize = ($num_inputs) as usize;
-        (NUM_STATES_ * NUM_INPUTS_) as usize
+        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+        (NUM_STATES_ * NUM_CONTROLS_) as usize
     }};
 }
 
@@ -211,15 +211,15 @@ macro_rules! size_buffer_B {
 /// ## Example
 /// ```
 /// # use minikalman::*;
-/// const NUM_INPUTS: usize = 1;
-/// assert_eq!(size_buffer_Q!(NUM_INPUTS), 1);
+/// const NUM_CONTROLS: usize = 1;
+/// assert_eq!(size_buffer_Q!(NUM_CONTROLS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_Q {
     ( $num_inputs:expr ) => {{
-        const NUM_INPUTS_: usize = ($num_inputs) as usize;
-        (NUM_INPUTS_ * NUM_INPUTS_) as usize
+        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+        (NUM_CONTROLS_ * NUM_CONTROLS_) as usize
     }};
 }
 
@@ -399,16 +399,16 @@ macro_rules! size_buffer_temp_P {
 /// ```
 /// # use minikalman::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_INPUTS: usize = 1;
-/// assert_eq!(size_buffer_temp_BQ!(NUM_STATES, NUM_INPUTS), 3);
+/// const NUM_CONTROLS: usize = 1;
+/// assert_eq!(size_buffer_temp_BQ!(NUM_STATES, NUM_CONTROLS), 3);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_BQ {
     ( $num_states:expr, $num_inputs:expr ) => {{
         const NUM_STATES_: usize = ($num_states) as usize;
-        const NUM_INPUTS_: usize = ($num_inputs) as usize;
-        (NUM_STATES_ * NUM_INPUTS_) as usize
+        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+        (NUM_STATES_ * NUM_CONTROLS_) as usize
     }};
 }
 

@@ -15,7 +15,7 @@ const MEASUREMENT_ERROR: [f32; 15] = [
 ];
 
 const NUM_STATES: usize = 3;
-// const NUM_INPUTS: usize = 0;
+// const NUM_CONTROLS: usize = 0;
 const NUM_MEASUREMENTS: usize = 1;
 
 #[allow(non_snake_case)]
@@ -26,9 +26,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
     // Input buffers.
-    // let mut gravity_u = BufferBuilder::input_vector_u::<NUM_INPUTS>().new(0.0_f32);
-    // let mut gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
-    // let mut gravity_Q = BufferBuilder::input_covariance_Q::<NUM_INPUTS>().new(0.0_f32);
+    // let mut gravity_u = BufferBuilder::input_vector_u::<NUM_CONTROLS>().new(0.0_f32);
+    // let mut gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
+    // let mut gravity_Q = BufferBuilder::input_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
 
     // Measurement buffers.
     let mut gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(0.0_f32);
@@ -42,7 +42,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Filter temporaries.
     let mut gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
     let mut gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
-    // let mut gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
+    // let mut gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
 
     // Measurement temporaries.
     let mut gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(0.0_f32);

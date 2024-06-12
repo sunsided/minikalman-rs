@@ -25,13 +25,13 @@ impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     /// ## Arguments
     /// * `A` - The state transition matrix (`STATES` × `STATES`).
     /// * `x` - The state vector (`STATES` × `1`).
-    /// * `B` - The input transition matrix (`STATES` × `INPUTS`).
-    /// * `u` - The input vector (`INPUTS` × `1`).
+    /// * `B` - The input transition matrix (`STATES` × `CONTROLS`).
+    /// * `u` - The input vector (`CONTROLS` × `1`).
     /// * `P` - The state covariance matrix (`STATES` × `STATES`).
-    /// * `Q` - The input covariance matrix (`INPUTS` × `INPUTS`).
+    /// * `Q` - The input covariance matrix (`CONTROLS` × `CONTROLS`).
     /// * `predictedX` - The temporary vector for predicted states (`STATES` × `1`).
     /// * `temp_P` - The temporary vector for P calculation (`STATES` × `STATES`).
-    /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `INPUTS`).
+    /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `CONTROLS`).
     ///
     /// ## Example
     ///
@@ -39,7 +39,7 @@ impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
-    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// // System buffers.
     /// impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
@@ -215,7 +215,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
-    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
@@ -310,7 +310,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
-    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
@@ -470,12 +470,12 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     }
 
     #[inline(always)]
-    pub fn input<const INPUTS: usize, I>(&mut self, input: &mut I)
+    pub fn input<const CONTROLS: usize, I>(&mut self, input: &mut I)
     where
         P: SystemCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
-        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<INPUTS>,
+        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<CONTROLS>,
     {
         input.apply_to(&mut self.x, &mut self.P)
     }
@@ -490,7 +490,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
-    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
@@ -688,9 +688,9 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn input<const INPUTS: usize, I>(&mut self, input: &mut I)
+    fn input<const CONTROLS: usize, I>(&mut self, input: &mut I)
     where
-        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<INPUTS>,
+        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<CONTROLS>,
     {
         self.input(input)
     }

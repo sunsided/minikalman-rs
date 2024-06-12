@@ -19,9 +19,9 @@ use crate::matrix::{Matrix, MatrixMut};
 /// let data = [0.0; 4];
 /// let buffer = InputMatrixBuffer::<2, 2, f32, _>::from(data.as_ref());
 /// ```
-pub struct InputMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
+pub struct InputMatrixBuffer<const STATES: usize, const CONTROLS: usize, T, M>(M, PhantomData<T>)
 where
-    M: Matrix<STATES, INPUTS, T>;
+    M: Matrix<STATES, CONTROLS, T>;
 
 /// Mutable buffer for the control matrix (`num_states` × `num_inputs`).
 ///
@@ -37,112 +37,115 @@ where
 /// let mut data = [0.0; 4];
 /// let buffer = InputMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
 /// ```
-pub struct InputMatrixMutBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
+pub struct InputMatrixMutBuffer<const STATES: usize, const CONTROLS: usize, T, M>(
+    M,
+    PhantomData<T>,
+)
 where
-    M: MatrixMut<STATES, INPUTS, T>;
+    M: MatrixMut<STATES, CONTROLS, T>;
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputMatrixBuffer<STATES, INPUTS, T, MatrixDataArray<STATES, INPUTS, TOTAL, T>>
+impl<const STATES: usize, const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for InputMatrixBuffer<STATES, CONTROLS, T, MatrixDataArray<STATES, CONTROLS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(STATES * INPUTS <= TOTAL);
+            debug_assert!(STATES * CONTROLS <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<STATES, CONTROLS, TOTAL, T>(value))
     }
 }
 
-impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a [T]>
-    for InputMatrixBuffer<STATES, INPUTS, T, MatrixDataRef<'a, STATES, INPUTS, T>>
+impl<'a, const STATES: usize, const CONTROLS: usize, T> From<&'a [T]>
+    for InputMatrixBuffer<STATES, CONTROLS, T, MatrixDataRef<'a, STATES, CONTROLS, T>>
 {
     fn from(value: &'a [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(STATES * INPUTS <= value.len());
+            debug_assert!(STATES * CONTROLS <= value.len());
         }
-        Self::new(MatrixData::new_ref::<STATES, INPUTS, T>(value))
+        Self::new(MatrixData::new_ref::<STATES, CONTROLS, T>(value))
     }
 }
 
-impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
-    for InputMatrixBuffer<STATES, INPUTS, T, MatrixDataRef<'a, STATES, INPUTS, T>>
+impl<'a, const STATES: usize, const CONTROLS: usize, T> From<&'a mut [T]>
+    for InputMatrixBuffer<STATES, CONTROLS, T, MatrixDataRef<'a, STATES, CONTROLS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(STATES * INPUTS <= value.len());
+            debug_assert!(STATES * CONTROLS <= value.len());
         }
-        Self::new(MatrixData::new_ref::<STATES, INPUTS, T>(value))
+        Self::new(MatrixData::new_ref::<STATES, CONTROLS, T>(value))
     }
 }
 
-impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataMut<'a, STATES, INPUTS, T>>
+impl<'a, const STATES: usize, const CONTROLS: usize, T> From<&'a mut [T]>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataMut<'a, STATES, CONTROLS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(STATES * INPUTS <= value.len());
+            debug_assert!(STATES * CONTROLS <= value.len());
         }
-        Self::new(MatrixData::new_mut::<STATES, INPUTS, T>(value))
+        Self::new(MatrixData::new_mut::<STATES, CONTROLS, T>(value))
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataArray<STATES, INPUTS, TOTAL, T>>
+impl<const STATES: usize, const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataArray<STATES, CONTROLS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(STATES * INPUTS <= TOTAL);
+            debug_assert!(STATES * CONTROLS <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<STATES, CONTROLS, TOTAL, T>(value))
     }
 }
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, const INPUTS: usize, T, M> InputMatrixBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> InputMatrixBuffer<STATES, CONTROLS, T, M>
 where
-    M: Matrix<STATES, INPUTS, T>,
+    M: Matrix<STATES, CONTROLS, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        STATES * INPUTS
+        STATES * CONTROLS
     }
 
     pub const fn is_empty(&self) -> bool {
-        STATES * INPUTS == 0
+        STATES * CONTROLS == 0
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> AsRef<[T]>
-    for InputMatrixBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> AsRef<[T]>
+    for InputMatrixBuffer<STATES, CONTROLS, T, M>
 where
-    M: Matrix<STATES, INPUTS, T>,
+    M: Matrix<STATES, CONTROLS, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> Matrix<STATES, INPUTS, T>
-    for InputMatrixBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> Matrix<STATES, CONTROLS, T>
+    for InputMatrixBuffer<STATES, CONTROLS, T, M>
 where
-    M: Matrix<STATES, INPUTS, T>,
+    M: Matrix<STATES, CONTROLS, T>,
 {
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> InputMatrix<STATES, INPUTS, T>
-    for InputMatrixBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> InputMatrix<STATES, CONTROLS, T>
+    for InputMatrixBuffer<STATES, CONTROLS, T, M>
 where
-    M: Matrix<STATES, INPUTS, T>,
+    M: Matrix<STATES, CONTROLS, T>,
 {
     type Target = M;
 
@@ -151,20 +154,20 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        STATES * INPUTS
+        STATES * CONTROLS
     }
 
     pub const fn is_empty(&self) -> bool {
-        STATES * INPUTS == 0
+        STATES * CONTROLS == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -173,44 +176,44 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> AsRef<[T]>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> AsRef<[T]>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> AsMut<[T]>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> AsMut<[T]>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> Matrix<STATES, INPUTS, T>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> Matrix<STATES, CONTROLS, T>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> MatrixMut<STATES, INPUTS, T>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> MatrixMut<STATES, CONTROLS, T>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> InputMatrix<STATES, INPUTS, T>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> InputMatrix<STATES, CONTROLS, T>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
     type Target = M;
 
@@ -219,10 +222,10 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> InputMatrixMut<STATES, INPUTS, T>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> InputMatrixMut<STATES, CONTROLS, T>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
     type TargetMut = M;
 
@@ -231,10 +234,10 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> Index<usize>
-    for InputMatrixBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> Index<usize>
+    for InputMatrixBuffer<STATES, CONTROLS, T, M>
 where
-    M: Matrix<STATES, INPUTS, T>,
+    M: Matrix<STATES, CONTROLS, T>,
 {
     type Output = T;
 
@@ -243,10 +246,10 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> Index<usize>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> Index<usize>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
     type Output = T;
 
@@ -255,10 +258,10 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> IndexMut<usize>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> IndexMut<usize>
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T>,
+    M: MatrixMut<STATES, CONTROLS, T>,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
@@ -267,10 +270,10 @@ where
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, const INPUTS: usize, T, M> IntoInnerData
-    for InputMatrixBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> IntoInnerData
+    for InputMatrixBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T> + IntoInnerData,
+    M: MatrixMut<STATES, CONTROLS, T> + IntoInnerData,
 {
     type Target = M::Target;
 
@@ -279,10 +282,10 @@ where
     }
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, M> IntoInnerData
-    for InputMatrixMutBuffer<STATES, INPUTS, T, M>
+impl<const STATES: usize, const CONTROLS: usize, T, M> IntoInnerData
+    for InputMatrixMutBuffer<STATES, CONTROLS, T, M>
 where
-    M: MatrixMut<STATES, INPUTS, T> + IntoInnerData,
+    M: MatrixMut<STATES, CONTROLS, T> + IntoInnerData,
 {
     type Target = M::Target;
 

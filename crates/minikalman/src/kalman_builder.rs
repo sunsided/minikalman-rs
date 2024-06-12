@@ -50,12 +50,12 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// use minikalman::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
-    /// const NUM_INPUTS: usize = 2;
+    /// const NUM_CONTROLS: usize = 2;
     /// const NUM_MEASUREMENTS: usize = 5;
     ///
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// let mut filter = builder.build();
-    /// let mut input = builder.inputs().build::<NUM_INPUTS>();
+    /// let mut input = builder.inputs().build::<NUM_CONTROLS>();
     /// let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
     /// ```
     ///
@@ -105,14 +105,14 @@ impl<const STATES: usize, T> Default for KalmanFilterInputBuilder<STATES, T> {
 /// The type of Kalman filter inputs with owned buffers.
 ///
 /// See also the [`KalmanFilterInput`](minikalman::kalman::KalmanFilterInput) trait.
-pub type KalmanFilterInputType<const STATES: usize, const INPUTS: usize, T> = Input<
+pub type KalmanFilterInputType<const STATES: usize, const CONTROLS: usize, T> = Input<
     STATES,
-    INPUTS,
+    CONTROLS,
     T,
-    ControlMatrixBufferOwnedType<STATES, INPUTS, T>,
-    ControlVectorBufferOwnedType<INPUTS, T>,
-    ControlCovarianceMatrixBufferOwnedType<INPUTS, T>,
-    TemporaryBQMatrixBufferOwnedType<STATES, INPUTS, T>,
+    ControlMatrixBufferOwnedType<STATES, CONTROLS, T>,
+    ControlVectorBufferOwnedType<CONTROLS, T>,
+    ControlCovarianceMatrixBufferOwnedType<CONTROLS, T>,
+    TemporaryBQMatrixBufferOwnedType<STATES, CONTROLS, T>,
 >;
 
 impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
@@ -128,15 +128,15 @@ impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
     /// use minikalman::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
-    /// const NUM_INPUTS: usize = 2;
+    /// const NUM_CONTROLS: usize = 2;
     ///
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// // let mut filter = builder.build();
-    /// let mut input = builder.inputs().build::<NUM_INPUTS>();
+    /// let mut input = builder.inputs().build::<NUM_CONTROLS>();
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
-    pub fn build<const INPUTS: usize>(&self) -> KalmanFilterInputType<STATES, INPUTS, T>
+    pub fn build<const CONTROLS: usize>(&self) -> KalmanFilterInputType<STATES, CONTROLS, T>
     where
         T: MatrixDataType,
     {
@@ -144,14 +144,14 @@ impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
         let zero = T::zero();
 
         // Input buffers.
-        let input_vector = BufferBuilder::input_vector_u::<INPUTS>().new(zero);
-        let input_transition = BufferBuilder::input_transition_B::<STATES, INPUTS>().new(zero);
-        let input_covariance = BufferBuilder::input_covariance_Q::<INPUTS>().new(zero);
+        let input_vector = BufferBuilder::input_vector_u::<CONTROLS>().new(zero);
+        let input_transition = BufferBuilder::input_transition_B::<STATES, CONTROLS>().new(zero);
+        let input_covariance = BufferBuilder::input_covariance_Q::<CONTROLS>().new(zero);
 
         // Input temporaries.
-        let temp_bq = BufferBuilder::temp_BQ::<STATES, INPUTS>().new(zero);
+        let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new(zero);
 
-        InputBuilder::new::<STATES, INPUTS, T>(
+        InputBuilder::new::<STATES, CONTROLS, T>(
             input_transition,
             input_vector,
             input_covariance,
@@ -254,7 +254,7 @@ mod tests {
     use crate::kalman::{KalmanFilter, KalmanFilterInput, KalmanFilterMeasurement};
 
     const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
-    const NUM_INPUTS: usize = 1; // constant velocity
+    const NUM_CONTROLS: usize = 1; // constant velocity
     const NUM_MEASUREMENTS: usize = 1; // position
 
     fn accept_filter<F, T>(_filter: F)
@@ -265,7 +265,7 @@ mod tests {
 
     fn accept_input<I, T>(_input: I)
     where
-        I: KalmanFilterInput<NUM_STATES, NUM_INPUTS, T>,
+        I: KalmanFilterInput<NUM_STATES, NUM_CONTROLS, T>,
     {
     }
 
@@ -286,9 +286,9 @@ mod tests {
     #[test]
     fn input_builder() {
         let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
-        let input = builder.inputs().build::<NUM_INPUTS>();
+        let input = builder.inputs().build::<NUM_CONTROLS>();
         assert_eq!(input.states(), NUM_STATES);
-        assert_eq!(input.inputs(), NUM_INPUTS);
+        assert_eq!(input.inputs(), NUM_CONTROLS);
         accept_input(input);
     }
 
@@ -297,7 +297,7 @@ mod tests {
         let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
         let measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
         assert_eq!(measurement.states(), NUM_STATES);
-        assert_eq!(measurement.measurements(), NUM_INPUTS);
+        assert_eq!(measurement.measurements(), NUM_CONTROLS);
         accept_measurement(measurement);
     }
 }

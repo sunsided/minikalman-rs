@@ -23,18 +23,19 @@ impl BufferBuilder {
         SystemCovarianceMatrixBufferBuilder
     }
 
-    pub fn input_vector_u<const INPUTS: usize>() -> InputVectorBufferBuilder<INPUTS> {
+    pub fn input_vector_u<const CONTROLS: usize>() -> InputVectorBufferBuilder<CONTROLS> {
         InputVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn input_transition_B<const STATES: usize, const INPUTS: usize>(
-    ) -> InputTransitionMatrixBufferBuilder<STATES, INPUTS> {
+    pub fn input_transition_B<const STATES: usize, const CONTROLS: usize>(
+    ) -> InputTransitionMatrixBufferBuilder<STATES, CONTROLS> {
         InputTransitionMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn input_covariance_Q<const INPUTS: usize>() -> InputCovarianceMatrixBufferBuilder<INPUTS> {
+    pub fn input_covariance_Q<const CONTROLS: usize>(
+    ) -> InputCovarianceMatrixBufferBuilder<CONTROLS> {
         InputCovarianceMatrixBufferBuilder
     }
 
@@ -84,8 +85,8 @@ impl BufferBuilder {
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_BQ<const STATES: usize, const INPUTS: usize>(
-    ) -> TemporaryBQMatrixBufferBuilder<STATES, INPUTS> {
+    pub fn temp_BQ<const STATES: usize, const CONTROLS: usize>(
+    ) -> TemporaryBQMatrixBufferBuilder<STATES, CONTROLS> {
         TemporaryBQMatrixBufferBuilder
     }
 
@@ -123,13 +124,13 @@ pub struct StateTransitionMatrixBufferBuilder<const STATES: usize>;
 pub struct SystemCovarianceMatrixBufferBuilder<const STATES: usize>;
 
 /// A builder for input vectors (`num_inputs` × `1`).
-pub struct InputVectorBufferBuilder<const INPUTS: usize>;
+pub struct InputVectorBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for input transition matrices (`num_states` × `num_inputs`).
-pub struct InputTransitionMatrixBufferBuilder<const STATES: usize, const INPUTS: usize>;
+pub struct InputTransitionMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
 
 /// A builder for input covariance matrices (`num_inputs` × `num_inputs`).
-pub struct InputCovarianceMatrixBufferBuilder<const INPUTS: usize>;
+pub struct InputCovarianceMatrixBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for measurement vectors (`num_measurements` × `1`).
 pub struct MeasurementVectorBufferBuilder<const MEASUREMENTS: usize>;
@@ -159,7 +160,7 @@ pub struct StatePredictionVectorBufferBuilder<const STATES: usize>;
 pub struct TemporarySystemCovarianceMatrixBufferBuilder<const STATES: usize>;
 
 /// A builder for temporary matrices (`num_states` × `num_inputs`).
-pub struct TemporaryBQMatrixBufferBuilder<const STATES: usize, const INPUTS: usize>;
+pub struct TemporaryBQMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
 
 /// A builder for temporary matrices (`num_measurements` × `num_measurements`).
 pub struct TemporarySInvMatrixBufferBuilder<const MEASUREMENTS: usize>;
@@ -271,7 +272,7 @@ impl<const STATES: usize> SystemCovarianceMatrixBufferBuilder<STATES> {
 pub type ControlVectorBufferOwnedType<const STATES: usize, T> =
     InputVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
 
-impl<const INPUTS: usize> InputVectorBufferBuilder<INPUTS> {
+impl<const CONTROLS: usize> InputVectorBufferBuilder<CONTROLS> {
     /// Builds a new [`InputVectorBuffer`] that owns its data.
     ///
     /// ## Example
@@ -290,22 +291,24 @@ impl<const INPUTS: usize> InputVectorBufferBuilder<INPUTS> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InputVectorBuffer<INPUTS, T, MatrixDataArray<INPUTS, 1, INPUTS, T>>
+    ) -> InputVectorBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>
     where
         T: Copy,
     {
-        InputVectorBuffer::<INPUTS, T, MatrixDataArray<INPUTS, 1, INPUTS, T>>::new(
-            MatrixData::new_array::<INPUTS, 1, INPUTS, T>([init; INPUTS]),
+        InputVectorBuffer::<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>::new(
+            MatrixData::new_array::<CONTROLS, 1, CONTROLS, T>([init; CONTROLS]),
         )
     }
 }
 
 /// The type of owned control matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type ControlMatrixBufferOwnedType<const STATES: usize, const INPUTS: usize, T> =
-    InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataBoxed<STATES, INPUTS, T>>;
+pub type ControlMatrixBufferOwnedType<const STATES: usize, const CONTROLS: usize, T> =
+    InputMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>;
 
-impl<const STATES: usize, const INPUTS: usize> InputTransitionMatrixBufferBuilder<STATES, INPUTS> {
+impl<const STATES: usize, const CONTROLS: usize>
+    InputTransitionMatrixBufferBuilder<STATES, CONTROLS>
+{
     /// Builds a new [`InputMatrixMutBuffer`] that owns its data.
     ///
     /// ## Example
@@ -324,22 +327,22 @@ impl<const STATES: usize, const INPUTS: usize> InputTransitionMatrixBufferBuilde
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataBoxed<STATES, INPUTS, T>>
+    ) -> InputMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>
     where
         T: Copy,
     {
-        InputMatrixMutBuffer::<STATES, INPUTS, T, MatrixDataBoxed<STATES, INPUTS, T>>::new(
-            MatrixData::new_boxed::<STATES, INPUTS, T, _>(vec![init; STATES * INPUTS]),
+        InputMatrixMutBuffer::<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>::new(
+            MatrixData::new_boxed::<STATES, CONTROLS, T, _>(vec![init; STATES * CONTROLS]),
         )
     }
 }
 
 /// The type of owned control matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type ControlCovarianceMatrixBufferOwnedType<const INPUTS: usize, T> =
-    InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataBoxed<INPUTS, INPUTS, T>>;
+pub type ControlCovarianceMatrixBufferOwnedType<const CONTROLS: usize, T> =
+    InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>;
 
-impl<const INPUTS: usize> InputCovarianceMatrixBufferBuilder<INPUTS> {
+impl<const CONTROLS: usize> InputCovarianceMatrixBufferBuilder<CONTROLS> {
     /// Builds a new [`InputCovarianceMatrixMutBuffer`] that owns its data.
     ///
     /// ## Example
@@ -358,12 +361,12 @@ impl<const INPUTS: usize> InputCovarianceMatrixBufferBuilder<INPUTS> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataBoxed<INPUTS, INPUTS, T>>
+    ) -> InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>
     where
         T: Copy,
     {
-        InputCovarianceMatrixMutBuffer::<INPUTS, T, MatrixDataBoxed<INPUTS, INPUTS, T>>::new(
-            MatrixData::new_boxed::<INPUTS, INPUTS, T, _>(vec![init; INPUTS * INPUTS]),
+        InputCovarianceMatrixMutBuffer::<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>::new(
+            MatrixData::new_boxed::<CONTROLS, CONTROLS, T, _>(vec![init; CONTROLS * CONTROLS]),
         )
     }
 }
@@ -656,10 +659,10 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
 
 /// The type of temporary B×Q matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type TemporaryBQMatrixBufferOwnedType<const STATES: usize, const INPUTS: usize, T> =
-    TemporaryBQMatrixBuffer<STATES, INPUTS, T, MatrixDataBoxed<STATES, INPUTS, T>>;
+pub type TemporaryBQMatrixBufferOwnedType<const STATES: usize, const CONTROLS: usize, T> =
+    TemporaryBQMatrixBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>;
 
-impl<const STATES: usize, const INPUTS: usize> TemporaryBQMatrixBufferBuilder<STATES, INPUTS> {
+impl<const STATES: usize, const CONTROLS: usize> TemporaryBQMatrixBufferBuilder<STATES, CONTROLS> {
     /// Builds a new [`TemporaryBQMatrixBuffer`] that owns its data.
     ///
     /// ## Example
@@ -675,12 +678,12 @@ impl<const STATES: usize, const INPUTS: usize> TemporaryBQMatrixBufferBuilder<ST
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryBQMatrixBufferOwnedType<STATES, INPUTS, T>
+    pub fn new<T>(&self, init: T) -> TemporaryBQMatrixBufferOwnedType<STATES, CONTROLS, T>
     where
         T: Copy,
     {
-        TemporaryBQMatrixBuffer::<STATES, INPUTS, T, MatrixDataBoxed<STATES, INPUTS, T>>::new(
-            MatrixData::new_boxed::<STATES, INPUTS, T, _>(vec![init; STATES * INPUTS]),
+        TemporaryBQMatrixBuffer::<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>::new(
+            MatrixData::new_boxed::<STATES, CONTROLS, T, _>(vec![init; STATES * CONTROLS]),
         )
     }
 }

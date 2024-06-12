@@ -213,8 +213,8 @@ macro_rules! impl_buffer_P {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_u!(static mut U, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_u!(static mut U, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(U.len(), 2);
@@ -273,8 +273,8 @@ macro_rules! impl_buffer_u {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_B!(static mut B, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_B!(static mut B, NUM_STATES, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(B.len(), 6);
@@ -334,8 +334,8 @@ macro_rules! impl_buffer_B {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_Q!(static mut Q, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_Q!(static mut Q, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Q.len(), 4);
@@ -912,8 +912,8 @@ macro_rules! impl_buffer_temp_P {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TBQ.len(), 6);

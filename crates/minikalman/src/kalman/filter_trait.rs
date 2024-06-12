@@ -16,12 +16,12 @@ pub trait KalmanFilter<const STATES: usize, T>:
 {
 }
 
-pub trait KalmanFilterInput<const STATES: usize, const INPUTS: usize, T>:
+pub trait KalmanFilterInput<const STATES: usize, const CONTROLS: usize, T>:
     KalmanFilterNumStates<STATES>
-    + KalmanFilterNumInputs<INPUTS>
-    + KalmanFilterInputVectorMut<INPUTS, T>
-    + KalmanFilterInputTransition<STATES, INPUTS, T>
-    + KalmanFilterInputCovarianceMut<INPUTS, T>
+    + KalmanFilterNumInputs<CONTROLS>
+    + KalmanFilterInputVectorMut<CONTROLS, T>
+    + KalmanFilterInputTransition<STATES, CONTROLS, T>
+    + KalmanFilterInputCovarianceMut<CONTROLS, T>
 {
 }
 
@@ -47,14 +47,14 @@ impl<const STATES: usize, T, Filter> KalmanFilter<STATES, T> for Filter where
 }
 
 /// Auto-implementation of [`KalmanFilterInput`] for types that implement all necessary traits.
-impl<const STATES: usize, const INPUTS: usize, T, Input> KalmanFilterInput<STATES, INPUTS, T>
+impl<const STATES: usize, const CONTROLS: usize, T, Input> KalmanFilterInput<STATES, CONTROLS, T>
     for Input
 where
     Input: KalmanFilterNumStates<STATES>
-        + KalmanFilterNumInputs<INPUTS>
-        + KalmanFilterInputVectorMut<INPUTS, T>
-        + KalmanFilterInputTransition<STATES, INPUTS, T>
-        + KalmanFilterInputCovarianceMut<INPUTS, T>
+        + KalmanFilterNumInputs<CONTROLS>
+        + KalmanFilterInputVectorMut<CONTROLS, T>
+        + KalmanFilterInputTransition<STATES, CONTROLS, T>
+        + KalmanFilterInputCovarianceMut<CONTROLS, T>
         + KalmanFilterInputApplyToFilter<STATES, T>,
 {
 }
@@ -95,9 +95,9 @@ pub trait KalmanFilterApplyInput<const STATES: usize, T> {
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
-    fn input<const INPUTS: usize, I>(&mut self, input: &mut I)
+    fn input<const CONTROLS: usize, I>(&mut self, input: &mut I)
     where
-        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<INPUTS>;
+        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<CONTROLS>;
 }
 
 pub trait KalmanFilterUpdate<const STATES: usize, T> {
@@ -189,13 +189,13 @@ pub trait KalmanFilterSystemCovarianceMut<const STATES: usize, T>:
     }
 }
 
-pub trait KalmanFilterNumInputs<const INPUTS: usize> {
+pub trait KalmanFilterNumInputs<const CONTROLS: usize> {
     /// The number of inputs.
-    const NUM_INPUTS: usize = INPUTS;
+    const NUM_CONTROLS: usize = CONTROLS;
 
     /// Returns the number of inputs.
     fn inputs(&self) -> usize {
-        INPUTS
+        CONTROLS
     }
 }
 
@@ -212,17 +212,17 @@ pub trait KalmanFilterInputApplyToFilter<const STATES: usize, T> {
         P: SystemCovarianceMatrix<STATES, T>;
 }
 
-pub trait KalmanFilterInputVector<const INPUTS: usize, T> {
-    type InputVector: InputVector<INPUTS, T>;
+pub trait KalmanFilterInputVector<const CONTROLS: usize, T> {
+    type InputVector: InputVector<CONTROLS, T>;
 
     /// Gets a reference to the input vector u.
     fn input_vector_ref(&self) -> &Self::InputVector;
 }
 
-pub trait KalmanFilterInputVectorMut<const INPUTS: usize, T>:
-    KalmanFilterInputVector<INPUTS, T>
+pub trait KalmanFilterInputVectorMut<const CONTROLS: usize, T>:
+    KalmanFilterInputVector<CONTROLS, T>
 {
-    type InputVectorMut: InputVectorMut<INPUTS, T>;
+    type InputVectorMut: InputVectorMut<CONTROLS, T>;
 
     /// Gets a mutable reference to the input vector u.
     #[doc(alias = "kalman_get_input_vector")]
@@ -238,17 +238,17 @@ pub trait KalmanFilterInputVectorMut<const INPUTS: usize, T>:
     }
 }
 
-pub trait KalmanFilterInputTransition<const STATES: usize, const INPUTS: usize, T> {
-    type InputTransitionMatrix: InputMatrix<STATES, INPUTS, T>;
+pub trait KalmanFilterInputTransition<const STATES: usize, const CONTROLS: usize, T> {
+    type InputTransitionMatrix: InputMatrix<STATES, CONTROLS, T>;
 
     /// Gets a reference to the input transition matrix B.
     fn input_transition_ref(&self) -> &Self::InputTransitionMatrix;
 }
 
-pub trait KalmanFilterInputTransitionMut<const STATES: usize, const INPUTS: usize, T>:
-    KalmanFilterInputTransition<STATES, INPUTS, T>
+pub trait KalmanFilterInputTransitionMut<const STATES: usize, const CONTROLS: usize, T>:
+    KalmanFilterInputTransition<STATES, CONTROLS, T>
 {
-    type InputTransitionMatrixMut: InputMatrixMut<STATES, INPUTS, T>;
+    type InputTransitionMatrixMut: InputMatrixMut<STATES, CONTROLS, T>;
 
     /// Gets a mutable reference to the input transition matrix B.
     #[doc(alias = "kalman_get_input_transition")]
@@ -264,17 +264,17 @@ pub trait KalmanFilterInputTransitionMut<const STATES: usize, const INPUTS: usiz
     }
 }
 
-pub trait KalmanFilterInputCovariance<const INPUTS: usize, T> {
-    type InputCovarianceMatrix: InputCovarianceMatrix<INPUTS, T>;
+pub trait KalmanFilterInputCovariance<const CONTROLS: usize, T> {
+    type InputCovarianceMatrix: InputCovarianceMatrix<CONTROLS, T>;
 
     /// Gets a reference to the input covariance matrix Q.
     fn input_covariance_ref(&self) -> &Self::InputCovarianceMatrix;
 }
 
-pub trait KalmanFilterInputCovarianceMut<const INPUTS: usize, T>:
-    KalmanFilterInputCovariance<INPUTS, T>
+pub trait KalmanFilterInputCovarianceMut<const CONTROLS: usize, T>:
+    KalmanFilterInputCovariance<CONTROLS, T>
 {
-    type InputCovarianceMatrixMut: InputCovarianceMatrixMut<INPUTS, T>;
+    type InputCovarianceMatrixMut: InputCovarianceMatrixMut<CONTROLS, T>;
 
     /// Gets a mutable reference to the input covariance matrix Q.
     #[doc(alias = "kalman_get_input_covariance")]

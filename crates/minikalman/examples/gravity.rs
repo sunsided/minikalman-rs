@@ -15,14 +15,14 @@ use rand_distr::{Distribution, Normal};
 use minikalman::prelude::*;
 
 const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
-const NUM_INPUTS: usize = 1; // constant velocity
+const NUM_CONTROLS: usize = 1; // constant velocity
 const NUM_MEASUREMENTS: usize = 1; // position
 
 #[allow(non_snake_case)]
 fn main() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
-    let mut input = builder.inputs().build::<NUM_INPUTS>();
+    let mut input = builder.inputs().build::<NUM_CONTROLS>();
     let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
 
     // Set initial state.
@@ -162,14 +162,14 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 }
 
 /// Initializes the input vector.
-fn initialize_input_vector(filter: &mut impl InputVectorMut<NUM_INPUTS, f32>) {
+fn initialize_input_vector(filter: &mut impl InputVectorMut<NUM_CONTROLS, f32>) {
     filter.apply(|state| {
         state[0] = 0.0 as _; // acceleration
     });
 }
 
 /// Initializes the input transformation matrix.
-fn initialize_input_matrix(filter: &mut impl InputMatrixMut<NUM_STATES, NUM_INPUTS, f32>) {
+fn initialize_input_matrix(filter: &mut impl InputMatrixMut<NUM_STATES, NUM_CONTROLS, f32>) {
     filter.apply(|mat| {
         mat[0] = 0.0;
         mat[1] = 0.0;
@@ -178,7 +178,9 @@ fn initialize_input_matrix(filter: &mut impl InputMatrixMut<NUM_STATES, NUM_INPU
 }
 
 /// Initializes the input covariance.
-fn initialize_input_covariance_matrix(filter: &mut impl InputCovarianceMatrixMut<NUM_INPUTS, f32>) {
+fn initialize_input_covariance_matrix(
+    filter: &mut impl InputCovarianceMatrixMut<NUM_CONTROLS, f32>,
+) {
     filter.apply(|mat| {
         mat[0] = 1.0; // :)
     });

@@ -19,9 +19,9 @@ use crate::matrix::{Matrix, MatrixMut};
 /// let data = [0.0; 4];
 /// let buffer = InputCovarianceMatrixBuffer::<2, f32, _>::from(data.as_ref());
 /// ```
-pub struct InputCovarianceMatrixBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
+pub struct InputCovarianceMatrixBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
 where
-    M: Matrix<INPUTS, INPUTS, T>;
+    M: Matrix<CONTROLS, CONTROLS, T>;
 
 /// Mutable buffer for the input covariance matrix (`num_inputs` × `num_inputs`).
 ///
@@ -37,111 +37,111 @@ where
 /// let mut data = [0.0; 4];
 /// let buffer = InputCovarianceMatrixMutBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct InputCovarianceMatrixMutBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
+pub struct InputCovarianceMatrixMutBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
 where
-    M: MatrixMut<INPUTS, INPUTS, T>;
+    M: MatrixMut<CONTROLS, CONTROLS, T>;
 
 // -----------------------------------------------------------
 
-impl<const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputCovarianceMatrixBuffer<INPUTS, T, MatrixDataArray<INPUTS, INPUTS, TOTAL, T>>
+impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for InputCovarianceMatrixBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(INPUTS * INPUTS <= TOTAL);
+            debug_assert!(CONTROLS * CONTROLS <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<INPUTS, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<CONTROLS, CONTROLS, TOTAL, T>(value))
     }
 }
 
-impl<'a, const INPUTS: usize, T> From<&'a [T]>
-    for InputCovarianceMatrixBuffer<INPUTS, T, MatrixDataRef<'a, INPUTS, INPUTS, T>>
+impl<'a, const CONTROLS: usize, T> From<&'a [T]>
+    for InputCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
 {
     fn from(value: &'a [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(INPUTS * INPUTS <= value.len());
+            debug_assert!(CONTROLS * CONTROLS <= value.len());
         }
-        Self::new(MatrixData::new_ref::<INPUTS, INPUTS, T>(value))
+        Self::new(MatrixData::new_ref::<CONTROLS, CONTROLS, T>(value))
     }
 }
 
-impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
-    for InputCovarianceMatrixBuffer<INPUTS, T, MatrixDataRef<'a, INPUTS, INPUTS, T>>
+impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
+    for InputCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(INPUTS * INPUTS <= value.len());
+            debug_assert!(CONTROLS * CONTROLS <= value.len());
         }
-        Self::new(MatrixData::new_ref::<INPUTS, INPUTS, T>(value))
+        Self::new(MatrixData::new_ref::<CONTROLS, CONTROLS, T>(value))
     }
 }
 
-impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
-    for InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataMut<'a, INPUTS, INPUTS, T>>
+impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
+    for InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataMut<'a, CONTROLS, CONTROLS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(INPUTS * INPUTS <= value.len());
+            debug_assert!(CONTROLS * CONTROLS <= value.len());
         }
-        Self::new(MatrixData::new_mut::<INPUTS, INPUTS, T>(value))
+        Self::new(MatrixData::new_mut::<CONTROLS, CONTROLS, T>(value))
     }
 }
 
-impl<const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataArray<INPUTS, INPUTS, TOTAL, T>>
+impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(INPUTS * INPUTS <= TOTAL);
+            debug_assert!(CONTROLS * CONTROLS <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<INPUTS, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<CONTROLS, CONTROLS, TOTAL, T>(value))
     }
 }
 
 // -----------------------------------------------------------
 
-impl<const INPUTS: usize, T, M> InputCovarianceMatrixBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> InputCovarianceMatrixBuffer<CONTROLS, T, M>
 where
-    M: Matrix<INPUTS, INPUTS, T>,
+    M: Matrix<CONTROLS, CONTROLS, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        INPUTS * INPUTS
+        CONTROLS * CONTROLS
     }
 
     pub const fn is_empty(&self) -> bool {
-        INPUTS == 0
+        CONTROLS == 0
     }
 }
 
-impl<const INPUTS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixBuffer<CONTROLS, T, M>
 where
-    M: Matrix<INPUTS, INPUTS, T>,
+    M: Matrix<CONTROLS, CONTROLS, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const INPUTS: usize, T, M> Matrix<INPUTS, INPUTS, T>
-    for InputCovarianceMatrixBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
+    for InputCovarianceMatrixBuffer<CONTROLS, T, M>
 where
-    M: Matrix<INPUTS, INPUTS, T>,
+    M: Matrix<CONTROLS, CONTROLS, T>,
 {
 }
 
-impl<const INPUTS: usize, T, M> InputCovarianceMatrix<INPUTS, T>
-    for InputCovarianceMatrixBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> InputCovarianceMatrix<CONTROLS, T>
+    for InputCovarianceMatrixBuffer<CONTROLS, T, M>
 where
-    M: Matrix<INPUTS, INPUTS, T>,
+    M: Matrix<CONTROLS, CONTROLS, T>,
 {
     type Target = M;
 
@@ -150,20 +150,20 @@ where
     }
 }
 
-impl<const INPUTS: usize, T, M> InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        INPUTS * INPUTS
+        CONTROLS * CONTROLS
     }
 
     pub const fn is_empty(&self) -> bool {
-        INPUTS == 0
+        CONTROLS == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -172,42 +172,42 @@ where
     }
 }
 
-impl<const INPUTS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const INPUTS: usize, T, M> AsMut<[T]> for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> AsMut<[T]> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const INPUTS: usize, T, M> Matrix<INPUTS, INPUTS, T>
-    for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
+    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
 }
 
-impl<const INPUTS: usize, T, M> MatrixMut<INPUTS, INPUTS, T>
-    for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> MatrixMut<CONTROLS, CONTROLS, T>
+    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
 }
 
-impl<const INPUTS: usize, T, M> InputCovarianceMatrix<INPUTS, T>
-    for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> InputCovarianceMatrix<CONTROLS, T>
+    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
     type Target = M;
 
@@ -216,10 +216,10 @@ where
     }
 }
 
-impl<const INPUTS: usize, T, M> InputCovarianceMatrixMut<INPUTS, T>
-    for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> InputCovarianceMatrixMut<CONTROLS, T>
+    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
     type TargetMut = M;
 
@@ -228,9 +228,9 @@ where
     }
 }
 
-impl<const INPUTS: usize, T, M> Index<usize> for InputCovarianceMatrixBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> Index<usize> for InputCovarianceMatrixBuffer<CONTROLS, T, M>
 where
-    M: Matrix<INPUTS, INPUTS, T>,
+    M: Matrix<CONTROLS, CONTROLS, T>,
 {
     type Output = T;
 
@@ -239,9 +239,9 @@ where
     }
 }
 
-impl<const INPUTS: usize, T, M> Index<usize> for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> Index<usize> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
     type Output = T;
 
@@ -250,9 +250,9 @@ where
     }
 }
 
-impl<const INPUTS: usize, T, M> IndexMut<usize> for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> IndexMut<usize> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T>,
+    M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
@@ -261,9 +261,9 @@ where
 
 // -----------------------------------------------------------
 
-impl<const INPUTS: usize, T, M> IntoInnerData for InputCovarianceMatrixBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> IntoInnerData for InputCovarianceMatrixBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T> + IntoInnerData,
+    M: MatrixMut<CONTROLS, CONTROLS, T> + IntoInnerData,
 {
     type Target = M::Target;
 
@@ -272,9 +272,9 @@ where
     }
 }
 
-impl<const INPUTS: usize, T, M> IntoInnerData for InputCovarianceMatrixMutBuffer<INPUTS, T, M>
+impl<const CONTROLS: usize, T, M> IntoInnerData for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
-    M: MatrixMut<INPUTS, INPUTS, T> + IntoInnerData,
+    M: MatrixMut<CONTROLS, CONTROLS, T> + IntoInnerData,
 {
     type Target = M::Target;
 
