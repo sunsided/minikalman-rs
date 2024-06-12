@@ -34,11 +34,19 @@ extern crate alloc;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 mod buffer_builder;
+
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
+mod kalman_builder;
+
 pub mod buffer_types;
 mod inputs;
 mod kalman;
 mod measurement;
 mod static_macros;
+
+#[cfg(test)]
+mod test_dummies;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
@@ -52,6 +60,14 @@ pub use num_traits;
 pub mod traits {
     pub use minikalman_traits::kalman;
     pub use minikalman_traits::matrix;
+}
+
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
+pub mod builder {
+    pub use crate::kalman_builder::{
+        KalmanFilterBuilder, KalmanFilterInputBuilder, KalmanFilterMeasurementBuilder,
+    };
 }
 
 /// Exports all macros and common types.

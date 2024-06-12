@@ -336,9 +336,9 @@ where
 #[cfg(feature = "float")]
 mod tests {
     use super::*;
+    use crate::test_dummies::{Dummy, DummyMatrix};
     use assert_float_eq::*;
-    use core::ops::{Index, IndexMut};
-    use minikalman_traits::matrix::{Matrix, MatrixMut};
+    use minikalman_traits::matrix::MatrixMut;
 
     #[allow(non_snake_case)]
     #[test]
@@ -460,12 +460,6 @@ mod tests {
         );
     }
 
-    #[derive(Default)]
-    struct Dummy<T>(DummyMatrix<T>, PhantomData<T>);
-
-    #[derive(Default)]
-    struct DummyMatrix<T>(PhantomData<T>);
-
     impl<const INPUTS: usize, T> InputVector<INPUTS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
 
@@ -523,33 +517,4 @@ mod tests {
             &mut self.0
         }
     }
-
-    impl<T> AsRef<[T]> for DummyMatrix<T> {
-        fn as_ref(&self) -> &[T] {
-            todo!()
-        }
-    }
-
-    impl<T> AsMut<[T]> for DummyMatrix<T> {
-        fn as_mut(&mut self) -> &mut [T] {
-            todo!()
-        }
-    }
-
-    impl<T> Index<usize> for DummyMatrix<T> {
-        type Output = T;
-
-        fn index(&self, _index: usize) -> &Self::Output {
-            todo!()
-        }
-    }
-
-    impl<T> IndexMut<usize> for DummyMatrix<T> {
-        fn index_mut(&mut self, _index: usize) -> &mut Self::Output {
-            todo!()
-        }
-    }
-
-    impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T> for DummyMatrix<T> {}
-    impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T> for DummyMatrix<T> {}
 }
