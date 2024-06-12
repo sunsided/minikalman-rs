@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
-use crate::inputs::{Control, ControlBuilder};
+use crate::controls::{Control, ControlBuilder};
 use crate::{BufferBuilder, Kalman, KalmanBuilder, Measurement, MeasurementBuilder};
 
 /// A simple builder for [`Kalman`] instances.
@@ -55,7 +55,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// let mut filter = builder.build();
-    /// let mut input = builder.inputs().build::<NUM_CONTROLS>();
+    /// let mut control = builder.controls().build::<NUM_CONTROLS>();
     /// let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
     /// ```
     ///
@@ -86,7 +86,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     }
 
     /// Convenience function to return a [`KalmanFilterControlBuilder`].
-    pub fn inputs(&self) -> KalmanFilterControlBuilder<STATES, T> {
+    pub fn controls(&self) -> KalmanFilterControlBuilder<STATES, T> {
         Default::default()
     }
 
@@ -102,7 +102,7 @@ impl<const STATES: usize, T> Default for KalmanFilterControlBuilder<STATES, T> {
     }
 }
 
-/// The type of Kalman filter inputs with owned buffers.
+/// The type of Kalman filter controls with owned buffers.
 ///
 /// See also the [`KalmanFilterControl`](minikalman::kalman::KalmanFilterControl) trait.
 pub type KalmanFilterControlType<const STATES: usize, const CONTROLS: usize, T> = Control<
@@ -121,7 +121,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
         Self(PhantomData)
     }
 
-    /// Builds a new Kalman filter inputs using heap allocated buffers.
+    /// Builds a new Kalman filter controls using heap allocated buffers.
     ///
     /// ## Example
     /// ```rust
@@ -132,7 +132,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
     ///
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// // let mut filter = builder.build();
-    /// let mut input = builder.inputs().build::<NUM_CONTROLS>();
+    /// let mut control = builder.controls().build::<NUM_CONTROLS>();
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
@@ -144,17 +144,18 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
         let zero = T::zero();
 
         // Control buffers.
-        let input_vector = BufferBuilder::input_vector_u::<CONTROLS>().new(zero);
-        let input_transition = BufferBuilder::input_transition_B::<STATES, CONTROLS>().new(zero);
-        let input_covariance = BufferBuilder::input_covariance_Q::<CONTROLS>().new(zero);
+        let control_vector = BufferBuilder::control_vector_u::<CONTROLS>().new(zero);
+        let control_transition =
+            BufferBuilder::control_transition_B::<STATES, CONTROLS>().new(zero);
+        let control_covariance = BufferBuilder::control_covariance_Q::<CONTROLS>().new(zero);
 
         // Control temporaries.
         let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new(zero);
 
         ControlBuilder::new::<STATES, CONTROLS, T>(
-            input_transition,
-            input_vector,
-            input_covariance,
+            control_transition,
+            control_vector,
+            control_covariance,
             temp_bq,
         )
     }
@@ -263,7 +264,7 @@ mod tests {
     {
     }
 
-    fn accept_input<I, T>(_input: I)
+    fn accept_control<I, T>(_control: I)
     where
         I: KalmanFilterControl<NUM_STATES, NUM_CONTROLS, T>,
     {
@@ -284,12 +285,12 @@ mod tests {
     }
 
     #[test]
-    fn input_builder() {
+    fn control_builder() {
         let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
-        let input = builder.inputs().build::<NUM_CONTROLS>();
-        assert_eq!(input.states(), NUM_STATES);
-        assert_eq!(input.inputs(), NUM_CONTROLS);
-        accept_input(input);
+        let control = builder.controls().build::<NUM_CONTROLS>();
+        assert_eq!(control.states(), NUM_STATES);
+        assert_eq!(control.controls(), NUM_CONTROLS);
+        accept_control(control);
     }
 
     #[test]

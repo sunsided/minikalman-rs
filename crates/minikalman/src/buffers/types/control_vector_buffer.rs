@@ -7,7 +7,7 @@ use crate::matrix::{Matrix, MatrixMut};
 
 // TODO: Add ControlVectorMutBuffer
 
-/// Mutable buffer for the control (input) vector (`num_inputs` × `1`).
+/// Mutable buffer for the control (input) vector (`num_controls` × `1`).
 ///
 /// ## Example
 /// ```

@@ -5,7 +5,7 @@ use crate::kalman::TemporaryBQMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the temporary B×Q matrix (`num_states` × `num_inputs`).
+/// Mutable buffer for the temporary B×Q matrix (`num_states` × `num_controls`).
 ///
 /// ## Example
 /// ```

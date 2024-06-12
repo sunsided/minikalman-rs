@@ -22,7 +22,7 @@ const NUM_MEASUREMENTS: usize = 1; // position
 fn main() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
-    let mut input = builder.inputs().build::<NUM_CONTROLS>();
+    let mut control = builder.controls().build::<NUM_CONTROLS>();
     let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
 
     // Set initial state.
@@ -30,10 +30,10 @@ fn main() {
     initialize_state_transition_matrix(filter.state_transition_mut());
     initialize_state_covariance_matrix(filter.system_covariance_mut());
 
-    // Set up inputs.
-    initialize_input_vector(input.input_vector_mut());
-    initialize_input_matrix(input.input_transition_mut());
-    initialize_input_covariance_matrix(input.input_covariance_mut());
+    // Set up controls.
+    initialize_control_vector(control.control_vector_mut());
+    initialize_control_matrix(control.control_transition_mut());
+    initialize_control_covariance_matrix(control.control_covariance_mut());
 
     // Set up measurements.
     initialize_position_measurement_transformation_matrix(
@@ -52,9 +52,9 @@ fn main() {
         .zip(measurement_noise)
         .enumerate()
     {
-        // Update prediction and apply the inputs.
+        // Update prediction and apply the controls.
         filter.predict();
-        filter.input(&mut input);
+        filter.control(&mut control);
         print_state_prediction(t, filter.state_vector_ref());
 
         // Measure ...
@@ -161,15 +161,15 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
     });
 }
 
-/// Initializes the input vector.
-fn initialize_input_vector(filter: &mut impl ControlVectorMut<NUM_CONTROLS, f32>) {
+/// Initializes the control vector.
+fn initialize_control_vector(filter: &mut impl ControlVectorMut<NUM_CONTROLS, f32>) {
     filter.apply(|state| {
         state[0] = 0.0 as _; // acceleration
     });
 }
 
-/// Initializes the input transformation matrix.
-fn initialize_input_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_CONTROLS, f32>) {
+/// Initializes the control transformation matrix.
+fn initialize_control_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_CONTROLS, f32>) {
     filter.apply(|mat| {
         mat[0] = 0.0;
         mat[1] = 0.0;
@@ -177,8 +177,8 @@ fn initialize_input_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_CO
     });
 }
 
-/// Initializes the input covariance.
-fn initialize_input_covariance_matrix(
+/// Initializes the control covariance.
+fn initialize_control_covariance_matrix(
     filter: &mut impl ControlCovarianceMatrixMut<NUM_CONTROLS, f32>,
 ) {
     filter.apply(|mat| {

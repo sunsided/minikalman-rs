@@ -5,7 +5,7 @@ use crate::kalman::{ControlCovarianceMatrix, ControlCovarianceMatrixMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Immutable buffer for the input covariance matrix (`num_inputs` × `num_inputs`).
+/// Immutable buffer for the control covariance matrix (`num_controls` × `num_controls`).
 ///
 /// ## Example
 /// ```
@@ -23,7 +23,7 @@ pub struct ControlCovarianceMatrixBuffer<const CONTROLS: usize, T, M>(M, Phantom
 where
     M: Matrix<CONTROLS, CONTROLS, T>;
 
-/// Mutable buffer for the input covariance matrix (`num_inputs` × `num_inputs`).
+/// Mutable buffer for the control covariance matrix (`num_controls` × `num_controls`).
 ///
 /// ## Example
 /// ```

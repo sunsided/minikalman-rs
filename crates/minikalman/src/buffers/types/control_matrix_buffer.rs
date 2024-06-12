@@ -5,7 +5,7 @@ use crate::kalman::{ControlMatrix, ControlMatrixMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Immutable buffer for the control matrix (`num_states` × `num_inputs`).
+/// Immutable buffer for the control matrix (`num_states` × `num_controls`).
 ///
 /// ## Example
 /// ```
@@ -23,7 +23,7 @@ pub struct ControlMatrixBuffer<const STATES: usize, const CONTROLS: usize, T, M>
 where
     M: Matrix<STATES, CONTROLS, T>;
 
-/// Mutable buffer for the control matrix (`num_states` × `num_inputs`).
+/// Mutable buffer for the control matrix (`num_states` × `num_controls`).
 ///
 /// ## Example
 /// ```

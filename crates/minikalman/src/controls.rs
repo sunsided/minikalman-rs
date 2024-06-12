@@ -14,12 +14,12 @@ pub struct ControlBuilder<B, U, Q, TempBQ> {
 }
 
 impl<B, U, Q, TempBQ> ControlBuilder<B, U, Q, TempBQ> {
-    /// Initializes a Kalman filter input instance.
+    /// Initializes a Kalman filter control instance.
     ///
     /// ## Arguments
-    /// * `B` - The input transition matrix (`STATES` × `CONTROLS`).
-    /// * `u` - The input vector (`CONTROLS` × `1`).
-    /// * `Q` - The input covariance matrix (`CONTROLS` × `CONTROLS`).
+    /// * `B` - The control transition matrix (`STATES` × `CONTROLS`).
+    /// * `u` - The control vector (`CONTROLS` × `1`).
+    /// * `Q` - The control covariance matrix (`CONTROLS` × `CONTROLS`).
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `CONTROLS`).
     #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, const CONTROLS: usize, T>(
@@ -61,7 +61,7 @@ pub struct Control<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempB
     /// See also [`B`].
     Q: Q,
 
-    /// B×Q-sized temporary matrix (number of states × number of inputs).
+    /// B×Q-sized temporary matrix (number of states × number of controls).
     ///
     /// The backing field for this temporary MAY be aliased with temporary P.
     temp_BQ: TempBQ,
@@ -78,9 +78,9 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
         STATES
     }
 
-    /// Returns the number of inputs.
+    /// Returns the number of controls.
     #[allow(unused)]
-    pub const fn inputs(&self) -> usize {
+    pub const fn controls(&self) -> usize {
         CONTROLS
     }
 }
@@ -90,10 +90,10 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     U: ControlVector<CONTROLS, T>,
 {
-    /// Gets a reference to the input vector u.
+    /// Gets a reference to the control vector u.
     #[inline(always)]
-    #[doc(alias = "kalman_get_input_vector")]
-    pub fn input_vector_ref(&self) -> &U {
+    #[doc(alias = "kalman_get_control_vector")]
+    pub fn control_vector_ref(&self) -> &U {
         &self.u
     }
 }
@@ -103,16 +103,16 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     U: ControlVectorMut<CONTROLS, T>,
 {
-    /// Gets a mutable reference to the input vector u.
+    /// Gets a mutable reference to the control vector u.
     #[inline(always)]
-    #[doc(alias = "kalman_get_input_vector")]
-    pub fn input_vector_mut(&mut self) -> &mut U {
+    #[doc(alias = "kalman_get_control_vector")]
+    pub fn control_vector_mut(&mut self) -> &mut U {
         &mut self.u
     }
 
-    /// Applies a function to the input vector u.
+    /// Applies a function to the control vector u.
     #[inline(always)]
-    pub fn input_vector_apply<F>(&mut self, mut f: F)
+    pub fn control_vector_apply<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut U),
     {
@@ -125,9 +125,9 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     B: ControlMatrix<STATES, CONTROLS, T>,
 {
-    /// Gets a reference to the input transition matrix B.
+    /// Gets a reference to the control transition matrix B.
     #[inline(always)]
-    pub fn input_transition_ref(&self) -> &B {
+    pub fn control_transition_ref(&self) -> &B {
         &self.B
     }
 }
@@ -137,16 +137,16 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     B: ControlMatrixMut<STATES, CONTROLS, T>,
 {
-    /// Gets a mutable reference to the input transition matrix B.
+    /// Gets a mutable reference to the control transition matrix B.
     #[inline(always)]
-    #[doc(alias = "kalman_get_input_transition")]
-    pub fn input_transition_mut(&mut self) -> &mut B {
+    #[doc(alias = "kalman_get_control_transition")]
+    pub fn control_transition_mut(&mut self) -> &mut B {
         &mut self.B
     }
 
-    /// Applies a function to the input transition matrix B.
+    /// Applies a function to the control transition matrix B.
     #[inline(always)]
-    pub fn input_transition_apply<F>(&mut self, mut f: F)
+    pub fn control_transition_apply<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut B),
     {
@@ -159,9 +159,9 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     Q: ControlCovarianceMatrix<CONTROLS, T>,
 {
-    /// Gets a reference to the input covariance matrix Q.
+    /// Gets a reference to the control covariance matrix Q.
     #[inline(always)]
-    pub fn input_covariance_ref(&self) -> &Q {
+    pub fn control_covariance_ref(&self) -> &Q {
         &self.Q
     }
 }
@@ -171,17 +171,17 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     Q: ControlCovarianceMatrixMut<CONTROLS, T>,
 {
-    /// Gets a mutable reference to the input covariance matrix Q.
+    /// Gets a mutable reference to the control covariance matrix Q.
     #[inline(always)]
-    #[doc(alias = "kalman_get_input_covariance")]
-    pub fn input_covariance_mut(&mut self) -> &mut Q {
+    #[doc(alias = "kalman_get_control_covariance")]
+    pub fn control_covariance_mut(&mut self) -> &mut Q {
         &mut self.Q
     }
 
-    /// Applies a function to the input covariance matrix Q.
+    /// Applies a function to the control covariance matrix Q.
     #[inline(always)]
-    #[doc(alias = "kalman_get_input_covariance")]
-    pub fn input_covariance_apply<F>(&mut self, mut f: F)
+    #[doc(alias = "kalman_get_control_covariance")]
+    pub fn control_covariance_apply<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut Q),
     {
@@ -200,7 +200,7 @@ where
 {
     /// Applies a correction step to the provided state vector and covariance matrix.
     #[allow(non_snake_case)]
-    pub fn apply_input<X, P>(&mut self, x: &mut X, P: &mut P)
+    pub fn apply_control<X, P>(&mut self, x: &mut X, P: &mut P)
     where
         X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
@@ -221,7 +221,7 @@ where
         // temporaries
         let BQ_temp = self.temp_BQ.as_matrix_mut();
 
-        // Incorporate input with state
+        // Incorporate control with state
         // x = x + B*u
         B.multadd_rowvector(u, x);
 
@@ -248,8 +248,8 @@ where
 {
     type ControlVector = U;
 
-    fn input_vector_ref(&self) -> &Self::ControlVector {
-        self.input_vector_ref()
+    fn control_vector_ref(&self) -> &Self::ControlVector {
+        self.control_vector_ref()
     }
 }
 
@@ -260,8 +260,8 @@ where
 {
     type ControlVectorMut = U;
 
-    fn input_vector_mut(&mut self) -> &mut Self::ControlVectorMut {
-        self.input_vector_mut()
+    fn control_vector_mut(&mut self) -> &mut Self::ControlVectorMut {
+        self.control_vector_mut()
     }
 }
 
@@ -273,8 +273,8 @@ where
 {
     type ControlTransitionMatrix = B;
 
-    fn input_transition_ref(&self) -> &Self::ControlTransitionMatrix {
-        self.input_transition_ref()
+    fn control_transition_ref(&self) -> &Self::ControlTransitionMatrix {
+        self.control_transition_ref()
     }
 }
 
@@ -286,8 +286,8 @@ where
 {
     type ControlTransitionMatrixMut = B;
 
-    fn input_transition_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut {
-        self.input_transition_mut()
+    fn control_transition_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut {
+        self.control_transition_mut()
     }
 }
 
@@ -298,8 +298,8 @@ where
 {
     type ControlCovarianceMatrix = Q;
 
-    fn input_covariance_ref(&self) -> &Self::ControlCovarianceMatrix {
-        self.input_covariance_ref()
+    fn control_covariance_ref(&self) -> &Self::ControlCovarianceMatrix {
+        self.control_covariance_ref()
     }
 }
 
@@ -310,8 +310,8 @@ where
 {
     type ControlCovarianceMatrixMut = Q;
 
-    fn input_covariance_mut(&mut self) -> &mut Self::ControlCovarianceMatrixMut {
-        self.input_covariance_mut()
+    fn control_covariance_mut(&mut self) -> &mut Self::ControlCovarianceMatrixMut {
+        self.control_covariance_mut()
     }
 }
 
@@ -330,7 +330,7 @@ where
         X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
-        self.apply_input(x, P)
+        self.apply_control(x, P)
     }
 }
 
@@ -342,7 +342,7 @@ mod tests {
     #[allow(non_snake_case)]
     #[test]
     #[cfg(feature = "alloc")]
-    fn input_only() {
+    fn control_only() {
         use crate::matrix::MatrixMut;
         use assert_float_eq::*;
 
@@ -357,9 +357,9 @@ mod tests {
         let P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
         // Control buffers.
-        let u = BufferBuilder::input_vector_u::<NUM_CONTROLS>().new(0.0_f32);
-        let B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
-        let Q = BufferBuilder::input_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
+        let u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new(0.0_f32);
+        let B = BufferBuilder::control_transition_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
+        let Q = BufferBuilder::control_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
 
         // Filter temporaries.
         let temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
@@ -369,7 +369,7 @@ mod tests {
         let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
 
         let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
-        let mut input = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
+        let mut control = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
 
         // State transition is identity.
         filter.state_transition_apply(|mat| {
@@ -392,21 +392,21 @@ mod tests {
         });
 
         // Control applies linearly to state.
-        input.input_transition_apply(|mat| {
+        control.control_transition_apply(|mat| {
             mat[NUM_CONTROLS] = 1.0;
             mat[2 * NUM_CONTROLS + 1] = 1.0;
             mat[3 * NUM_CONTROLS + 2] = 1.0;
         });
 
         // Control covariance is identity.
-        input.input_covariance_apply(|mat| {
+        control.control_covariance_apply(|mat| {
             mat[0 * NUM_CONTROLS] = 1.0;
             mat[NUM_CONTROLS + 1] = 1.0;
             mat[2 * NUM_CONTROLS + 2] = 1.0;
         });
 
-        // Define some test input vector.
-        input.input_vector_apply(|vec| {
+        // Define some test control vector.
+        control.control_vector_apply(|vec| {
             vec.set(0, 0, 0.1);
             vec.set(1, 0, 1.0);
             vec.set(2, 0, 10.0);
@@ -414,8 +414,8 @@ mod tests {
 
         // Sanity checks.
         assert_eq!(filter.states(), 4);
-        assert_eq!(input.states(), 4);
-        assert_eq!(input.inputs(), 3);
+        assert_eq!(control.states(), 4);
+        assert_eq!(control.controls(), 3);
 
         // First round, state vector is empty.
         let state = filter.state_vector_ref().as_ref();
@@ -424,7 +424,7 @@ mod tests {
         assert_f32_near!(state[2], 0.0);
         assert_f32_near!(state[3], 0.0);
 
-        // Predict one step - no inputs, so no changes.
+        // Predict one step - no controls, so no changes.
         filter.predict();
         let state = filter.state_vector_ref().as_ref();
         assert_f32_near!(state[0], 0.0);
@@ -432,18 +432,18 @@ mod tests {
         assert_f32_near!(state[2], 0.0);
         assert_f32_near!(state[3], 0.0);
 
-        // Predict one step (with inputs).
+        // Predict one step (with controls).
         filter.predict();
-        filter.input(&mut input);
+        filter.control(&mut control);
         let state = filter.state_vector_ref().as_ref();
         assert_f32_near!(state[0], 0.0);
         assert_f32_near!(state[1], 0.1);
         assert_f32_near!(state[2], 1.0);
         assert_f32_near!(state[3], 10.0);
 
-        // Predict another step (with inputs).
+        // Predict another step (with controls).
         filter.predict();
-        filter.input(&mut input);
+        filter.control(&mut control);
         let state = filter.state_vector_ref().as_ref();
         assert_f32_near!(state[0], 11.1);
         assert_f32_near!(state[1], 0.2);

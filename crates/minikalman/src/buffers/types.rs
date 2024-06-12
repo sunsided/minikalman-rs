@@ -1,8 +1,8 @@
+mod control_covariance_buffer;
+mod control_matrix_buffer;
+mod control_vector_buffer;
 mod innovation_residual_covariance_matrix_buffer;
 mod innovation_vector_buffer;
-mod input_covariance_buffer;
-mod input_matrix_buffer;
-mod input_vector_buffer;
 mod kalman_gain_matrix_buffer;
 mod measurement_observation_matrix_buffer;
 mod measurement_process_noise_covariance_matrix_buffer;
@@ -18,11 +18,11 @@ mod temporary_pht_matrix_buffer;
 mod temporary_residual_covariance_inverted_matrix_buffer;
 mod temporary_state_matrix_buffer;
 
+pub use crate::buffers::types::control_covariance_buffer::*;
+pub use crate::buffers::types::control_matrix_buffer::*;
+pub use crate::buffers::types::control_vector_buffer::*;
 pub use crate::buffers::types::innovation_residual_covariance_matrix_buffer::*;
 pub use crate::buffers::types::innovation_vector_buffer::*;
-pub use crate::buffers::types::input_covariance_buffer::*;
-pub use crate::buffers::types::input_matrix_buffer::*;
-pub use crate::buffers::types::input_vector_buffer::*;
 pub use crate::buffers::types::kalman_gain_matrix_buffer::*;
 pub use crate::buffers::types::measurement_observation_matrix_buffer::*;
 pub use crate::buffers::types::measurement_process_noise_covariance_matrix_buffer::*;

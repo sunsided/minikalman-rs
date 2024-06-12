@@ -23,18 +23,18 @@ impl BufferBuilder {
         SystemCovarianceMatrixBufferBuilder
     }
 
-    pub fn input_vector_u<const CONTROLS: usize>() -> ControlVectorBufferBuilder<CONTROLS> {
+    pub fn control_vector_u<const CONTROLS: usize>() -> ControlVectorBufferBuilder<CONTROLS> {
         ControlVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn input_transition_B<const STATES: usize, const CONTROLS: usize>(
+    pub fn control_transition_B<const STATES: usize, const CONTROLS: usize>(
     ) -> ControlTransitionMatrixBufferBuilder<STATES, CONTROLS> {
         ControlTransitionMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn input_covariance_Q<const CONTROLS: usize>(
+    pub fn control_covariance_Q<const CONTROLS: usize>(
     ) -> ControlCovarianceMatrixBufferBuilder<CONTROLS> {
         ControlCovarianceMatrixBufferBuilder
     }
@@ -123,19 +123,19 @@ pub struct StateTransitionMatrixBufferBuilder<const STATES: usize>;
 /// A builder for system covariance matrices (`num_states` × `num_states`).
 pub struct SystemCovarianceMatrixBufferBuilder<const STATES: usize>;
 
-/// A builder for input vectors (`num_inputs` × `1`).
+/// A builder for control vectors (`num_controls` × `1`).
 pub struct ControlVectorBufferBuilder<const CONTROLS: usize>;
 
-/// A builder for input transition matrices (`num_states` × `num_inputs`).
+/// A builder for control transition matrices (`num_states` × `num_controls`).
 pub struct ControlTransitionMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
 
-/// A builder for input covariance matrices (`num_inputs` × `num_inputs`).
+/// A builder for control covariance matrices (`num_controls` × `num_controls`).
 pub struct ControlCovarianceMatrixBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for measurement vectors (`num_measurements` × `1`).
 pub struct MeasurementVectorBufferBuilder<const MEASUREMENTS: usize>;
 
-/// A builder for input transition matrices (`num_measurements` × `num_inputs`).
+/// A builder for control transition matrices (`num_measurements` × `num_controls`).
 pub struct MeasurementTransformationMatrixBufferBuilder<
     const MEASUREMENT: usize,
     const STATES: usize,
@@ -159,13 +159,13 @@ pub struct StatePredictionVectorBufferBuilder<const STATES: usize>;
 /// A builder for temporary system covariance matrices (`num_states` × `num_states`).
 pub struct TemporarySystemCovarianceMatrixBufferBuilder<const STATES: usize>;
 
-/// A builder for temporary matrices (`num_states` × `num_inputs`).
+/// A builder for temporary matrices (`num_states` × `num_controls`).
 pub struct TemporaryBQMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
 
 /// A builder for temporary matrices (`num_measurements` × `num_measurements`).
 pub struct TemporarySInvMatrixBufferBuilder<const MEASUREMENTS: usize>;
 
-/// A builder for temporary matrices (`num_measurements` × `num_inputs`).
+/// A builder for temporary matrices (`num_measurements` × `num_controls`).
 pub struct TemporaryHPMatrixBufferBuilder<const MEASUREMENT: usize, const STATES: usize>;
 
 /// A builder for temporary matrices (`num_states` × `num_measurements`).
@@ -280,7 +280,7 @@ impl<const CONTROLS: usize> ControlVectorBufferBuilder<CONTROLS> {
     /// use minikalman::buffers::types::ControlVectorBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::input_vector_u::<2>().new(0.0);
+    /// let buffer = BufferBuilder::control_vector_u::<2>().new(0.0);
     ///
     /// let buffer: ControlVectorBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 2);
@@ -316,7 +316,7 @@ impl<const STATES: usize, const CONTROLS: usize>
     /// use minikalman::buffers::types::ControlMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::input_transition_B::<3, 2>().new(0.0);
+    /// let buffer  = BufferBuilder::control_transition_B::<3, 2>().new(0.0);
     ///
     /// let buffer: ControlMatrixMutBuffer<3, 2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 6);
@@ -350,7 +350,7 @@ impl<const CONTROLS: usize> ControlCovarianceMatrixBufferBuilder<CONTROLS> {
     /// use minikalman::buffers::types::ControlCovarianceMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::input_covariance_Q::<2>().new(0.0);
+    /// let buffer  = BufferBuilder::control_covariance_Q::<2>().new(0.0);
     ///
     /// let buffer: ControlCovarianceMatrixMutBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 4);

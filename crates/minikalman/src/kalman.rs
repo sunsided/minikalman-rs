@@ -25,10 +25,10 @@ impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     /// ## Arguments
     /// * `A` - The state transition matrix (`STATES` × `STATES`).
     /// * `x` - The state vector (`STATES` × `1`).
-    /// * `B` - The input transition matrix (`STATES` × `CONTROLS`).
-    /// * `u` - The input vector (`CONTROLS` × `1`).
+    /// * `B` - The control transition matrix (`STATES` × `CONTROLS`).
+    /// * `u` - The control vector (`CONTROLS` × `1`).
     /// * `P` - The state covariance matrix (`STATES` × `STATES`).
-    /// * `Q` - The input covariance matrix (`CONTROLS` × `CONTROLS`).
+    /// * `Q` - The control covariance matrix (`CONTROLS` × `CONTROLS`).
     /// * `predictedX` - The temporary vector for predicted states (`STATES` × `1`).
     /// * `temp_P` - The temporary vector for P calculation (`STATES` × `STATES`).
     /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `CONTROLS`).
@@ -208,7 +208,7 @@ where
 impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, TempP> {
     /// Performs the time update / prediction step.
     ///
-    /// This call assumes that the input covariance and variables are already set in the filter structure.
+    /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
     /// ## Example
     /// ```
@@ -290,17 +290,17 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         //* x = A*x
         self.predict_x();
 
-        //* Predict next covariance using system dynamics and input
+        //* Predict next covariance using system dynamics and control
         //* P = A*P*Aᵀ
         self.predict_P();
 
-        // TODO: Add input support
+        // TODO: Add control support
         //       P = P + B*Q*Bᵀ
     }
 
     /// Performs the time update / prediction step.
     ///
-    /// This call assumes that the input covariance and variables are already set in the filter structure.
+    /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
     /// ## Arguments
     /// * `lambda` - Lambda factor (0 < `lambda` <= 1) to forcibly reduce prediction certainty. Smaller values mean larger uncertainty.
@@ -387,11 +387,11 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         //* x = A*x
         self.predict_x();
 
-        //* Predict next covariance using system dynamics and input
+        //* Predict next covariance using system dynamics and control
         //* P = A*P*Aᵀ * 1/lambda^2
         self.predict_P_tuned(lambda);
 
-        // TODO: Add input support
+        // TODO: Add control support
         //       P = P + B*Q*Bᵀ
     }
 
@@ -435,7 +435,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         // temporaries
         let P_temp = self.temp_P.as_matrix_mut();
 
-        // Predict next covariance using system dynamics (without input)
+        // Predict next covariance using system dynamics (without control)
 
         // P = A*P*Aᵀ
         A.mult(P, P_temp); // temp = A*P
@@ -458,7 +458,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         // temporaries
         let P_temp = self.temp_P.as_matrix_mut();
 
-        // Predict next covariance using system dynamics (without input)
+        // Predict next covariance using system dynamics (without control)
         // P = A*P*Aᵀ * 1/lambda^2
 
         // lambda = 1/lambda^2
@@ -470,14 +470,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     }
 
     #[inline(always)]
-    pub fn input<const CONTROLS: usize, I>(&mut self, input: &mut I)
+    pub fn control<const CONTROLS: usize, I>(&mut self, control: &mut I)
     where
         P: SystemCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         I: KalmanFilterControlApplyToFilter<STATES, T> + KalmanFilterNumControls<CONTROLS>,
     {
-        input.apply_to(&mut self.x, &mut self.P)
+        control.apply_to(&mut self.x, &mut self.P)
     }
 
     /// Performs the measurement update step.
@@ -688,11 +688,11 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn input<const CONTROLS: usize, I>(&mut self, input: &mut I)
+    fn control<const CONTROLS: usize, I>(&mut self, control: &mut I)
     where
         I: KalmanFilterControlApplyToFilter<STATES, T> + KalmanFilterNumControls<CONTROLS>,
     {
-        self.input(input)
+        self.control(control)
     }
 }
 

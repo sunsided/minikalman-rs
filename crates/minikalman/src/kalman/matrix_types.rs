@@ -104,7 +104,7 @@ pub trait ControlVectorMut<const CONTROLS: usize, T = f32>:
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 
-    /// Applies a function to the input vector u.
+    /// Applies a function to the control vector u.
     #[inline(always)]
     fn apply<F>(&mut self, mut f: F)
     where
@@ -135,7 +135,7 @@ pub trait ControlMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 
-    /// Applies a function to the input transition matrix B.
+    /// Applies a function to the control transition matrix B.
     #[inline(always)]
     fn apply<F>(&mut self, mut f: F)
     where
@@ -166,9 +166,9 @@ pub trait ControlCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 
-    /// Applies a function to the input covariance matrix Q.
+    /// Applies a function to the control covariance matrix Q.
     #[inline(always)]
-    #[doc(alias = "kalman_get_input_covariance")]
+    #[doc(alias = "kalman_get_control_covariance")]
     fn apply<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut Self::TargetMut),
@@ -203,7 +203,7 @@ pub trait TemporaryStateMatrix<const STATES: usize, T = f32>:
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
-/// B×Q-sized temporary matrix (number of states × number of inputs).
+/// B×Q-sized temporary matrix (number of states × number of controls).
 ///
 /// Always mutable.
 pub trait TemporaryBQMatrix<const STATES: usize, const CONTROLS: usize, T = f32>:

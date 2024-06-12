@@ -51,15 +51,15 @@ const NUM_MEASUREMENTS: usize = 1;
 fn example() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
-    let mut input = builder.inputs().build::<NUM_CONTROLS>();
+    let mut control = builder.controls().build::<NUM_CONTROLS>();
     let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
 
-    // Set up the system dynamics, input matrices, observation matrices, ...
+    // Set up the system dynamics, control matrices, observation matrices, ...
 
     // Filter!
     loop {
-        // Update your input vector(s).
-        input.input_vector_apply(|u| {
+        // Update your control vector(s).
+        control.control_vector_apply(|u| {
             u[0] = 0.0;
             u[1] = 1.0;
         });
@@ -69,11 +69,11 @@ fn example() {
             z[0] = 42.0;
         });
 
-        // Update prediction and apply the inputs.
+        // Update prediction and apply the controls.
         filter.predict();
 
-        // Apply any inputs.
-        filter.input(&mut input);
+        // Apply any controls.
+        filter.control(&mut control);
 
         // Apply any measurements.
         filter.correct(&mut measurement);

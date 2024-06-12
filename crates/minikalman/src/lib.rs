@@ -39,7 +39,7 @@ extern crate alloc;
 mod kalman_builder;
 
 pub mod buffers;
-mod inputs;
+mod controls;
 mod kalman;
 pub mod matrix;
 mod measurement;
@@ -51,7 +51,7 @@ mod test_dummies;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub use crate::buffers::builder::BufferBuilder;
-pub use crate::inputs::{Control, ControlBuilder};
+pub use crate::controls::{Control, ControlBuilder};
 pub use crate::kalman::{Kalman, KalmanBuilder};
 pub use crate::measurement::{Measurement, MeasurementBuilder};
 
@@ -72,7 +72,7 @@ pub mod prelude {
     #[cfg(feature = "alloc")]
     pub use crate::buffers::builder::*;
 
-    pub use crate::inputs::{Control, ControlBuilder};
+    pub use crate::controls::{Control, ControlBuilder};
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
 
@@ -160,10 +160,10 @@ macro_rules! size_buffer_x {
     }};
 }
 
-/// Sizes a buffer fitting the input vector (`num_inputs` × `1`).
+/// Sizes a buffer fitting the control vector (`num_controls` × `1`).
 ///
 /// ## Arguments
-/// * `num_inputs` - The number of states describing the system.
+/// * `num_controls` - The number of states describing the system.
 ///
 /// ## Example
 /// ```
@@ -174,17 +174,17 @@ macro_rules! size_buffer_x {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_u {
-    ( $num_inputs:expr ) => {{
-        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+    ( $num_controls:expr ) => {{
+        const NUM_CONTROLS_: usize = ($num_controls) as usize;
         (NUM_CONTROLS_ * 1) as usize
     }};
 }
 
-/// Sizes a buffer fitting the input transition matrix (`num_states` × `num_inputs`).
+/// Sizes a buffer fitting the control transition matrix (`num_states` × `num_controls`).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
-/// * `num_inputs` - The number of inputs.
+/// * `num_controls` - The number of controls.
 ///
 /// ## Example
 /// ```
@@ -196,17 +196,17 @@ macro_rules! size_buffer_u {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_B {
-    ( $num_states:expr, $num_inputs:expr ) => {{
+    ( $num_states:expr, $num_controls:expr ) => {{
         const NUM_STATES_: usize = ($num_states) as usize;
-        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+        const NUM_CONTROLS_: usize = ($num_controls) as usize;
         (NUM_STATES_ * NUM_CONTROLS_) as usize
     }};
 }
 
-/// Sizes a buffer fitting the input covariance matrix (`num_inputs` × `num_inputs`).
+/// Sizes a buffer fitting the control covariance matrix (`num_controls` × `num_controls`).
 ///
 /// ## Arguments
-/// * `num_inputs` - The number of states describing the system.
+/// * `num_controls` - The number of states describing the system.
 ///
 /// ## Example
 /// ```
@@ -217,8 +217,8 @@ macro_rules! size_buffer_B {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_Q {
-    ( $num_inputs:expr ) => {{
-        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+    ( $num_controls:expr ) => {{
+        const NUM_CONTROLS_: usize = ($num_controls) as usize;
         (NUM_CONTROLS_ * NUM_CONTROLS_) as usize
     }};
 }
@@ -389,11 +389,11 @@ macro_rules! size_buffer_temp_P {
     }};
 }
 
-/// Sizes a buffer fitting the temporary B×Q matrix (`num_states` × `num_inputs`).
+/// Sizes a buffer fitting the temporary B×Q matrix (`num_states` × `num_controls`).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
-/// * `num_inputs` - The number of inputs.
+/// * `num_controls` - The number of controls.
 ///
 /// ## Example
 /// ```
@@ -405,9 +405,9 @@ macro_rules! size_buffer_temp_P {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_BQ {
-    ( $num_states:expr, $num_inputs:expr ) => {{
+    ( $num_states:expr, $num_controls:expr ) => {{
         const NUM_STATES_: usize = ($num_states) as usize;
-        const NUM_CONTROLS_: usize = ($num_inputs) as usize;
+        const NUM_CONTROLS_: usize = ($num_controls) as usize;
         (NUM_STATES_ * NUM_CONTROLS_) as usize
     }};
 }
