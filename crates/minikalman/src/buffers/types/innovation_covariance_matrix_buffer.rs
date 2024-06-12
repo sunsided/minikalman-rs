@@ -1,33 +1,33 @@
-use crate::kalman::ResidualCovarianceMatrix;
+use crate::kalman::InnovationCovarianceMatrix;
 use crate::matrix::{IntoInnerData, Matrix, MatrixData, MatrixDataArray, MatrixDataMut, MatrixMut};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
 /// Buffer for the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
 ///
+/// Represents the uncertainty in the innovation.
+///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::InnovationResidualCovarianceMatrixBuffer;
+/// use minikalman::buffers::types::InnovationCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = InnovationResidualCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = InnovationCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = InnovationResidualCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = InnovationCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct InnovationResidualCovarianceMatrixBuffer<const OBSERVATIONS: usize, T, M>(
-    M,
-    PhantomData<T>,
-)
+#[doc(alias = "ResidualCovarianceMatrixBuffer")]
+pub struct InnovationCovarianceMatrixBuffer<const OBSERVATIONS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
-    for InnovationResidualCovarianceMatrixBuffer<
+    for InnovationCovarianceMatrixBuffer<
         OBSERVATIONS,
         T,
         MatrixDataMut<'a, OBSERVATIONS, OBSERVATIONS, T>,
@@ -43,7 +43,7 @@ impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
 }
 
 impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InnovationResidualCovarianceMatrixBuffer<
+    for InnovationCovarianceMatrixBuffer<
         OBSERVATIONS,
         T,
         MatrixDataArray<OBSERVATIONS, OBSERVATIONS, TOTAL, T>,
@@ -60,7 +60,7 @@ impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 
 // -----------------------------------------------------------
 
-impl<const OBSERVATIONS: usize, T, M> InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -83,7 +83,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> AsRef<[T]>
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -93,7 +93,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> AsMut<[T]>
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -103,21 +103,21 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> Matrix<OBSERVATIONS, OBSERVATIONS, T>
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
 }
 
 impl<const OBSERVATIONS: usize, T, M> MatrixMut<OBSERVATIONS, OBSERVATIONS, T>
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
 }
 
-impl<const OBSERVATIONS: usize, T, M> ResidualCovarianceMatrix<OBSERVATIONS, T>
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> InnovationCovarianceMatrix<OBSERVATIONS, T>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -134,7 +134,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> Index<usize>
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -146,7 +146,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -158,7 +158,7 @@ where
 // -----------------------------------------------------------
 
 impl<const OBSERVATIONS: usize, T, M> IntoInnerData
-    for InnovationResidualCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T> + IntoInnerData,
 {
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: InnovationCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: InnovationCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: InnovationCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }

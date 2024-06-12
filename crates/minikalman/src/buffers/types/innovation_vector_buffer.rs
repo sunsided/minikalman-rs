@@ -5,7 +5,9 @@ use crate::kalman::InnovationVector;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the innovation vector (`num_measurements` × `1`).
+/// Mutable buffer for the innovation vector (`num_measurements` × `1`), typically denoted "y".
+///
+/// Represents the difference between the actual and predicted measurements.
 ///
 /// ## Example
 /// ```

@@ -1,25 +1,27 @@
+use crate::kalman::MeasurementNoiseCovarianceMatrix;
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::ObservationProcessNoiseCovarianceMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the observation covariance matrix (`num_measurements` × `num_measurements`).
+/// Mutable buffer for the measurement noise covariance matrix (`num_measurements` × `num_measurements`), typically denoted "R".
+///
+/// Represents the uncertainty in the measurements.
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::ObservationProcessNoiseCovarianceMatrixBuffer;
+/// use minikalman::buffers::types::MeasurementNoiseCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = ObservationProcessNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = MeasurementNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = ObservationProcessNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = MeasurementNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct ObservationProcessNoiseCovarianceMatrixBuffer<const OBSERVATION: usize, T, M>(
+pub struct MeasurementNoiseCovarianceMatrixBuffer<const OBSERVATION: usize, T, M>(
     M,
     PhantomData<T>,
 )
@@ -29,7 +31,7 @@ where
 // -----------------------------------------------------------
 
 impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<
+    for MeasurementNoiseCovarianceMatrixBuffer<
         OBSERVATIONS,
         T,
         MatrixDataMut<'a, OBSERVATIONS, OBSERVATIONS, T>,
@@ -45,7 +47,7 @@ impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
 }
 
 impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<
+    for MeasurementNoiseCovarianceMatrixBuffer<
         OBSERVATIONS,
         T,
         MatrixDataArray<OBSERVATIONS, OBSERVATIONS, TOTAL, T>,
@@ -62,8 +64,7 @@ impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 
 // -----------------------------------------------------------
 
-impl<const OBSERVATION: usize, T, M>
-    ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+impl<const OBSERVATION: usize, T, M> MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -86,7 +87,7 @@ where
 }
 
 impl<const OBSERVATION: usize, T, M> AsRef<[T]>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -96,7 +97,7 @@ where
 }
 
 impl<const OBSERVATION: usize, T, M> AsMut<[T]>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -106,21 +107,21 @@ where
 }
 
 impl<const OBSERVATION: usize, T, M> Matrix<OBSERVATION, OBSERVATION, T>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
 impl<const OBSERVATION: usize, T, M> MatrixMut<OBSERVATION, OBSERVATION, T>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
-impl<const OBSERVATION: usize, T, M> ObservationProcessNoiseCovarianceMatrix<OBSERVATION, T>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+impl<const OBSERVATION: usize, T, M> MeasurementNoiseCovarianceMatrix<OBSERVATION, T>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -137,7 +138,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> Index<usize>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -149,7 +150,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -161,7 +162,7 @@ where
 // -----------------------------------------------------------
 
 impl<const OBSERVATIONS: usize, T, M> IntoInnerData
-    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T> + IntoInnerData,
 {
@@ -178,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: ObservationProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -187,7 +188,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ObservationProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -197,7 +198,7 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: ObservationProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }

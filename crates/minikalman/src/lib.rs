@@ -42,7 +42,7 @@ pub mod buffers;
 mod controls;
 mod kalman;
 pub mod matrix;
-mod measurement;
+mod observations;
 mod static_macros;
 
 #[cfg(test)]
@@ -53,7 +53,7 @@ mod test_dummies;
 pub use crate::buffers::builder::BufferBuilder;
 pub use crate::controls::{Control, ControlBuilder};
 pub use crate::kalman::{Kalman, KalmanBuilder};
-pub use crate::measurement::{Observation, ObservationBuilder};
+pub use crate::observations::{Observation, ObservationBuilder};
 
 /// Re-export `num_traits`.
 pub use num_traits;
@@ -74,7 +74,7 @@ pub mod prelude {
 
     pub use crate::controls::{Control, ControlBuilder};
     pub use crate::kalman::{Kalman, KalmanBuilder};
-    pub use crate::measurement::{Observation, ObservationBuilder};
+    pub use crate::observations::{Observation, ObservationBuilder};
 
     pub use crate::kalman::*;
     pub use crate::matrix::*;

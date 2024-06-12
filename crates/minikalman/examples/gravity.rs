@@ -23,22 +23,20 @@ fn main() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
     let mut control = builder.controls().build::<NUM_CONTROLS>();
-    let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
+    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
     initialize_state_transition_matrix(filter.state_transition_mut());
-    initialize_state_covariance_matrix(filter.system_covariance_mut());
+    initialize_state_covariance_matrix(filter.estimate_covariance_mut());
 
     // Set up controls.
     initialize_control_vector(control.control_vector_mut());
     initialize_control_matrix(control.control_matrix_mut());
-    initialize_control_covariance_matrix(control.control_covariance_mut());
+    initialize_control_covariance_matrix(control.process_noise_covariance_mut());
 
     // Set up measurements.
-    initialize_position_measurement_transformation_matrix(
-        measurement.measurement_transformation_mut(),
-    );
+    initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
     initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
     // Generate the data.
@@ -121,7 +119,7 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, f32>) {
+fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut<NUM_STATES, f32>) {
     filter.apply(|a| {
         // Time constant.
         const T: f32 = 1 as _;
@@ -148,7 +146,7 @@ fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STAT
 /// This defines how different states (linearly) influence each other
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<NUM_STATES, f32>) {
+fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f32>) {
     filter.apply(|p| {
         p.set(0, 0, 0.1 as _); // var(s)
         p.set(0, 1, 0 as _); // cov(s, v)
@@ -179,7 +177,7 @@ fn initialize_control_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_
 
 /// Initializes the control covariance.
 fn initialize_control_covariance_matrix(
-    filter: &mut impl ControlCovarianceMatrixMut<NUM_CONTROLS, f32>,
+    filter: &mut impl ProcessNoiseCovarianceMatrixMut<NUM_CONTROLS, f32>,
 ) {
     filter.apply(|mat| {
         mat[0] = 1.0; // :)
@@ -209,7 +207,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl ObservationProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
+    measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)

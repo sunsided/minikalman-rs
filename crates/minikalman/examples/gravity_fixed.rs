@@ -71,15 +71,13 @@ lazy_static! {
 fn main() {
     let builder = KalmanFilterBuilder::<NUM_STATES, I16F16>::default();
     let mut filter = builder.build();
-    let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
+    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
     initialize_state_transition_matrix(filter.state_transition_mut());
-    initialize_state_covariance_matrix(filter.system_covariance_mut());
-    initialize_position_measurement_transformation_matrix(
-        measurement.measurement_transformation_mut(),
-    );
+    initialize_state_covariance_matrix(filter.estimate_covariance_mut());
+    initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
     initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
     // Filter!
@@ -121,7 +119,9 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>)
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, I16F16>) {
+fn initialize_state_transition_matrix(
+    filter: &mut impl StateTransitionMatrixMut<NUM_STATES, I16F16>,
+) {
     filter.apply(|a| {
         // Time constant.
         const T: I16F16 = I16F16::ONE;
@@ -149,7 +149,7 @@ fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STAT
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
 fn initialize_state_covariance_matrix(
-    filter: &mut impl SystemCovarianceMatrix<NUM_STATES, I16F16>,
+    filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, I16F16>,
 ) {
     filter.apply(|p| {
         p.set(0, 0, I16F16::from_num(0.1)); // var(s)
@@ -186,7 +186,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl ObservationProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
+    measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)

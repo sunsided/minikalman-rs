@@ -1,34 +1,36 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::{ObservationVector, ObservationVectorMut};
+use crate::kalman::{MeasurementVector, MeasurementVectorMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
 // TODO: Add ObservationVectorMutBuffer
 
-/// Mutable buffer for the observation (measurement) vector (`num_measurements` × `1`).
+/// Mutable buffer for the observation (measurement) vector (`num_measurements` × `1`), typically denoted "z".
+///
+/// Represents the observed measurements from the system.
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::ObservationVectorBuffer;
+/// use minikalman::buffers::types::MeasurementVectorBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = ObservationVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
+/// let buffer = MeasurementVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = ObservationVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = MeasurementVectorBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct ObservationVectorBuffer<const OBSERVATIONS: usize, T, M>(M, PhantomData<T>)
+pub struct MeasurementVectorBuffer<const OBSERVATIONS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<OBSERVATIONS, 1, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
-    for ObservationVectorBuffer<OBSERVATIONS, T, MatrixDataMut<'a, OBSERVATIONS, 1, T>>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, MatrixDataMut<'a, OBSERVATIONS, 1, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -43,8 +45,8 @@ impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
 /// Buffers can be trivially constructed from correctly-sized arrays:
 ///
 /// ```
-/// # use minikalman::buffers::types::ObservationVectorBuffer;
-/// let _value: ObservationVectorBuffer<5, f32, _> = [0.0; 5].into();
+/// # use minikalman::buffers::types::MeasurementVectorBuffer;
+/// let _value: MeasurementVectorBuffer<5, f32, _> = [0.0; 5].into();
 /// ```
 ///
 /// Invalid buffer sizes fail to compile:
@@ -54,7 +56,7 @@ impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
 /// let _value: ObservationVectorBuffer<5, f32, _> = [0.0; 1].into();
 /// ```
 impl<const OBSERVATIONS: usize, T> From<[T; OBSERVATIONS]>
-    for ObservationVectorBuffer<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>
 {
     fn from(value: [T; OBSERVATIONS]) -> Self {
         Self::new(MatrixData::new_array::<OBSERVATIONS, 1, OBSERVATIONS, T>(
@@ -65,7 +67,7 @@ impl<const OBSERVATIONS: usize, T> From<[T; OBSERVATIONS]>
 
 // -----------------------------------------------------------
 
-impl<const OBSERVATIONS: usize, T, M> ObservationVectorBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
@@ -87,7 +89,7 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, T, M> AsRef<[T]> for ObservationVectorBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> AsRef<[T]> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
@@ -96,7 +98,7 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, T, M> Index<usize> for ObservationVectorBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> Index<usize> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
@@ -108,7 +110,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
-    for ObservationVectorBuffer<OBSERVATIONS, T, M>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
@@ -117,7 +119,7 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, T, M> AsMut<[T]> for ObservationVectorBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> AsMut<[T]> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
@@ -127,21 +129,21 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> Matrix<OBSERVATIONS, 1, T>
-    for ObservationVectorBuffer<OBSERVATIONS, T, M>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
 }
 
 impl<const OBSERVATIONS: usize, T, M> MatrixMut<OBSERVATIONS, 1, T>
-    for ObservationVectorBuffer<OBSERVATIONS, T, M>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
 }
 
-impl<const OBSERVATIONS: usize, T, M> ObservationVector<OBSERVATIONS, T>
-    for ObservationVectorBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> MeasurementVector<OBSERVATIONS, T>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
@@ -152,8 +154,8 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, T, M> ObservationVectorMut<OBSERVATIONS, T>
-    for ObservationVectorBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> MeasurementVectorMut<OBSERVATIONS, T>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
@@ -166,7 +168,7 @@ where
 
 // -----------------------------------------------------------
 
-impl<const OBSERVATIONS: usize, T, M> IntoInnerData for ObservationVectorBuffer<OBSERVATIONS, T, M>
+impl<const OBSERVATIONS: usize, T, M> IntoInnerData for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T> + IntoInnerData,
 {
@@ -183,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: ObservationVectorBuffer<5, f32, _> = [0.0; 5].into();
+        let value: MeasurementVectorBuffer<5, f32, _> = [0.0; 5].into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -192,7 +194,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 5];
-        let value: ObservationVectorBuffer<5, f32, _> = data.as_mut().into();
+        let value: MeasurementVectorBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -201,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_access() {
-        let mut value: ObservationVectorBuffer<5, f32, _> = [0.0; 5].into();
+        let mut value: MeasurementVectorBuffer<5, f32, _> = [0.0; 5].into();
 
         // Set values.
         {

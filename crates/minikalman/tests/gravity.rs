@@ -83,10 +83,8 @@ fn test_gravity_estimation() {
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
     initialize_state_transition_matrix(filter.state_transition_mut());
-    initialize_state_covariance_matrix(filter.system_covariance_mut());
-    initialize_position_measurement_transformation_matrix(
-        measurement.measurement_transformation_mut(),
-    );
+    initialize_state_covariance_matrix(filter.estimate_covariance_mut());
+    initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
     initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
     // Filter!
@@ -125,7 +123,7 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, f32>) {
+fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut<NUM_STATES, f32>) {
     filter.apply(|a| {
         // Time constant.
         const T: f32 = 1 as _;
@@ -152,7 +150,7 @@ fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STAT
 /// This defines how different states (linearly) influence each other
 /// over time. In this setup we claim that position, velocity and acceleration
 /// linearly are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<NUM_STATES, f32>) {
+fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f32>) {
     filter.apply(|p| {
         p.set(0, 0, 0.1 as _); // var(s)
         p.set(0, 1, 0 as _); // cov(s, v)
@@ -188,7 +186,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl ObservationProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
+    measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)

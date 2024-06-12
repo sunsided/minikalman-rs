@@ -32,7 +32,7 @@ pub type KalmanFilterType<const STATES: usize, T> = Kalman<
     T,
     SystemMatrixMutBufferOwnedType<STATES, T>,
     StateVectorBufferOwnedType<STATES, T>,
-    SystemCovarianceMatrixBufferOwnedType<STATES, T>,
+    EstimateCovarianceMatrixBufferOwnedType<STATES, T>,
     TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
     TemporaryStateMatrixBufferOwnedType<STATES, T>,
 >;
@@ -56,7 +56,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// let mut filter = builder.build();
     /// let mut control = builder.controls().build::<NUM_CONTROLS>();
-    /// let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
+    /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
     /// ```
     ///
     /// See also [`KalmanFilterControlBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
@@ -69,8 +69,8 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
 
         // System buffers.
         let state_vector = BufferBuilder::state_vector_x::<STATES>().new(zero);
-        let system_matrix = BufferBuilder::system_state_transition_A::<STATES>().new(zero);
-        let system_covariance = BufferBuilder::system_covariance_P::<STATES>().new(zero);
+        let system_matrix = BufferBuilder::system_matrix_A::<STATES>().new(zero);
+        let system_covariance = BufferBuilder::estimate_covariance_P::<STATES>().new(zero);
 
         // Filter temporaries.
         let temp_x = BufferBuilder::state_prediction_temp_x::<STATES>().new(zero);
@@ -91,7 +91,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     }
 
     /// Convenience function to return a [`KalmanFilterObservationBuilder`].
-    pub fn measurements(&self) -> KalmanFilterObservationBuilder<STATES, T> {
+    pub fn observations(&self) -> KalmanFilterObservationBuilder<STATES, T> {
         Default::default()
     }
 }
@@ -121,7 +121,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
         Self(PhantomData)
     }
 
-    /// Builds a new Kalman filter controls using heap allocated buffers.
+    /// Builds a new Kalman filter control input using heap allocated buffers.
     ///
     /// ## Example
     /// ```rust
@@ -146,7 +146,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
         // Control buffers.
         let control_vector = BufferBuilder::control_vector_u::<CONTROLS>().new(zero);
         let control_matrix = BufferBuilder::control_matrix_B::<STATES, CONTROLS>().new(zero);
-        let control_covariance = BufferBuilder::control_covariance_Q::<CONTROLS>().new(zero);
+        let control_covariance = BufferBuilder::process_noise_covariance_Q::<CONTROLS>().new(zero);
 
         // Control temporaries.
         let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new(zero);
@@ -166,7 +166,7 @@ impl<const STATES: usize, T> Default for KalmanFilterObservationBuilder<STATES, 
     }
 }
 
-/// The type of Kalman filter measurements with owned buffers.
+/// The type of Kalman filter measurement / observation with owned buffers.
 ///
 /// See also the [`KalmanFilterObservation`](minikalman::kalman::KalmanFilterObservation) trait.
 pub type KalmanFilterObservationType<const STATES: usize, const OBSERVATIONS: usize, T> =
@@ -176,7 +176,7 @@ pub type KalmanFilterObservationType<const STATES: usize, const OBSERVATIONS: us
         T,
         ObservationMatrixBufferOwnedType<OBSERVATIONS, STATES, T>,
         ObservationVectorBufferOwnedType<OBSERVATIONS, T>,
-        ObservationCovarianceBufferOwnedType<OBSERVATIONS, T>,
+        MeasurementNoiseCovarianceBufferOwnedType<OBSERVATIONS, T>,
         InnovationVectorBufferOwnedType<OBSERVATIONS, T>,
         InnovationResidualCovarianceMatrixBufferOwnedType<OBSERVATIONS, T>,
         KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>,
@@ -203,7 +203,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     ///
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// // let mut filter = builder.build();
-    /// let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
+    /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterControlBuilder`] for further information.
@@ -219,9 +219,9 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
         // Observation buffers.
         let measurement_vector = BufferBuilder::measurement_vector_z::<OBSERVATIONS>().new(zero);
         let observation_matrix =
-            BufferBuilder::measurement_transformation_H::<OBSERVATIONS, STATES>().new(zero);
+            BufferBuilder::observation_matrix_H::<OBSERVATIONS, STATES>().new(zero);
         let observation_covariance =
-            BufferBuilder::measurement_covariance_R::<OBSERVATIONS>().new(zero);
+            BufferBuilder::observation_covariance_R::<OBSERVATIONS>().new(zero);
         let innovation_vector = BufferBuilder::innovation_vector_y::<OBSERVATIONS>().new(zero);
         let residual_covariance_matrix =
             BufferBuilder::innovation_covariance_S::<OBSERVATIONS>().new(zero);
@@ -269,7 +269,7 @@ mod tests {
     {
     }
 
-    fn accept_measurement<M, T>(_measurement: M)
+    fn accept_observation<M, T>(_measurement: M)
     where
         M: KalmanFilterObservation<NUM_STATES, NUM_OBSERVATIONS, T>,
     {
@@ -295,9 +295,9 @@ mod tests {
     #[test]
     fn measurement_builder() {
         let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
-        let measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
+        let measurement = builder.observations().build::<NUM_OBSERVATIONS>();
         assert_eq!(measurement.states(), NUM_STATES);
         assert_eq!(measurement.measurements(), NUM_CONTROLS);
-        accept_measurement(measurement);
+        accept_observation(measurement);
     }
 }

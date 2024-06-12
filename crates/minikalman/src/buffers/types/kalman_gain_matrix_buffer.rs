@@ -5,7 +5,9 @@ use crate::kalman::KalmanGainMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the Kalman Gain matrix (`num_states` × `num_measurements`).
+/// Mutable buffer for the Kalman Gain matrix (`num_states` × `num_measurements`), typically denoted "K".
+///
+/// Determines how much the predictions should be corrected based on the measurements.
 ///
 /// ## Example
 /// ```

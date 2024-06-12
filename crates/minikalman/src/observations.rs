@@ -90,11 +90,11 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     ) -> Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     where
         T: MatrixDataType,
-        Z: ObservationVector<OBSERVATIONS, T>,
+        Z: MeasurementVector<OBSERVATIONS, T>,
         H: ObservationMatrix<OBSERVATIONS, STATES, T>,
-        R: ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+        R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
         Y: InnovationVector<OBSERVATIONS, T>,
-        S: ResidualCovarianceMatrix<OBSERVATIONS, T>,
+        S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
         K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
         TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
         TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
@@ -311,18 +311,28 @@ impl<
     }
 
     /// Gets a reference to the measurement transformation matrix H.
+    ///
+    /// This matrix maps the state vector into the measurement space, relating the state of the
+    /// system to the observations or measurements. It defines how each state component contributes
+    /// to the measurement.
     #[inline(always)]
-    pub fn measurement_transformation_ref(&self) -> &H {
+    pub fn observation_matrix_ref(&self) -> &H {
         &self.H
     }
 
     /// Gets a reference to the process noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
     pub fn process_noise_ref(&self) -> &R {
         &self.R
     }
 
     /// Gets a mutable reference to the process noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
     #[doc(alias = "kalman_get_process_noise")]
     pub fn process_noise_mut(&mut self) -> &mut R {
@@ -330,6 +340,9 @@ impl<
     }
 
     /// Applies a function to the process noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
     pub fn process_noise_apply<F>(&mut self, mut f: F)
     where
@@ -357,10 +370,10 @@ impl<
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
     K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
-    S: ResidualCovarianceMatrix<OBSERVATIONS, T>,
-    R: ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
     Y: InnovationVector<OBSERVATIONS, T>,
-    Z: ObservationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
     TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
     TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
     TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
@@ -372,7 +385,7 @@ where
     pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
         X: StateVectorMut<STATES, T>,
-        P: SystemCovarianceMatrix<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
     {
         // matrices and vectors
         let P = P.as_matrix_mut();
@@ -449,16 +462,24 @@ impl<
 where
     H: ObservationMatrixMut<OBSERVATIONS, STATES, T>,
 {
-    /// Gets a mutable reference to the measurement transformation matrix H.
+    /// Gets a mutable reference to the observation matrix H.
+    ///
+    /// This matrix maps the state vector into the measurement space, relating the state of the
+    /// system to the observations or measurements. It defines how each state component contributes
+    /// to the measurement.
     #[inline(always)]
     #[doc(alias = "kalman_get_measurement_transformation")]
-    pub fn measurement_transformation_mut(&mut self) -> &mut H {
+    pub fn observation_matrix_mut(&mut self) -> &mut H {
         &mut self.H
     }
 
     /// Applies a function to the measurement transformation matrix H.
+    ///
+    /// This matrix maps the state vector into the measurement space, relating the state of the
+    /// system to the observations or measurements. It defines how each state component contributes
+    /// to the measurement.
     #[inline(always)]
-    pub fn measurement_transformation_apply<F>(&mut self, mut f: F)
+    pub fn observation_matrix_apply<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut H),
     {
@@ -518,14 +539,14 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterObservationVector<OBSERVATIONS, T>
+    > KalmanFilterMeasurementVector<OBSERVATIONS, T>
     for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    Z: ObservationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
 {
-    type ObservationVector = Z;
+    type MeasurementVector = Z;
 
-    fn measurement_vector_ref(&self) -> &Self::ObservationVector {
+    fn measurement_vector_ref(&self) -> &Self::MeasurementVector {
         self.measurement_vector_ref()
     }
 }
@@ -547,11 +568,11 @@ impl<
     > KalmanFilterObservationVectorMut<OBSERVATIONS, T>
     for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    Z: ObservationVectorMut<OBSERVATIONS, T>,
+    Z: MeasurementVectorMut<OBSERVATIONS, T>,
 {
-    type ObservationVectorMut = Z;
+    type MeasurementVectorMut = Z;
 
-    fn measurement_vector_mut(&mut self) -> &mut Self::ObservationVectorMut {
+    fn measurement_vector_mut(&mut self) -> &mut Self::MeasurementVectorMut {
         self.measurement_vector_mut()
     }
 }
@@ -577,8 +598,8 @@ where
 {
     type ObservationTransformationMatrix = H;
 
-    fn measurement_transformation_ref(&self) -> &Self::ObservationTransformationMatrix {
-        self.measurement_transformation_ref()
+    fn observation_matrix_ref(&self) -> &Self::ObservationTransformationMatrix {
+        self.observation_matrix_ref()
     }
 }
 
@@ -603,8 +624,8 @@ where
 {
     type ObservationTransformationMatrixMut = H;
 
-    fn measurement_transformation_mut(&mut self) -> &mut Self::ObservationTransformationMatrixMut {
-        self.measurement_transformation_mut()
+    fn observation_matrix_mut(&mut self) -> &mut Self::ObservationTransformationMatrixMut {
+        self.observation_matrix_mut()
     }
 }
 
@@ -622,14 +643,14 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterObservationProcessNoise<OBSERVATIONS, T>
+    > KalmanFilterMeasurementNoiseCovariance<OBSERVATIONS, T>
     for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    R: ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
 {
-    type ObservationProcessNoiseMatrix = R;
+    type MeasurementNoiseCovarianceMatrix = R;
 
-    fn process_noise_ref(&self) -> &Self::ObservationProcessNoiseMatrix {
+    fn measurement_noise_covariance_ref(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
         self.process_noise_ref()
     }
 }
@@ -648,14 +669,16 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterObservationProcessNoiseMut<OBSERVATIONS, T>
+    > KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
     for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    R: ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
 {
-    type ObservationProcessNoiseMatrixMut = R;
+    type KalmanFilterMeasurementNoiseCovarianceMut = R;
 
-    fn process_noise_mut(&mut self) -> &mut Self::ObservationProcessNoiseMatrixMut {
+    fn measurement_noise_covariance_mut(
+        &mut self,
+    ) -> &mut Self::KalmanFilterMeasurementNoiseCovarianceMut {
         self.process_noise_mut()
     }
 }
@@ -679,10 +702,10 @@ impl<
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
     K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
-    S: ResidualCovarianceMatrix<OBSERVATIONS, T>,
-    R: ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
     Y: InnovationVector<OBSERVATIONS, T>,
-    Z: ObservationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
     TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
     TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
     TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
@@ -693,7 +716,7 @@ where
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
         X: StateVectorMut<STATES, T>,
-        P: SystemCovarianceMatrix<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
     {
         self.correct(x, P)
     }
@@ -712,7 +735,7 @@ mod tests {
 
         let builder = KalmanFilterBuilder::<3, f32>::default();
         let mut filter = builder.build();
-        let mut measurement = builder.measurements().build::<5>();
+        let mut measurement = builder.observations().build::<5>();
 
         filter.predict();
         filter.correct(&mut measurement);
@@ -723,7 +746,7 @@ mod tests {
         M: KalmanFilterObservation<STATES, OBSERVATIONS, T>,
     {
         assert_eq!(measurement.states(), STATES);
-        assert_eq!(measurement.measurements(), OBSERVATIONS);
+        assert_eq!(measurement.observations(), OBSERVATIONS);
         measurement
     }
 
@@ -745,11 +768,11 @@ mod tests {
         let measurement = trait_impl(measurement);
 
         let _measurements = measurement.measurement_vector_ref();
-        let _matrix = measurement.measurement_transformation_ref();
+        let _matrix = measurement.observation_matrix_ref();
         let _noise = measurement.process_noise_ref();
     }
 
-    impl<const STATES: usize, T> ObservationVector<STATES, T> for Dummy<T> {
+    impl<const STATES: usize, T> MeasurementVector<STATES, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
 
         fn as_matrix(&self) -> &Self::Target {
@@ -757,7 +780,7 @@ mod tests {
         }
     }
 
-    impl<const STATES: usize, T> ObservationVectorMut<STATES, T> for Dummy<T> {
+    impl<const STATES: usize, T> MeasurementVectorMut<STATES, T> for Dummy<T> {
         type TargetMut = DummyMatrix<T>;
 
         fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
@@ -785,9 +808,7 @@ mod tests {
         }
     }
 
-    impl<const OBSERVATIONS: usize, T> ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>
-        for Dummy<T>
-    {
+    impl<const OBSERVATIONS: usize, T> MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
 
@@ -813,7 +834,7 @@ mod tests {
         }
     }
 
-    impl<const OBSERVATIONS: usize, T> ResidualCovarianceMatrix<OBSERVATIONS, T> for Dummy<T> {
+    impl<const OBSERVATIONS: usize, T> InnovationCovarianceMatrix<OBSERVATIONS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
 
