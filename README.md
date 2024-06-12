@@ -39,6 +39,10 @@ cargo build --features=alloc
 
 ### Targets with allocations (`std` or `alloc`)
 
+When the `alloc` crate feature is enabled either directly or implicitly via `std`,
+some builders are enabled that allow for simple creation of filters. This should help non-embedded use cases, or any
+use case that does not have to explicitly manage buffer locations, to get an easier start:
+
 ```rust
 const NUM_STATES: usize = 3;
 const NUM_INPUTS: usize = 2;

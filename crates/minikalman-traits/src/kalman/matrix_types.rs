@@ -1,5 +1,5 @@
 use crate::matrix::{Matrix, MatrixMut};
-use std::ops::{Index, IndexMut};
+use core::ops::{Index, IndexMut};
 
 /// State vector.
 ///

@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use minikalman_traits::kalman::{
     InnovationVector, InputCovarianceMatrixMut, InputMatrixMut, InputVectorMut, KalmanGainMatrix,
@@ -16,14 +16,17 @@ use crate::buffer_builder::{
 use crate::inputs::{Input, InputBuilder};
 use crate::{BufferBuilder, Kalman, KalmanBuilder, Measurement, MeasurementBuilder};
 
+/// A simple builder for [`Kalman`] instances.
 #[derive(Copy, Clone)]
 pub struct KalmanFilterBuilder<const STATES: usize, T>(PhantomData<T>);
 
-#[derive(Copy, Clone)]
-pub struct KalmanFilterMeasurementBuilder<const STATES: usize, T>(PhantomData<T>);
-
+/// A simple builder for [`Input`] instances.
 #[derive(Copy, Clone)]
 pub struct KalmanFilterInputBuilder<const STATES: usize, T>(PhantomData<T>);
+
+/// A simple builder for [`Measurement`] instances.
+#[derive(Copy, Clone)]
+pub struct KalmanFilterMeasurementBuilder<const STATES: usize, T>(PhantomData<T>);
 
 impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
     fn default() -> Self {

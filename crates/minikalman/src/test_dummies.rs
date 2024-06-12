@@ -1,6 +1,6 @@
+use core::marker::PhantomData;
+use core::ops::{Index, IndexMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
-use std::marker::PhantomData;
-use std::ops::{Index, IndexMut};
 
 /// A dummy buffer type that holds a [`DummyMatrix`]
 #[derive(Default)]
