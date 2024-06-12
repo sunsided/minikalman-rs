@@ -80,7 +80,7 @@ fn main() {
 
         let state = filter.state_vector_ref();
         println!(
-            "t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
+            "  t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
             state[0], state[1], state[2]
         );
     }
@@ -93,12 +93,11 @@ fn main() {
         assert_f32_near!(state[2], 0.3);
     }
 
-    const OBSERVATIONS: [f32; 10] = [
-        13.15, 16.53, 20.02, 23.47, 26.75, 29.73, 32.28, 34.27, 35.55, 36.00,
-    ];
+    // Noisy observations.
+    const OBSERVATIONS: [f32; 10] = [13.2, 16.5, 20.0, 23.5, 26.8, 29.7, 32.8, 34.3, 35.6, 36.00];
 
     // The car now begins to brake.
-    let ACCELERATION: f32 = -1.1333333; // m/s²
+    let ACCELERATION: f32 = -0.1333333; // m/s²
     for t in 10..20 {
         control.control_vector_apply(|vec| vec.set(0, 0, ACCELERATION));
 
@@ -107,7 +106,19 @@ fn main() {
 
         let state = filter.state_vector_ref();
         println!(
-            "t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
+            "  t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
+            state[0], state[1], state[2]
+        );
+
+        measurement.measurement_vector_apply(|measurement| {
+            measurement[0] = OBSERVATIONS[t - 10];
+        });
+
+        filter.correct(&mut measurement);
+
+        let state = filter.state_vector_ref();
+        println!(
+            "* t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
             state[0], state[1], state[2]
         );
     }
@@ -115,8 +126,8 @@ fn main() {
     // The car should now be approximately stopped (but still decelerating).
     {
         let state = filter.state_vector_ref();
-        assert_f32_near!(state[0], 36.0);
-        assert!(is_between(state[1], 0.0, 0.01));
+        assert!(is_between(state[0], 36.0, 36.2));
+        assert!(is_between(state[1], -0.02, 0.02));
         assert!(is_between(state[2], -1.04, -1.03));
     }
 }
