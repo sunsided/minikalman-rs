@@ -53,25 +53,25 @@ impl<T> MatrixDataTypeBase for T where
 impl MatrixDataType for f32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
-        #[cfg(feature = "libm")]
-        {
-            1.0 / self
-        }
         #[cfg(feature = "std")]
         {
             self.recip()
+        }
+        #[cfg(not(feature = "std"))] // libm
+        {
+            1.0 / self
         }
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
-        #[cfg(feature = "libm")]
-        {
-            libm::sqrtf(self)
-        }
         #[cfg(feature = "std")]
         {
             self.sqrt()
+        }
+        #[cfg(not(feature = "std"))] // libm
+        {
+            libm::sqrtf(self)
         }
     }
 }
@@ -80,25 +80,25 @@ impl MatrixDataType for f32 {
 impl MatrixDataType for f64 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
-        #[cfg(feature = "libm")]
-        {
-            1.0 / self
-        }
         #[cfg(feature = "std")]
         {
             self.recip()
+        }
+        #[cfg(not(feature = "std"))] // libm
+        {
+            1.0 / self
         }
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
-        #[cfg(feature = "libm")]
-        {
-            libm::sqrt(self)
-        }
         #[cfg(feature = "std")]
         {
             self.sqrt()
+        }
+        #[cfg(not(feature = "std"))] // libm
+        {
+            libm::sqrt(self)
         }
     }
 }

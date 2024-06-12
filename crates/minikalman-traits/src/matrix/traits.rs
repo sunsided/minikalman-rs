@@ -154,7 +154,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman_traits::{MatrixData, Matrix};
+    /// use minikalman_traits::matrix::{Matrix, MatrixData};
     ///
     /// let a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -237,7 +237,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman_traits::{MatrixData, Matrix};
+    /// use minikalman_traits::matrix::{MatrixData, Matrix};
     ///
     /// let a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -893,8 +893,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman::MatrixData;
-    /// use minikalman::prelude::MatrixMut;
+    /// use minikalman_traits::matrix::{MatrixData, MatrixMut};
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [
@@ -978,7 +977,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::MatrixData;
+    use crate::matrix::MatrixData;
     use assert_float_eq::*;
 
     #[test]
