@@ -1,32 +1,34 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::SystemCovarianceMatrix;
+use crate::kalman::EstimateCovarianceMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the system covariance matrix (`num_states` × `num_states`).
+/// Mutable buffer for the system covariance matrix (`num_states` × `num_states`), typically denoted "P".
+///
+/// Represents the uncertainty in the state estimate.
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::SystemCovarianceMatrixBuffer;
+/// use minikalman::buffers::types::EstimateCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = SystemCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = EstimateCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = SystemCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = EstimateCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct SystemCovarianceMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
+pub struct EstimateCovarianceMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, STATES, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const STATES: usize, T> From<&'a mut [T]>
-    for SystemCovarianceMatrixBuffer<STATES, T, MatrixDataMut<'a, STATES, STATES, T>>
+    for EstimateCovarianceMatrixBuffer<STATES, T, MatrixDataMut<'a, STATES, STATES, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -38,7 +40,7 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for SystemCovarianceMatrixBuffer<STATES, T, MatrixDataArray<STATES, STATES, TOTAL, T>>
+    for EstimateCovarianceMatrixBuffer<STATES, T, MatrixDataArray<STATES, STATES, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -51,7 +53,7 @@ impl<const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> SystemCovarianceMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -73,7 +75,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsRef<[T]> for SystemCovarianceMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsRef<[T]> for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -82,7 +84,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsMut<[T]> for SystemCovarianceMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsMut<[T]> for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -92,21 +94,21 @@ where
 }
 
 impl<const STATES: usize, T, M> Matrix<STATES, STATES, T>
-    for SystemCovarianceMatrixBuffer<STATES, T, M>
+    for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
 }
 
 impl<const STATES: usize, T, M> MatrixMut<STATES, STATES, T>
-    for SystemCovarianceMatrixBuffer<STATES, T, M>
+    for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
 }
 
-impl<const STATES: usize, T, M> SystemCovarianceMatrix<STATES, T>
-    for SystemCovarianceMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> EstimateCovarianceMatrix<STATES, T>
+    for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -122,7 +124,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> Index<usize> for SystemCovarianceMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> Index<usize> for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -133,7 +135,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> IndexMut<usize> for SystemCovarianceMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IndexMut<usize> for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -144,7 +146,7 @@ where
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> IntoInnerData for SystemCovarianceMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IntoInnerData for EstimateCovarianceMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T> + IntoInnerData,
 {
@@ -161,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: SystemCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: EstimateCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -170,7 +172,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: SystemCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: EstimateCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -180,7 +182,45 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: SystemCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: EstimateCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_access() {
+        let mut value: EstimateCovarianceMatrixBuffer<5, f32, _> = [0.0; 25].into();
+
+        // Set values.
+        {
+            let matrix = value.as_matrix_mut();
+            for i in 0..matrix.cols() {
+                matrix.set_symmetric(0, i, i as _);
+                matrix.set(i, i, i as _);
+            }
+        }
+
+        // Update values.
+        for i in 0..value.len() {
+            value[i] += 10.0;
+        }
+
+        // Get values.
+        {
+            let matrix = value.as_matrix();
+            for i in 0..matrix.rows() {
+                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+            }
+        }
+
+        assert_eq!(value.into_inner(),
+                   [
+                       10.0, 11.0, 12.0, 13.0, 14.0,
+                       11.0, 11.0, 10.0, 10.0, 10.0,
+                       12.0, 10.0, 12.0, 10.0, 10.0,
+                       13.0, 10.0, 10.0, 13.0, 10.0,
+                       14.0, 10.0, 10.0, 10.0, 14.0,
+                   ]);
     }
 }

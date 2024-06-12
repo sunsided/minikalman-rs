@@ -1,84 +1,83 @@
+use crate::kalman::MeasurementNoiseCovarianceMatrix;
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::TemporaryHPMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the temporary H×P matrix (`num_measurements` × `num_states`).
+/// Mutable buffer for the measurement noise covariance matrix (`num_measurements` × `num_measurements`), typically denoted "R".
 ///
-/// # See also
-/// * [`TemporaryPHTMatrixBuffer`](crate::buffer_types::TemporaryPHTMatrixBuffer).
+/// Represents the uncertainty in the measurements.
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::TemporaryHPMatrixBuffer;
+/// use minikalman::buffers::types::MeasurementNoiseCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = TemporaryHPMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = MeasurementNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = TemporaryHPMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// let buffer = MeasurementNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct TemporaryHPMatrixBuffer<const OBSERVATIONS: usize, const STATES: usize, T, M>(
+pub struct MeasurementNoiseCovarianceMatrixBuffer<const OBSERVATION: usize, T, M>(
     M,
     PhantomData<T>,
 )
 where
-    M: Matrix<OBSERVATIONS, STATES, T>;
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>;
 
 // -----------------------------------------------------------
 
-impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a mut [T]>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, MatrixDataMut<'a, OBSERVATIONS, STATES, T>>
+impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
+    for MeasurementNoiseCovarianceMatrixBuffer<
+        OBSERVATIONS,
+        T,
+        MatrixDataMut<'a, OBSERVATIONS, OBSERVATIONS, T>,
+    >
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(OBSERVATIONS * STATES <= value.len());
+            debug_assert!(OBSERVATIONS * OBSERVATIONS <= value.len());
         }
-        Self::new(MatrixData::new_mut::<OBSERVATIONS, STATES, T>(value))
+        Self::new(MatrixData::new_mut::<OBSERVATIONS, OBSERVATIONS, T>(value))
     }
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for TemporaryHPMatrixBuffer<
+impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for MeasurementNoiseCovarianceMatrixBuffer<
         OBSERVATIONS,
-        STATES,
         T,
-        MatrixDataArray<OBSERVATIONS, STATES, TOTAL, T>,
+        MatrixDataArray<OBSERVATIONS, OBSERVATIONS, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(OBSERVATIONS * STATES <= TOTAL);
+            debug_assert!(OBSERVATIONS * OBSERVATIONS <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<OBSERVATIONS, STATES, TOTAL, T>(
-            value,
-        ))
+        Self::new(MatrixData::new_array::<OBSERVATIONS, OBSERVATIONS, TOTAL, T>(value))
     }
 }
 
 // -----------------------------------------------------------
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
-    TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATION: usize, T, M> MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        OBSERVATIONS * STATES
+        OBSERVATION * OBSERVATION
     }
 
     pub const fn is_empty(&self) -> bool {
-        OBSERVATIONS * STATES == 0
+        OBSERVATION * OBSERVATION == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -87,45 +86,44 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M> AsRef<[T]>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATION: usize, T, M> AsRef<[T]>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: Matrix<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M> AsMut<[T]>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATION: usize, T, M> AsMut<[T]>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Matrix<OBSERVATIONS, STATES, T>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATION: usize, T, M> Matrix<OBSERVATION, OBSERVATION, T>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M> MatrixMut<OBSERVATIONS, STATES, T>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATION: usize, T, M> MatrixMut<OBSERVATION, OBSERVATION, T>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
-    TemporaryHPMatrix<OBSERVATIONS, STATES, T>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATION: usize, T, M> MeasurementNoiseCovarianceMatrix<OBSERVATION, T>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     type Target = M;
     type TargetMut = M;
@@ -139,10 +137,10 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Index<usize>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATIONS: usize, T, M> Index<usize>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
     type Output = T;
 
@@ -151,10 +149,10 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M> IndexMut<usize>
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
@@ -163,10 +161,10 @@ where
 
 // -----------------------------------------------------------
 
-impl<const OBSERVATIONS: usize, const STATES: usize, T, M> IntoInnerData
-    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
+impl<const OBSERVATIONS: usize, T, M> IntoInnerData
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<OBSERVATIONS, STATES, T> + IntoInnerData,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T> + IntoInnerData,
 {
     type Target = M::Target;
 
@@ -181,8 +179,8 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: TemporaryHPMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
-        assert_eq!(value.len(), 15);
+        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
     }
@@ -190,8 +188,8 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: TemporaryHPMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
-        assert_eq!(value.len(), 15);
+        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
         assert!(core::ptr::eq(value.as_ref(), &data));
@@ -200,14 +198,14 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: TemporaryHPMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
+        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 
     #[test]
     #[rustfmt::skip]
     fn test_access() {
-        let mut value: TemporaryHPMatrixBuffer<5, 5, f32, _> = [0.0; 25].into();
+        let mut value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 25].into();
 
         // Set values.
         {

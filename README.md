@@ -46,13 +46,13 @@ use case that does not have to explicitly manage buffer locations, to get an eas
 ```rust
 const NUM_STATES: usize = 3;
 const NUM_CONTROLS: usize = 2;
-const NUM_MEASUREMENTS: usize = 1;
+const NUM_OBSERVATIONS: usize = 1;
 
 fn example() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
     let mut control = builder.controls().build::<NUM_CONTROLS>();
-    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+    let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
 
     // Set up the system dynamics, control matrices, observation matrices, ...
 

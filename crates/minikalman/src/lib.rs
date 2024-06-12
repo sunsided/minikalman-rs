@@ -10,7 +10,7 @@
 //!
 //! If allocation is available (via `std` or `alloc` crate features), the [`KalmanBuilder`] can be
 //! used to quickly create a [`Kalman`] filter instance with all necessary buffers, alongside
-//! [`Control`] and [`Measurement`] instances.
+//! [`Control`] and [`Observation`] instances.
 //!
 //! ## Crate Features
 //!
@@ -42,7 +42,7 @@ pub mod buffers;
 mod controls;
 mod kalman;
 pub mod matrix;
-mod measurement;
+mod observations;
 mod static_macros;
 
 #[cfg(test)]
@@ -53,7 +53,7 @@ mod test_dummies;
 pub use crate::buffers::builder::BufferBuilder;
 pub use crate::controls::{Control, ControlBuilder};
 pub use crate::kalman::{Kalman, KalmanBuilder};
-pub use crate::measurement::{Measurement, MeasurementBuilder};
+pub use crate::observations::{Observation, ObservationBuilder};
 
 /// Re-export `num_traits`.
 pub use num_traits;
@@ -62,7 +62,7 @@ pub use num_traits;
 #[cfg(feature = "alloc")]
 pub mod builder {
     pub use crate::kalman_builder::{
-        KalmanFilterBuilder, KalmanFilterControlBuilder, KalmanFilterMeasurementBuilder,
+        KalmanFilterBuilder, KalmanFilterControlBuilder, KalmanFilterObservationBuilder,
     };
 }
 
@@ -74,7 +74,7 @@ pub mod prelude {
 
     pub use crate::controls::{Control, ControlBuilder};
     pub use crate::kalman::{Kalman, KalmanBuilder};
-    pub use crate::measurement::{Measurement, MeasurementBuilder};
+    pub use crate::observations::{Observation, ObservationBuilder};
 
     pub use crate::kalman::*;
     pub use crate::matrix::*;
@@ -231,15 +231,15 @@ macro_rules! size_buffer_Q {
 /// ## Example
 /// ```
 /// # use minikalman::*;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_z!(NUM_MEASUREMENTS), 1);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_z!(NUM_OBSERVATIONS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_z {
     ( $num_measurements:expr ) => {{
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
-        (NUM_MEASUREMENTS_ * 1) as usize
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
+        (NUM_OBSERVATIONS_ * 1) as usize
     }};
 }
 
@@ -253,16 +253,16 @@ macro_rules! size_buffer_z {
 /// ```
 /// # use minikalman::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_H!(NUM_MEASUREMENTS, NUM_STATES), 3);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_H!(NUM_OBSERVATIONS, NUM_STATES), 3);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_H {
     ( $num_measurements:expr, $num_states:expr ) => {{
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
         const NUM_STATES_: usize = ($num_states) as usize;
-        (NUM_MEASUREMENTS_ * NUM_STATES_) as usize
+        (NUM_OBSERVATIONS_ * NUM_STATES_) as usize
     }};
 }
 
@@ -274,15 +274,15 @@ macro_rules! size_buffer_H {
 /// ## Example
 /// ```
 /// # use minikalman::*;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_R!(NUM_MEASUREMENTS), 1);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_R!(NUM_OBSERVATIONS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_R {
     ( $num_measurements:expr ) => {{
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
-        (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
+        (NUM_OBSERVATIONS_ * NUM_OBSERVATIONS_) as usize
     }};
 }
 
@@ -294,15 +294,15 @@ macro_rules! size_buffer_R {
 /// ## Example
 /// ```
 /// # use minikalman::*;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_y!(NUM_MEASUREMENTS), 1);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_y!(NUM_OBSERVATIONS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_y {
     ( $num_measurements:expr ) => {{
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
-        (NUM_MEASUREMENTS_ * 1) as usize
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
+        (NUM_OBSERVATIONS_ * 1) as usize
     }};
 }
 
@@ -314,15 +314,15 @@ macro_rules! size_buffer_y {
 /// ## Example
 /// ```
 /// # use minikalman::*;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_S!(NUM_MEASUREMENTS), 1);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_S!(NUM_OBSERVATIONS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_S {
     ( $num_measurements:expr ) => {{
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
-        (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
+        (NUM_OBSERVATIONS_ * NUM_OBSERVATIONS_) as usize
     }};
 }
 
@@ -336,16 +336,16 @@ macro_rules! size_buffer_S {
 /// ```
 /// # use minikalman::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_K!(NUM_STATES, NUM_MEASUREMENTS), 3);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_K!(NUM_STATES, NUM_OBSERVATIONS), 3);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_K {
     ( $num_states:expr, $num_measurements:expr ) => {{
         const NUM_STATES_: usize = ($num_states) as usize;
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
-        (NUM_STATES_ * NUM_MEASUREMENTS_) as usize
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
+        (NUM_STATES_ * NUM_OBSERVATIONS_) as usize
     }};
 }
 
@@ -420,15 +420,15 @@ macro_rules! size_buffer_temp_BQ {
 /// ## Example
 /// ```
 /// # use minikalman::*;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_temp_S_inv!(NUM_MEASUREMENTS), 1);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_temp_S_inv!(NUM_OBSERVATIONS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_S_inv {
     ( $num_measurements:expr ) => {{
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
-        (NUM_MEASUREMENTS_ * NUM_MEASUREMENTS_) as usize
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
+        (NUM_OBSERVATIONS_ * NUM_OBSERVATIONS_) as usize
     }};
 }
 
@@ -442,16 +442,16 @@ macro_rules! size_buffer_temp_S_inv {
 /// ```
 /// # use minikalman::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_temp_HP!(NUM_MEASUREMENTS, NUM_STATES), 3);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_temp_HP!(NUM_OBSERVATIONS, NUM_STATES), 3);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_HP {
     ( $num_measurements:expr, $num_states:expr) => {{
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
         const NUM_STATES_: usize = ($num_states) as usize;
-        (NUM_STATES_ * NUM_MEASUREMENTS_) as usize
+        (NUM_STATES_ * NUM_OBSERVATIONS_) as usize
     }};
 }
 
@@ -465,16 +465,16 @@ macro_rules! size_buffer_temp_HP {
 /// ```
 /// # use minikalman::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 1;
-/// assert_eq!(size_buffer_temp_PHt!(NUM_STATES, NUM_MEASUREMENTS), 3);
+/// const NUM_OBSERVATIONS: usize = 1;
+/// assert_eq!(size_buffer_temp_PHt!(NUM_STATES, NUM_OBSERVATIONS), 3);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! size_buffer_temp_PHt {
     ( $num_states:expr, $num_measurements:expr ) => {{
         const NUM_STATES_: usize = ($num_states) as usize;
-        const NUM_MEASUREMENTS_: usize = ($num_measurements) as usize;
-        (NUM_STATES_ * NUM_MEASUREMENTS_) as usize
+        const NUM_OBSERVATIONS_: usize = ($num_measurements) as usize;
+        (NUM_STATES_ * NUM_OBSERVATIONS_) as usize
     }};
 }
 

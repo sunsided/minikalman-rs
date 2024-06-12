@@ -14,10 +14,10 @@ use minikalman::builder::KalmanFilterBuilder;
 use minikalman::prelude::*;
 
 const NUM_STATES: usize = 3;
-const NUM_MEASUREMENTS: usize = 1;
+const NUM_OBSERVATIONS: usize = 1;
 
 lazy_static! {
-    /// Measurements.
+    /// Observations.
     ///
     /// MATLAB source:
     /// ```matlab
@@ -42,13 +42,13 @@ lazy_static! {
         I16F16::from_num(961.38),
     ];
 
-    /// Measurement noise with variance 0.5
+    /// Observation noise with variance 0.5
     ///
     /// MATLAB source:
     /// ```matlab
     /// noise = 0.5^2*randn(15,1);
     /// ```
-    static ref MEASUREMENT_ERROR: [I16F16; 15] = [
+    static ref OBSERVATION_ERROR: [I16F16; 15] = [
         I16F16::from_num(0.13442),
         I16F16::from_num(0.45847),
         I16F16::from_num(-0.56471),
@@ -71,15 +71,13 @@ lazy_static! {
 fn main() {
     let builder = KalmanFilterBuilder::<NUM_STATES, I16F16>::default();
     let mut filter = builder.build();
-    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
     initialize_state_transition_matrix(filter.state_transition_mut());
-    initialize_state_covariance_matrix(filter.system_covariance_mut());
-    initialize_position_measurement_transformation_matrix(
-        measurement.measurement_transformation_mut(),
-    );
+    initialize_state_covariance_matrix(filter.estimate_covariance_mut());
+    initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
     initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
     // Filter!
@@ -89,7 +87,7 @@ fn main() {
         print_state_prediction(t, filter.state_vector_ref());
 
         // Measure ...
-        let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+        let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
         measurement.measurement_vector_apply(|z| z[0] = m);
         print_measurement(t);
 
@@ -121,7 +119,9 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>)
 /// v₁ = 1×v₀ + T×a₀
 /// a₁ = 1×a₀
 /// ```
-fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STATES, I16F16>) {
+fn initialize_state_transition_matrix(
+    filter: &mut impl StateTransitionMatrixMut<NUM_STATES, I16F16>,
+) {
     filter.apply(|a| {
         // Time constant.
         const T: I16F16 = I16F16::ONE;
@@ -149,7 +149,7 @@ fn initialize_state_transition_matrix(filter: &mut impl SystemMatrixMut<NUM_STAT
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
 fn initialize_state_covariance_matrix(
-    filter: &mut impl SystemCovarianceMatrix<NUM_STATES, I16F16>,
+    filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, I16F16>,
 ) {
     filter.apply(|p| {
         p.set(0, 0, I16F16::from_num(0.1)); // var(s)
@@ -171,7 +171,7 @@ fn initialize_state_covariance_matrix(
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, I16F16>,
+    measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, I16F16>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, I16F16::ONE); // z = 1*s
@@ -186,7 +186,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, I16F16>,
+    measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)
@@ -235,6 +235,6 @@ fn print_measurement(t: usize) {
         "At t = {}, measurement: s = {}, noise ε = {}",
         format!("{}", t).bright_white(),
         format!("{} m", REAL_DISTANCE[t]).green(),
-        format!("{} m", MEASUREMENT_ERROR[t]).blue()
+        format!("{} m", OBSERVATION_ERROR[t]).blue()
     );
 }

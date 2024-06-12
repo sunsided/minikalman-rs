@@ -5,7 +5,9 @@ use crate::kalman::{ControlMatrix, ControlMatrixMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Immutable buffer for the control matrix (`num_states` × `num_controls`).
+/// Immutable buffer for the control matrix (`num_states` × `num_controls`), typically denoted "B".
+///
+/// Maps the control vector to the state space, influencing the state transition.
 ///
 /// ## Example
 /// ```
@@ -23,7 +25,7 @@ pub struct ControlMatrixBuffer<const STATES: usize, const CONTROLS: usize, T, M>
 where
     M: Matrix<STATES, CONTROLS, T>;
 
-/// Mutable buffer for the control matrix (`num_states` × `num_controls`).
+/// Mutable buffer for the control matrix (`num_states` × `num_controls`), typically denoted "B".
 ///
 /// ## Example
 /// ```
@@ -357,5 +359,43 @@ mod tests {
     fn test_mut_from_array_invalid_size() {
         let value: ControlMatrixMutBuffer<5, 3, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_access() {
+        let mut value: ControlMatrixMutBuffer<5, 5, f32, _> = [0.0; 25].into();
+
+        // Set values.
+        {
+            let matrix = value.as_matrix_mut();
+            for i in 0..matrix.cols() {
+                matrix.set_symmetric(0, i, i as _);
+                matrix.set(i, i, i as _);
+            }
+        }
+
+        // Update values.
+        for i in 0..value.len() {
+            value[i] += 10.0;
+        }
+
+        // Get values.
+        {
+            let matrix = value.as_matrix();
+            for i in 0..matrix.rows() {
+                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+            }
+        }
+
+        assert_eq!(value.into_inner(),
+                   [
+                       10.0, 11.0, 12.0, 13.0, 14.0,
+                       11.0, 11.0, 10.0, 10.0, 10.0,
+                       12.0, 10.0, 12.0, 10.0, 10.0,
+                       13.0, 10.0, 10.0, 13.0, 10.0,
+                       14.0, 10.0, 10.0, 10.0, 14.0,
+                   ]);
     }
 }

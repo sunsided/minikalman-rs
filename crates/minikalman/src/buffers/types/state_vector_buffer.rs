@@ -5,7 +5,9 @@ use crate::kalman::{StateVector, StateVectorMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the state vector (`num_states` × `1`).
+/// Mutable buffer for the state vector (`num_states` × `1`), typically denoted "x".
+///
+/// Represents the internal state of the system.
 ///
 /// ## Example
 /// ```
@@ -202,7 +204,7 @@ mod tests {
 
         // Update values.
         for i in 0..value.len() {
-            value[i] = value[i] + 10.0;
+            value[i] += 10.0;
         }
 
         // Get values.
