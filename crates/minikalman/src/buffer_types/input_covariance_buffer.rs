@@ -298,8 +298,8 @@ mod tests {
 
     #[test]
     fn test_from_ref() {
-        let mut data = [0.0_f32; 100];
-        let value: InputCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let data = [0.0_f32; 100];
+        let value: InputCovarianceMatrixBuffer<5, f32, _> = data.as_ref().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
     }
@@ -319,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mut_from_ref() {
+    fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
         let value: InputCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);

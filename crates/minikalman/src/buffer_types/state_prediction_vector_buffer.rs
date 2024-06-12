@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_from_ref() {
+    fn test_from_mut() {
         let mut data = [0.0_f32; 5];
         let value: TemporaryStatePredictionVectorBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 5);

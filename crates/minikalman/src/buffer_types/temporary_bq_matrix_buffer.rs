@@ -175,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn test_from_ref() {
+    fn test_from_mut() {
         let mut data = [0.0_f32; 100];
         let value: TemporaryBQMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 15);
