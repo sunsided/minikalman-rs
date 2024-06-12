@@ -174,7 +174,6 @@ pub struct TemporaryPHtMatrixBufferBuilder<const STATES: usize, const MEASUREMEN
 pub struct TemporaryKHPMatrixBufferBuilder<const STATES: usize>;
 
 /// The type of owned state vector buffers.
-#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type StateVectorBufferOwnedType<const STATES: usize, T> =
     StateVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
@@ -205,7 +204,6 @@ impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
 }
 
 /// The type of owned state transition matrix buffers.
-#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type SystemMatrixMutBufferOwnedType<const STATES: usize, T> =
     SystemMatrixMutBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
@@ -236,7 +234,6 @@ impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
 }
 
 /// The type of owned state transition matrix buffers.
-#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type SystemCovarianceMatrixBufferOwnedType<const STATES: usize, T> =
     SystemCovarianceMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
@@ -266,6 +263,11 @@ impl<const STATES: usize> SystemCovarianceMatrixBufferBuilder<STATES> {
     }
 }
 
+/// The type of owned control vector buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type ControlVectorBufferOwnedType<const STATES: usize, T> =
+    InputVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
+
 impl<const INPUTS: usize> InputVectorBufferBuilder<INPUTS> {
     /// Builds a new [`InputVectorBuffer`] that owns its data.
     ///
@@ -294,6 +296,11 @@ impl<const INPUTS: usize> InputVectorBufferBuilder<INPUTS> {
     }
 }
 
+/// The type of owned control matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type ControlMatrixBufferOwnedType<const STATES: usize, const INPUTS: usize, T> =
+    InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataBoxed<STATES, INPUTS, T>>;
+
 impl<const STATES: usize, const INPUTS: usize> InputTransitionMatrixBufferBuilder<STATES, INPUTS> {
     /// Builds a new [`InputMatrixMutBuffer`] that owns its data.
     ///
@@ -321,6 +328,11 @@ impl<const STATES: usize, const INPUTS: usize> InputTransitionMatrixBufferBuilde
         )
     }
 }
+
+/// The type of owned control matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type ControlCovarianceMatrixBufferOwnedType<const INPUTS: usize, T> =
+    InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataBoxed<INPUTS, INPUTS, T>>;
 
 impl<const INPUTS: usize> InputCovarianceMatrixBufferBuilder<INPUTS> {
     /// Builds a new [`InputCovarianceMatrixMutBuffer`] that owns its data.
@@ -554,7 +566,6 @@ impl<const STATES: usize, const MEASUREMENTS: usize>
 }
 
 /// The type of owned state vector buffers.
-#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type TemporaryStatePredictionVectorBufferOwnedType<const STATES: usize, T> =
     TemporaryStatePredictionVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
@@ -588,7 +599,6 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
 }
 
 /// The type of owned state transition matrix buffers.
-#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type TemporaryStateMatrixBufferOwnedType<const STATES: usize, T> =
     TemporaryStateMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
@@ -617,6 +627,11 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
         )
     }
 }
+
+/// The type of temporary B×Q matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type TemporaryBQMatrixBufferOwnedType<const STATES: usize, const INPUTS: usize, T> =
+    TemporaryBQMatrixBuffer<STATES, INPUTS, T, MatrixDataBoxed<STATES, INPUTS, T>>;
 
 impl<const STATES: usize, const INPUTS: usize> TemporaryBQMatrixBufferBuilder<STATES, INPUTS> {
     /// Builds a new [`TemporaryBQMatrixBuffer`] that owns its data.

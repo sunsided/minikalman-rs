@@ -103,6 +103,19 @@ impl<const STATES: usize, T> Default for KalmanFilterInputBuilder<STATES, T> {
     }
 }
 
+/// The type of Kalman filters with owned buffers.
+///
+/// See also the [`KalmanFilter`] trait.
+pub type KalmanFilterInputType<const STATES: usize, const INPUTS: usize, T> = Input<
+    STATES,
+    INPUTS,
+    T,
+    ControlMatrixBufferOwnedType<STATES, INPUTS, T>,
+    ControlVectorBufferOwnedType<INPUTS, T>,
+    ControlCovarianceMatrixBufferOwnedType<INPUTS, T>,
+    TemporaryBQMatrixBufferOwnedType<STATES, INPUTS, T>,
+>;
+
 impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
     /// Creates a new [`KalmanFilterInputBuilder`] instance.
     pub fn new() -> Self {
@@ -124,17 +137,7 @@ impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
-    pub fn build<const INPUTS: usize>(
-        &self,
-    ) -> Input<
-        STATES,
-        INPUTS,
-        T,
-        impl InputMatrixMut<STATES, INPUTS, T>,
-        impl InputVectorMut<INPUTS, T>,
-        impl InputCovarianceMatrixMut<INPUTS, T>,
-        impl TemporaryBQMatrix<STATES, INPUTS, T>,
-    >
+    pub fn build<const INPUTS: usize>(&self) -> KalmanFilterInputType<STATES, INPUTS, T>
     where
         T: MatrixDataType,
     {
