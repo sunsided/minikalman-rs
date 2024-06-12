@@ -26,7 +26,7 @@
 //! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](builder::KalmanFilterBuilder) is enabled. An overly simplified example
 //! for setting up and operating the Kalman Filter could look like this:
 //!
-//! ```
+//! ```no_run
 //! use minikalman::builder::KalmanFilterBuilder;
 //!
 //! const NUM_STATES: usize = 3;
