@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::TemporaryBQMatrix;
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct TemporaryBQMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(
@@ -27,14 +27,14 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for TemporaryBQMatrixBuffer<STATES, INPUTS, T, MatrixDataOwned<STATES, INPUTS, TOTAL, T>>
+    for TemporaryBQMatrixBuffer<STATES, INPUTS, T, MatrixDataArray<STATES, INPUTS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
             debug_assert_eq!(STATES * INPUTS, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<STATES, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
     }
 }
 

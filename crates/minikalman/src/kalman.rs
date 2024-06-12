@@ -65,7 +65,7 @@ impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     where
         T: MatrixDataType,
         A: SystemMatrix<STATES, T>,
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
@@ -275,7 +275,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     #[doc(alias = "kalman_predict")]
     pub fn predict(&mut self)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
@@ -372,7 +372,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned(&mut self, lambda: T)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
@@ -396,7 +396,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     #[doc(alias = "kalman_predict_x")]
     fn predict_x(&mut self)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         T: MatrixDataType,
@@ -469,7 +469,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     pub fn input<const INPUTS: usize, I>(&mut self, input: &mut I)
     where
         P: SystemCovarianceMatrix<STATES, T>,
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<INPUTS>,
     {
@@ -551,7 +551,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     pub fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
     where
         P: SystemCovarianceMatrix<STATES, T>,
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         M: KalmanFilterMeasurementCorrectFilter<STATES, T>
             + KalmanFilterNumMeasurements<MEASUREMENTS>,
@@ -581,7 +581,7 @@ where
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateVectorMut<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
 {
     type StateVectorMut = X;
 
@@ -646,7 +646,7 @@ where
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterPredict<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
     A: SystemMatrix<STATES, T>,
     PX: StatePredictionVector<STATES, T>,
     P: SystemCovarianceMatrix<STATES, T>,
@@ -663,7 +663,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterUpdate<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
     P: SystemCovarianceMatrix<STATES, T>,
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
     T: MatrixDataType,
 {
     #[inline(always)]
@@ -680,7 +680,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterApplyInput<STATES, 
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
     P: SystemCovarianceMatrix<STATES, T>,
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
     T: MatrixDataType,
 {
     #[inline(always)]
@@ -710,16 +710,18 @@ mod tests {
 
     impl<const STATES: usize, T> StateVector<STATES, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
         fn as_matrix(&self) -> &Self::Target {
             &self.0
         }
+    }
 
+    impl<const STATES: usize, T> StateVectorMut<STATES, T> for Dummy<T> {
+        type TargetMut = DummyMatrix<T>;
         fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
             &mut self.0
         }
     }
+
     impl<const STATES: usize, T> SystemMatrix<STATES, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
 

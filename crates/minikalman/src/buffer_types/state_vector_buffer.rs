@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::kalman::StateVector;
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::kalman::{StateVector, StateVectorMut};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct StateVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
@@ -23,10 +23,10 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, T> From<[T; STATES]>
-    for StateVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>
+    for StateVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>
 {
     fn from(value: [T; STATES]) -> Self {
-        Self::new(MatrixData::new_owned::<STATES, 1, STATES, T>(value))
+        Self::new(MatrixData::new_array::<STATES, 1, STATES, T>(value))
     }
 }
 
@@ -82,11 +82,17 @@ where
     M: MatrixMut<STATES, 1, T>,
 {
     type Target = M;
-    type TargetMut = M;
 
     fn as_matrix(&self) -> &Self::Target {
         &self.0
     }
+}
+
+impl<const STATES: usize, T, M> StateVectorMut<STATES, T> for StateVectorBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, 1, T>,
+{
+    type TargetMut = M;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
         &mut self.0

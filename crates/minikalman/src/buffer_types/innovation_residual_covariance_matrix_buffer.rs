@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::ResidualCovarianceMatrix;
 use minikalman_traits::matrix::{
-    IntoInnerData, Matrix, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixMut,
+    IntoInnerData, Matrix, MatrixData, MatrixDataArray, MatrixDataMut, MatrixMut,
 };
 
 /// Buffer for the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
@@ -13,7 +13,7 @@ use minikalman_traits::matrix::{
 /// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
-/// let buffer = InnovationResidualCovarianceMatrixBuffer::new(MatrixData::new_owned::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = InnovationResidualCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
@@ -48,7 +48,7 @@ impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for InnovationResidualCovarianceMatrixBuffer<
         MEASUREMENTS,
         T,
-        MatrixDataOwned<MEASUREMENTS, MEASUREMENTS, TOTAL, T>,
+        MatrixDataArray<MEASUREMENTS, MEASUREMENTS, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -56,7 +56,7 @@ impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
         {
             debug_assert_eq!(MEASUREMENTS * MEASUREMENTS, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<MEASUREMENTS, MEASUREMENTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<MEASUREMENTS, MEASUREMENTS, TOTAL, T>(value))
     }
 }
 

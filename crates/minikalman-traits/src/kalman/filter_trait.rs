@@ -2,7 +2,7 @@ use crate::kalman::{
     InputCovarianceMatrix, InputCovarianceMatrixMut, InputMatrix, InputMatrixMut, InputVector,
     InputVectorMut, MeasurementObservationMatrix, MeasurementObservationMatrixMut,
     MeasurementProcessNoiseCovarianceMatrix, MeasurementVector, MeasurementVectorMut, StateVector,
-    SystemCovarianceMatrix, SystemMatrix, SystemMatrixMut,
+    StateVectorMut, SystemCovarianceMatrix, SystemMatrix, SystemMatrixMut,
 };
 
 pub trait KalmanFilter<const STATES: usize, T>:
@@ -118,7 +118,9 @@ pub trait KalmanFilterStateVector<const STATES: usize, T> {
     fn state_vector_ref(&self) -> &Self::StateVector;
 }
 
-pub trait KalmanFilterStateVectorMut<const STATES: usize, T> {
+pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
+    KalmanFilterStateVector<STATES, T>
+{
     type StateVectorMut: StateVector<STATES, T>;
 
     /// Gets a reference to the state vector x.
@@ -206,7 +208,7 @@ pub trait KalmanFilterInputApplyToFilter<const STATES: usize, T> {
     #[allow(non_snake_case)]
     fn apply_to<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>;
 }
 
@@ -308,7 +310,7 @@ pub trait KalmanFilterMeasurementCorrectFilter<const STATES: usize, T> {
     #[allow(non_snake_case)]
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>;
 }
 

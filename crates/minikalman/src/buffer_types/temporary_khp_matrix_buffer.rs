@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::TemporaryKHPMatrix;
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct TemporaryKHPMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
@@ -24,14 +24,14 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for TemporaryKHPMatrixBuffer<STATES, T, MatrixDataOwned<STATES, STATES, TOTAL, T>>
+    for TemporaryKHPMatrixBuffer<STATES, T, MatrixDataArray<STATES, STATES, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
             debug_assert_eq!(STATES * STATES, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<STATES, STATES, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<STATES, STATES, TOTAL, T>(value))
     }
 }
 

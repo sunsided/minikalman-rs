@@ -990,7 +990,7 @@ mod tests {
             10.0, 11.0,
             20.0, 21.0,
             30.0, 31.0];
-        let a = MatrixData::new_owned::<2, 3, 6, f32>(a_buf);
+        let a = MatrixData::new_array::<2, 3, 6, f32>(a_buf);
         let b = MatrixData::new_ref::<3, 2, f32>(&b_buf);
 
         let mut c_buf = [0f32; 2 * 2];
@@ -1143,7 +1143,7 @@ mod tests {
         let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
         let b = MatrixData::new_ref::<2, 3, f32>(&b_buf);
 
-        let mut c = MatrixData::new_owned::<2, 2, 4, f32>([0f32; 2 * 2]);
+        let mut c = MatrixData::new_array::<2, 2, 4, f32>([0f32; 2 * 2]);
         a.multscale_transb(&b, 2.0, &mut c);
 
         let c_buf = c.as_ref();

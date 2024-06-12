@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use minikalman_traits::matrix::{MatrixData, MatrixDataBoxed, MatrixDataOwned};
+use minikalman_traits::matrix::{MatrixData, MatrixDataArray, MatrixDataBoxed};
 
 // TODO: Provide Kalman builder that returns impl KalmanFilter, or export a type alias e.g. via associated type.
 
@@ -177,7 +177,7 @@ pub struct TemporaryKHPMatrixBufferBuilder<const STATES: usize>;
 #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type StateVectorBufferOwnedType<const STATES: usize, T> =
-    StateVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>;
+    StateVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
 
 impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
     /// Builds a new [`StateVectorBufferBuilder`] that owns its data.
@@ -198,8 +198,8 @@ impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
     where
         T: Copy,
     {
-        StateVectorBuffer::<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>::new(
-            MatrixData::new_owned::<STATES, 1, STATES, T>([init; STATES]),
+        StateVectorBuffer::<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>::new(
+            MatrixData::new_array::<STATES, 1, STATES, T>([init; STATES]),
         )
     }
 }
@@ -284,12 +284,12 @@ impl<const INPUTS: usize> InputVectorBufferBuilder<INPUTS> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InputVectorBuffer<INPUTS, T, MatrixDataOwned<INPUTS, 1, INPUTS, T>>
+    ) -> InputVectorBuffer<INPUTS, T, MatrixDataArray<INPUTS, 1, INPUTS, T>>
     where
         T: Copy,
     {
-        InputVectorBuffer::<INPUTS, T, MatrixDataOwned<INPUTS, 1, INPUTS, T>>::new(
-            MatrixData::new_owned::<INPUTS, 1, INPUTS, T>([init; INPUTS]),
+        InputVectorBuffer::<INPUTS, T, MatrixDataArray<INPUTS, 1, INPUTS, T>>::new(
+            MatrixData::new_array::<INPUTS, 1, INPUTS, T>([init; INPUTS]),
         )
     }
 }
@@ -368,12 +368,12 @@ impl<const MEASUREMENTS: usize> MeasurementVectorBufferBuilder<MEASUREMENTS> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataOwned<MEASUREMENTS, 1, MEASUREMENTS, T>>
+    ) -> MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
     where
         T: Copy,
     {
-        MeasurementVectorBuffer::<MEASUREMENTS, T, MatrixDataOwned<MEASUREMENTS, 1, MEASUREMENTS, T>>::new(
-            MatrixData::new_owned::<MEASUREMENTS, 1, MEASUREMENTS, T>([init; MEASUREMENTS]),
+        MeasurementVectorBuffer::<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>::new(
+            MatrixData::new_array::<MEASUREMENTS, 1, MEASUREMENTS, T>([init; MEASUREMENTS]),
         )
     }
 }
@@ -472,12 +472,12 @@ impl<const MEASUREMENTS: usize> InnovationVectorBufferBuilder<MEASUREMENTS> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataOwned<MEASUREMENTS, 1, MEASUREMENTS, T>>
+    ) -> InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
     where
         T: Copy,
     {
-        InnovationVectorBuffer::<MEASUREMENTS, T, MatrixDataOwned<MEASUREMENTS, 1, MEASUREMENTS, T>>::new(
-            MatrixData::new_owned::<MEASUREMENTS, 1, MEASUREMENTS, T>([init; MEASUREMENTS]),
+        InnovationVectorBuffer::<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>::new(
+            MatrixData::new_array::<MEASUREMENTS, 1, MEASUREMENTS, T>([init; MEASUREMENTS]),
         )
     }
 }
@@ -556,11 +556,11 @@ impl<const STATES: usize, const MEASUREMENTS: usize>
 /// The type of owned state vector buffers.
 #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type StatePredictionVectorBufferOwnedType<const STATES: usize, T> =
-    StatePredictionVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>;
+pub type TemporaryStatePredictionVectorBufferOwnedType<const STATES: usize, T> =
+    TemporaryStatePredictionVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
 
 impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
-    /// Builds a new [`StatePredictionVectorBuffer`] that owns its data.
+    /// Builds a new [`TemporaryStatePredictionVectorBuffer`] that owns its data.
     ///
     /// ## Example
     /// ```
@@ -568,7 +568,7 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
     ///
     /// let buffer = BufferBuilder::state_prediction_temp_x::<3>().new(0.0);
     ///
-    /// let buffer: StatePredictionVectorBuffer<3, f32, _> = buffer;
+    /// let buffer: TemporaryStatePredictionVectorBuffer<3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 3);
     /// ```
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
@@ -577,12 +577,12 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> StatePredictionVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>
+    ) -> TemporaryStatePredictionVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>
     where
         T: Copy,
     {
-        StatePredictionVectorBuffer::<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>::new(
-            MatrixData::new_owned::<STATES, 1, STATES, T>([init; STATES]),
+        TemporaryStatePredictionVectorBuffer::<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>::new(
+            MatrixData::new_array::<STATES, 1, STATES, T>([init; STATES]),
         )
     }
 }
@@ -590,7 +590,7 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
 /// The type of owned state transition matrix buffers.
 #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type TemporarySystemCovarianceMatrixBufferOwnedType<const STATES: usize, T> =
+pub type TemporaryStateMatrixBufferOwnedType<const STATES: usize, T> =
     TemporaryStateMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
 
 impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
@@ -608,7 +608,7 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporarySystemCovarianceMatrixBufferOwnedType<STATES, T>
+    pub fn new<T>(&self, init: T) -> TemporaryStateMatrixBufferOwnedType<STATES, T>
     where
         T: Copy,
     {

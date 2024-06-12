@@ -34,8 +34,8 @@ pub type KalmanFilterType<const STATES: usize, T> = Kalman<
     SystemMatrixMutBufferOwnedType<STATES, T>,
     StateVectorBufferOwnedType<STATES, T>,
     SystemCovarianceMatrixBufferOwnedType<STATES, T>,
-    StatePredictionVectorBufferOwnedType<STATES, T>,
-    TemporarySystemCovarianceMatrixBufferOwnedType<STATES, T>,
+    TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
+    TemporaryStateMatrixBufferOwnedType<STATES, T>,
 >;
 
 impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
@@ -248,11 +248,30 @@ mod tests {
     const NUM_INPUTS: usize = 1; // constant velocity
     const NUM_MEASUREMENTS: usize = 1; // position
 
+    fn accept_filter<F, T>(_filter: F)
+    where
+        F: KalmanFilter<NUM_STATES, T>,
+    {
+    }
+
+    fn accept_input<I, T>(_input: I)
+    where
+        I: KalmanFilterInput<NUM_STATES, NUM_INPUTS, T>,
+    {
+    }
+
+    fn accept_measurement<M, T>(_measurement: M)
+    where
+        M: KalmanFilterMeasurement<NUM_STATES, NUM_MEASUREMENTS, T>,
+    {
+    }
+
     #[test]
     fn kalman_builder() {
         let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
         let filter = builder.build();
         assert_eq!(filter.states(), NUM_STATES);
+        accept_filter(filter);
     }
 
     #[test]
@@ -261,6 +280,7 @@ mod tests {
         let input = builder.inputs().build::<NUM_INPUTS>();
         assert_eq!(input.states(), NUM_STATES);
         assert_eq!(input.inputs(), NUM_INPUTS);
+        accept_input(input);
     }
 
     #[test]
@@ -269,5 +289,6 @@ mod tests {
         let measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
         assert_eq!(measurement.states(), NUM_STATES);
         assert_eq!(measurement.measurements(), NUM_INPUTS);
+        accept_measurement(measurement);
     }
 }

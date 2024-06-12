@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::TemporaryResidualCovarianceInvertedMatrix;
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct TemporaryResidualCovarianceInvertedMatrixBuffer<const MEASUREMENTS: usize, T, M>(
@@ -34,7 +34,7 @@ impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for TemporaryResidualCovarianceInvertedMatrixBuffer<
         MEASUREMENTS,
         T,
-        MatrixDataOwned<MEASUREMENTS, MEASUREMENTS, TOTAL, T>,
+        MatrixDataArray<MEASUREMENTS, MEASUREMENTS, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -42,7 +42,7 @@ impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
         {
             debug_assert_eq!(MEASUREMENTS * MEASUREMENTS, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<MEASUREMENTS, MEASUREMENTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<MEASUREMENTS, MEASUREMENTS, TOTAL, T>(value))
     }
 }
 

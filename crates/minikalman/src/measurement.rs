@@ -371,7 +371,7 @@ where
     #[allow(non_snake_case)]
     pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         // matrices and vectors
@@ -692,7 +692,7 @@ where
     #[allow(non_snake_case)]
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         self.correct(x, P)

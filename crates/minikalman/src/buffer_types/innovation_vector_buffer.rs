@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
 use minikalman_traits::kalman::InnovationVector;
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct InnovationVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
@@ -24,10 +24,10 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
 }
 
 impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
-    for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataOwned<MEASUREMENTS, 1, MEASUREMENTS, T>>
+    for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
 {
     fn from(value: [T; MEASUREMENTS]) -> Self {
-        Self::new(MatrixData::new_owned::<MEASUREMENTS, 1, MEASUREMENTS, T>(
+        Self::new(MatrixData::new_array::<MEASUREMENTS, 1, MEASUREMENTS, T>(
             value,
         ))
     }

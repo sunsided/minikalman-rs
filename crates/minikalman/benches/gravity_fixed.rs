@@ -4,10 +4,10 @@ use lazy_static::lazy_static;
 use minikalman::buffer_types::{
     InnovationResidualCovarianceMatrixBuffer, InnovationVectorBuffer, KalmanGainMatrixBuffer,
     MeasurementObservationMatrixMutBuffer, MeasurementProcessNoiseCovarianceMatrixBuffer,
-    MeasurementVectorBuffer, StatePredictionVectorBuffer, StateVectorBuffer,
-    SystemCovarianceMatrixBuffer, SystemMatrixMutBuffer, TemporaryHPMatrixBuffer,
-    TemporaryKHPMatrixBuffer, TemporaryPHTMatrixBuffer,
-    TemporaryResidualCovarianceInvertedMatrixBuffer, TemporaryStateMatrixBuffer,
+    MeasurementVectorBuffer, StateVectorBuffer, SystemCovarianceMatrixBuffer,
+    SystemMatrixMutBuffer, TemporaryHPMatrixBuffer, TemporaryKHPMatrixBuffer,
+    TemporaryPHTMatrixBuffer, TemporaryResidualCovarianceInvertedMatrixBuffer,
+    TemporaryStateMatrixBuffer, TemporaryStatePredictionVectorBuffer,
 };
 use minikalman::prelude::{fixed::I16F16, *};
 use minikalman_traits::kalman::*;
@@ -106,7 +106,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             SystemMatrixMutBuffer::from(gravity_A.as_mut()),
             StateVectorBuffer::from(gravity_x.as_mut()),
             SystemCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            StatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
+            TemporaryStatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
         );
 
@@ -148,7 +148,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             SystemMatrixMutBuffer::from(gravity_A.as_mut()),
             StateVectorBuffer::from(gravity_x.as_mut()),
             SystemCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            StatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
+            TemporaryStatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
         );
 
@@ -184,7 +184,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             SystemMatrixMutBuffer::from(gravity_A.as_mut()),
             StateVectorBuffer::from(gravity_x.as_mut()),
             SystemCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            StatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
+            TemporaryStatePredictionVectorBuffer::from(gravity_temp_x.as_mut()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
         );
 

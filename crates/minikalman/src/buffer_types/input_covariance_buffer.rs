@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::{InputCovarianceMatrix, InputCovarianceMatrixMut};
 use minikalman_traits::matrix::{
-    IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef,
+    IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
 };
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
@@ -53,14 +53,14 @@ impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
 }
 
 impl<const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataOwned<INPUTS, INPUTS, TOTAL, T>>
+    for InputCovarianceMatrixMutBuffer<INPUTS, T, MatrixDataArray<INPUTS, INPUTS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
             debug_assert_eq!(INPUTS * INPUTS, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<INPUTS, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<INPUTS, INPUTS, TOTAL, T>(value))
     }
 }
 

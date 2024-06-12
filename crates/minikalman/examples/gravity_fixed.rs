@@ -105,7 +105,7 @@ fn main() {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, I16F16>) {
+fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>) {
     filter.apply(|state| {
         state[0] = I16F16::ZERO; // position
         state[1] = I16F16::ZERO; // velocity

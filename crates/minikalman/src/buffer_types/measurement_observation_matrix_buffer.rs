@@ -3,7 +3,7 @@ use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMut};
 
 use minikalman_traits::matrix::{
-    IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef,
+    IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
 };
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
@@ -81,7 +81,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
         MEASUREMENTS,
         STATES,
         T,
-        MatrixDataOwned<MEASUREMENTS, STATES, TOTAL, T>,
+        MatrixDataArray<MEASUREMENTS, STATES, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -89,7 +89,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
         {
             debug_assert_eq!(MEASUREMENTS * STATES, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<MEASUREMENTS, STATES, TOTAL, T>(
+        Self::new(MatrixData::new_array::<MEASUREMENTS, STATES, TOTAL, T>(
             value,
         ))
     }

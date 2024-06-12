@@ -3,7 +3,7 @@ use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::{InputMatrix, InputMatrixMut};
 
 use minikalman_traits::matrix::{
-    IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef,
+    IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
 };
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
@@ -54,14 +54,14 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataOwned<STATES, INPUTS, TOTAL, T>>
+    for InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataArray<STATES, INPUTS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
             debug_assert_eq!(STATES * INPUTS, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<STATES, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
     }
 }
 

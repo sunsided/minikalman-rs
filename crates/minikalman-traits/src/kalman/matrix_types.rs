@@ -3,14 +3,21 @@ use core::ops::{Index, IndexMut};
 
 /// State vector.
 ///
-/// Always mutable
-pub trait StateVector<const STATES: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
-{
+/// Immutable variant. For a mutable variant, see [`StateVectorMut`].
+pub trait StateVector<const STATES: usize, T = f32>: AsRef<[T]> + Index<usize, Output = T> {
     type Target: Matrix<STATES, 1, T>;
-    type TargetMut: MatrixMut<STATES, 1, T>;
 
     fn as_matrix(&self) -> &Self::Target;
+}
+
+/// State vector.
+///
+/// Mutable variant. For an immutable variant, see [`StateVector`].
+pub trait StateVectorMut<const STATES: usize, T = f32>:
+    StateVector<STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+{
+    type TargetMut: MatrixMut<STATES, 1, T>;
+
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 
     /// Applies a function to the state vector x.

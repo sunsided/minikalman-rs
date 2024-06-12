@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::TemporaryHPMatrix;
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct TemporaryHPMatrixBuffer<const MEASUREMENTS: usize, const STATES: usize, T, M>(
@@ -31,7 +31,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
         MEASUREMENTS,
         STATES,
         T,
-        MatrixDataOwned<MEASUREMENTS, STATES, TOTAL, T>,
+        MatrixDataArray<MEASUREMENTS, STATES, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -39,7 +39,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
         {
             debug_assert_eq!(MEASUREMENTS * STATES, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<MEASUREMENTS, STATES, TOTAL, T>(
+        Self::new(MatrixData::new_array::<MEASUREMENTS, STATES, TOTAL, T>(
             value,
         ))
     }

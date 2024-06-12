@@ -2,17 +2,17 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::StatePredictionVector;
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
-pub struct StatePredictionVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
+pub struct TemporaryStatePredictionVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, 1, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const STATES: usize, T> From<&'a mut [T]>
-    for StatePredictionVectorBuffer<STATES, T, MatrixDataMut<'a, STATES, 1, T>>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, MatrixDataMut<'a, STATES, 1, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -24,16 +24,16 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, T> From<[T; STATES]>
-    for StatePredictionVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>
 {
     fn from(value: [T; STATES]) -> Self {
-        Self::new(MatrixData::new_owned::<STATES, 1, STATES, T>(value))
+        Self::new(MatrixData::new_array::<STATES, 1, STATES, T>(value))
     }
 }
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> StatePredictionVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -50,7 +50,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsRef<[T]> for StatePredictionVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsRef<[T]> for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -59,7 +59,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsMut<[T]> for StatePredictionVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsMut<[T]> for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -68,20 +68,22 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> Matrix<STATES, 1, T> for StatePredictionVectorBuffer<STATES, T, M> where
-    M: MatrixMut<STATES, 1, T>
+impl<const STATES: usize, T, M> Matrix<STATES, 1, T>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, 1, T>,
 {
 }
 
 impl<const STATES: usize, T, M> MatrixMut<STATES, 1, T>
-    for StatePredictionVectorBuffer<STATES, T, M>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
 }
 
 impl<const STATES: usize, T, M> StatePredictionVector<STATES, T>
-    for StatePredictionVectorBuffer<STATES, T, M>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -97,7 +99,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> Index<usize> for StatePredictionVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> Index<usize> for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -108,7 +110,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> IndexMut<usize> for StatePredictionVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IndexMut<usize>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -119,7 +122,7 @@ where
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> IntoInnerData for StatePredictionVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IntoInnerData for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T> + IntoInnerData,
 {

@@ -119,7 +119,7 @@ pub fn predict_gravity() -> I16F16 {
         SystemMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
         StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
         SystemCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
-        StatePredictionVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
+        TemporaryStatePredictionVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
         TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
     );
 
@@ -165,7 +165,7 @@ pub fn predict_gravity() -> I16F16 {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, I16F16>) {
+fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>) {
     filter.apply(|state| {
         state[0] = I16F16::ZERO; // position
         state[1] = I16F16::ZERO; // velocity

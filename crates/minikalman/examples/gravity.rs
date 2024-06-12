@@ -105,7 +105,7 @@ fn generate_error(n: usize) -> Vec<f32> {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, f32>) {
+fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
     filter.apply(|state| {
         state[0] = 0 as _; // position
         state[1] = 0 as _; // velocity

@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::KalmanGainMatrix;
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct KalmanGainMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(
@@ -31,7 +31,7 @@ impl<const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From
         STATES,
         MEASUREMENTS,
         T,
-        MatrixDataOwned<STATES, MEASUREMENTS, TOTAL, T>,
+        MatrixDataArray<STATES, MEASUREMENTS, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
@@ -39,7 +39,7 @@ impl<const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From
         {
             debug_assert_eq!(STATES * MEASUREMENTS, TOTAL);
         }
-        Self::new(MatrixData::new_owned::<STATES, MEASUREMENTS, TOTAL, T>(
+        Self::new(MatrixData::new_array::<STATES, MEASUREMENTS, TOTAL, T>(
             value,
         ))
     }

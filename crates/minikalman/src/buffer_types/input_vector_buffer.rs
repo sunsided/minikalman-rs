@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::kalman::{InputVector, InputVectorMut};
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct InputVectorBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
@@ -24,10 +24,10 @@ impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
 }
 
 impl<const INPUTS: usize, T> From<[T; INPUTS]>
-    for InputVectorBuffer<INPUTS, T, MatrixDataOwned<INPUTS, 1, INPUTS, T>>
+    for InputVectorBuffer<INPUTS, T, MatrixDataArray<INPUTS, 1, INPUTS, T>>
 {
     fn from(value: [T; INPUTS]) -> Self {
-        Self::new(MatrixData::new_owned::<INPUTS, 1, INPUTS, T>(value))
+        Self::new(MatrixData::new_array::<INPUTS, 1, INPUTS, T>(value))
     }
 }
 

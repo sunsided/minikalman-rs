@@ -202,7 +202,7 @@ where
     #[allow(non_snake_case)]
     pub fn apply_input<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         // matrices and vectors
@@ -236,7 +236,7 @@ impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ> KalmanFilterN
 {
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ> KalmanFilterNumInputs<STATES>
+impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ> KalmanFilterNumInputs<INPUTS>
     for Input<STATES, INPUTS, T, B, U, Q, TempBQ>
 {
 }
@@ -325,7 +325,7 @@ where
     #[allow(non_snake_case)]
     fn apply_to<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         self.apply_input(x, P)
