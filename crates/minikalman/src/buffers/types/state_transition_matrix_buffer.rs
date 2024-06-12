@@ -355,4 +355,72 @@ mod tests {
         let data = value.into_inner();
         assert_eq!(data, [0.0, 1.0, 3.0, 4.0]);
     }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_access_readonly() {
+        let value: StateTransitionMatrixMutBuffer<5, f32, _> = [
+            10.0, 11.0, 12.0, 13.0, 14.0,
+            11.0, 11.0, 10.0, 10.0, 10.0,
+            12.0, 10.0, 12.0, 10.0, 10.0,
+            13.0, 10.0, 10.0, 13.0, 10.0,
+            14.0, 10.0, 10.0, 10.0, 14.0,
+        ].into();
+
+        // Get values.
+        {
+            let matrix = value.as_matrix();
+            for i in 0..matrix.rows() {
+                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+            }
+        }
+
+        assert_eq!(value.into_inner(),
+                   [
+                       10.0, 11.0, 12.0, 13.0, 14.0,
+                       11.0, 11.0, 10.0, 10.0, 10.0,
+                       12.0, 10.0, 12.0, 10.0, 10.0,
+                       13.0, 10.0, 10.0, 13.0, 10.0,
+                       14.0, 10.0, 10.0, 10.0, 14.0,
+                   ]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_access() {
+        let mut value: StateTransitionMatrixMutBuffer<5, f32, _> = [0.0; 25].into();
+
+        // Set values.
+        {
+            let matrix = value.as_matrix_mut();
+            for i in 0..matrix.cols() {
+                matrix.set_symmetric(0, i, i as _);
+                matrix.set(i, i, i as _);
+            }
+        }
+
+        // Update values.
+        for i in 0..value.len() {
+            value[i] += 10.0;
+        }
+
+        // Get values.
+        {
+            let matrix = value.as_matrix();
+            for i in 0..matrix.rows() {
+                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+            }
+        }
+
+        assert_eq!(value.into_inner(),
+                   [
+                       10.0, 11.0, 12.0, 13.0, 14.0,
+                       11.0, 11.0, 10.0, 10.0, 10.0,
+                       12.0, 10.0, 12.0, 10.0, 10.0,
+                       13.0, 10.0, 10.0, 13.0, 10.0,
+                       14.0, 10.0, 10.0, 10.0, 14.0,
+                   ]);
+    }
 }

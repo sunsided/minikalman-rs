@@ -131,7 +131,12 @@ where
     pub fn state_vector_ref(&self) -> &X {
         &self.x
     }
+}
 
+impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, TempP>
+where
+    X: StateVectorMut<STATES, T>,
+{
     /// Gets a reference to the state vector x.
     ///
     /// The state vector represents the internal state of the system at a given time. It contains

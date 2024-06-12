@@ -420,10 +420,10 @@ mod tests {
 
         // State transition is identity.
         filter.state_transition_apply(|mat| {
-            mat[0 * NUM_STATES] = 1.0;
-            mat[0 * NUM_STATES + 1] = 1.0;
-            mat[0 * NUM_STATES + 2] = 1.0;
-            mat[0 * NUM_STATES + 3] = 1.0;
+            mat[0] = 1.0;
+            mat[1] = 1.0;
+            mat[2] = 1.0;
+            mat[3] = 1.0;
 
             mat[NUM_STATES + 1] = 1.0;
             mat[2 * NUM_STATES + 2] = 1.0;
@@ -432,7 +432,7 @@ mod tests {
 
         // State covariance is identity.
         filter.estimate_covariance_apply(|mat| {
-            mat[0 * NUM_STATES] = 1.0;
+            mat[0] = 1.0;
             mat[NUM_STATES + 1] = 1.0;
             mat[2 * NUM_STATES + 2] = 1.0;
             mat[3 * NUM_STATES + 3] = 1.0;
@@ -447,7 +447,7 @@ mod tests {
 
         // Control covariance is identity.
         control.process_noise_covariance_apply(|mat| {
-            mat[0 * NUM_CONTROLS] = 1.0;
+            mat[0] = 1.0;
             mat[NUM_CONTROLS + 1] = 1.0;
             mat[2 * NUM_CONTROLS + 2] = 1.0;
         });

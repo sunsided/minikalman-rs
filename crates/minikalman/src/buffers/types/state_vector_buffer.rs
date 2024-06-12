@@ -204,7 +204,7 @@ mod tests {
 
         // Update values.
         for i in 0..value.len() {
-            value[i] = value[i] + 10.0;
+            value[i] += 10.0;
         }
 
         // Get values.
