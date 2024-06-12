@@ -1,18 +1,9 @@
 use core::marker::PhantomData;
 
-use minikalman_traits::kalman::{
-    InnovationVector, InputCovarianceMatrixMut, InputMatrixMut, InputVectorMut, KalmanGainMatrix,
-    MeasurementObservationMatrixMut, MeasurementProcessNoiseCovarianceMatrix, MeasurementVectorMut,
-    ResidualCovarianceMatrix, TemporaryBQMatrix, TemporaryHPMatrix, TemporaryKHPMatrix,
-    TemporaryPHTMatrix, TemporaryResidualCovarianceInvertedMatrix,
-};
+use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::MatrixDataType;
 
-use crate::buffer_builder::{
-    StatePredictionVectorBufferOwnedType, StateVectorBufferOwnedType,
-    SystemCovarianceMatrixBufferOwnedType, SystemMatrixMutBufferOwnedType,
-    TemporarySystemCovarianceMatrixBufferOwnedType,
-};
+use crate::buffer_builder::*;
 use crate::inputs::{Input, InputBuilder};
 use crate::{BufferBuilder, Kalman, KalmanBuilder, Measurement, MeasurementBuilder};
 
@@ -35,6 +26,8 @@ impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
 }
 
 /// The type of Kalman filters with owned buffers.
+///
+/// See also the [`KalmanFilter`] trait.
 pub type KalmanFilterType<const STATES: usize, T> = Kalman<
     STATES,
     T,
