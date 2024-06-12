@@ -1,4 +1,5 @@
 use core::marker::PhantomData;
+
 use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
@@ -204,13 +205,13 @@ impl<
 {
     /// Returns then number of measurements.
     #[inline(always)]
-    pub const fn measurements() -> usize {
+    pub const fn measurements(&self) -> usize {
         MEASUREMENTS
     }
 
     /// Returns then number of states.
     #[inline(always)]
-    pub const fn states() -> usize {
+    pub const fn states(&self) -> usize {
         STATES
     }
 
@@ -370,7 +371,7 @@ where
     #[allow(non_snake_case)]
     pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         // matrices and vectors
@@ -691,7 +692,7 @@ where
     #[allow(non_snake_case)]
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         self.correct(x, P)
@@ -699,10 +700,8 @@ where
 }
 
 #[cfg(test)]
-#[cfg(feature = "float")]
 mod tests {
-    use core::ops::{Index, IndexMut};
-    use minikalman_traits::matrix::{Matrix, MatrixMut};
+    use crate::test_dummies::{Dummy, DummyMatrix};
 
     use super::*;
 
@@ -729,12 +728,6 @@ mod tests {
 
         trait_impl(measurement);
     }
-
-    #[derive(Default)]
-    struct Dummy<T>(DummyMatrix<T>, PhantomData<T>);
-
-    #[derive(Default)]
-    struct DummyMatrix<T>(PhantomData<T>);
 
     impl<const STATES: usize, T> MeasurementVector<STATES, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
@@ -885,33 +878,4 @@ mod tests {
             &mut self.0
         }
     }
-
-    impl<T> AsRef<[T]> for DummyMatrix<T> {
-        fn as_ref(&self) -> &[T] {
-            todo!()
-        }
-    }
-
-    impl<T> AsMut<[T]> for DummyMatrix<T> {
-        fn as_mut(&mut self) -> &mut [T] {
-            todo!()
-        }
-    }
-
-    impl<T> Index<usize> for DummyMatrix<T> {
-        type Output = T;
-
-        fn index(&self, _index: usize) -> &Self::Output {
-            todo!()
-        }
-    }
-
-    impl<T> IndexMut<usize> for DummyMatrix<T> {
-        fn index_mut(&mut self, _index: usize) -> &mut Self::Output {
-            todo!()
-        }
-    }
-
-    impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T> for DummyMatrix<T> {}
-    impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T> for DummyMatrix<T> {}
 }

@@ -1,4 +1,5 @@
 use core::marker::PhantomData;
+
 use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::*;
 
@@ -64,7 +65,7 @@ impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     where
         T: MatrixDataType,
         A: SystemMatrix<STATES, T>,
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
@@ -112,7 +113,12 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     pub const fn states(&self) -> usize {
         STATES
     }
+}
 
+impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, TempP>
+where
+    X: StateVector<STATES, T>,
+{
     /// Gets a reference to the state vector x.
     #[inline(always)]
     pub fn state_vector_ref(&self) -> &X {
@@ -134,33 +140,16 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     {
         f(&mut self.x)
     }
+}
 
+impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, TempP>
+where
+    A: SystemMatrix<STATES, T>,
+{
     /// Gets a reference to the state transition matrix A.
     #[inline(always)]
     pub fn state_transition_ref(&self) -> &A {
         &self.A
-    }
-
-    /// Gets a reference to the system covariance matrix P.
-    #[inline(always)]
-    pub fn system_covariance_ref(&self) -> &P {
-        &self.P
-    }
-
-    /// Gets a mutable reference to the system covariance matrix P.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_system_covariance")]
-    pub fn system_covariance_mut(&mut self) -> &mut P {
-        &mut self.P
-    }
-
-    /// Applies a function to the system covariance matrix P.
-    #[inline(always)]
-    pub fn system_covariance_apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut P),
-    {
-        f(&mut self.P)
     }
 }
 
@@ -182,6 +171,33 @@ where
         F: FnMut(&mut A),
     {
         f(&mut self.A)
+    }
+}
+
+impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, TempP>
+where
+    P: SystemCovarianceMatrix<STATES, T>,
+{
+    /// Gets a reference to the system covariance matrix P.
+    #[inline(always)]
+    pub fn system_covariance_ref(&self) -> &P {
+        &self.P
+    }
+
+    /// Gets a mutable reference to the system covariance matrix P.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_system_covariance")]
+    pub fn system_covariance_mut(&mut self) -> &mut P {
+        &mut self.P
+    }
+
+    /// Applies a function to the system covariance matrix P.
+    #[inline(always)]
+    pub fn system_covariance_apply<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut P),
+    {
+        f(&mut self.P)
     }
 }
 
@@ -259,7 +275,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     #[doc(alias = "kalman_predict")]
     pub fn predict(&mut self)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
@@ -356,7 +372,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned(&mut self, lambda: T)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
@@ -380,7 +396,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     #[doc(alias = "kalman_predict_x")]
     fn predict_x(&mut self)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         A: SystemMatrix<STATES, T>,
         PX: StatePredictionVector<STATES, T>,
         T: MatrixDataType,
@@ -453,7 +469,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     pub fn input<const INPUTS: usize, I>(&mut self, input: &mut I)
     where
         P: SystemCovarianceMatrix<STATES, T>,
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<INPUTS>,
     {
@@ -535,7 +551,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     pub fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
     where
         P: SystemCovarianceMatrix<STATES, T>,
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         M: KalmanFilterMeasurementCorrectFilter<STATES, T>
             + KalmanFilterNumMeasurements<MEASUREMENTS>,
@@ -565,7 +581,7 @@ where
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateVectorMut<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
 {
     type StateVectorMut = X;
 
@@ -630,7 +646,7 @@ where
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterPredict<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
     A: SystemMatrix<STATES, T>,
     PX: StatePredictionVector<STATES, T>,
     P: SystemCovarianceMatrix<STATES, T>,
@@ -647,7 +663,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterUpdate<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
     P: SystemCovarianceMatrix<STATES, T>,
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
     T: MatrixDataType,
 {
     #[inline(always)]
@@ -664,7 +680,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterApplyInput<STATES, 
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
     P: SystemCovarianceMatrix<STATES, T>,
-    X: StateVector<STATES, T>,
+    X: StateVectorMut<STATES, T>,
     T: MatrixDataType,
 {
     #[inline(always)]
@@ -677,13 +693,9 @@ where
 }
 
 #[cfg(test)]
-#[cfg(feature = "float")]
 mod tests {
-    use core::ops::{Index, IndexMut};
-
-    use minikalman_traits::matrix::{Matrix, MatrixMut};
-
     use super::*;
+    use crate::test_dummies::{Dummy, DummyMatrix};
 
     #[test]
     fn builder_simple() {
@@ -696,24 +708,20 @@ mod tests {
         );
     }
 
-    #[derive(Default)]
-    struct Dummy<T>(DummyMatrix<T>, PhantomData<T>);
-
-    #[derive(Default)]
-    struct DummyMatrix<T>(PhantomData<T>);
-
     impl<const STATES: usize, T> StateVector<STATES, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
         fn as_matrix(&self) -> &Self::Target {
             &self.0
         }
+    }
 
+    impl<const STATES: usize, T> StateVectorMut<STATES, T> for Dummy<T> {
+        type TargetMut = DummyMatrix<T>;
         fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
             &mut self.0
         }
     }
+
     impl<const STATES: usize, T> SystemMatrix<STATES, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
 
@@ -763,33 +771,4 @@ mod tests {
             &mut self.0
         }
     }
-
-    impl<T> AsRef<[T]> for DummyMatrix<T> {
-        fn as_ref(&self) -> &[T] {
-            todo!()
-        }
-    }
-
-    impl<T> AsMut<[T]> for DummyMatrix<T> {
-        fn as_mut(&mut self) -> &mut [T] {
-            todo!()
-        }
-    }
-
-    impl<T> Index<usize> for DummyMatrix<T> {
-        type Output = T;
-
-        fn index(&self, _index: usize) -> &Self::Output {
-            todo!()
-        }
-    }
-
-    impl<T> IndexMut<usize> for DummyMatrix<T> {
-        fn index_mut(&mut self, _index: usize) -> &mut Self::Output {
-            todo!()
-        }
-    }
-
-    impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T> for DummyMatrix<T> {}
-    impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T> for DummyMatrix<T> {}
 }

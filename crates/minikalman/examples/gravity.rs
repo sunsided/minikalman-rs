@@ -9,6 +9,7 @@
 #[allow(unused)]
 use colored::Colorize;
 
+use minikalman::builder::KalmanFilterBuilder;
 use rand_distr::{Distribution, Normal};
 
 use minikalman::prelude::*;
@@ -19,63 +20,10 @@ const NUM_MEASUREMENTS: usize = 1; // position
 
 #[allow(non_snake_case)]
 fn main() {
-    // System buffers.
-    let gravity_x = BufferBuilder::state_vector_x::<NUM_STATES>().new(0.0_f32);
-    let gravity_A = BufferBuilder::system_state_transition_A::<NUM_STATES>().new(0.0_f32);
-    let gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
-
-    // Input buffers.
-    let gravity_u = BufferBuilder::input_vector_u::<NUM_INPUTS>().new(0.0_f32);
-    let gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
-    let gravity_Q = BufferBuilder::input_covariance_Q::<NUM_INPUTS>().new(0.0_f32);
-
-    // Measurement buffers.
-    let gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let gravity_H =
-        BufferBuilder::measurement_transformation_H::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
-    let gravity_R = BufferBuilder::measurement_covariance_R::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let gravity_y = BufferBuilder::innovation_vector_y::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let gravity_S = BufferBuilder::innovation_covariance_S::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let gravity_K = BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
-
-    // Filter temporaries.
-    let gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
-    let gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
-    let gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_INPUTS>().new(0.0_f32);
-
-    // Measurement temporaries.
-    let gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let gravity_temp_HP = BufferBuilder::temp_HP::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
-    let gravity_temp_PHt = BufferBuilder::temp_PHt::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
-    let gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(0.0_f32);
-
-    let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
-        gravity_A,
-        gravity_x,
-        gravity_P,
-        gravity_temp_x,
-        gravity_temp_P,
-    );
-
-    let mut input = InputBuilder::new::<NUM_STATES, NUM_INPUTS, f32>(
-        gravity_B,
-        gravity_u,
-        gravity_Q,
-        gravity_temp_BQ,
-    );
-
-    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
-        gravity_H,
-        gravity_z,
-        gravity_R,
-        gravity_y,
-        gravity_S,
-        gravity_K,
-        gravity_temp_S_inv,
-        gravity_temp_HP,
-        gravity_temp_PHt,
-        gravity_temp_KHP,
-    );
+    let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    let mut filter = builder.build();
+    let mut input = builder.inputs().build::<NUM_INPUTS>();
+    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
@@ -120,7 +68,7 @@ fn main() {
 
     // Fetch estimated gravity constant.
     let gravity_x = filter.state_vector_ref();
-    let g_estimated = gravity_x.get(0, 2);
+    let g_estimated = gravity_x.as_matrix().get(0, 2);
     assert!(g_estimated > 9.0 && g_estimated < 10.0);
 }
 
@@ -157,7 +105,7 @@ fn generate_error(n: usize) -> Vec<f32> {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, f32>) {
+fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
     filter.apply(|state| {
         state[0] = 0 as _; // position
         state[1] = 0 as _; // velocity

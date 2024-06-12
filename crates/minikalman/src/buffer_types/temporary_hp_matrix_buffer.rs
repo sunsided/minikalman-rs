@@ -1,10 +1,27 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::kalman::TemporaryHPMatrix;
 
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned};
+use minikalman_traits::kalman::TemporaryHPMatrix;
+use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Mutable buffer for the temporary H×P matrix (`num_measurements` × `num_states`).
+///
+/// # See also
+/// * [`TemporaryPHTMatrixBuffer`](crate::buffer_types::TemporaryPHTMatrixBuffer).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = TemporaryHPMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = TemporaryHPMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// ```
 pub struct TemporaryHPMatrixBuffer<const MEASUREMENTS: usize, const STATES: usize, T, M>(
     M,
     PhantomData<T>,
@@ -20,7 +37,7 @@ impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(MEASUREMENTS * STATES, value.len());
+            debug_assert!(MEASUREMENTS * STATES <= value.len());
         }
         Self::new(MatrixData::new_mut::<MEASUREMENTS, STATES, T>(value))
     }
@@ -31,15 +48,15 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
         MEASUREMENTS,
         STATES,
         T,
-        MatrixDataOwned<MEASUREMENTS, STATES, TOTAL, T>,
+        MatrixDataArray<MEASUREMENTS, STATES, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(MEASUREMENTS * STATES, TOTAL);
+            debug_assert!(MEASUREMENTS * STATES <= TOTAL);
         }
-        Self::new(MatrixData::new_owned::<MEASUREMENTS, STATES, TOTAL, T>(
+        Self::new(MatrixData::new_array::<MEASUREMENTS, STATES, TOTAL, T>(
             value,
         ))
     }
@@ -62,6 +79,11 @@ where
 
     pub const fn is_empty(&self) -> bool {
         MEASUREMENTS * STATES == 0
+    }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
     }
 }
 
@@ -150,5 +172,35 @@ where
 
     fn into_inner(self) -> Self::Target {
         self.0.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        let value: TemporaryHPMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_mut() {
+        let mut data = [0.0_f32; 100];
+        let value: TemporaryHPMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_from_array_invalid_size() {
+        let value: TemporaryHPMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
     }
 }

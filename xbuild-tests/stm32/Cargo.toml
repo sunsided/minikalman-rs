@@ -6,7 +6,7 @@ publish = false
 
 [features]
 default = ["kalman-fixed", "kalman-float"]
-kalman-float = ["minikalman/float", "minikalman/libm"]
+kalman-float = ["minikalman/libm"]
 kalman-fixed = ["minikalman/fixed"]
 
 [dependencies]

@@ -14,10 +14,10 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("invert_lower (owned)", |bencher| {
         let a_buf = [1.0f32, 0.0, 0.0, -2.0, 1.0, 0.0, 3.5, -2.5, 1.0];
-        let a = MatrixData::new_owned::<3, 3, 9, f32>(a_buf);
+        let a = MatrixData::new_array::<3, 3, 9, f32>(a_buf);
 
         let inv_buf = [0f32; 3 * 3];
-        let mut inv = MatrixData::new_owned::<3, 3, 9, f32>(inv_buf);
+        let mut inv = MatrixData::new_array::<3, 3, 9, f32>(inv_buf);
 
         bencher.iter(|| a.invert_l_cholesky(black_box(&mut inv)))
     });

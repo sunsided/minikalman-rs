@@ -7,24 +7,22 @@ on:
     paths:
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - 'build.rs'
-      - 'src/**'
+      - 'crates/**/minikalman/**'
+      - 'crates/**/minikalman-traits/**'
+      - 'xbuild-tests/**'
       - '.github/workflows/rust.yml'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - 'build.rs'
-      - 'src/**'
+      - 'crates/**/minikalman/**'
+      - 'crates/**/minikalman-traits/**'
+      - 'xbuild-tests/**'
       - '.github/workflows/rust.yml'
 
 env:
   CARGO_TERM_COLOR: always
-
-defaults:
-  run:
-    working-directory: crates/minikalman
 
 jobs:
   lint:
@@ -55,7 +53,7 @@ jobs:
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Generate code coverage
-        run: cargo llvm-cov nextest --features=std,float,fixed,alloc --package minikalman --lcov --output-path lcov.info
+        run: cargo llvm-cov nextest --features=std,fixed --package minikalman --package minikalman-traits --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
@@ -70,14 +68,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@nextest
-      - name: Run Example
-        run: cargo run --example=gravity --no-default-features --features=float,std
-      - name: Run tests
-        run: cargo nextest run --verbose --no-default-features --features=float
-      - name: Run tests
-        run: cargo nextest run --verbose --features=stdint,float
+      - name: Run Example (float)
+        run: cargo run --example=gravity --no-default-features --features=std
+      - name: Run tests (std)
+        run: cargo nextest run --verbose --package minikalman --package minikalman-traits --no-default-features --features=std
+      - name: Run tests (libm)
+        run: cargo nextest run --verbose --package minikalman --package minikalman-traits --no-default-features --features=libm
       - name: Run doctests
-        run: cargo test --doc --verbose --no-default-features --features=std,float
+        run: cargo test --doc --verbose --package minikalman --package minikalman-traits --no-default-features --features=std
+      - name: Run doctests (libm)
+        run: cargo test --doc --verbose --package minikalman --package minikalman-traits --no-default-features --features=std
 
   build-fixed:
     needs: lint
@@ -86,12 +86,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@nextest
-      - name: Run Example
+      - name: Run Example (fixed)
         run: cargo run --example=fixed --no-default-features --features=fixed,std
-      - name: Run tests
-        run: cargo nextest run --verbose --no-default-features --features=float,fixed
-      - name: Run doctests
-        run: cargo test --doc --verbose --no-default-features --features=float,fixed
+      - name: Run tests (fixed)
+        run: cargo nextest run --verbose --package minikalman --package minikalman-traits --no-default-features --features=fixed,std
+      - name: Run doctests (fixed)
+        run: cargo test --doc --verbose --package minikalman --package minikalman-traits --no-default-features --features=fixed,std
 
   build-others:
     needs:
@@ -107,6 +107,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@nextest
       - name: Run tests
-        run: cargo nextest run --verbose
+        run: cargo nextest run --package minikalman --package minikalman-traits --verbose
       - name: Run doctests
-        run: cargo test --doc --verbose
+        run: cargo test --doc --package minikalman --package minikalman-traits --verbose

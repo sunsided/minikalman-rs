@@ -9,7 +9,8 @@
 This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
 a microcontroller targeted Kalman filter implementation, as well as the
 [libfixkalman](https://github.com/sunsided/libfixkalman) C library for Q16.16 fixed-point Kalman filters.
-It uses [`micromath`](https://docs.rs/micromath) for square root calculations on `no_std`. Depending on the configuration, this crate may
+It uses [`micromath`](https://docs.rs/micromath) for square root calculations on `no_std`. Depending on the
+configuration, this crate may
 require `f32` / FPU support.
 
 This implementation uses statically allocated buffers for all matrix operations. Due to lack
@@ -20,8 +21,7 @@ to create the required arrays.
     <img src="docs/hero.webp" width="780" alt="Kalman Filter Library Hero Picture" />
 </div>
 
-
-## `no_std` vs `std`
+## `no_std` vs `std`, `alloc`
 
 This crate builds as `no_std` by default. To build with `std` support, run:
 
@@ -29,7 +29,61 @@ This crate builds as `no_std` by default. To build with `std` support, run:
 cargo build --features=std
 ```
 
+Independently of `std` you can turn on `alloc` features. This enables simplified builders with heap-allocated buffers:
+
+```
+cargo build --features=alloc
+```
+
 ## Examples
+
+### Targets with allocations (`std` or `alloc`)
+
+When the `alloc` crate feature is enabled either directly or implicitly via `std`,
+some builders are enabled that allow for simple creation of filters. This should help non-embedded use cases, or any
+use case that does not have to explicitly manage buffer locations, to get an easier start:
+
+```rust
+const NUM_STATES: usize = 3;
+const NUM_INPUTS: usize = 2;
+const NUM_MEASUREMENTS: usize = 1;
+
+fn example() {
+    let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    let mut filter = builder.build();
+    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+    let mut input = builder.inputs().build::<NUM_INPUTS>();
+
+    // Set up the system dynamics, input matrices, observation matrices, ...
+
+    // Filter!
+    loop {
+        // Update your input vector(s).
+        input.input_vector_apply(|u| {
+            u[0] = 0.0;
+            u[1] = 1.0;
+        });
+
+        // Update your measurement vectors.
+        measurement.measurement_vector_apply(|z| {
+            z[0] = 42.0;
+        });
+
+        // Update prediction and apply the inputs.
+        filter.predict();
+
+        // Apply any inputs.
+        filter.input(&mut input);
+
+        // Apply any measurements.
+        filter.correct(&mut measurement);
+
+        // Access the state
+        let state = filter.state_vector_ref();
+        let covariance = filter.system_covariance_ref();
+    }
+}
+```
 
 ### Embedded Targets
 
@@ -45,41 +99,13 @@ the [libfixkalman](https://github.com/sunsided/libfixkalman) C library.
 cargo run --example fixed --features=fixed
 ```
 
-To disable floating-point support, run
+### Gravity Constant Estimation Example
+
+To run the example [`gravity`] simulation, run either
 
 ```shell
-cargo run --example fixed --no-default-features --features=fixed
-```
-
-### `f32`/`f64` floating-point
-
-The provided example code will print output only on `float` builds. Selecting this feature
-simply enables the following implementation for `f32` and `f64`:
-
-```rust
-impl MatrixDataType for f32 {
-    /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
-    fn recip(self) -> Self {
-        self.recip()
-    }
-
-    /// Calculates the square root of a number.
-    fn square_root(self) -> Self {
-        self.sqrt()
-    }
-}
-```
-
-To run the example [`gravity`] simulation, run
-
-```shell
-cargo run --example gravity --features=float,libm
-```
-
-or
-
-```shell
-cargo run --example gravity --features=float,std
+cargo run --example gravity --features=std
+cargo run --example gravity --features=std,libm
 ```
 
 This will estimate the (earth's) gravitational constant (g ≈ 9.807 m/s²) through observation
@@ -134,4 +160,5 @@ At t = 14, corrected state: s = 960.39984 m, v = 136.6101 m/s, a = 9.684802 m/s�
 ```
 
 [`gravity`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/gravity.rs
+
 [`xbuild-tests/stm32`]: https://github.com/sunsided/minikalman-rs/tree/main/xbuild-tests/stm32

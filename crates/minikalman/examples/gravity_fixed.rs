@@ -9,6 +9,7 @@
 #[allow(unused)]
 use colored::Colorize;
 use lazy_static::lazy_static;
+use minikalman::builder::KalmanFilterBuilder;
 
 use minikalman::prelude::*;
 
@@ -68,53 +69,9 @@ lazy_static! {
 
 #[allow(non_snake_case)]
 fn main() {
-    // System buffers.
-    let gravity_x = BufferBuilder::state_vector_x::<NUM_STATES>().new(I16F16::ZERO);
-    let gravity_A = BufferBuilder::system_state_transition_A::<NUM_STATES>().new(I16F16::ZERO);
-    let gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(I16F16::ZERO);
-
-    // Measurement buffers.
-    let gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(I16F16::ZERO);
-    let gravity_H = BufferBuilder::measurement_transformation_H::<NUM_MEASUREMENTS, NUM_STATES>()
-        .new(I16F16::ZERO);
-    let gravity_R = BufferBuilder::measurement_covariance_R::<NUM_MEASUREMENTS>().new(I16F16::ZERO);
-    let gravity_y = BufferBuilder::innovation_vector_y::<NUM_MEASUREMENTS>().new(I16F16::ZERO);
-    let gravity_S = BufferBuilder::innovation_covariance_S::<NUM_MEASUREMENTS>().new(I16F16::ZERO);
-    let gravity_K =
-        BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_MEASUREMENTS>().new(I16F16::ZERO);
-
-    // Filter temporaries.
-    let gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(I16F16::ZERO);
-    let gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(I16F16::ZERO);
-
-    // Measurement temporaries.
-    let gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(I16F16::ZERO);
-    let gravity_temp_HP =
-        BufferBuilder::temp_HP::<NUM_MEASUREMENTS, NUM_STATES>().new(I16F16::ZERO);
-    let gravity_temp_PHt =
-        BufferBuilder::temp_PHt::<NUM_STATES, NUM_MEASUREMENTS>().new(I16F16::ZERO);
-    let gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(I16F16::ZERO);
-
-    let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
-        gravity_A,
-        gravity_x,
-        gravity_P,
-        gravity_temp_x,
-        gravity_temp_P,
-    );
-
-    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, I16F16>(
-        gravity_H,
-        gravity_z,
-        gravity_R,
-        gravity_y,
-        gravity_S,
-        gravity_K,
-        gravity_temp_S_inv,
-        gravity_temp_HP,
-        gravity_temp_PHt,
-        gravity_temp_KHP,
-    );
+    let builder = KalmanFilterBuilder::<NUM_STATES, I16F16>::default();
+    let mut filter = builder.build();
+    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
@@ -148,7 +105,7 @@ fn main() {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, I16F16>) {
+fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>) {
     filter.apply(|state| {
         state[0] = I16F16::ZERO; // position
         state[1] = I16F16::ZERO; // velocity

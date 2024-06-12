@@ -13,7 +13,6 @@
 //! * `std` - Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
 //! * `alloc` - Enables allocation support for builder types.
 //! * `libm` - Enables libm support.
-//! * `float` - Enables some in-built support for `f32` and `f64` support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!              compiles the crate as `#![forbid(unsafe)]`.
@@ -34,11 +33,20 @@ extern crate alloc;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 mod buffer_builder;
+
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
+mod kalman_builder;
+
 pub mod buffer_types;
 mod inputs;
 mod kalman;
 mod measurement;
 mod static_macros;
+
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[cfg(test)]
+mod test_dummies;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
@@ -52,6 +60,14 @@ pub use num_traits;
 pub mod traits {
     pub use minikalman_traits::kalman;
     pub use minikalman_traits::matrix;
+}
+
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(feature = "alloc")]
+pub mod builder {
+    pub use crate::kalman_builder::{
+        KalmanFilterBuilder, KalmanFilterInputBuilder, KalmanFilterMeasurementBuilder,
+    };
 }
 
 /// Exports all macros and common types.

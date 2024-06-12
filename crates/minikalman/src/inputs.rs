@@ -202,7 +202,7 @@ where
     #[allow(non_snake_case)]
     pub fn apply_input<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         // matrices and vectors
@@ -236,7 +236,7 @@ impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ> KalmanFilterN
 {
 }
 
-impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ> KalmanFilterNumInputs<STATES>
+impl<const STATES: usize, const INPUTS: usize, T, B, U, Q, TempBQ> KalmanFilterNumInputs<INPUTS>
     for Input<STATES, INPUTS, T, B, U, Q, TempBQ>
 {
 }
@@ -325,7 +325,7 @@ where
     #[allow(non_snake_case)]
     fn apply_to<X, P>(&mut self, x: &mut X, P: &mut P)
     where
-        X: StateVector<STATES, T>,
+        X: StateVectorMut<STATES, T>,
         P: SystemCovarianceMatrix<STATES, T>,
     {
         self.apply_input(x, P)
@@ -333,17 +333,17 @@ where
 }
 
 #[cfg(test)]
-#[cfg(feature = "float")]
 mod tests {
     use super::*;
-    use assert_float_eq::*;
-    use core::ops::{Index, IndexMut};
-    use minikalman_traits::matrix::{Matrix, MatrixMut};
+    use crate::test_dummies::{Dummy, DummyMatrix};
 
     #[allow(non_snake_case)]
     #[test]
     #[cfg(feature = "alloc")]
     fn input_only() {
+        use assert_float_eq::*;
+        use minikalman_traits::matrix::MatrixMut;
+
         use crate::prelude::{BufferBuilder, KalmanBuilder};
 
         const NUM_STATES: usize = 4;
@@ -450,7 +450,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "float")]
     fn builder_simple() {
         let _filter = InputBuilder::new::<3, 2, f32>(
             Dummy::default(),
@@ -459,12 +458,6 @@ mod tests {
             Dummy::default(),
         );
     }
-
-    #[derive(Default)]
-    struct Dummy<T>(DummyMatrix<T>, PhantomData<T>);
-
-    #[derive(Default)]
-    struct DummyMatrix<T>(PhantomData<T>);
 
     impl<const INPUTS: usize, T> InputVector<INPUTS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
@@ -523,33 +516,4 @@ mod tests {
             &mut self.0
         }
     }
-
-    impl<T> AsRef<[T]> for DummyMatrix<T> {
-        fn as_ref(&self) -> &[T] {
-            todo!()
-        }
-    }
-
-    impl<T> AsMut<[T]> for DummyMatrix<T> {
-        fn as_mut(&mut self) -> &mut [T] {
-            todo!()
-        }
-    }
-
-    impl<T> Index<usize> for DummyMatrix<T> {
-        type Output = T;
-
-        fn index(&self, _index: usize) -> &Self::Output {
-            todo!()
-        }
-    }
-
-    impl<T> IndexMut<usize> for DummyMatrix<T> {
-        fn index_mut(&mut self, _index: usize) -> &mut Self::Output {
-            todo!()
-        }
-    }
-
-    impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T> for DummyMatrix<T> {}
-    impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T> for DummyMatrix<T> {}
 }

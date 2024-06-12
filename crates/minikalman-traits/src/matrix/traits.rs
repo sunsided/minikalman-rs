@@ -27,9 +27,19 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         ROWS * COLS
     }
 
+    /// Gets the number of elements in the underlying buffer..
+    fn buffer_len(&self) -> usize {
+        self.as_ref().len()
+    }
+
     /// Determines if this matrix has zero elements.
     fn is_empty(&self) -> bool {
         ROWS * COLS == 0
+    }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    fn is_valid(&self) -> bool {
+        self.len() <= self.buffer_len()
     }
 
     /// Gets a matrix element
@@ -154,7 +164,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman_traits::{MatrixData, Matrix};
+    /// use minikalman_traits::matrix::{Matrix, MatrixData};
     ///
     /// let a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -237,7 +247,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman_traits::{MatrixData, Matrix};
+    /// use minikalman_traits::matrix::{MatrixData, Matrix};
     ///
     /// let a_buf = [
     ///      1.0, 2.0, 3.0,
@@ -893,8 +903,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
-    /// use minikalman::MatrixData;
-    /// use minikalman::prelude::MatrixMut;
+    /// use minikalman_traits::matrix::{MatrixData, MatrixMut};
     ///
     /// // data buffer for the original and decomposed matrix
     /// let mut d = [
@@ -978,7 +987,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::MatrixData;
+    use crate::matrix::MatrixData;
     use assert_float_eq::*;
 
     #[test]
@@ -991,7 +1000,7 @@ mod tests {
             10.0, 11.0,
             20.0, 21.0,
             30.0, 31.0];
-        let a = MatrixData::new_owned::<2, 3, 6, f32>(a_buf);
+        let a = MatrixData::new_array::<2, 3, 6, f32>(a_buf);
         let b = MatrixData::new_ref::<3, 2, f32>(&b_buf);
 
         let mut c_buf = [0f32; 2 * 2];
@@ -1144,7 +1153,7 @@ mod tests {
         let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
         let b = MatrixData::new_ref::<2, 3, f32>(&b_buf);
 
-        let mut c = MatrixData::new_owned::<2, 2, 4, f32>([0f32; 2 * 2]);
+        let mut c = MatrixData::new_array::<2, 2, 4, f32>([0f32; 2 * 2]);
         a.multscale_transb(&b, 2.0, &mut c);
 
         let c_buf = c.as_ref();

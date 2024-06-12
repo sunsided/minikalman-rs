@@ -49,66 +49,56 @@ impl<T> MatrixDataTypeBase for T where
 {
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "float")))]
-#[cfg(feature = "float")]
+#[cfg(any(feature = "std", feature = "libm"))]
 impl MatrixDataType for f32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
-        #[cfg(feature = "libm")]
+        #[cfg(feature = "std")]
+        {
+            self.recip()
+        }
+        #[cfg(not(feature = "std"))] // libm
         {
             1.0 / self
-        }
-        #[cfg(not(feature = "libm"))]
-        {
-            #[allow(unused)]
-            use num_traits::Float;
-            self.recip()
         }
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
-        #[cfg(feature = "libm")]
+        #[cfg(feature = "std")]
+        {
+            self.sqrt()
+        }
+        #[cfg(not(feature = "std"))] // libm
         {
             libm::sqrtf(self)
-        }
-        #[cfg(not(feature = "libm"))]
-        {
-            #[allow(unused)]
-            use num_traits::Float;
-            self.sqrt()
         }
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "float")))]
-#[cfg(feature = "float")]
+#[cfg(any(feature = "std", feature = "libm"))]
 impl MatrixDataType for f64 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
-        #[cfg(feature = "libm")]
+        #[cfg(feature = "std")]
+        {
+            self.recip()
+        }
+        #[cfg(not(feature = "std"))] // libm
         {
             1.0 / self
-        }
-        #[cfg(not(feature = "libm"))]
-        {
-            #[allow(unused)]
-            use num_traits::Float;
-            self.recip()
         }
     }
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self {
-        #[cfg(feature = "libm")]
+        #[cfg(feature = "std")]
+        {
+            self.sqrt()
+        }
+        #[cfg(not(feature = "std"))] // libm
         {
             libm::sqrt(self)
-        }
-        #[cfg(not(feature = "libm"))]
-        {
-            #[allow(unused)]
-            use num_traits::Float;
-            self.sqrt()
         }
     }
 }

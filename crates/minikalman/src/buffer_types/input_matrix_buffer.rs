@@ -1,21 +1,61 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::kalman::{InputMatrix, InputMatrixMut};
 
+use minikalman_traits::kalman::{InputMatrix, InputMatrixMut};
 use minikalman_traits::matrix::{
-    IntoInnerData, MatrixData, MatrixDataMut, MatrixDataOwned, MatrixDataRef,
+    IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
 };
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Immutable buffer for the control matrix (`num_states` × `num_inputs`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = InputMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let data = [0.0; 4];
+/// let buffer = InputMatrixBuffer::<2, 2, f32, _>::from(data.as_ref());
+/// ```
 pub struct InputMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
     M: Matrix<STATES, INPUTS, T>;
 
+/// Mutable buffer for the control matrix (`num_states` × `num_inputs`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = InputMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = InputMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// ```
 pub struct InputMatrixMutBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, INPUTS, T>;
 
 // -----------------------------------------------------------
+
+impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for InputMatrixBuffer<STATES, INPUTS, T, MatrixDataArray<STATES, INPUTS, TOTAL, T>>
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert!(STATES * INPUTS <= TOTAL);
+        }
+        Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
+    }
+}
 
 impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a [T]>
     for InputMatrixBuffer<STATES, INPUTS, T, MatrixDataRef<'a, STATES, INPUTS, T>>
@@ -23,7 +63,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a [T]>
     fn from(value: &'a [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, value.len());
+            debug_assert!(STATES * INPUTS <= value.len());
         }
         Self::new(MatrixData::new_ref::<STATES, INPUTS, T>(value))
     }
@@ -35,7 +75,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, value.len());
+            debug_assert!(STATES * INPUTS <= value.len());
         }
         Self::new(MatrixData::new_ref::<STATES, INPUTS, T>(value))
     }
@@ -47,21 +87,21 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, value.len());
+            debug_assert!(STATES * INPUTS <= value.len());
         }
         Self::new(MatrixData::new_mut::<STATES, INPUTS, T>(value))
     }
 }
 
 impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataOwned<STATES, INPUTS, TOTAL, T>>
+    for InputMatrixMutBuffer<STATES, INPUTS, T, MatrixDataArray<STATES, INPUTS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, TOTAL);
+            debug_assert!(STATES * INPUTS <= TOTAL);
         }
-        Self::new(MatrixData::new_owned::<STATES, INPUTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
     }
 }
 
@@ -127,6 +167,11 @@ where
 
     pub const fn is_empty(&self) -> bool {
         STATES * INPUTS == 0
+    }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
     }
 }
 
@@ -245,5 +290,70 @@ where
 
     fn into_inner(self) -> Self::Target {
         self.0.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        let value: InputMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_ref() {
+        let data = [0.0_f32; 100];
+        let value: InputMatrixBuffer<5, 3, f32, _> = data.as_ref().into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
+    }
+
+    #[test]
+    fn test_from_mut() {
+        let mut data = [0.0_f32; 100];
+        let value: InputMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_from_array_invalid_size() {
+        let value: InputMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_array() {
+        let value: InputMatrixMutBuffer<5, 3, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_mut() {
+        let mut data = [0.0_f32; 100];
+        let value: InputMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_mut_from_array_invalid_size() {
+        let value: InputMatrixMutBuffer<5, 3, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
     }
 }

@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["float"]
+default = []
 std = ["num-traits/std", "alloc"]
-float = []
 fixed = ["dep:fixed", "fixed/num-traits"]
 libm = ["dep:libm", "num-traits/libm"]
 no_assert = []
