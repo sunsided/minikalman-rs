@@ -93,8 +93,12 @@ fn main() {
         assert_f32_near!(state[2], 0.3);
     }
 
+    const OBSERVATIONS: [f32; 10] = [
+        13.15, 16.53, 20.02, 23.47, 26.75, 29.73, 32.28, 34.27, 35.55, 36.00,
+    ];
+
     // The car now begins to brake.
-    let ACCELERATION: f32 = -0.1333333; // m/s²
+    let ACCELERATION: f32 = -1.1333333; // m/s²
     for t in 10..20 {
         control.control_vector_apply(|vec| vec.set(0, 0, ACCELERATION));
 
