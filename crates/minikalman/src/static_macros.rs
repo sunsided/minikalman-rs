@@ -198,9 +198,9 @@ macro_rules! impl_buffer_P {
     };
 }
 
-/// Sizes a static buffer fitting the input vector (`num_inputs` × `1`).
+/// Sizes a static buffer fitting the control vector (`num_controls` × `1`).
 ///
-/// This will create a [`InputVectorBuffer`](crate::buffers::types::InputVectorBuffer)
+/// This will create a [`ControlVectorBuffer`](crate::buffers::types::ControlVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -213,8 +213,8 @@ macro_rules! impl_buffer_P {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_u!(static mut U, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_u!(static mut U, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(U.len(), 2);
@@ -223,47 +223,47 @@ macro_rules! impl_buffer_P {
 /// ```
 #[macro_export]
 macro_rules! impl_buffer_u {
-    (mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
+    (mut $vec_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_u!($vec_name, $num_controls, $t, $init, let mut)
     };
-    ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let)
+    ($vec_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_u!($vec_name, $num_controls, $t, $init, let)
     };
-    (let mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let mut)
+    (let mut $vec_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_u!($vec_name, $num_controls, $t, $init, let mut)
     };
-    (let $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, let)
+    (let $vec_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_u!($vec_name, $num_controls, $t, $init, let)
     };
-    (static mut $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, static mut)
+    (static mut $vec_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_u!($vec_name, $num_controls, $t, $init, static mut)
     };
-    (static $vec_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, static)
+    (static $vec_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_u!($vec_name, $num_controls, $t, $init, static)
     };
-    ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffers::types::InputVectorBuffer<
-            $num_inputs,
+    ($vec_name:ident, $num_controls:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::buffers::types::ControlVectorBuffer<
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
-        > = $crate::buffers::types::InputVectorBuffer::<
-            $num_inputs,
+            $crate::matrix::MatrixDataArray<$num_controls, 1, { $num_controls * 1 }, $t>,
+        > = $crate::buffers::types::ControlVectorBuffer::<
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
+            $crate::matrix::MatrixDataArray<$num_controls, 1, { $num_controls * 1 }, $t>,
         >::new($crate::matrix::MatrixDataArray::new_unchecked(
-            [$init; { $num_inputs * 1 }],
+            [$init; { $num_controls * 1 }],
         ));
     };
 }
 
-/// Creates a static buffer fitting the input transition matrix (`num_states` × `num_inputs`).
+/// Creates a static buffer fitting the control transition matrix (`num_states` × `num_controls`).
 ///
-/// This will create a [`InputMatrixMutBuffer`](crate::buffers::types::InputMatrixMutBuffer)
+/// This will create a [`ControlMatrixMutBuffer`](crate::buffers::types::ControlMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
-/// * `num_inputs` - The number of inputs to the system.
+/// * `num_controls` - The number of controls to the system.
 /// * `t` - The data type.
 /// * `init` - The default value to initialize the buffer with.
 ///
@@ -273,8 +273,8 @@ macro_rules! impl_buffer_u {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_B!(static mut B, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_B!(static mut B, NUM_STATES, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(B.len(), 6);
@@ -284,48 +284,48 @@ macro_rules! impl_buffer_u {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_buffer_B {
-    (mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    (mut $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_controls, $t, $init, let mut)
     };
-    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    ($mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_controls, $t, $init, let)
     };
-    (let mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    (let mut $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_controls, $t, $init, let mut)
     };
-    (let $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    (let $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_controls, $t, $init, let)
     };
-    (static mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
+    (static mut $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_controls, $t, $init, static mut)
     };
-    (static $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static)
+    (static $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_B!($mat_name, $num_states, $num_controls, $t, $init, static)
     };
-    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::InputMatrixMutBuffer<
+    ($mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::ControlMatrixMutBuffer<
             $num_states,
-            $num_inputs,
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        > = $crate::buffers::types::InputMatrixMutBuffer::<
+            $crate::matrix::MatrixDataArray<$num_states, $num_controls, { $num_states * $num_controls }, $t>,
+        > = $crate::buffers::types::ControlMatrixMutBuffer::<
             $num_states,
-            $num_inputs,
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_controls, { $num_states * $num_controls }, $t>,
         >::new($crate::matrix::MatrixDataArray::new_unchecked(
-            [$init; { $num_states * $num_inputs }],
+            [$init; { $num_states * $num_controls }],
         ));
     };
 }
 
-/// Creates a static buffer fitting the square input covariance matrix (`num_inputs` × `num_inputs`).
+/// Creates a static buffer fitting the square control covariance matrix (`num_controls` × `num_controls`).
 ///
-/// This will create a [`InputCovarianceMatrixMutBuffer`](crate::buffers::types::InputCovarianceMatrixMutBuffer)
+/// This will create a [`ControlCovarianceMatrixMutBuffer`](crate::buffers::types::ControlCovarianceMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
-/// * `num_inputs` - The number of inputs to the system.
+/// * `num_controls` - The number of controls to the system.
 /// * `t` - The data type.
 /// * `init` - The default value to initialize the buffer with.
 ///
@@ -334,8 +334,8 @@ macro_rules! impl_buffer_B {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_Q!(static mut Q, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_Q!(static mut Q, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Q.len(), 4);
@@ -345,35 +345,35 @@ macro_rules! impl_buffer_B {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_buffer_Q {
-    (mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
+    (mut $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let mut)
     };
-    ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
+    ($mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let)
     };
-    (let mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let mut)
+    (let mut $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let mut)
     };
-    (let $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, let)
+    (let $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let)
     };
-    (static mut $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, static mut)
+    (static mut $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, static mut)
     };
-    (static $mat_name:ident, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, static)
+    (static $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, static)
     };
-    ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::InputCovarianceMatrixMutBuffer<
-            $num_inputs,
+    ($mat_name:ident, $num_controls:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::ControlCovarianceMatrixMutBuffer<
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
-        > = $crate::buffers::types::InputCovarianceMatrixMutBuffer::<
-            $num_inputs,
+            $crate::matrix::MatrixDataArray<$num_controls, $num_controls, { $num_controls * $num_controls }, $t>,
+        > = $crate::buffers::types::ControlCovarianceMatrixMutBuffer::<
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
+            $crate::matrix::MatrixDataArray<$num_controls, $num_controls, { $num_controls * $num_controls }, $t>,
         >::new($crate::matrix::MatrixDataArray::new_unchecked(
-            [$init; { $num_inputs * $num_inputs }],
+            [$init; { $num_controls * $num_controls }],
         ));
     };
 }
@@ -895,14 +895,14 @@ macro_rules! impl_buffer_temp_P {
     };
 }
 
-/// Creates a static buffer fitting the temporary B×Q matrix (`num_states` × `num_inputs`).
+/// Creates a static buffer fitting the temporary B×Q matrix (`num_states` × `num_controls`).
 ///
 /// This will create a [`TemporaryBQMatrixBuffer`](crate::buffers::types::TemporaryBQMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
-/// * `num_inputs` - The number of inputs to the system.
+/// * `num_controls` - The number of controls to the system.
 /// * `t` - The data type.
 /// * `init` - The default value to initialize the buffer with.
 ///
@@ -912,8 +912,8 @@ macro_rules! impl_buffer_temp_P {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_INPUTS: usize = 2;
-/// impl_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TBQ.len(), 6);
@@ -923,37 +923,37 @@ macro_rules! impl_buffer_temp_P {
 #[macro_export]
 #[allow(non_snake_case)]
 macro_rules! impl_buffer_temp_BQ {
-    (mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    (mut $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_controls, $t, $init, let mut)
     };
-    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    ($mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_controls, $t, $init, let)
     };
-    (let mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let mut)
+    (let mut $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_controls, $t, $init, let mut)
     };
-    (let $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, let)
+    (let $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_controls, $t, $init, let)
     };
-    (static mut $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static mut)
+    (static mut $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_controls, $t, $init, static mut)
     };
-    (static $mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static)
+    (static $mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_controls, $t, $init, static)
     };
-    ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+    ($mat_name:ident, $num_states:expr, $num_controls:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
         $($keywords)* $mat_name: $crate::buffers::types::TemporaryBQMatrixBuffer<
             $num_states,
-            $num_inputs,
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_controls, { $num_states * $num_controls }, $t>,
         > = $crate::buffers::types::TemporaryBQMatrixBuffer::<
             $num_states,
-            $num_inputs,
+            $num_controls,
             $t,
-            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_controls, { $num_states * $num_controls }, $t>,
         >::new($crate::matrix::MatrixDataArray::new_unchecked(
-            [$init; { $num_states * $num_inputs }],
+            [$init; { $num_states * $num_controls }],
         ));
     };
 }

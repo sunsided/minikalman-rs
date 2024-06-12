@@ -44,7 +44,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
-    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// // Measurement buffers.
     /// impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
@@ -235,22 +235,22 @@ impl<
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
-    /// # const NUM_INPUTS: usize = 0;
+    /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_MEASUREMENTS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
     /// #
-    /// # // Input buffers.
-    /// # impl_buffer_u!(mut gravity_u, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_INPUTS, f32, 0.0);
-    /// # impl_buffer_Q!(mut gravity_Q, NUM_INPUTS, f32, 0.0);
+    /// # // Control buffers.
+    /// # impl_buffer_u!(mut gravity_u, NUM_CONTROLS, f32, 0.0);
+    /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_CONTROLS, f32, 0.0);
+    /// # impl_buffer_Q!(mut gravity_Q, NUM_CONTROLS, f32, 0.0);
     /// #
     /// # // Filter temporaries.
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_INPUTS, f32, 0.0);
+    /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_CONTROLS, f32, 0.0);
     /// #
     /// # let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
     /// #     gravity_A,
@@ -705,10 +705,26 @@ mod tests {
 
     use super::*;
 
-    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(_measurement: M)
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn test_apply() {
+        use crate::builder::KalmanFilterBuilder;
+
+        let builder = KalmanFilterBuilder::<3, f32>::default();
+        let mut filter = builder.build();
+        let mut measurement = builder.measurements().build::<5>();
+
+        filter.predict();
+        filter.correct(&mut measurement);
+    }
+
+    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(measurement: M) -> M
     where
         M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>,
     {
+        assert_eq!(measurement.states(), STATES);
+        assert_eq!(measurement.measurements(), MEASUREMENTS);
+        measurement
     }
 
     #[test]
@@ -726,7 +742,11 @@ mod tests {
             Dummy::default(),
         );
 
-        trait_impl(measurement);
+        let measurement = trait_impl(measurement);
+
+        let _measurements = measurement.measurement_vector_ref();
+        let _matrix = measurement.measurement_transformation_ref();
+        let _noise = measurement.process_noise_ref();
     }
 
     impl<const STATES: usize, T> MeasurementVector<STATES, T> for Dummy<T> {

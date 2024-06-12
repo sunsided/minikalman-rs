@@ -5,7 +5,7 @@ use crate::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMu
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Immutable buffer for the observation matrix (`num_inputs` × `num_states`).
+/// Immutable buffer for the observation matrix (`num_controls` × `num_states`).
 ///
 /// ## Example
 /// ```
@@ -26,7 +26,7 @@ pub struct MeasurementObservationMatrixBuffer<const MEASUREMENTS: usize, const S
 where
     M: Matrix<MEASUREMENTS, STATES, T>;
 
-/// Mmutable buffer for the observation matrix (`num_inputs` × `num_states`).
+/// Mmutable buffer for the observation matrix (`num_controls` × `num_states`).
 ///
 /// ## Example
 /// ```
