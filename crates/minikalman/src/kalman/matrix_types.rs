@@ -219,10 +219,10 @@ pub trait TemporaryBQMatrix<const STATES: usize, const CONTROLS: usize, T = f32>
 /// Measurement vector.
 ///
 /// Immutable variant. For a mutable variant, see [`MeasurementVectorMut`].
-pub trait MeasurementVector<const MEASUREMENTS: usize, T = f32>:
+pub trait MeasurementVector<const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
-    type Target: Matrix<MEASUREMENTS, 1, T>;
+    type Target: Matrix<OBSERVATIONS, 1, T>;
 
     fn as_matrix(&self) -> &Self::Target;
 }
@@ -230,10 +230,10 @@ pub trait MeasurementVector<const MEASUREMENTS: usize, T = f32>:
 /// Measurement vector.
 ///
 /// Mutable variant. For a immutable variant, see [`MeasurementVector`].
-pub trait MeasurementVectorMut<const MEASUREMENTS: usize, T = f32>:
-    MeasurementVector<MEASUREMENTS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+pub trait MeasurementVectorMut<const OBSERVATIONS: usize, T = f32>:
+    MeasurementVector<OBSERVATIONS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
-    type TargetMut: MatrixMut<MEASUREMENTS, 1, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, 1, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 
@@ -250,10 +250,10 @@ pub trait MeasurementVectorMut<const MEASUREMENTS: usize, T = f32>:
 /// Measurement transformation matrix.
 ///
 /// Immutable variant. For a mutable variant, see [`MeasurementObservationMatrixMut`].
-pub trait MeasurementObservationMatrix<const MEASUREMENTS: usize, const STATES: usize, T = f32>:
+pub trait MeasurementObservationMatrix<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
-    type Target: Matrix<MEASUREMENTS, STATES, T>;
+    type Target: Matrix<OBSERVATIONS, STATES, T>;
 
     fn as_matrix(&self) -> &Self::Target;
 }
@@ -261,10 +261,10 @@ pub trait MeasurementObservationMatrix<const MEASUREMENTS: usize, const STATES: 
 /// Measurement transformation matrix.
 ///
 /// Mutable variant. For a immutable variant, see [`MeasurementObservationMatrix`].
-pub trait MeasurementObservationMatrixMut<const MEASUREMENTS: usize, const STATES: usize, T = f32>:
-    MeasurementObservationMatrix<MEASUREMENTS, STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+pub trait MeasurementObservationMatrixMut<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
+    MeasurementObservationMatrix<OBSERVATIONS, STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
-    type TargetMut: MatrixMut<MEASUREMENTS, STATES, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, STATES, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 
@@ -281,11 +281,11 @@ pub trait MeasurementObservationMatrixMut<const MEASUREMENTS: usize, const STATE
 /// Measurement process noise covariance matrix.
 ///
 /// Always mutable.
-pub trait MeasurementProcessNoiseCovarianceMatrix<const MEASUREMENTS: usize, T = f32>:
+pub trait MeasurementProcessNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
-    type Target: Matrix<MEASUREMENTS, MEASUREMENTS, T>;
-    type TargetMut: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>;
+    type Target: Matrix<OBSERVATIONS, OBSERVATIONS, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>;
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
@@ -303,11 +303,11 @@ pub trait MeasurementProcessNoiseCovarianceMatrix<const MEASUREMENTS: usize, T =
 /// Innovation vector.
 ///
 /// Always mutable.
-pub trait InnovationVector<const MEASUREMENTS: usize, T = f32>:
+pub trait InnovationVector<const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
-    type Target: Matrix<MEASUREMENTS, 1, T>;
-    type TargetMut: MatrixMut<MEASUREMENTS, 1, T>;
+    type Target: Matrix<OBSERVATIONS, 1, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, 1, T>;
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
@@ -316,11 +316,11 @@ pub trait InnovationVector<const MEASUREMENTS: usize, T = f32>:
 /// Residual covariance matrix.
 ///
 /// Always mutable.
-pub trait ResidualCovarianceMatrix<const MEASUREMENTS: usize, T = f32>:
+pub trait ResidualCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
-    type Target: Matrix<MEASUREMENTS, MEASUREMENTS, T>;
-    type TargetMut: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>;
+    type Target: Matrix<OBSERVATIONS, OBSERVATIONS, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>;
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
@@ -329,11 +329,11 @@ pub trait ResidualCovarianceMatrix<const MEASUREMENTS: usize, T = f32>:
 /// Kalman Gain matrix.
 ///
 /// Always mutable.
-pub trait KalmanGainMatrix<const STATES: usize, const MEASUREMENTS: usize, T = f32>:
+pub trait KalmanGainMatrix<const STATES: usize, const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
-    type Target: Matrix<STATES, MEASUREMENTS, T>;
-    type TargetMut: MatrixMut<STATES, MEASUREMENTS, T>;
+    type Target: Matrix<STATES, OBSERVATIONS, T>;
+    type TargetMut: MatrixMut<STATES, OBSERVATIONS, T>;
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
@@ -342,11 +342,11 @@ pub trait KalmanGainMatrix<const STATES: usize, const MEASUREMENTS: usize, T = f
 /// Temporary residual covariance-inverted matrix.
 ///
 /// Always mutable.
-pub trait TemporaryResidualCovarianceInvertedMatrix<const MEASUREMENTS: usize, T = f32>:
+pub trait TemporaryResidualCovarianceInvertedMatrix<const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
-    type Target: Matrix<MEASUREMENTS, MEASUREMENTS, T>;
-    type TargetMut: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>;
+    type Target: Matrix<OBSERVATIONS, OBSERVATIONS, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>;
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
@@ -355,11 +355,11 @@ pub trait TemporaryResidualCovarianceInvertedMatrix<const MEASUREMENTS: usize, T
 /// Temporary measurement transformation matrix.
 ///
 /// Always mutable.
-pub trait TemporaryHPMatrix<const MEASUREMENTS: usize, const STATES: usize, T = f32>:
+pub trait TemporaryHPMatrix<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
-    type Target: Matrix<MEASUREMENTS, STATES, T>;
-    type TargetMut: MatrixMut<MEASUREMENTS, STATES, T>;
+    type Target: Matrix<OBSERVATIONS, STATES, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, STATES, T>;
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
@@ -381,11 +381,11 @@ pub trait TemporaryKHPMatrix<const STATES: usize, T = f32>:
 /// P×H'-Sized (H'-Sized) temporary matrix  (number of states × number of measurements).
 ///
 /// Always mutable.
-pub trait TemporaryPHTMatrix<const STATES: usize, const MEASUREMENTS: usize, T = f32>:
+pub trait TemporaryPHTMatrix<const STATES: usize, const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
-    type Target: Matrix<STATES, MEASUREMENTS, T>;
-    type TargetMut: MatrixMut<STATES, MEASUREMENTS, T>;
+    type Target: Matrix<STATES, OBSERVATIONS, T>;
+    type TargetMut: MatrixMut<STATES, OBSERVATIONS, T>;
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;

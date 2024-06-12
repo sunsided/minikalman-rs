@@ -40,7 +40,7 @@ impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # const NUM_OBSERVATIONS: usize = 1;
     /// // System buffers.
     /// impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
@@ -216,7 +216,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # const NUM_OBSERVATIONS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
@@ -235,20 +235,20 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// #  );
     /// #
     /// # // Measurement buffers.
-    /// # impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// #
     /// # // Measurement temporaries.
-    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     /// #
-    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     /// #     gravity_H,
     /// #     gravity_z,
     /// #     gravity_R,
@@ -262,14 +262,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # );
     /// #
     /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
-    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
     /// #
     /// for t in 0..REAL_DISTANCE.len() {
     ///     // Prediction.
     ///     filter.predict();
     ///
     ///     // Measure ...
-    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
     ///     measurement.measurement_vector_apply(|z| z[0] = m);
     ///
     ///     // Update.
@@ -311,7 +311,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # const NUM_OBSERVATIONS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
@@ -330,20 +330,20 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// #  );
     /// #
     /// # // Measurement buffers.
-    /// # impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// #
     /// # // Measurement temporaries.
-    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     /// #
-    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     /// #     gravity_H,
     /// #     gravity_z,
     /// #     gravity_R,
@@ -357,7 +357,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # );
     /// #
     /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
-    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
     /// #
     /// const LAMBDA: f32 = 0.97;
     ///
@@ -366,7 +366,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///     filter.predict_tuned(LAMBDA);
     ///
     ///     // Measure ...
-    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
     ///     measurement.measurement_vector_apply(|z| z[0] = m);
     ///
     ///     // Update.
@@ -491,7 +491,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # const NUM_OBSERVATIONS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
@@ -510,20 +510,20 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// #  );
     /// #
     /// # // Measurement buffers.
-    /// # impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// #
     /// # // Measurement temporaries.
-    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     /// #
-    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     /// #     gravity_H,
     /// #     gravity_z,
     /// #     gravity_R,
@@ -537,14 +537,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// # );
     /// #
     /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
-    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
     /// #
     /// for t in 0..REAL_DISTANCE.len() {
     ///     // Prediction.
     ///     filter.predict();
     ///
     ///     // Measure ...
-    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
     ///     measurement.measurement_vector_apply(|z| z[0] = m);
     ///
     ///     // Update.
@@ -552,13 +552,13 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// }
     /// ```
     #[allow(non_snake_case)]
-    pub fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
+    pub fn correct<const OBSERVATIONS: usize, M>(&mut self, measurement: &mut M)
     where
         P: SystemCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         M: KalmanFilterMeasurementCorrectFilter<STATES, T>
-            + KalmanFilterNumMeasurements<MEASUREMENTS>,
+            + KalmanFilterNumMeasurements<OBSERVATIONS>,
     {
         measurement.correct(&mut self.x, &mut self.P);
     }
@@ -671,10 +671,10 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn correct<const MEASUREMENTS: usize, M>(&mut self, measurement: &mut M)
+    fn correct<const OBSERVATIONS: usize, M>(&mut self, measurement: &mut M)
     where
         M: KalmanFilterMeasurementCorrectFilter<STATES, T>
-            + KalmanFilterNumMeasurements<MEASUREMENTS>,
+            + KalmanFilterNumMeasurements<OBSERVATIONS>,
     {
         self.correct(measurement)
     }

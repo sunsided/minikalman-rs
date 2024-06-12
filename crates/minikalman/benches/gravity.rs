@@ -9,14 +9,14 @@ const REAL_DISTANCE: [f32; 15] = [
     706.32, 828.94, 961.38,
 ];
 
-const MEASUREMENT_ERROR: [f32; 15] = [
+const OBSERVATION_ERROR: [f32; 15] = [
     0.13442, 0.45847, -0.56471, 0.21554, 0.079691, -0.32692, -0.1084, 0.085656, 0.8946, 0.69236,
     -0.33747, 0.75873, 0.18135, -0.015764, 0.17869,
 ];
 
 const NUM_STATES: usize = 3;
 // const NUM_CONTROLS: usize = 0;
-const NUM_MEASUREMENTS: usize = 1;
+const NUM_OBSERVATIONS: usize = 1;
 
 #[allow(non_snake_case)]
 fn criterion_benchmark(c: &mut Criterion) {
@@ -31,13 +31,13 @@ fn criterion_benchmark(c: &mut Criterion) {
     // let mut gravity_Q = BufferBuilder::control_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
 
     // Measurement buffers.
-    let mut gravity_z = BufferBuilder::measurement_vector_z::<NUM_MEASUREMENTS>().new(0.0_f32);
+    let mut gravity_z = BufferBuilder::measurement_vector_z::<NUM_OBSERVATIONS>().new(0.0_f32);
     let mut gravity_H =
-        BufferBuilder::measurement_transformation_H::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
-    let mut gravity_R = BufferBuilder::measurement_covariance_R::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let mut gravity_y = BufferBuilder::innovation_vector_y::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let mut gravity_S = BufferBuilder::innovation_covariance_S::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let mut gravity_K = BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
+        BufferBuilder::measurement_transformation_H::<NUM_OBSERVATIONS, NUM_STATES>().new(0.0_f32);
+    let mut gravity_R = BufferBuilder::measurement_covariance_R::<NUM_OBSERVATIONS>().new(0.0_f32);
+    let mut gravity_y = BufferBuilder::innovation_vector_y::<NUM_OBSERVATIONS>().new(0.0_f32);
+    let mut gravity_S = BufferBuilder::innovation_covariance_S::<NUM_OBSERVATIONS>().new(0.0_f32);
+    let mut gravity_K = BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_OBSERVATIONS>().new(0.0_f32);
 
     // Filter temporaries.
     let mut gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
@@ -45,10 +45,10 @@ fn criterion_benchmark(c: &mut Criterion) {
     // let mut gravity_temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
 
     // Measurement temporaries.
-    let mut gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_MEASUREMENTS>().new(0.0_f32);
-    let mut gravity_temp_HP = BufferBuilder::temp_HP::<NUM_MEASUREMENTS, NUM_STATES>().new(0.0_f32);
+    let mut gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_OBSERVATIONS>().new(0.0_f32);
+    let mut gravity_temp_HP = BufferBuilder::temp_HP::<NUM_OBSERVATIONS, NUM_STATES>().new(0.0_f32);
     let mut gravity_temp_PHt =
-        BufferBuilder::temp_PHt::<NUM_STATES, NUM_MEASUREMENTS>().new(0.0_f32);
+        BufferBuilder::temp_PHt::<NUM_STATES, NUM_OBSERVATIONS>().new(0.0_f32);
     let mut gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(0.0_f32);
 
     c.bench_function("filter loop", |bencher| {
@@ -60,7 +60,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
         );
 
-        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             MeasurementObservationMatrixMutBuffer::from(gravity_H.as_mut()),
             MeasurementVectorBuffer::from(gravity_z.as_mut()),
             MeasurementProcessNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
@@ -86,7 +86,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             for t in 0..REAL_DISTANCE.len() {
                 filter.predict();
                 measurement.measurement_vector_apply(|z| {
-                    z[0] = black_box(REAL_DISTANCE[t]) + black_box(MEASUREMENT_ERROR[t])
+                    z[0] = black_box(REAL_DISTANCE[t]) + black_box(OBSERVATION_ERROR[t])
                 });
                 filter.correct(black_box(&mut measurement));
             }
@@ -102,7 +102,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
         );
 
-        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             MeasurementObservationMatrixMutBuffer::from(gravity_H.as_mut()),
             MeasurementVectorBuffer::from(gravity_z.as_mut()),
             MeasurementProcessNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
@@ -138,7 +138,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
         );
 
-        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+        let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             MeasurementObservationMatrixMutBuffer::from(gravity_H.as_mut()),
             MeasurementVectorBuffer::from(gravity_z.as_mut()),
             MeasurementProcessNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
@@ -161,7 +161,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
 
         measurement.measurement_vector_apply(|z| {
-            z[0] = black_box(REAL_DISTANCE[0]) + black_box(MEASUREMENT_ERROR[0])
+            z[0] = black_box(REAL_DISTANCE[0]) + black_box(OBSERVATION_ERROR[0])
         });
 
         bencher.iter(|| {
@@ -235,7 +235,7 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
@@ -250,7 +250,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, f32>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
     measurement.apply(|r| {
         r.set_symmetric(0, 0, 0.5 as _); // var(s)

@@ -25,13 +25,13 @@ const REAL_DISTANCE: [f64; 15] = [
 /// ```matlab
 /// noise = 0.5^2*randn(15,1);
 /// ```
-const MEASUREMENT_ERROR: [f64; 15] = [
+const OBSERVATION_ERROR: [f64; 15] = [
     0.13442, 0.45847, -0.56471, 0.21554, 0.079691, -0.32692, -0.1084, 0.085656, 0.8946, 0.69236,
     -0.33747, 0.75873, 0.18135, -0.015764, 0.17869,
 ];
 
 const NUM_STATES: usize = 3;
-const NUM_MEASUREMENTS: usize = 1;
+const NUM_OBSERVATIONS: usize = 1;
 
 #[allow(non_snake_case)]
 #[test]
@@ -42,21 +42,21 @@ fn test_gravity_estimation_tuned() {
     impl_buffer_P!(mut gravity_P, NUM_STATES, f64, 0.0);
 
     // Measurement buffers.
-    impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f64, 0.0);
-    impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
-    impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f64, 0.0);
-    impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f64, 0.0);
-    impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f64, 0.0);
-    impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f64, 0.0);
+    impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f64, 0.0);
+    impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f64, 0.0);
+    impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f64, 0.0);
+    impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f64, 0.0);
+    impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f64, 0.0);
+    impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f64, 0.0);
 
     // Filter temporaries.
     impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f64, 0.0);
     impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f64, 0.0);
 
     // Measurement temporaries.
-    impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f64, 0.0);
-    impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f64, 0.0);
-    impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f64, 0.0);
+    impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f64, 0.0);
+    impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f64, 0.0);
+    impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f64, 0.0);
     impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f64, 0.0);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, f64>(
@@ -67,7 +67,7 @@ fn test_gravity_estimation_tuned() {
         gravity_temp_P,
     );
 
-    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f64>(
+    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f64>(
         gravity_H,
         gravity_z,
         gravity_R,
@@ -97,7 +97,7 @@ fn test_gravity_estimation_tuned() {
         filter.predict_tuned(LAMBDA);
 
         // Measure ...
-        let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+        let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
         measurement.measurement_vector_apply(|z| z[0] = m);
 
         // Update.
@@ -175,7 +175,7 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f64>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f64>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
@@ -190,7 +190,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, f64>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f64>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)

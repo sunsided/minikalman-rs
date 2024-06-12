@@ -16,14 +16,14 @@ use minikalman::prelude::*;
 
 const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
 const NUM_CONTROLS: usize = 1; // constant velocity
-const NUM_MEASUREMENTS: usize = 1; // position
+const NUM_OBSERVATIONS: usize = 1; // position
 
 #[allow(non_snake_case)]
 fn main() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
     let mut control = builder.controls().build::<NUM_CONTROLS>();
-    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+    let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
@@ -194,7 +194,7 @@ fn initialize_control_covariance_matrix(
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, f32>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
@@ -209,7 +209,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, f32>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)

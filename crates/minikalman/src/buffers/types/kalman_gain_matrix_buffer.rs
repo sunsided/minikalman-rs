@@ -19,41 +19,41 @@ use crate::matrix::{Matrix, MatrixMut};
 /// let mut data = [0.0; 4];
 /// let buffer = KalmanGainMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
 /// ```
-pub struct KalmanGainMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(
+pub struct KalmanGainMatrixBuffer<const STATES: usize, const OBSERVATIONS: usize, T, M>(
     M,
     PhantomData<T>,
 )
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>;
+    M: MatrixMut<STATES, OBSERVATIONS, T>;
 
 // -----------------------------------------------------------
 
-impl<'a, const STATES: usize, const MEASUREMENTS: usize, T> From<&'a mut [T]>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, MatrixDataMut<'a, STATES, MEASUREMENTS, T>>
+impl<'a, const STATES: usize, const OBSERVATIONS: usize, T> From<&'a mut [T]>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, MatrixDataMut<'a, STATES, OBSERVATIONS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(STATES * MEASUREMENTS <= value.len());
+            debug_assert!(STATES * OBSERVATIONS <= value.len());
         }
-        Self::new(MatrixData::new_mut::<STATES, MEASUREMENTS, T>(value))
+        Self::new(MatrixData::new_mut::<STATES, OBSERVATIONS, T>(value))
     }
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const STATES: usize, const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for KalmanGainMatrixBuffer<
         STATES,
-        MEASUREMENTS,
+        OBSERVATIONS,
         T,
-        MatrixDataArray<STATES, MEASUREMENTS, TOTAL, T>,
+        MatrixDataArray<STATES, OBSERVATIONS, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(STATES * MEASUREMENTS <= TOTAL);
+            debug_assert!(STATES * OBSERVATIONS <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<STATES, MEASUREMENTS, TOTAL, T>(
+        Self::new(MatrixData::new_array::<STATES, OBSERVATIONS, TOTAL, T>(
             value,
         ))
     }
@@ -61,21 +61,21 @@ impl<const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M>
-    KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M>
+    KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        STATES * MEASUREMENTS
+        STATES * OBSERVATIONS
     }
 
     pub const fn is_empty(&self) -> bool {
-        STATES * MEASUREMENTS == 0
+        STATES * OBSERVATIONS == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -84,44 +84,44 @@ where
     }
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> AsRef<[T]>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> AsRef<[T]>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> AsMut<[T]>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> AsMut<[T]>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> Matrix<STATES, MEASUREMENTS, T>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> Matrix<STATES, OBSERVATIONS, T>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> MatrixMut<STATES, MEASUREMENTS, T>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> MatrixMut<STATES, OBSERVATIONS, T>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> KalmanGainMatrix<STATES, MEASUREMENTS, T>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> KalmanGainMatrix<STATES, OBSERVATIONS, T>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
     type Target = M;
     type TargetMut = M;
@@ -135,10 +135,10 @@ where
     }
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> Index<usize>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> Index<usize>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
     type Output = T;
 
@@ -147,10 +147,10 @@ where
     }
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> IndexMut<usize>
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> IndexMut<usize>
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T>,
+    M: MatrixMut<STATES, OBSERVATIONS, T>,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
@@ -159,10 +159,10 @@ where
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M> IntoInnerData
-    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, M> IntoInnerData
+    for KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, M>
 where
-    M: MatrixMut<STATES, MEASUREMENTS, T> + IntoInnerData,
+    M: MatrixMut<STATES, OBSERVATIONS, T> + IntoInnerData,
 {
     type Target = M::Target;
 

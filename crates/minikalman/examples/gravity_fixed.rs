@@ -14,7 +14,7 @@ use minikalman::builder::KalmanFilterBuilder;
 use minikalman::prelude::*;
 
 const NUM_STATES: usize = 3;
-const NUM_MEASUREMENTS: usize = 1;
+const NUM_OBSERVATIONS: usize = 1;
 
 lazy_static! {
     /// Measurements.
@@ -48,7 +48,7 @@ lazy_static! {
     /// ```matlab
     /// noise = 0.5^2*randn(15,1);
     /// ```
-    static ref MEASUREMENT_ERROR: [I16F16; 15] = [
+    static ref OBSERVATION_ERROR: [I16F16; 15] = [
         I16F16::from_num(0.13442),
         I16F16::from_num(0.45847),
         I16F16::from_num(-0.56471),
@@ -71,7 +71,7 @@ lazy_static! {
 fn main() {
     let builder = KalmanFilterBuilder::<NUM_STATES, I16F16>::default();
     let mut filter = builder.build();
-    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+    let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
@@ -89,7 +89,7 @@ fn main() {
         print_state_prediction(t, filter.state_vector_ref());
 
         // Measure ...
-        let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+        let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
         measurement.measurement_vector_apply(|z| z[0] = m);
         print_measurement(t);
 
@@ -171,7 +171,7 @@ fn initialize_state_covariance_matrix(
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, I16F16>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, I16F16>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, I16F16::ONE); // z = 1*s
@@ -186,7 +186,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, I16F16>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)
@@ -235,6 +235,6 @@ fn print_measurement(t: usize) {
         "At t = {}, measurement: s = {}, noise ε = {}",
         format!("{}", t).bright_white(),
         format!("{} m", REAL_DISTANCE[t]).green(),
-        format!("{} m", MEASUREMENT_ERROR[t]).blue()
+        format!("{} m", OBSERVATION_ERROR[t]).blue()
     );
 }

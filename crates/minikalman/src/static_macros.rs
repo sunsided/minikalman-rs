@@ -393,8 +393,8 @@ macro_rules! impl_buffer_Q {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_z!(static mut Z, NUM_MEASUREMENTS, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_z!(static mut Z, NUM_OBSERVATIONS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Z.len(), 5);
@@ -453,8 +453,8 @@ macro_rules! impl_buffer_z {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_H!(static mut H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_H!(static mut H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(H.len(), 15);
@@ -524,8 +524,8 @@ macro_rules! impl_buffer_H {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_R!(static mut R, NUM_MEASUREMENTS, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_R!(static mut R, NUM_OBSERVATIONS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(R.len(), 25);
@@ -593,8 +593,8 @@ macro_rules! impl_buffer_R {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_y!(static mut Y, NUM_MEASUREMENTS, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_y!(static mut Y, NUM_OBSERVATIONS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Y.len(), 5);
@@ -651,8 +651,8 @@ macro_rules! impl_buffer_y {
 ///
 /// ```
 /// # use minikalman::prelude::*;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_S!(static mut S, NUM_MEASUREMENTS, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_S!(static mut S, NUM_OBSERVATIONS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(S.len(), 25);
@@ -722,8 +722,8 @@ macro_rules! impl_buffer_S {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_K!(static mut K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_K!(static mut K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(K.len(), 15);
@@ -1044,8 +1044,8 @@ macro_rules! impl_buffer_temp_S_inv {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_temp_HP!(static mut THP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_temp_HP!(static mut THP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(THP.len(), 15);
@@ -1117,8 +1117,8 @@ macro_rules! impl_buffer_temp_HP {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
-/// const NUM_MEASUREMENTS: usize = 5;
-/// impl_buffer_temp_PHt!(static mut TPHT, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+/// const NUM_OBSERVATIONS: usize = 5;
+/// impl_buffer_temp_PHt!(static mut TPHT, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(TPHT.len(), 15);

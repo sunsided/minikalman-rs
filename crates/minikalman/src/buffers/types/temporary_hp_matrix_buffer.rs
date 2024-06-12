@@ -22,41 +22,41 @@ use crate::matrix::{Matrix, MatrixMut};
 /// let mut data = [0.0; 4];
 /// let buffer = TemporaryHPMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
 /// ```
-pub struct TemporaryHPMatrixBuffer<const MEASUREMENTS: usize, const STATES: usize, T, M>(
+pub struct TemporaryHPMatrixBuffer<const OBSERVATIONS: usize, const STATES: usize, T, M>(
     M,
     PhantomData<T>,
 )
 where
-    M: Matrix<MEASUREMENTS, STATES, T>;
+    M: Matrix<OBSERVATIONS, STATES, T>;
 
 // -----------------------------------------------------------
 
-impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, MatrixDataMut<'a, MEASUREMENTS, STATES, T>>
+impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a mut [T]>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, MatrixDataMut<'a, OBSERVATIONS, STATES, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(MEASUREMENTS * STATES <= value.len());
+            debug_assert!(OBSERVATIONS * STATES <= value.len());
         }
-        Self::new(MatrixData::new_mut::<MEASUREMENTS, STATES, T>(value))
+        Self::new(MatrixData::new_mut::<OBSERVATIONS, STATES, T>(value))
     }
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const OBSERVATIONS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for TemporaryHPMatrixBuffer<
-        MEASUREMENTS,
+        OBSERVATIONS,
         STATES,
         T,
-        MatrixDataArray<MEASUREMENTS, STATES, TOTAL, T>,
+        MatrixDataArray<OBSERVATIONS, STATES, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(MEASUREMENTS * STATES <= TOTAL);
+            debug_assert!(OBSERVATIONS * STATES <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<MEASUREMENTS, STATES, TOTAL, T>(
+        Self::new(MatrixData::new_array::<OBSERVATIONS, STATES, TOTAL, T>(
             value,
         ))
     }
@@ -64,21 +64,21 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
-    TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
+    TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        MEASUREMENTS * STATES
+        OBSERVATIONS * STATES
     }
 
     pub const fn is_empty(&self) -> bool {
-        MEASUREMENTS * STATES == 0
+        OBSERVATIONS * STATES == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -87,45 +87,45 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M> AsRef<[T]>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M> AsRef<[T]>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: Matrix<MEASUREMENTS, STATES, T>,
+    M: Matrix<OBSERVATIONS, STATES, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M> AsMut<[T]>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M> AsMut<[T]>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M> Matrix<MEASUREMENTS, STATES, T>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Matrix<OBSERVATIONS, STATES, T>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M> MatrixMut<MEASUREMENTS, STATES, T>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M> MatrixMut<OBSERVATIONS, STATES, T>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M>
-    TemporaryHPMatrix<MEASUREMENTS, STATES, T>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
+    TemporaryHPMatrix<OBSERVATIONS, STATES, T>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
     type Target = M;
     type TargetMut = M;
@@ -139,10 +139,10 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M> Index<usize>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Index<usize>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
     type Output = T;
 
@@ -151,10 +151,10 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M> IndexMut<usize>
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M> IndexMut<usize>
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T>,
+    M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
@@ -163,10 +163,10 @@ where
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, const STATES: usize, T, M> IntoInnerData
-    for TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, M>
+impl<const OBSERVATIONS: usize, const STATES: usize, T, M> IntoInnerData
+    for TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, STATES, T> + IntoInnerData,
+    M: MatrixMut<OBSERVATIONS, STATES, T> + IntoInnerData,
 {
     type Target = M::Target;
 

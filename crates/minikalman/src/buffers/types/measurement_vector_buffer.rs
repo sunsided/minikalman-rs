@@ -21,21 +21,21 @@ use crate::matrix::{Matrix, MatrixMut};
 /// let mut data = [0.0; 4];
 /// let buffer = MeasurementVectorBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct MeasurementVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
+pub struct MeasurementVectorBuffer<const OBSERVATIONS: usize, T, M>(M, PhantomData<T>)
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>;
+    M: MatrixMut<OBSERVATIONS, 1, T>;
 
 // -----------------------------------------------------------
 
-impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataMut<'a, MEASUREMENTS, 1, T>>
+impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, MatrixDataMut<'a, OBSERVATIONS, 1, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(MEASUREMENTS <= value.len());
+            debug_assert!(OBSERVATIONS <= value.len());
         }
-        Self::new(MatrixData::new_mut::<MEASUREMENTS, 1, T>(value))
+        Self::new(MatrixData::new_mut::<OBSERVATIONS, 1, T>(value))
     }
 }
 
@@ -53,11 +53,11 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
 /// # use minikalman::prelude::MeasurementVectorBuffer;
 /// let _value: MeasurementVectorBuffer<5, f32, _> = [0.0; 1].into();
 /// ```
-impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
+impl<const OBSERVATIONS: usize, T> From<[T; OBSERVATIONS]>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>
 {
-    fn from(value: [T; MEASUREMENTS]) -> Self {
-        Self::new(MatrixData::new_array::<MEASUREMENTS, 1, MEASUREMENTS, T>(
+    fn from(value: [T; OBSERVATIONS]) -> Self {
+        Self::new(MatrixData::new_array::<OBSERVATIONS, 1, OBSERVATIONS, T>(
             value,
         ))
     }
@@ -65,20 +65,20 @@ impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, T, M> MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        MEASUREMENTS
+        OBSERVATIONS
     }
 
     pub const fn is_empty(&self) -> bool {
-        MEASUREMENTS == 0
+        OBSERVATIONS == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -87,18 +87,18 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> AsRef<[T]> for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> AsRef<[T]> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> Index<usize> for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> Index<usize> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
     type Output = T;
 
@@ -107,43 +107,43 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> IndexMut<usize>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> AsMut<[T]> for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> AsMut<[T]> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> Matrix<MEASUREMENTS, 1, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> Matrix<OBSERVATIONS, 1, T>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
 }
 
-impl<const MEASUREMENTS: usize, T, M> MatrixMut<MEASUREMENTS, 1, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> MatrixMut<OBSERVATIONS, 1, T>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
 }
 
-impl<const MEASUREMENTS: usize, T, M> MeasurementVector<MEASUREMENTS, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> MeasurementVector<OBSERVATIONS, T>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
     type Target = M;
 
@@ -152,10 +152,10 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> MeasurementVectorMut<MEASUREMENTS, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> MeasurementVectorMut<OBSERVATIONS, T>
+    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
+    M: MatrixMut<OBSERVATIONS, 1, T>,
 {
     type TargetMut = M;
 
@@ -166,9 +166,9 @@ where
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, T, M> IntoInnerData for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> IntoInnerData for MeasurementVectorBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, 1, T> + IntoInnerData,
+    M: MatrixMut<OBSERVATIONS, 1, T> + IntoInnerData,
 {
     type Target = M::Target;
 

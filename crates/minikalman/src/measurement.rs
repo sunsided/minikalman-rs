@@ -45,22 +45,22 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # const NUM_OBSERVATIONS: usize = 1;
     /// // Measurement buffers.
-    /// impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
-    /// impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
-    /// impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
-    /// impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
-    /// impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     ///
     /// // Measurement temporaries.
-    /// impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
-    /// impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     ///
-    /// let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+    /// let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     ///     gravity_H,
     ///     gravity_z,
     ///     gravity_R,
@@ -76,7 +76,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     ///
     /// See also [`KalmanBuilder::new`](KalmanBuilder::new) for setting up the Kalman filter itself.
     #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
-    pub fn new<const STATES: usize, const MEASUREMENTS: usize, T>(
+    pub fn new<const STATES: usize, const OBSERVATIONS: usize, T>(
         H: H,
         z: Z,
         R: R,
@@ -87,21 +87,21 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
         temp_HP: TempHP,
         temp_PHt: TempPHt,
         temp_KHP: TempKHP,
-    ) -> Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    ) -> Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     where
         T: MatrixDataType,
-        Z: MeasurementVector<MEASUREMENTS, T>,
-        H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
-        R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
-        Y: InnovationVector<MEASUREMENTS, T>,
-        S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
-        K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
-        TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
-        TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
-        TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
+        Z: MeasurementVector<OBSERVATIONS, T>,
+        H: MeasurementObservationMatrix<OBSERVATIONS, STATES, T>,
+        R: MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+        Y: InnovationVector<OBSERVATIONS, T>,
+        S: ResidualCovarianceMatrix<OBSERVATIONS, T>,
+        K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+        TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+        TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+        TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
         TempKHP: TemporaryKHPMatrix<STATES, T>,
     {
-        Measurement::<STATES, MEASUREMENTS, T, _, _, _, _, _, _, _, _, _, _> {
+        Measurement::<STATES, OBSERVATIONS, T, _, _, _, _, _, _, _, _, _, _> {
             z,
             H,
             R,
@@ -121,7 +121,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 #[allow(non_snake_case, unused)]
 pub struct Measurement<
     const STATES: usize,
-    const MEASUREMENTS: usize,
+    const OBSERVATIONS: usize,
     T,
     H,
     Z,
@@ -189,7 +189,7 @@ pub struct Measurement<
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -201,12 +201,12 @@ impl<
         TempHP,
         TempKHP,
         TempPHt,
-    > Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 {
     /// Returns then number of measurements.
     #[inline(always)]
     pub const fn measurements(&self) -> usize {
-        MEASUREMENTS
+        OBSERVATIONS
     }
 
     /// Returns then number of states.
@@ -236,7 +236,7 @@ impl<
     /// # use minikalman::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_MEASUREMENTS: usize = 1;
+    /// # const NUM_OBSERVATIONS: usize = 1;
     /// # // System buffers.
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
@@ -261,20 +261,20 @@ impl<
     /// #  );
     /// #
     /// # // Measurement buffers.
-    /// # impl_buffer_z!(mut gravity_z, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_H!(mut gravity_H, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_R!(mut gravity_R, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_y!(mut gravity_y, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_S!(mut gravity_S, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// #
     /// # // Measurement temporaries.
-    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_MEASUREMENTS, f32, 0.0);
-    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_MEASUREMENTS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_MEASUREMENTS, f32, 0.0);
+    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     /// #
-    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, f32>(
+    /// # let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     /// #     gravity_H,
     /// #     gravity_z,
     /// #     gravity_R,
@@ -288,14 +288,14 @@ impl<
     /// # );
     /// #
     /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
-    /// # const MEASUREMENT_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
     /// #
     /// for t in 0..REAL_DISTANCE.len() {
     ///     // Prediction.
     ///     filter.predict();
     ///
     ///     // Measure ...
-    ///     let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
     ///     measurement.measurement_vector_apply(|z| z[0] = m);
     ///
     ///     // Update.
@@ -341,7 +341,7 @@ impl<
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -353,17 +353,17 @@ impl<
         TempHP,
         TempKHP,
         TempPHt,
-    > Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
-    K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
-    S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
-    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
-    Y: InnovationVector<MEASUREMENTS, T>,
-    Z: MeasurementVector<MEASUREMENTS, T>,
-    TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
-    TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
-    TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
+    H: MeasurementObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: ResidualCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
     TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
@@ -433,7 +433,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -445,9 +445,9 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrixMut<OBSERVATIONS, STATES, T>,
 {
     /// Gets a mutable reference to the measurement transformation matrix H.
     #[inline(always)]
@@ -468,7 +468,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -481,13 +481,13 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterNumStates<STATES>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 {
 }
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -499,14 +499,14 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterNumMeasurements<MEASUREMENTS>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > KalmanFilterNumMeasurements<OBSERVATIONS>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 {
 }
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -518,10 +518,10 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterMeasurementVector<MEASUREMENTS, T>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > KalmanFilterMeasurementVector<OBSERVATIONS, T>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    Z: MeasurementVector<MEASUREMENTS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
 {
     type MeasurementVector = Z;
 
@@ -532,7 +532,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -544,10 +544,10 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterMeasurementVectorMut<MEASUREMENTS, T>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > KalmanFilterMeasurementVectorMut<OBSERVATIONS, T>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    Z: MeasurementVectorMut<MEASUREMENTS, T>,
+    Z: MeasurementVectorMut<OBSERVATIONS, T>,
 {
     type MeasurementVectorMut = Z;
 
@@ -558,7 +558,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -570,10 +570,10 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterMeasurementTransformation<STATES, MEASUREMENTS, T>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > KalmanFilterMeasurementTransformation<STATES, OBSERVATIONS, T>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrix<OBSERVATIONS, STATES, T>,
 {
     type MeasurementTransformationMatrix = H;
 
@@ -584,7 +584,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -596,10 +596,10 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterMeasurementTransformationMut<STATES, MEASUREMENTS, T>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > KalmanFilterMeasurementTransformationMut<STATES, OBSERVATIONS, T>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T>,
+    H: MeasurementObservationMatrixMut<OBSERVATIONS, STATES, T>,
 {
     type MeasurementTransformationMatrixMut = H;
 
@@ -610,7 +610,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -622,10 +622,10 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterMeasurementProcessNoise<MEASUREMENTS, T>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > KalmanFilterMeasurementProcessNoise<OBSERVATIONS, T>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
+    R: MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
 {
     type MeasurementProcessNoiseMatrix = R;
 
@@ -636,7 +636,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -648,10 +648,10 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterMeasurementProcessNoiseMut<MEASUREMENTS, T>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    > KalmanFilterMeasurementProcessNoiseMut<OBSERVATIONS, T>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
+    R: MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
 {
     type MeasurementProcessNoiseMatrixMut = R;
 
@@ -662,7 +662,7 @@ where
 
 impl<
         const STATES: usize,
-        const MEASUREMENTS: usize,
+        const OBSERVATIONS: usize,
         T,
         Z,
         H,
@@ -675,17 +675,17 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterMeasurementCorrectFilter<STATES, T>
-    for Measurement<STATES, MEASUREMENTS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for Measurement<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
-    H: MeasurementObservationMatrix<MEASUREMENTS, STATES, T>,
-    K: KalmanGainMatrix<STATES, MEASUREMENTS, T>,
-    S: ResidualCovarianceMatrix<MEASUREMENTS, T>,
-    R: MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
-    Y: InnovationVector<MEASUREMENTS, T>,
-    Z: MeasurementVector<MEASUREMENTS, T>,
-    TempSInv: TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
-    TempHP: TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
-    TempPHt: TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
+    H: MeasurementObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: ResidualCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
     TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
@@ -718,12 +718,12 @@ mod tests {
         filter.correct(&mut measurement);
     }
 
-    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(measurement: M) -> M
+    fn trait_impl<const STATES: usize, const OBSERVATIONS: usize, T, M>(measurement: M) -> M
     where
-        M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>,
+        M: KalmanFilterMeasurement<STATES, OBSERVATIONS, T>,
     {
         assert_eq!(measurement.states(), STATES);
-        assert_eq!(measurement.measurements(), MEASUREMENTS);
+        assert_eq!(measurement.measurements(), OBSERVATIONS);
         measurement
     }
 
@@ -765,8 +765,8 @@ mod tests {
         }
     }
 
-    impl<const MEASUREMENTS: usize, const STATES: usize, T>
-        MeasurementObservationMatrix<MEASUREMENTS, STATES, T> for Dummy<T>
+    impl<const OBSERVATIONS: usize, const STATES: usize, T>
+        MeasurementObservationMatrix<OBSERVATIONS, STATES, T> for Dummy<T>
     {
         type Target = DummyMatrix<T>;
 
@@ -775,8 +775,8 @@ mod tests {
         }
     }
 
-    impl<const MEASUREMENTS: usize, const STATES: usize, T>
-        MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T> for Dummy<T>
+    impl<const OBSERVATIONS: usize, const STATES: usize, T>
+        MeasurementObservationMatrixMut<OBSERVATIONS, STATES, T> for Dummy<T>
     {
         type TargetMut = DummyMatrix<T>;
 
@@ -785,7 +785,7 @@ mod tests {
         }
     }
 
-    impl<const MEASUREMENTS: usize, T> MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>
+    impl<const OBSERVATIONS: usize, T> MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>
         for Dummy<T>
     {
         type Target = DummyMatrix<T>;
@@ -800,7 +800,7 @@ mod tests {
         }
     }
 
-    impl<const MEASUREMENTS: usize, T> InnovationVector<MEASUREMENTS, T> for Dummy<T> {
+    impl<const OBSERVATIONS: usize, T> InnovationVector<OBSERVATIONS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
 
@@ -813,7 +813,7 @@ mod tests {
         }
     }
 
-    impl<const MEASUREMENTS: usize, T> ResidualCovarianceMatrix<MEASUREMENTS, T> for Dummy<T> {
+    impl<const OBSERVATIONS: usize, T> ResidualCovarianceMatrix<OBSERVATIONS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
 
@@ -826,8 +826,8 @@ mod tests {
         }
     }
 
-    impl<const STATES: usize, const MEASUREMENTS: usize, T>
-        KalmanGainMatrix<STATES, MEASUREMENTS, T> for Dummy<T>
+    impl<const STATES: usize, const OBSERVATIONS: usize, T>
+        KalmanGainMatrix<STATES, OBSERVATIONS, T> for Dummy<T>
     {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
@@ -841,7 +841,7 @@ mod tests {
         }
     }
 
-    impl<const MEASUREMENTS: usize, T> TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>
+    impl<const OBSERVATIONS: usize, T> TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>
         for Dummy<T>
     {
         type Target = DummyMatrix<T>;
@@ -856,8 +856,8 @@ mod tests {
         }
     }
 
-    impl<const MEASUREMENTS: usize, const STATES: usize, T>
-        TemporaryHPMatrix<MEASUREMENTS, STATES, T> for Dummy<T>
+    impl<const OBSERVATIONS: usize, const STATES: usize, T>
+        TemporaryHPMatrix<OBSERVATIONS, STATES, T> for Dummy<T>
     {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;
@@ -884,8 +884,8 @@ mod tests {
         }
     }
 
-    impl<const STATES: usize, const MEASUREMENTS: usize, T>
-        TemporaryPHTMatrix<STATES, MEASUREMENTS, T> for Dummy<T>
+    impl<const STATES: usize, const OBSERVATIONS: usize, T>
+        TemporaryPHTMatrix<STATES, OBSERVATIONS, T> for Dummy<T>
     {
         type Target = DummyMatrix<T>;
         type TargetMut = DummyMatrix<T>;

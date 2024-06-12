@@ -4,7 +4,7 @@ use minikalman::prelude::*;
 
 /// Measurements.
 const NUM_STATES: usize = 3;
-const NUM_MEASUREMENTS: usize = 1;
+const NUM_OBSERVATIONS: usize = 1;
 
 lazy_static! {
 
@@ -39,7 +39,7 @@ lazy_static! {
     /// ```matlab
     /// noise = 0.5^2*randn(15,1);
     /// ```
-    static ref MEASUREMENT_ERROR: [I16F16; 15] = [
+    static ref OBSERVATION_ERROR: [I16F16; 15] = [
         I16F16::from_num(0.13442),
         I16F16::from_num(0.45847),
         I16F16::from_num(-0.56471),
@@ -68,21 +68,21 @@ pub fn predict_gravity() -> I16F16 {
     impl_buffer_P!(static mut gravity_P, NUM_STATES, I16F16, I16F16::ZERO);
 
     // Measurement buffers.
-    impl_buffer_Q!(static mut gravity_z, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    impl_buffer_Q!(static mut gravity_z, NUM_OBSERVATIONS, I16F16, I16F16::ZERO);
     impl_buffer_H!(
         static mut gravity_H,
-        NUM_MEASUREMENTS,
+        NUM_OBSERVATIONS,
         NUM_STATES,
         I16F16,
         I16F16::ZERO
     );
-    impl_buffer_R!(static mut gravity_R, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    impl_buffer_y!(static mut gravity_y, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
-    impl_buffer_S!(static mut gravity_S, NUM_MEASUREMENTS, I16F16, I16F16::ZERO);
+    impl_buffer_R!(static mut gravity_R, NUM_OBSERVATIONS, I16F16, I16F16::ZERO);
+    impl_buffer_y!(static mut gravity_y, NUM_OBSERVATIONS, I16F16, I16F16::ZERO);
+    impl_buffer_S!(static mut gravity_S, NUM_OBSERVATIONS, I16F16, I16F16::ZERO);
     impl_buffer_K!(
         static mut gravity_K,
         NUM_STATES,
-        NUM_MEASUREMENTS,
+        NUM_OBSERVATIONS,
         I16F16,
         I16F16::ZERO
     );
@@ -94,7 +94,7 @@ pub fn predict_gravity() -> I16F16 {
     // Measurement temporaries.
     impl_buffer_temp_S_inv!(
         static mut gravity_temp_S_inv,
-        NUM_MEASUREMENTS,
+        NUM_OBSERVATIONS,
         I16F16,
         I16F16::ZERO
     );
@@ -102,7 +102,7 @@ pub fn predict_gravity() -> I16F16 {
     // Measurement temporaries.
     impl_buffer_temp_HP!(
         static mut gravity_temp_HP,
-        NUM_MEASUREMENTS,
+        NUM_OBSERVATIONS,
         NUM_STATES,
         I16F16,
         I16F16::ZERO
@@ -110,7 +110,7 @@ pub fn predict_gravity() -> I16F16 {
     impl_buffer_temp_PHt!(
         static mut gravity_temp_PHt,
         NUM_STATES,
-        NUM_MEASUREMENTS,
+        NUM_OBSERVATIONS,
         I16F16,
         I16F16::ZERO
     );
@@ -124,7 +124,7 @@ pub fn predict_gravity() -> I16F16 {
         TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
     );
 
-    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_MEASUREMENTS, I16F16>(
+    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
         MeasurementObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
         MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
         MeasurementProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
@@ -154,7 +154,7 @@ pub fn predict_gravity() -> I16F16 {
         filter.predict();
 
         // Measure ...
-        let m = REAL_DISTANCE[t] + MEASUREMENT_ERROR[t];
+        let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
         measurement.measurement_vector_apply(|z| z[0] = m);
 
         // Update.
@@ -232,7 +232,7 @@ fn initialize_state_covariance_matrix(
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_MEASUREMENTS, NUM_STATES, I16F16>,
+    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, I16F16>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, I16F16::ONE); // z = 1*s
@@ -247,7 +247,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_MEASUREMENTS, I16F16>,
+    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)

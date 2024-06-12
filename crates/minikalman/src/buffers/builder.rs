@@ -39,37 +39,37 @@ impl BufferBuilder {
         ControlCovarianceMatrixBufferBuilder
     }
 
-    pub fn measurement_vector_z<const MEASUREMENTS: usize>(
-    ) -> MeasurementVectorBufferBuilder<MEASUREMENTS> {
+    pub fn measurement_vector_z<const OBSERVATIONS: usize>(
+    ) -> MeasurementVectorBufferBuilder<OBSERVATIONS> {
         MeasurementVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn measurement_transformation_H<const MEASUREMENTS: usize, const STATES: usize>(
-    ) -> MeasurementTransformationMatrixBufferBuilder<MEASUREMENTS, STATES> {
+    pub fn measurement_transformation_H<const OBSERVATIONS: usize, const STATES: usize>(
+    ) -> MeasurementTransformationMatrixBufferBuilder<OBSERVATIONS, STATES> {
         MeasurementTransformationMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn measurement_covariance_R<const MEASUREMENTS: usize>(
-    ) -> MeasurementProcessNoiseCovarianceMatrixBufferBuilder<MEASUREMENTS> {
+    pub fn measurement_covariance_R<const OBSERVATIONS: usize>(
+    ) -> MeasurementProcessNoiseCovarianceMatrixBufferBuilder<OBSERVATIONS> {
         MeasurementProcessNoiseCovarianceMatrixBufferBuilder
     }
 
-    pub fn innovation_vector_y<const MEASUREMENTS: usize>(
-    ) -> InnovationVectorBufferBuilder<MEASUREMENTS> {
+    pub fn innovation_vector_y<const OBSERVATIONS: usize>(
+    ) -> InnovationVectorBufferBuilder<OBSERVATIONS> {
         InnovationVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn innovation_covariance_S<const MEASUREMENTS: usize>(
-    ) -> InnovationResidualCovarianceMatrixBufferBuilder<MEASUREMENTS> {
+    pub fn innovation_covariance_S<const OBSERVATIONS: usize>(
+    ) -> InnovationResidualCovarianceMatrixBufferBuilder<OBSERVATIONS> {
         InnovationResidualCovarianceMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn kalman_gain_K<const STATES: usize, const MEASUREMENTS: usize>(
-    ) -> KalmanGainMatrixBufferBuilder<STATES, MEASUREMENTS> {
+    pub fn kalman_gain_K<const STATES: usize, const OBSERVATIONS: usize>(
+    ) -> KalmanGainMatrixBufferBuilder<STATES, OBSERVATIONS> {
         KalmanGainMatrixBufferBuilder
     }
 
@@ -91,20 +91,20 @@ impl BufferBuilder {
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_S_inv<const MEASUREMENTS: usize>() -> TemporarySInvMatrixBufferBuilder<MEASUREMENTS>
+    pub fn temp_S_inv<const OBSERVATIONS: usize>() -> TemporarySInvMatrixBufferBuilder<OBSERVATIONS>
     {
         TemporarySInvMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_HP<const MEASUREMENTS: usize, const STATES: usize>(
-    ) -> TemporaryHPMatrixBufferBuilder<MEASUREMENTS, STATES> {
+    pub fn temp_HP<const OBSERVATIONS: usize, const STATES: usize>(
+    ) -> TemporaryHPMatrixBufferBuilder<OBSERVATIONS, STATES> {
         TemporaryHPMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_PHt<const STATES: usize, const MEASUREMENTS: usize>(
-    ) -> TemporaryPHtMatrixBufferBuilder<STATES, MEASUREMENTS> {
+    pub fn temp_PHt<const STATES: usize, const OBSERVATIONS: usize>(
+    ) -> TemporaryPHtMatrixBufferBuilder<STATES, OBSERVATIONS> {
         TemporaryPHtMatrixBufferBuilder
     }
 
@@ -133,25 +133,25 @@ pub struct ControlTransitionMatrixBufferBuilder<const STATES: usize, const CONTR
 pub struct ControlCovarianceMatrixBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for measurement vectors (`num_measurements` × `1`).
-pub struct MeasurementVectorBufferBuilder<const MEASUREMENTS: usize>;
+pub struct MeasurementVectorBufferBuilder<const OBSERVATIONS: usize>;
 
 /// A builder for control transition matrices (`num_measurements` × `num_controls`).
 pub struct MeasurementTransformationMatrixBufferBuilder<
-    const MEASUREMENT: usize,
+    const OBSERVATION: usize,
     const STATES: usize,
 >;
 
 /// A builder for innovation vectors (`num_measurements` × `1`).
-pub struct InnovationVectorBufferBuilder<const MEASUREMENTS: usize>;
+pub struct InnovationVectorBufferBuilder<const OBSERVATIONS: usize>;
 
 /// A builder for measurement noise covariance matrices (`num_measurements` × `num_measurements`).
-pub struct MeasurementProcessNoiseCovarianceMatrixBufferBuilder<const MEASUREMENTS: usize>;
+pub struct MeasurementProcessNoiseCovarianceMatrixBufferBuilder<const OBSERVATIONS: usize>;
 
 /// A builder for measurement innovation (residual) covariance matrices (`num_measurements` × `num_measurements`).
-pub struct InnovationResidualCovarianceMatrixBufferBuilder<const MEASUREMENTS: usize>;
+pub struct InnovationResidualCovarianceMatrixBufferBuilder<const OBSERVATIONS: usize>;
 
 /// A builder for Kalman Gain matrices (`num_states` × `num_measurements`).
-pub struct KalmanGainMatrixBufferBuilder<const STATES: usize, const MEASUREMENTS: usize>;
+pub struct KalmanGainMatrixBufferBuilder<const STATES: usize, const OBSERVATIONS: usize>;
 
 /// A builder for temporary state prediction vectors (`num_states` × `1`).
 pub struct StatePredictionVectorBufferBuilder<const STATES: usize>;
@@ -163,13 +163,13 @@ pub struct TemporarySystemCovarianceMatrixBufferBuilder<const STATES: usize>;
 pub struct TemporaryBQMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
 
 /// A builder for temporary matrices (`num_measurements` × `num_measurements`).
-pub struct TemporarySInvMatrixBufferBuilder<const MEASUREMENTS: usize>;
+pub struct TemporarySInvMatrixBufferBuilder<const OBSERVATIONS: usize>;
 
 /// A builder for temporary matrices (`num_measurements` × `num_controls`).
-pub struct TemporaryHPMatrixBufferBuilder<const MEASUREMENT: usize, const STATES: usize>;
+pub struct TemporaryHPMatrixBufferBuilder<const OBSERVATION: usize, const STATES: usize>;
 
 /// A builder for temporary matrices (`num_states` × `num_measurements`).
-pub struct TemporaryPHtMatrixBufferBuilder<const STATES: usize, const MEASUREMENTS: usize>;
+pub struct TemporaryPHtMatrixBufferBuilder<const STATES: usize, const OBSERVATIONS: usize>;
 
 /// A builder for temporary K×(H×P) sized matrices (`num_states` × `num_states`).
 pub struct TemporaryKHPMatrixBufferBuilder<const STATES: usize>;
@@ -373,10 +373,10 @@ impl<const CONTROLS: usize> ControlCovarianceMatrixBufferBuilder<CONTROLS> {
 
 /// The type of observation vector buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type ObservationVectorBufferOwnedType<const MEASUREMENTS: usize, T> =
-    MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>;
+pub type ObservationVectorBufferOwnedType<const OBSERVATIONS: usize, T> =
+    MeasurementVectorBuffer<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>;
 
-impl<const MEASUREMENTS: usize> MeasurementVectorBufferBuilder<MEASUREMENTS> {
+impl<const OBSERVATIONS: usize> MeasurementVectorBufferBuilder<OBSERVATIONS> {
     /// Builds a new [`MeasurementVectorBuffer`] that owns its data.
     ///
     /// ## Example
@@ -392,28 +392,28 @@ impl<const MEASUREMENTS: usize> MeasurementVectorBufferBuilder<MEASUREMENTS> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> ObservationVectorBufferOwnedType<MEASUREMENTS, T>
+    pub fn new<T>(&self, init: T) -> ObservationVectorBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
-        MeasurementVectorBuffer::<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>::new(
-            MatrixData::new_array::<MEASUREMENTS, 1, MEASUREMENTS, T>([init; MEASUREMENTS]),
+        MeasurementVectorBuffer::<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>::new(
+            MatrixData::new_array::<OBSERVATIONS, 1, OBSERVATIONS, T>([init; OBSERVATIONS]),
         )
     }
 }
 
 /// The type of observation matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type ObservationMatrixBufferOwnedType<const MEASUREMENTS: usize, const STATES: usize, T> =
+pub type ObservationMatrixBufferOwnedType<const OBSERVATIONS: usize, const STATES: usize, T> =
     MeasurementObservationMatrixMutBuffer<
-        MEASUREMENTS,
+        OBSERVATIONS,
         STATES,
         T,
-        MatrixDataBoxed<MEASUREMENTS, STATES, T>,
+        MatrixDataBoxed<OBSERVATIONS, STATES, T>,
     >;
 
-impl<const MEASUREMENTS: usize, const STATES: usize>
-    MeasurementTransformationMatrixBufferBuilder<MEASUREMENTS, STATES>
+impl<const OBSERVATIONS: usize, const STATES: usize>
+    MeasurementTransformationMatrixBufferBuilder<OBSERVATIONS, STATES>
 {
     /// Builds a new [`MeasurementObservationMatrixMutBuffer`] that owns its data.
     ///
@@ -430,31 +430,31 @@ impl<const MEASUREMENTS: usize, const STATES: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> ObservationMatrixBufferOwnedType<MEASUREMENTS, STATES, T>
+    pub fn new<T>(&self, init: T) -> ObservationMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
     where
         T: Copy,
     {
         MeasurementObservationMatrixMutBuffer::<
-            MEASUREMENTS,
+            OBSERVATIONS,
             STATES,
             T,
-            MatrixDataBoxed<MEASUREMENTS, STATES, T>,
-        >::new(MatrixData::new_boxed::<MEASUREMENTS, STATES, T, _>(
-            vec![init; MEASUREMENTS * STATES],
+            MatrixDataBoxed<OBSERVATIONS, STATES, T>,
+        >::new(MatrixData::new_boxed::<OBSERVATIONS, STATES, T, _>(
+            vec![init; OBSERVATIONS * STATES],
         ))
     }
 }
 
 /// The type of observation / process noise covariance matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type ObservationCovarianceBufferOwnedType<const MEASUREMENTS: usize, T> =
+pub type ObservationCovarianceBufferOwnedType<const OBSERVATIONS: usize, T> =
     MeasurementProcessNoiseCovarianceMatrixBuffer<
-        MEASUREMENTS,
+        OBSERVATIONS,
         T,
-        MatrixDataBoxed<MEASUREMENTS, MEASUREMENTS, T>,
+        MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
     >;
 
-impl<const MEASUREMENTS: usize> MeasurementProcessNoiseCovarianceMatrixBufferBuilder<MEASUREMENTS> {
+impl<const OBSERVATIONS: usize> MeasurementProcessNoiseCovarianceMatrixBufferBuilder<OBSERVATIONS> {
     /// Builds a new [`MeasurementProcessNoiseCovarianceMatrixBuffer`] that owns its data.
     ///
     /// ## Example
@@ -470,26 +470,26 @@ impl<const MEASUREMENTS: usize> MeasurementProcessNoiseCovarianceMatrixBufferBui
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> ObservationCovarianceBufferOwnedType<MEASUREMENTS, T>
+    pub fn new<T>(&self, init: T) -> ObservationCovarianceBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
         MeasurementProcessNoiseCovarianceMatrixBuffer::<
-            MEASUREMENTS,
+            OBSERVATIONS,
             T,
-            MatrixDataBoxed<MEASUREMENTS, MEASUREMENTS, T>,
-        >::new(MatrixData::new_boxed::<MEASUREMENTS, MEASUREMENTS, T, _>(
-            vec![init; MEASUREMENTS * MEASUREMENTS],
+            MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
+        >::new(MatrixData::new_boxed::<OBSERVATIONS, OBSERVATIONS, T, _>(
+            vec![init; OBSERVATIONS * OBSERVATIONS],
         ))
     }
 }
 
 /// The type of innovation vector buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type InnovationVectorBufferOwnedType<const MEASUREMENTS: usize, T> =
-    InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>;
+pub type InnovationVectorBufferOwnedType<const OBSERVATIONS: usize, T> =
+    InnovationVectorBuffer<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>;
 
-impl<const MEASUREMENTS: usize> InnovationVectorBufferBuilder<MEASUREMENTS> {
+impl<const OBSERVATIONS: usize> InnovationVectorBufferBuilder<OBSERVATIONS> {
     /// Builds a new [`InnovationVectorBuffer`] that owns its data.
     ///
     /// ## Example
@@ -505,26 +505,26 @@ impl<const MEASUREMENTS: usize> InnovationVectorBufferBuilder<MEASUREMENTS> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> InnovationVectorBufferOwnedType<MEASUREMENTS, T>
+    pub fn new<T>(&self, init: T) -> InnovationVectorBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
-        InnovationVectorBuffer::<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>::new(
-            MatrixData::new_array::<MEASUREMENTS, 1, MEASUREMENTS, T>([init; MEASUREMENTS]),
+        InnovationVectorBuffer::<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>::new(
+            MatrixData::new_array::<OBSERVATIONS, 1, OBSERVATIONS, T>([init; OBSERVATIONS]),
         )
     }
 }
 
 /// The type of innovation residual covariance matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type InnovationResidualCovarianceMatrixBufferOwnedType<const MEASUREMENTS: usize, T> =
+pub type InnovationResidualCovarianceMatrixBufferOwnedType<const OBSERVATIONS: usize, T> =
     InnovationResidualCovarianceMatrixBuffer<
-        MEASUREMENTS,
+        OBSERVATIONS,
         T,
-        MatrixDataBoxed<MEASUREMENTS, MEASUREMENTS, T>,
+        MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
     >;
 
-impl<const MEASUREMENTS: usize> InnovationResidualCovarianceMatrixBufferBuilder<MEASUREMENTS> {
+impl<const OBSERVATIONS: usize> InnovationResidualCovarianceMatrixBufferBuilder<OBSERVATIONS> {
     /// Builds a new [`InnovationResidualCovarianceMatrixBuffer`] that owns its data.
     ///
     /// ## Example
@@ -543,27 +543,27 @@ impl<const MEASUREMENTS: usize> InnovationResidualCovarianceMatrixBufferBuilder<
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InnovationResidualCovarianceMatrixBufferOwnedType<MEASUREMENTS, T>
+    ) -> InnovationResidualCovarianceMatrixBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
         InnovationResidualCovarianceMatrixBuffer::<
-            MEASUREMENTS,
+            OBSERVATIONS,
             T,
-            MatrixDataBoxed<MEASUREMENTS, MEASUREMENTS, T>,
-        >::new(MatrixData::new_boxed::<MEASUREMENTS, MEASUREMENTS, T, _>(
-            vec![init; MEASUREMENTS * MEASUREMENTS],
+            MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
+        >::new(MatrixData::new_boxed::<OBSERVATIONS, OBSERVATIONS, T, _>(
+            vec![init; OBSERVATIONS * OBSERVATIONS],
         ))
     }
 }
 
 /// The type of innovation residual covariance matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type KalmanGainMatrixBufferOwnedType<const STATES: usize, const MEASUREMENTS: usize, T> =
-    KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, MatrixDataBoxed<STATES, MEASUREMENTS, T>>;
+pub type KalmanGainMatrixBufferOwnedType<const STATES: usize, const OBSERVATIONS: usize, T> =
+    KalmanGainMatrixBuffer<STATES, OBSERVATIONS, T, MatrixDataBoxed<STATES, OBSERVATIONS, T>>;
 
-impl<const STATES: usize, const MEASUREMENTS: usize>
-    KalmanGainMatrixBufferBuilder<STATES, MEASUREMENTS>
+impl<const STATES: usize, const OBSERVATIONS: usize>
+    KalmanGainMatrixBufferBuilder<STATES, OBSERVATIONS>
 {
     /// Builds a new [`KalmanGainMatrixBuffer`] that owns its data.
     ///
@@ -580,17 +580,17 @@ impl<const STATES: usize, const MEASUREMENTS: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> KalmanGainMatrixBufferOwnedType<STATES, MEASUREMENTS, T>
+    pub fn new<T>(&self, init: T) -> KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
     where
         T: Copy,
     {
         KalmanGainMatrixBuffer::<
             STATES,
-            MEASUREMENTS,
+            OBSERVATIONS,
             T,
-            MatrixDataBoxed<STATES, MEASUREMENTS, T>,
-        >::new(MatrixData::new_boxed::<STATES, MEASUREMENTS, T, _>(
-            vec![init; STATES * MEASUREMENTS],
+            MatrixDataBoxed<STATES, OBSERVATIONS, T>,
+        >::new(MatrixData::new_boxed::<STATES, OBSERVATIONS, T, _>(
+            vec![init; STATES * OBSERVATIONS],
         ))
     }
 }
@@ -690,14 +690,14 @@ impl<const STATES: usize, const CONTROLS: usize> TemporaryBQMatrixBufferBuilder<
 
 /// The type of temporary S-inverted matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type TemporarySInvertedMatrixBufferOwnedType<const MEASUREMENTS: usize, T> =
+pub type TemporarySInvertedMatrixBufferOwnedType<const OBSERVATIONS: usize, T> =
     TemporaryResidualCovarianceInvertedMatrixBuffer<
-        MEASUREMENTS,
+        OBSERVATIONS,
         T,
-        MatrixDataBoxed<MEASUREMENTS, MEASUREMENTS, T>,
+        MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
     >;
 
-impl<const MEASUREMENTS: usize> TemporarySInvMatrixBufferBuilder<MEASUREMENTS> {
+impl<const OBSERVATIONS: usize> TemporarySInvMatrixBufferBuilder<OBSERVATIONS> {
     /// Builds a new [`TemporaryResidualCovarianceInvertedMatrixBuffer`] that owns its data.
     ///
     /// ## Example
@@ -713,27 +713,27 @@ impl<const MEASUREMENTS: usize> TemporarySInvMatrixBufferBuilder<MEASUREMENTS> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporarySInvertedMatrixBufferOwnedType<MEASUREMENTS, T>
+    pub fn new<T>(&self, init: T) -> TemporarySInvertedMatrixBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
         TemporaryResidualCovarianceInvertedMatrixBuffer::<
-            MEASUREMENTS,
+            OBSERVATIONS,
             T,
-            MatrixDataBoxed<MEASUREMENTS, MEASUREMENTS, T>,
-        >::new(MatrixData::new_boxed::<MEASUREMENTS, MEASUREMENTS, T, _>(
-            vec![init; MEASUREMENTS * MEASUREMENTS],
+            MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
+        >::new(MatrixData::new_boxed::<OBSERVATIONS, OBSERVATIONS, T, _>(
+            vec![init; OBSERVATIONS * OBSERVATIONS],
         ))
     }
 }
 
 /// The type of temporary H×P matrix buffers, tandem to [`TemporaryPHtMatrixBufferOwnedType`].
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type TemporaryHPMatrixBufferOwnedType<const MEASUREMENTS: usize, const STATES: usize, T> =
-    TemporaryHPMatrixBuffer<MEASUREMENTS, STATES, T, MatrixDataBoxed<MEASUREMENTS, STATES, T>>;
+pub type TemporaryHPMatrixBufferOwnedType<const OBSERVATIONS: usize, const STATES: usize, T> =
+    TemporaryHPMatrixBuffer<OBSERVATIONS, STATES, T, MatrixDataBoxed<OBSERVATIONS, STATES, T>>;
 
-impl<const MEASUREMENTS: usize, const STATES: usize>
-    TemporaryHPMatrixBufferBuilder<MEASUREMENTS, STATES>
+impl<const OBSERVATIONS: usize, const STATES: usize>
+    TemporaryHPMatrixBufferBuilder<OBSERVATIONS, STATES>
 {
     /// Builds a new [`TemporaryHPMatrixBuffer`] that owns its data.
     ///
@@ -750,28 +750,28 @@ impl<const MEASUREMENTS: usize, const STATES: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryHPMatrixBufferOwnedType<MEASUREMENTS, STATES, T>
+    pub fn new<T>(&self, init: T) -> TemporaryHPMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
     where
         T: Copy,
     {
         TemporaryHPMatrixBuffer::<
-            MEASUREMENTS,
+            OBSERVATIONS,
             STATES,
             T,
-            MatrixDataBoxed<MEASUREMENTS, STATES, T>,
-        >::new(MatrixData::new_boxed::<MEASUREMENTS, STATES, T, _>(
-            vec![init; MEASUREMENTS * STATES],
+            MatrixDataBoxed<OBSERVATIONS, STATES, T>,
+        >::new(MatrixData::new_boxed::<OBSERVATIONS, STATES, T, _>(
+            vec![init; OBSERVATIONS * STATES],
         ))
     }
 }
 
 /// The type of temporary P×Hᵀ matrix buffers, tandem to [`TemporaryHPMatrixBufferOwnedType`].
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type TemporaryPHtMatrixBufferOwnedType<const STATES: usize, const MEASUREMENTS: usize, T> =
-    TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, MatrixDataBoxed<STATES, MEASUREMENTS, T>>;
+pub type TemporaryPHtMatrixBufferOwnedType<const STATES: usize, const OBSERVATIONS: usize, T> =
+    TemporaryPHTMatrixBuffer<STATES, OBSERVATIONS, T, MatrixDataBoxed<STATES, OBSERVATIONS, T>>;
 
-impl<const STATES: usize, const MEASUREMENTS: usize>
-    TemporaryPHtMatrixBufferBuilder<STATES, MEASUREMENTS>
+impl<const STATES: usize, const OBSERVATIONS: usize>
+    TemporaryPHtMatrixBufferBuilder<STATES, OBSERVATIONS>
 {
     /// Builds a new [`TemporaryPHTMatrixBuffer`] that owns its data.
     ///
@@ -788,17 +788,17 @@ impl<const STATES: usize, const MEASUREMENTS: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryPHtMatrixBufferOwnedType<STATES, MEASUREMENTS, T>
+    pub fn new<T>(&self, init: T) -> TemporaryPHtMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
     where
         T: Copy,
     {
         TemporaryPHTMatrixBuffer::<
             STATES,
-            MEASUREMENTS,
+            OBSERVATIONS,
             T,
-            MatrixDataBoxed<STATES, MEASUREMENTS, T>,
-        >::new(MatrixData::new_boxed::<STATES, MEASUREMENTS, T, _>(
-            vec![init; STATES * MEASUREMENTS],
+            MatrixDataBoxed<STATES, OBSERVATIONS, T>,
+        >::new(MatrixData::new_boxed::<STATES, OBSERVATIONS, T, _>(
+            vec![init; STATES * OBSERVATIONS],
         ))
     }
 }

@@ -19,64 +19,64 @@ use crate::matrix::{Matrix, MatrixMut};
 /// let mut data = [0.0; 4];
 /// let buffer = MeasurementProcessNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct MeasurementProcessNoiseCovarianceMatrixBuffer<const MEASUREMENT: usize, T, M>(
+pub struct MeasurementProcessNoiseCovarianceMatrixBuffer<const OBSERVATION: usize, T, M>(
     M,
     PhantomData<T>,
 )
 where
-    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>;
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>;
 
 // -----------------------------------------------------------
 
-impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
+impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
     for MeasurementProcessNoiseCovarianceMatrixBuffer<
-        MEASUREMENTS,
+        OBSERVATIONS,
         T,
-        MatrixDataMut<'a, MEASUREMENTS, MEASUREMENTS, T>,
+        MatrixDataMut<'a, OBSERVATIONS, OBSERVATIONS, T>,
     >
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(MEASUREMENTS * MEASUREMENTS <= value.len());
+            debug_assert!(OBSERVATIONS * OBSERVATIONS <= value.len());
         }
-        Self::new(MatrixData::new_mut::<MEASUREMENTS, MEASUREMENTS, T>(value))
+        Self::new(MatrixData::new_mut::<OBSERVATIONS, OBSERVATIONS, T>(value))
     }
 }
 
-impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
     for MeasurementProcessNoiseCovarianceMatrixBuffer<
-        MEASUREMENTS,
+        OBSERVATIONS,
         T,
-        MatrixDataArray<MEASUREMENTS, MEASUREMENTS, TOTAL, T>,
+        MatrixDataArray<OBSERVATIONS, OBSERVATIONS, TOTAL, T>,
     >
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert!(MEASUREMENTS * MEASUREMENTS <= TOTAL);
+            debug_assert!(OBSERVATIONS * OBSERVATIONS <= TOTAL);
         }
-        Self::new(MatrixData::new_array::<MEASUREMENTS, MEASUREMENTS, TOTAL, T>(value))
+        Self::new(MatrixData::new_array::<OBSERVATIONS, OBSERVATIONS, TOTAL, T>(value))
     }
 }
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENT: usize, T, M>
-    MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
+impl<const OBSERVATION: usize, T, M>
+    MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        MEASUREMENT * MEASUREMENT
+        OBSERVATION * OBSERVATION
     }
 
     pub const fn is_empty(&self) -> bool {
-        MEASUREMENT * MEASUREMENT == 0
+        OBSERVATION * OBSERVATION == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -85,44 +85,44 @@ where
     }
 }
 
-impl<const MEASUREMENT: usize, T, M> AsRef<[T]>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
+impl<const OBSERVATION: usize, T, M> AsRef<[T]>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const MEASUREMENT: usize, T, M> AsMut<[T]>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
+impl<const OBSERVATION: usize, T, M> AsMut<[T]>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const MEASUREMENT: usize, T, M> Matrix<MEASUREMENT, MEASUREMENT, T>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
+impl<const OBSERVATION: usize, T, M> Matrix<OBSERVATION, OBSERVATION, T>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
-impl<const MEASUREMENT: usize, T, M> MatrixMut<MEASUREMENT, MEASUREMENT, T>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
+impl<const OBSERVATION: usize, T, M> MatrixMut<OBSERVATION, OBSERVATION, T>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
-impl<const MEASUREMENT: usize, T, M> MeasurementProcessNoiseCovarianceMatrix<MEASUREMENT, T>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
+impl<const OBSERVATION: usize, T, M> MeasurementProcessNoiseCovarianceMatrix<OBSERVATION, T>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
-    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
+    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
     type Target = M;
     type TargetMut = M;
@@ -136,10 +136,10 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> Index<usize>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> Index<usize>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
     type Output = T;
 
@@ -148,10 +148,10 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> IndexMut<usize>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.0.index_mut(index)
@@ -160,10 +160,10 @@ where
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, T, M> IntoInnerData
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const OBSERVATIONS: usize, T, M> IntoInnerData
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T> + IntoInnerData,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T> + IntoInnerData,
 {
     type Target = M::Target;
 
