@@ -30,7 +30,7 @@ pub struct KalmanFilterMeasurementBuilder<const STATES: usize, T>(PhantomData<T>
 
 impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
     fn default() -> Self {
-        KalmanFilterBuilder(PhantomData)
+        KalmanFilterBuilder::new()
     }
 }
 
@@ -244,5 +244,37 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
             temp_pht,
             temp_khp,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
+    const NUM_INPUTS: usize = 1; // constant velocity
+    const NUM_MEASUREMENTS: usize = 1; // position
+
+    #[test]
+    fn kalman_builder() {
+        let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+        let filter = builder.build();
+        assert_eq!(filter.states(), NUM_STATES);
+    }
+
+    #[test]
+    fn input_builder() {
+        let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+        let input = builder.inputs().build::<NUM_INPUTS>();
+        assert_eq!(input.states(), NUM_STATES);
+        assert_eq!(input.inputs(), NUM_INPUTS);
+    }
+
+    #[test]
+    fn measurement_builder() {
+        let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+        let measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+        assert_eq!(measurement.states(), NUM_STATES);
+        assert_eq!(measurement.measurements(), NUM_INPUTS);
     }
 }

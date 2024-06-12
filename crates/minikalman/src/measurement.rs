@@ -205,13 +205,13 @@ impl<
 {
     /// Returns then number of measurements.
     #[inline(always)]
-    pub const fn measurements() -> usize {
+    pub const fn measurements(&self) -> usize {
         MEASUREMENTS
     }
 
     /// Returns then number of states.
     #[inline(always)]
-    pub const fn states() -> usize {
+    pub const fn states(&self) -> usize {
         STATES
     }
 
