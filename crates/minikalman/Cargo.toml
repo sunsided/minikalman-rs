@@ -38,6 +38,11 @@ name = "fixed"
 path = "examples/gravity_fixed.rs"
 required-features = ["fixed", "std", "alloc"]
 
+[[example]]
+name = "car-2d"
+path = "examples/car_2d.rs"
+required-features = ["std", "alloc"]
+
 [features]
 default = ["libm", "alloc"]
 std = ["num-traits/std", "alloc"]
