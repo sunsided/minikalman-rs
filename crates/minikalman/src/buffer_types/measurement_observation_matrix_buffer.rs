@@ -348,6 +348,7 @@ mod tests {
     fn test_from_array() {
         let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
     }
 
@@ -356,6 +357,7 @@ mod tests {
         let data = [0.0_f32; 100];
         let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = data.as_ref().into();
         assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
         assert!(core::ptr::eq(value.as_ref(), &data));
     }
@@ -371,6 +373,7 @@ mod tests {
     fn test_mut_from_array() {
         let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
     }
 
@@ -379,6 +382,7 @@ mod tests {
         let mut data = [0.0_f32; 100];
         let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
         assert!(core::ptr::eq(value.as_ref(), &data));
     }

@@ -188,6 +188,7 @@ mod tests {
     fn test_from_array() {
         let value: TemporaryPHTMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
     }
 
@@ -196,6 +197,7 @@ mod tests {
         let mut data = [0.0_f32; 100];
         let value: TemporaryPHTMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 15);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
         assert!(core::ptr::eq(value.as_ref(), &data));
     }

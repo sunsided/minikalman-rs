@@ -174,6 +174,7 @@ mod tests {
     fn test_from_array() {
         let value: TemporaryStatePredictionVectorBuffer<5, f32, _> = [0.0; 5].into();
         assert_eq!(value.len(), 5);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
     }
 
@@ -182,6 +183,7 @@ mod tests {
         let mut data = [0.0_f32; 5];
         let value: TemporaryStatePredictionVectorBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 5);
+        assert!(!value.is_empty());
         assert!(value.is_valid());
         assert!(core::ptr::eq(value.as_ref(), &data));
     }
