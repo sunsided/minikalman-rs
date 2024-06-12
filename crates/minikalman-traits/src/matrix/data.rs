@@ -69,6 +69,7 @@ impl MatrixData {
 /// * `COLS` - The number of matrix columns.
 /// * `TOTAL` - The total number of matrix cells (i.e., rows × columns)
 /// * `T` - The data type.
+#[derive(Debug, Clone)]
 pub struct MatrixDataArray<const ROWS: usize, const COLS: usize, const TOTAL: usize, T = f32>(
     [T; TOTAL],
 );
@@ -81,6 +82,7 @@ pub struct MatrixDataArray<const ROWS: usize, const COLS: usize, const TOTAL: us
 /// * `T` - The data type.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
+#[derive(Debug, Clone)]
 pub struct MatrixDataBoxed<const ROWS: usize, const COLS: usize, T = f32>(Box<[T]>);
 
 /// An immutable reference to data.
@@ -89,6 +91,7 @@ pub struct MatrixDataBoxed<const ROWS: usize, const COLS: usize, T = f32>(Box<[T
 /// * `ROWS` - The number of matrix rows.
 /// * `COLS` - The number of matrix columns.
 /// * `T` - The data type.
+#[derive(Debug, Clone)]
 pub struct MatrixDataRef<'a, const ROWS: usize, const COLS: usize, T = f32>(&'a [T]);
 
 /// A mutable reference to data.
@@ -97,9 +100,8 @@ pub struct MatrixDataRef<'a, const ROWS: usize, const COLS: usize, T = f32>(&'a 
 /// * `ROWS` - The number of matrix rows.
 /// * `COLS` - The number of matrix columns.
 /// * `T` - The data type.
+#[derive(Debug)]
 pub struct MatrixDataMut<'a, const ROWS: usize, const COLS: usize, T = f32>(&'a mut [T]);
-
-// TODO: Provide variants that allow taking Box<[T]>
 
 /// Consumes self and returns the wrapped data.
 pub trait IntoInnerData {
@@ -454,8 +456,19 @@ mod tests {
     use core::ptr::addr_of;
 
     #[test]
+    #[cfg(feature = "alloc")]
     #[rustfmt::skip]
-    fn owned_buffer() {
+    fn aray_buffer() {
+        let a = MatrixData::new::<2, 3, f32>(0.0);
+        assert_eq!(a.len(), 6);
+        assert_eq!(a.buffer_len(), 6);
+        assert!(!a.is_empty());
+        assert!(a.is_valid());
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn array_buffer() {
         let a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
@@ -468,6 +481,11 @@ mod tests {
         assert_f32_near!(a[3], 4.);
         assert_f32_near!(a[4], 5.);
         assert_f32_near!(a[5], 6.);
+
+        assert_eq!(a.len(), 6);
+        assert_eq!(a.buffer_len(), 6);
+        assert!(!a.is_empty());
+        assert!(a.is_valid());
     }
 
     #[test]
@@ -536,5 +554,91 @@ mod tests {
         assert_f32_near!(a[3], 4.);
         assert_f32_near!(a[4], 5.);
         assert_f32_near!(a[5], 6.);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn from_array() {
+        let a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let mut a = MatrixDataArray::<2, 3, 6, f32>::from(a_buf);
+        a[2] += 10.0;
+
+        assert_f32_near!(a[0], 1.);
+        assert_f32_near!(a[1], 2.);
+        assert_f32_near!(a[2], 13.);
+        assert_f32_near!(a[3], 4.);
+        assert_f32_near!(a[4], 5.);
+        assert_f32_near!(a[5], 6.);
+
+        assert_eq!(a.len(), 6);
+        assert_eq!(a.buffer_len(), 6);
+        assert!(!a.is_empty());
+        assert!(a.is_valid());
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn ref_from_ref() {
+        let a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let a = MatrixDataRef::<2, 3, f32>::from(a_buf.as_ref());
+
+        assert_f32_near!(a[0], 1.);
+        assert_f32_near!(a[1], 2.);
+        assert_f32_near!(a[2], 3.);
+        assert_f32_near!(a[3], 4.);
+        assert_f32_near!(a[4], 5.);
+        assert_f32_near!(a[5], 6.);
+
+        assert_eq!(a.len(), 6);
+        assert_eq!(a.buffer_len(), 6);
+        assert!(!a.is_empty());
+        assert!(a.is_valid());
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn ref_from_mut() {
+        let mut a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let a = MatrixDataRef::<2, 3, f32>::from(a_buf.as_mut());
+
+        assert_f32_near!(a[0], 1.);
+        assert_f32_near!(a[1], 2.);
+        assert_f32_near!(a[2], 3.);
+        assert_f32_near!(a[3], 4.);
+        assert_f32_near!(a[4], 5.);
+        assert_f32_near!(a[5], 6.);
+
+        assert_eq!(a.len(), 6);
+        assert_eq!(a.buffer_len(), 6);
+        assert!(!a.is_empty());
+        assert!(a.is_valid());
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn mut_from_mut() {
+        let mut a_buf = [
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0];
+        let mut a = MatrixDataMut::<2, 3, f32>::from(a_buf.as_mut());
+        a[2] += 10.0;
+
+        assert_f32_near!(a[0], 1.);
+        assert_f32_near!(a[1], 2.);
+        assert_f32_near!(a[2], 13.);
+        assert_f32_near!(a[3], 4.);
+        assert_f32_near!(a[4], 5.);
+        assert_f32_near!(a[5], 6.);
+
+        assert_eq!(a.len(), 6);
+        assert_eq!(a.buffer_len(), 6);
+        assert!(!a.is_empty());
+        assert!(a.is_valid());
     }
 }
