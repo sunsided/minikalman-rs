@@ -74,13 +74,15 @@ fn main() {
         mat.set(0, 0, 1.0); // matrix is 1x1
     });
 
+    println!("Simulate without inputs and observations.");
+
     // Accelerate the car for 5 seconds.
     for t in 0..10 {
         filter.predict();
 
         let state = filter.state_vector_ref();
         println!(
-            "  t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
+            "  t={t:3} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
             state[0], state[1], state[2]
         );
     }
@@ -93,6 +95,8 @@ fn main() {
         assert_f32_near!(state[2], 0.3);
     }
 
+    println!("Decelerate and begin to incorporate measurements");
+
     // Noisy observations.
     const OBSERVATIONS: [f32; 10] = [13.2, 16.5, 20.0, 23.5, 26.8, 29.7, 32.8, 34.3, 35.6, 36.00];
 
@@ -104,32 +108,58 @@ fn main() {
         filter.predict();
         filter.control(&mut control);
 
-        let state = filter.state_vector_ref();
-        println!(
-            "  t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
-            state[0], state[1], state[2]
-        );
+        if t % 2 != 0 {
+            print_state(t, &filter, State::Prior);
+        } else {
+            print_state(t, &filter, State::PriorAboutToUpdate);
 
-        measurement.measurement_vector_apply(|measurement| {
-            measurement[0] = OBSERVATIONS[t - 10];
-        });
+            measurement.measurement_vector_apply(|measurement| {
+                measurement[0] = OBSERVATIONS[t - 10];
+            });
 
-        filter.correct(&mut measurement);
-
-        let state = filter.state_vector_ref();
-        println!(
-            "* t={t} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
-            state[0], state[1], state[2]
-        );
+            filter.correct(&mut measurement);
+            print_state(t, &filter, State::Posterior);
+        }
     }
 
     // The car should now be approximately stopped (but still decelerating).
     {
         let state = filter.state_vector_ref();
-        assert!(is_between(state[0], 36.0, 36.2));
-        assert!(is_between(state[1], -0.02, 0.02));
+        assert!(is_between(state[0], 36.0, 36.3));
+        assert!(is_between(state[1], 0.02, 0.04));
         assert!(is_between(state[2], -1.04, -1.03));
     }
+}
+
+enum State {
+    Prior,
+    PriorAboutToUpdate,
+    Posterior,
+}
+
+fn print_state<T>(time: usize, filter: &T, state: State)
+where
+    T: KalmanFilter<3, f32>,
+{
+    let marker = match state {
+        State::Prior => ' ',
+        State::PriorAboutToUpdate => ' ',
+        State::Posterior => '✅',
+    };
+
+    let state = filter.state_vector_ref();
+
+    let covariances = filter.estimate_covariance_ref();
+    let covariances = covariances.as_matrix();
+
+    let std_p = covariances.get(0, 0).sqrt();
+    let std_v = covariances.get(1, 1).sqrt();
+    let std_a = covariances.get(2, 2).sqrt();
+
+    println!(
+        "{}  t={:3} s, p={:.2} ± {:.2} m\n            v={:2.2} ± {:.2} m/s\n            a={:2.2} ± {:.2} m/s²",
+        marker, time, state[0], std_p, state[1], std_v, state[2], std_a
+    );
 }
 
 fn is_between(value: f32, low: f32, high: f32) -> bool {
