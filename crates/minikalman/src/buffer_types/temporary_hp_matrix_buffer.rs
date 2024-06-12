@@ -20,7 +20,7 @@ impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a mut [T]>
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(MEASUREMENTS * STATES, value.len());
+            debug_assert!(MEASUREMENTS * STATES <= value.len());
         }
         Self::new(MatrixData::new_mut::<MEASUREMENTS, STATES, T>(value))
     }
@@ -37,7 +37,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(MEASUREMENTS * STATES, TOTAL);
+            debug_assert!(MEASUREMENTS * STATES <= TOTAL);
         }
         Self::new(MatrixData::new_array::<MEASUREMENTS, STATES, TOTAL, T>(
             value,

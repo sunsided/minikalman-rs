@@ -17,7 +17,7 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(MEASUREMENTS, value.len());
+            debug_assert!(MEASUREMENTS <= value.len());
         }
         Self::new(MatrixData::new_mut::<MEASUREMENTS, 1, T>(value))
     }

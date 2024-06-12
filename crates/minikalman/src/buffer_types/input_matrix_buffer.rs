@@ -23,7 +23,7 @@ impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; T
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, TOTAL);
+            debug_assert!(STATES * INPUTS <= TOTAL);
         }
         Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
     }
@@ -35,7 +35,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a [T]>
     fn from(value: &'a [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, value.len());
+            debug_assert!(STATES * INPUTS <= value.len());
         }
         Self::new(MatrixData::new_ref::<STATES, INPUTS, T>(value))
     }
@@ -47,7 +47,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, value.len());
+            debug_assert!(STATES * INPUTS <= value.len());
         }
         Self::new(MatrixData::new_ref::<STATES, INPUTS, T>(value))
     }
@@ -59,7 +59,7 @@ impl<'a, const STATES: usize, const INPUTS: usize, T> From<&'a mut [T]>
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, value.len());
+            debug_assert!(STATES * INPUTS <= value.len());
         }
         Self::new(MatrixData::new_mut::<STATES, INPUTS, T>(value))
     }
@@ -71,7 +71,7 @@ impl<const STATES: usize, const INPUTS: usize, const TOTAL: usize, T> From<[T; T
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
         {
-            debug_assert_eq!(STATES * INPUTS, TOTAL);
+            debug_assert!(STATES * INPUTS <= TOTAL);
         }
         Self::new(MatrixData::new_array::<STATES, INPUTS, TOTAL, T>(value))
     }
