@@ -5,6 +5,8 @@ use minikalman_traits::kalman::{MeasurementVector, MeasurementVectorMut};
 use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+// TODO: Add MeasurementVectorMutBuffer
+
 pub struct MeasurementVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<MEASUREMENTS, 1, T>;
@@ -23,6 +25,20 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
     }
 }
 
+/// # Example
+/// Buffers can be trivially constructed from correctly-sized arrays:
+///
+/// ```
+/// # use minikalman::prelude::MeasurementVectorBuffer;
+/// let _value: MeasurementVectorBuffer<5, f32, _> = [0.0; 5].into();
+/// ```
+///
+/// Invalid buffer sizes fail to compile:
+///
+/// ```fail_compile
+/// # use minikalman::prelude::MeasurementVectorBuffer;
+/// let _value: MeasurementVectorBuffer<5, f32, _> = [0.0; 1].into();
+/// ```
 impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
     for MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
 {
@@ -165,12 +181,4 @@ mod tests {
         assert_eq!(value.len(), 5);
         assert!(value.is_valid());
     }
-
-    /* TODO: Turn into compile_fail doctest
-    #[test]
-    fn test_from_array_invalid_size() {
-        let value: MeasurementVectorBuffer<5, f32, _> = [0.0; 1].into();
-        assert!(!value.is_valid());
-    }
-    */
 }

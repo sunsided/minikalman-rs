@@ -23,6 +23,20 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
     }
 }
 
+/// # Example
+/// Buffers can be trivially constructed from correctly-sized arrays:
+///
+/// ```
+/// # use minikalman::prelude::InnovationVectorBuffer;
+/// let _value: InnovationVectorBuffer<5, f32, _> = [0.0; 5].into();
+/// ```
+///
+/// Invalid buffer sizes fail to compile:
+///
+/// ```fail_compile
+/// # use minikalman::prelude::InnovationVectorBuffer;
+/// let _value: InnovationVectorBuffer<5, f32, _> = [0.0; 1].into();
+/// ```
 impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
     for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
 {
@@ -157,12 +171,4 @@ mod tests {
         assert_eq!(value.len(), 5);
         assert!(value.is_valid());
     }
-
-    /* TODO: Turn into compile_fail doctest
-    #[test]
-    fn test_from_array_invalid_size() {
-        let value: InnovationVectorBuffer<5, f32, _> = [0.0; 1].into();
-        assert!(!value.is_valid());
-    }
-    */
 }

@@ -5,6 +5,8 @@ use minikalman_traits::kalman::{InputVector, InputVectorMut};
 use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+// TODO: Add InputVectorMutBuffer
+
 pub struct InputVectorBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<INPUTS, 1, T>;
@@ -23,6 +25,20 @@ impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
     }
 }
 
+/// # Example
+/// Buffers can be trivially constructed from correctly-sized arrays:
+///
+/// ```
+/// # use minikalman::prelude::InputVectorBuffer;
+/// let _value: InputVectorBuffer<5, f32, _> = [0.0; 5].into();
+/// ```
+///
+/// Invalid buffer sizes fail to compile:
+///
+/// ```fail_compile
+/// # use minikalman::prelude::InputVectorBuffer;
+/// let _value: InputVectorBuffer<5, f32, _> = [0.0; 1].into();
+/// ```
 impl<const INPUTS: usize, T> From<[T; INPUTS]>
     for InputVectorBuffer<INPUTS, T, MatrixDataArray<INPUTS, 1, INPUTS, T>>
 {
@@ -156,12 +172,4 @@ mod tests {
         assert_eq!(value.len(), 5);
         assert!(value.is_valid());
     }
-
-    /* TODO: Turn into compile_fail doctest
-    #[test]
-    fn test_from_array_invalid_size() {
-        let value: InputVectorBuffer<5, f32, _> = [0.0; 1].into();
-        assert!(!value.is_valid());
-    }
-    */
 }

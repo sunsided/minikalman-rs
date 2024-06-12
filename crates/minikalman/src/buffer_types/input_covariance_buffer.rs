@@ -17,6 +17,18 @@ where
 
 // -----------------------------------------------------------
 
+impl<const INPUTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for InputCovarianceMatrixBuffer<INPUTS, T, MatrixDataArray<INPUTS, INPUTS, TOTAL, T>>
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(INPUTS * INPUTS, TOTAL);
+        }
+        Self::new(MatrixData::new_array::<INPUTS, INPUTS, TOTAL, T>(value))
+    }
+}
+
 impl<'a, const INPUTS: usize, T> From<&'a [T]>
     for InputCovarianceMatrixBuffer<INPUTS, T, MatrixDataRef<'a, INPUTS, INPUTS, T>>
 {
@@ -251,13 +263,35 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: InputCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 100].into();
+        let value: InputCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
     }
 
     #[test]
     fn test_from_ref() {
+        let mut data = [0.0_f32; 100];
+        let value: InputCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_from_array_invalid_size() {
+        let value: InputCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_array() {
+        let value: InputCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_ref() {
         let mut data = [0.0_f32; 100];
         let value: InputCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
@@ -266,7 +300,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "no_assert")]
-    fn test_from_array_invalid_size() {
+    fn test_mut_from_array_invalid_size() {
         let value: InputCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
