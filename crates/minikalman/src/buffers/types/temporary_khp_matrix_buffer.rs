@@ -1,31 +1,32 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::TemporaryStateMatrix;
+use crate::kalman::TemporaryKHPMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the temporary system matrix (`num_states` × `num_states`).
+/// Mutable buffer for the temporary K×H×P matrix (`num_states` × `num_states`).
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::TemporaryKHPMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = TemporaryStateMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = TemporaryKHPMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = TemporaryStateMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = TemporaryKHPMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct TemporaryStateMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
+pub struct TemporaryKHPMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, STATES, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const STATES: usize, T> From<&'a mut [T]>
-    for TemporaryStateMatrixBuffer<STATES, T, MatrixDataMut<'a, STATES, STATES, T>>
+    for TemporaryKHPMatrixBuffer<STATES, T, MatrixDataMut<'a, STATES, STATES, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -37,7 +38,7 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for TemporaryStateMatrixBuffer<STATES, T, MatrixDataArray<STATES, STATES, TOTAL, T>>
+    for TemporaryKHPMatrixBuffer<STATES, T, MatrixDataArray<STATES, STATES, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -50,7 +51,7 @@ impl<const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> TemporaryStateMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -72,7 +73,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsRef<[T]> for TemporaryStateMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsRef<[T]> for TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -81,7 +82,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsMut<[T]> for TemporaryStateMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsMut<[T]> for TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -90,22 +91,20 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> Matrix<STATES, STATES, T>
-    for TemporaryStateMatrixBuffer<STATES, T, M>
-where
-    M: MatrixMut<STATES, STATES, T>,
+impl<const STATES: usize, T, M> Matrix<STATES, STATES, T> for TemporaryKHPMatrixBuffer<STATES, T, M> where
+    M: MatrixMut<STATES, STATES, T>
 {
 }
 
 impl<const STATES: usize, T, M> MatrixMut<STATES, STATES, T>
-    for TemporaryStateMatrixBuffer<STATES, T, M>
+    for TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
 }
 
-impl<const STATES: usize, T, M> TemporaryStateMatrix<STATES, T>
-    for TemporaryStateMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> TemporaryKHPMatrix<STATES, T>
+    for TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -121,7 +120,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> Index<usize> for TemporaryStateMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> Index<usize> for TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -132,7 +131,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> IndexMut<usize> for TemporaryStateMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IndexMut<usize> for TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
@@ -143,7 +142,7 @@ where
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> IntoInnerData for TemporaryStateMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IntoInnerData for TemporaryKHPMatrixBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T> + IntoInnerData,
 {
@@ -160,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: TemporaryStateMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: TemporaryKHPMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -169,7 +168,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: TemporaryStateMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: TemporaryKHPMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -179,7 +178,7 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: TemporaryStateMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: TemporaryKHPMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }

@@ -1,27 +1,25 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::TemporaryPHTMatrix;
+use crate::kalman::KalmanGainMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the temporary P×Hᵀ matrix (`num_states` × `num_measurements`).
-///
-/// # See also
-/// * [`TemporaryHPMatrixBuffer`](crate::buffer_types::TemporaryHPMatrixBuffer).
+/// Mutable buffer for the Kalman Gain matrix (`num_states` × `num_measurements`).
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::KalmanGainMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = TemporaryHPMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = KalmanGainMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = TemporaryHPMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// let buffer = KalmanGainMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
 /// ```
-pub struct TemporaryPHTMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(
+pub struct KalmanGainMatrixBuffer<const STATES: usize, const MEASUREMENTS: usize, T, M>(
     M,
     PhantomData<T>,
 )
@@ -31,12 +29,7 @@ where
 // -----------------------------------------------------------
 
 impl<'a, const STATES: usize, const MEASUREMENTS: usize, T> From<&'a mut [T]>
-    for TemporaryPHTMatrixBuffer<
-        STATES,
-        MEASUREMENTS,
-        T,
-        MatrixDataMut<'a, STATES, MEASUREMENTS, T>,
-    >
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, MatrixDataMut<'a, STATES, MEASUREMENTS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -48,7 +41,7 @@ impl<'a, const STATES: usize, const MEASUREMENTS: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for TemporaryPHTMatrixBuffer<
+    for KalmanGainMatrixBuffer<
         STATES,
         MEASUREMENTS,
         T,
@@ -69,7 +62,7 @@ impl<const STATES: usize, const MEASUREMENTS: usize, const TOTAL: usize, T> From
 // -----------------------------------------------------------
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M>
-    TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
@@ -92,7 +85,7 @@ where
 }
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> AsRef<[T]>
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
@@ -102,7 +95,7 @@ where
 }
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> AsMut<[T]>
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
@@ -112,22 +105,21 @@ where
 }
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> Matrix<STATES, MEASUREMENTS, T>
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
 }
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> MatrixMut<STATES, MEASUREMENTS, T>
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
 }
 
-impl<const STATES: usize, const MEASUREMENTS: usize, T, M>
-    TemporaryPHTMatrix<STATES, MEASUREMENTS, T>
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+impl<const STATES: usize, const MEASUREMENTS: usize, T, M> KalmanGainMatrix<STATES, MEASUREMENTS, T>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
@@ -144,7 +136,7 @@ where
 }
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> Index<usize>
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
@@ -156,7 +148,7 @@ where
 }
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> IndexMut<usize>
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T>,
 {
@@ -168,7 +160,7 @@ where
 // -----------------------------------------------------------
 
 impl<const STATES: usize, const MEASUREMENTS: usize, T, M> IntoInnerData
-    for TemporaryPHTMatrixBuffer<STATES, MEASUREMENTS, T, M>
+    for KalmanGainMatrixBuffer<STATES, MEASUREMENTS, T, M>
 where
     M: MatrixMut<STATES, MEASUREMENTS, T> + IntoInnerData,
 {
@@ -185,7 +177,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: TemporaryPHTMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
+        let value: KalmanGainMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -194,7 +186,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: TemporaryPHTMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: KalmanGainMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -204,7 +196,7 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: TemporaryPHTMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
+        let value: KalmanGainMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }

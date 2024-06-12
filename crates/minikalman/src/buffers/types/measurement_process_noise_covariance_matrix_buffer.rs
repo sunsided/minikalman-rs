@@ -1,32 +1,35 @@
-use crate::kalman::ResidualCovarianceMatrix;
-use crate::matrix::{IntoInnerData, Matrix, MatrixData, MatrixDataArray, MatrixDataMut, MatrixMut};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-/// Buffer for the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
+use crate::kalman::MeasurementProcessNoiseCovarianceMatrix;
+use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
+use crate::matrix::{Matrix, MatrixMut};
+
+/// Mutable buffer for the observation covariance matrix (`num_measurements` × `num_measurements`).
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = InnovationResidualCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = MeasurementProcessNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = InnovationResidualCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = MeasurementProcessNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct InnovationResidualCovarianceMatrixBuffer<const MEASUREMENTS: usize, T, M>(
+pub struct MeasurementProcessNoiseCovarianceMatrixBuffer<const MEASUREMENT: usize, T, M>(
     M,
     PhantomData<T>,
 )
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>;
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
-    for InnovationResidualCovarianceMatrixBuffer<
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<
         MEASUREMENTS,
         T,
         MatrixDataMut<'a, MEASUREMENTS, MEASUREMENTS, T>,
@@ -42,7 +45,7 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
 }
 
 impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InnovationResidualCovarianceMatrixBuffer<
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<
         MEASUREMENTS,
         T,
         MatrixDataArray<MEASUREMENTS, MEASUREMENTS, TOTAL, T>,
@@ -59,20 +62,21 @@ impl<const MEASUREMENTS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, T, M> InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENT: usize, T, M>
+    MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
 {
     pub const fn new(matrix: M) -> Self {
         Self(matrix, PhantomData)
     }
 
     pub const fn len(&self) -> usize {
-        MEASUREMENTS * MEASUREMENTS
+        MEASUREMENT * MEASUREMENT
     }
 
     pub const fn is_empty(&self) -> bool {
-        MEASUREMENTS == 0
+        MEASUREMENT * MEASUREMENT == 0
     }
 
     /// Ensures the underlying buffer has enough space for the expected number of values.
@@ -81,44 +85,44 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> AsRef<[T]>
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENT: usize, T, M> AsRef<[T]>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
 {
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> AsMut<[T]>
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENT: usize, T, M> AsMut<[T]>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
 {
     fn as_mut(&mut self) -> &mut [T] {
         self.0.as_mut()
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> Matrix<MEASUREMENTS, MEASUREMENTS, T>
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENT: usize, T, M> Matrix<MEASUREMENT, MEASUREMENT, T>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
 {
 }
 
-impl<const MEASUREMENTS: usize, T, M> MatrixMut<MEASUREMENTS, MEASUREMENTS, T>
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENT: usize, T, M> MatrixMut<MEASUREMENT, MEASUREMENT, T>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
 {
 }
 
-impl<const MEASUREMENTS: usize, T, M> ResidualCovarianceMatrix<MEASUREMENTS, T>
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENT: usize, T, M> MeasurementProcessNoiseCovarianceMatrix<MEASUREMENT, T>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENT, T, M>
 where
-    M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
+    M: MatrixMut<MEASUREMENT, MEASUREMENT, T>,
 {
     type Target = M;
     type TargetMut = M;
@@ -133,7 +137,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, T, M> Index<usize>
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
 {
@@ -145,7 +149,7 @@ where
 }
 
 impl<const MEASUREMENTS: usize, T, M> IndexMut<usize>
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T>,
 {
@@ -157,7 +161,7 @@ where
 // -----------------------------------------------------------
 
 impl<const MEASUREMENTS: usize, T, M> IntoInnerData
-    for InnovationResidualCovarianceMatrixBuffer<MEASUREMENTS, T, M>
+    for MeasurementProcessNoiseCovarianceMatrixBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, MEASUREMENTS, T> + IntoInnerData,
 {
@@ -174,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: MeasurementProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -183,17 +187,17 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: MeasurementProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
-        assert!(value.is_valid());
         assert!(!value.is_empty());
+        assert!(value.is_valid());
         assert!(core::ptr::eq(value.as_ref(), &data));
     }
 
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: MeasurementProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }

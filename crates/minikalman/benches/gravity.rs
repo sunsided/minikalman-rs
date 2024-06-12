@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use minikalman::buffer_types::*;
+use minikalman::buffers::types::*;
 use minikalman::{BufferBuilder, KalmanBuilder, MeasurementBuilder};
 
 use minikalman::prelude::*;
