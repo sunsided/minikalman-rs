@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     fn test_mut_from_array() {
-        let value: SystemMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: SystemMatrixMutBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -338,5 +338,12 @@ mod tests {
     fn test_mut_from_array_invalid_size() {
         let value: SystemMatrixMutBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
+    }
+
+    #[test]
+    fn array_into_inner() {
+        let value: SystemMatrixBuffer<2, f32, _> = [0.0, 1.0, 3.0, 4.0].into();
+        let data = value.into_inner();
+        assert_eq!(data, [0.0, 1.0, 3.0, 4.0]);
     }
 }
