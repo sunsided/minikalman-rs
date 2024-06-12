@@ -172,6 +172,7 @@ mod tests {
         let value: TemporaryStateMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
     }
 
     #[test]

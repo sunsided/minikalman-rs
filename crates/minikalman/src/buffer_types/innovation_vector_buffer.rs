@@ -184,5 +184,6 @@ mod tests {
         let value: InnovationVectorBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 5);
         assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
     }
 }

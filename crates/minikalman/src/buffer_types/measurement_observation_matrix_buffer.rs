@@ -357,6 +357,7 @@ mod tests {
         let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = data.as_ref().into();
         assert_eq!(value.len(), 15);
         assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
     }
 
     #[test]
@@ -379,6 +380,7 @@ mod tests {
         let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 15);
         assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
     }
 
     #[test]

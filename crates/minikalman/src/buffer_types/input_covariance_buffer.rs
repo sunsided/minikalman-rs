@@ -302,6 +302,7 @@ mod tests {
         let value: InputCovarianceMatrixBuffer<5, f32, _> = data.as_ref().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
     }
 
     #[test]
@@ -324,6 +325,7 @@ mod tests {
         let value: InputCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_ref(), &data));
     }
 
     #[test]
