@@ -33,6 +33,14 @@ jobs:
       - name: Clippy
         run: cargo clippy
 
+  docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build documentation
+        run: cargo doc
+
   codecov:
     needs: lint
     name: Code Coverage
@@ -60,7 +68,9 @@ jobs:
           fail_ci_if_error: true
 
   build-std:
-    needs: lint
+    needs:
+      - lint
+      - docs
     name: Build and Test (floating-point)
     runs-on: ubuntu-latest
     steps:
@@ -78,7 +88,9 @@ jobs:
         run: cargo test --doc --verbose --package minikalman --no-default-features --features=std
 
   build-fixed:
-    needs: lint
+    needs:
+      - lint
+      - docs
     name: Build and Test (fixed-point)
     runs-on: ubuntu-latest
     steps:
