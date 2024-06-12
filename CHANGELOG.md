@@ -3,15 +3,45 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased - Breaking Changes
+
+### Added
+
+- [#10](https://github.com/sunsided/minikalman-rs/pull/10):
+  Builder types were added for Kalman filters, control inputs and observations. The `KalmanFilterBuilder` type
+  serves as a simple entry point on `alloc` crate features.
+
+### Changed
+
+- [#9](https://github.com/sunsided/minikalman-rs/pull/9):
+  Data ownership was reworked: Filters, control inputs and measurements/observations are now backed by a generic
+  buffer type that can operate on stack- or heap allocated arrays, immutable and mutable references. Some features
+  are gated behind the `alloc` crate feature.
+- Types were remodeled into new modules in order to arrange them in a slightly more logical way.
+- [#18](https://github.com/sunsided/minikalman-rs/pull/18):
+  "Inputs" naming was changed to "Control" to align more closely with common usages of Kalman filters.
+- [#20](https://github.com/sunsided/minikalman-rs/pull/20):
+  "Measurements" naming was changed to "Observation" in places where it aligns with common usages of Kalman filters.
+  In addition, type name ambiguity between process and measurement noise covariance was reduced.
+
+### Removed
+
+- The `create_buffer_X` macros were removed from the crate due to their relatively complicated use.
+
+### Internal
+
+- [#8](https://github.com/sunsided/minikalman-rs/pull/8):
+  The repository was restructured into a Cargo workspace to allow for easier handling of cross-compilation examples.
+
 ## [0.4.0] - 2024-06-07
 
 [0.4.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.4.0
 
 ### Added
 
-- [!7](https://github.com/sunsided/minikalman-rs/pull/7):
+- [#7](https://github.com/sunsided/minikalman-rs/pull/7):
   Added the `libm` crate feature for [libm](https://github.com/rust-lang/libm) support.
-- [!7](https://github.com/sunsided/minikalman-rs/pull/7):
+- [#7](https://github.com/sunsided/minikalman-rs/pull/7):
   Added the `float` crate feature to enable `f32` and `f64` built-in support.
 
 ### Removed
@@ -20,7 +50,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Internal
 
-- [!7](https://github.com/sunsided/minikalman-rs/pull/7):
+- [#7](https://github.com/sunsided/minikalman-rs/pull/7):
   Add an example project for STM32F303 cross-compilation.
 - Added CI/CD spell-checks and pre-commit hooks.
 
@@ -30,11 +60,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Added support for fixed-point values via the [fixed](https://crates.io/crates/fixed) crate.
+- [#6](https://github.com/sunsided/minikalman-rs/pull/6):
+  Added support for fixed-point values via the [fixed](https://crates.io/crates/fixed) crate.
 
 ### Changed
 
-- The macros, matrix, filter and measurement structs are now generic on the data type.
+- [#5](https://github.com/sunsided/minikalman-rs/pull/5):
+  The macros, matrix, filter and measurement structs are now generic on the data type.
   If no type is provided, it defaults to `f32`.
 
 ### Removed
