@@ -83,10 +83,10 @@ pub trait SystemCovarianceMatrix<const STATES: usize, T = f32>:
     }
 }
 
-/// Input vector.
+/// Control vector.
 ///
-/// Immutable variant. For a mutable variant, see [`InputVectorMut`].
-pub trait InputVector<const CONTROLS: usize, T = f32>:
+/// Immutable variant. For a mutable variant, see [`ControlVectorMut`].
+pub trait ControlVector<const CONTROLS: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
     type Target: Matrix<CONTROLS, 1, T>;
@@ -94,11 +94,11 @@ pub trait InputVector<const CONTROLS: usize, T = f32>:
     fn as_matrix(&self) -> &Self::Target;
 }
 
-/// Input vector.
+/// Control vector.
 ///
-/// Mutable variant. For an immutable variant, see [`InputVector`].
-pub trait InputVectorMut<const CONTROLS: usize, T = f32>:
-    InputVector<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+/// Mutable variant. For an immutable variant, see [`ControlVector`].
+pub trait ControlVectorMut<const CONTROLS: usize, T = f32>:
+    ControlVector<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<CONTROLS, 1, T>;
 
@@ -114,10 +114,10 @@ pub trait InputVectorMut<const CONTROLS: usize, T = f32>:
     }
 }
 
-/// Input matrix.
+/// Control matrix.
 ///
-/// Immutable variant. For a mutable variant, see [`InputMatrixMut`].
-pub trait InputMatrix<const STATES: usize, const CONTROLS: usize, T = f32>:
+/// Immutable variant. For a mutable variant, see [`ControlMatrixMut`].
+pub trait ControlMatrix<const STATES: usize, const CONTROLS: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
     type Target: Matrix<STATES, CONTROLS, T>;
@@ -125,11 +125,11 @@ pub trait InputMatrix<const STATES: usize, const CONTROLS: usize, T = f32>:
     fn as_matrix(&self) -> &Self::Target;
 }
 
-/// Input matrix.
+/// Control matrix.
 ///
-/// Mutable variant. For an immutable variant, see [`InputMatrix`].
-pub trait InputMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
-    InputMatrix<STATES, CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+/// Mutable variant. For an immutable variant, see [`ControlMatrix`].
+pub trait ControlMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
+    ControlMatrix<STATES, CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<STATES, CONTROLS, T>;
 
@@ -145,10 +145,10 @@ pub trait InputMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
     }
 }
 
-/// Input covariance matrix.
+/// Control covariance matrix.
 ///
-/// Immutable variant. For a mutable variant, see [`InputCovarianceMatrixMut`].
-pub trait InputCovarianceMatrix<const CONTROLS: usize, T = f32>:
+/// Immutable variant. For a mutable variant, see [`ControlCovarianceMatrixMut`].
+pub trait ControlCovarianceMatrix<const CONTROLS: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
     type Target: Matrix<CONTROLS, CONTROLS, T>;
@@ -156,11 +156,11 @@ pub trait InputCovarianceMatrix<const CONTROLS: usize, T = f32>:
     fn as_matrix(&self) -> &Self::Target;
 }
 
-/// Input covariance matrix.
+/// Control covariance matrix.
 ///
-/// Mutable variant. For an immutable variant, see [`InputCovarianceMatrix`].
-pub trait InputCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
-    InputCovarianceMatrix<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+/// Mutable variant. For an immutable variant, see [`ControlCovarianceMatrix`].
+pub trait ControlCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
+    ControlCovarianceMatrix<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<CONTROLS, CONTROLS, T>;
 

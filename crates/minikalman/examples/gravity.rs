@@ -162,14 +162,14 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 }
 
 /// Initializes the input vector.
-fn initialize_input_vector(filter: &mut impl InputVectorMut<NUM_CONTROLS, f32>) {
+fn initialize_input_vector(filter: &mut impl ControlVectorMut<NUM_CONTROLS, f32>) {
     filter.apply(|state| {
         state[0] = 0.0 as _; // acceleration
     });
 }
 
 /// Initializes the input transformation matrix.
-fn initialize_input_matrix(filter: &mut impl InputMatrixMut<NUM_STATES, NUM_CONTROLS, f32>) {
+fn initialize_input_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_CONTROLS, f32>) {
     filter.apply(|mat| {
         mat[0] = 0.0;
         mat[1] = 0.0;
@@ -179,7 +179,7 @@ fn initialize_input_matrix(filter: &mut impl InputMatrixMut<NUM_STATES, NUM_CONT
 
 /// Initializes the input covariance.
 fn initialize_input_covariance_matrix(
-    filter: &mut impl InputCovarianceMatrixMut<NUM_CONTROLS, f32>,
+    filter: &mut impl ControlCovarianceMatrixMut<NUM_CONTROLS, f32>,
 ) {
     filter.apply(|mat| {
         mat[0] = 1.0; // :)

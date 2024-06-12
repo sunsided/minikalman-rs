@@ -2,9 +2,9 @@ use crate::kalman::*;
 use crate::matrix::*;
 use core::marker::PhantomData;
 
-/// A builder for a [`Input`] filter instances.
+/// A builder for a [`Control`] filter instances.
 #[allow(clippy::type_complexity)]
-pub struct InputBuilder<B, U, Q, TempBQ> {
+pub struct ControlBuilder<B, U, Q, TempBQ> {
     _phantom: (
         PhantomData<B>,
         PhantomData<U>,
@@ -13,7 +13,7 @@ pub struct InputBuilder<B, U, Q, TempBQ> {
     ),
 }
 
-impl<B, U, Q, TempBQ> InputBuilder<B, U, Q, TempBQ> {
+impl<B, U, Q, TempBQ> ControlBuilder<B, U, Q, TempBQ> {
     /// Initializes a Kalman filter input instance.
     ///
     /// ## Arguments
@@ -27,15 +27,15 @@ impl<B, U, Q, TempBQ> InputBuilder<B, U, Q, TempBQ> {
         u: U,
         Q: Q,
         temp_BQ: TempBQ,
-    ) -> Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    ) -> Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
     where
         T: MatrixDataType,
-        B: InputMatrix<STATES, CONTROLS, T>,
-        U: InputVector<CONTROLS, T>,
-        Q: InputCovarianceMatrix<CONTROLS, T>,
+        B: ControlMatrix<STATES, CONTROLS, T>,
+        U: ControlVector<CONTROLS, T>,
+        Q: ControlCovarianceMatrix<CONTROLS, T>,
         TempBQ: TemporaryBQMatrix<STATES, CONTROLS, T>,
     {
-        Input::<STATES, CONTROLS, T, _, _, _, _> {
+        Control::<STATES, CONTROLS, T, _, _, _, _> {
             B,
             u,
             Q,
@@ -45,18 +45,18 @@ impl<B, U, Q, TempBQ> InputBuilder<B, U, Q, TempBQ> {
     }
 }
 
-/// Input Filter structure.  See [`InputBuilder`] for construction.
+/// Control Filter structure.  See [`ControlBuilder`] for construction.
 #[allow(non_snake_case, unused)]
-pub struct Input<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ> {
-    /// Input vector.
+pub struct Control<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ> {
+    /// Control vector.
     u: U,
 
-    /// Input matrix.
+    /// Control matrix.
     ///
     /// See also [`Q`].
     B: B,
 
-    /// Input covariance matrix.
+    /// Control covariance matrix.
     ///
     /// See also [`B`].
     Q: Q,
@@ -70,7 +70,7 @@ pub struct Input<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 {
     /// Returns the number of states.
     #[allow(unused)]
@@ -86,9 +86,9 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    U: InputVector<CONTROLS, T>,
+    U: ControlVector<CONTROLS, T>,
 {
     /// Gets a reference to the input vector u.
     #[inline(always)]
@@ -99,9 +99,9 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    U: InputVectorMut<CONTROLS, T>,
+    U: ControlVectorMut<CONTROLS, T>,
 {
     /// Gets a mutable reference to the input vector u.
     #[inline(always)]
@@ -121,9 +121,9 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    B: InputMatrix<STATES, CONTROLS, T>,
+    B: ControlMatrix<STATES, CONTROLS, T>,
 {
     /// Gets a reference to the input transition matrix B.
     #[inline(always)]
@@ -133,9 +133,9 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    B: InputMatrixMut<STATES, CONTROLS, T>,
+    B: ControlMatrixMut<STATES, CONTROLS, T>,
 {
     /// Gets a mutable reference to the input transition matrix B.
     #[inline(always)]
@@ -155,9 +155,9 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: InputCovarianceMatrix<CONTROLS, T>,
+    Q: ControlCovarianceMatrix<CONTROLS, T>,
 {
     /// Gets a reference to the input covariance matrix Q.
     #[inline(always)]
@@ -167,9 +167,9 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: InputCovarianceMatrixMut<CONTROLS, T>,
+    Q: ControlCovarianceMatrixMut<CONTROLS, T>,
 {
     /// Gets a mutable reference to the input covariance matrix Q.
     #[inline(always)]
@@ -190,11 +190,11 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    U: InputVector<CONTROLS, T>,
-    B: InputMatrix<STATES, CONTROLS, T>,
-    Q: InputCovarianceMatrix<CONTROLS, T>,
+    U: ControlVector<CONTROLS, T>,
+    B: ControlMatrix<STATES, CONTROLS, T>,
+    Q: ControlCovarianceMatrix<CONTROLS, T>,
     TempBQ: TemporaryBQMatrix<STATES, CONTROLS, T>,
     T: MatrixDataType,
 {
@@ -232,94 +232,95 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ> KalmanFilterNumStates<STATES>
-    for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
-{
-}
-
-impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ> KalmanFilterNumInputs<CONTROLS>
-    for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 {
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterInputVector<CONTROLS, T> for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
-where
-    U: InputVector<CONTROLS, T>,
+    KalmanFilterNumControls<CONTROLS> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 {
-    type InputVector = U;
+}
 
-    fn input_vector_ref(&self) -> &Self::InputVector {
+impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
+    KalmanFilterControlVector<CONTROLS, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
+where
+    U: ControlVector<CONTROLS, T>,
+{
+    type ControlVector = U;
+
+    fn input_vector_ref(&self) -> &Self::ControlVector {
         self.input_vector_ref()
     }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterInputVectorMut<CONTROLS, T> for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    KalmanFilterControlVectorMut<CONTROLS, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    U: InputVectorMut<CONTROLS, T>,
+    U: ControlVectorMut<CONTROLS, T>,
 {
-    type InputVectorMut = U;
+    type ControlVectorMut = U;
 
-    fn input_vector_mut(&mut self) -> &mut Self::InputVectorMut {
+    fn input_vector_mut(&mut self) -> &mut Self::ControlVectorMut {
         self.input_vector_mut()
     }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterInputTransition<STATES, CONTROLS, T> for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    KalmanFilterControlTransition<STATES, CONTROLS, T>
+    for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    B: InputMatrix<STATES, CONTROLS, T>,
+    B: ControlMatrix<STATES, CONTROLS, T>,
 {
-    type InputTransitionMatrix = B;
+    type ControlTransitionMatrix = B;
 
-    fn input_transition_ref(&self) -> &Self::InputTransitionMatrix {
+    fn input_transition_ref(&self) -> &Self::ControlTransitionMatrix {
         self.input_transition_ref()
     }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterInputTransitionMut<STATES, CONTROLS, T>
-    for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    KalmanFilterControlTransitionMut<STATES, CONTROLS, T>
+    for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    B: InputMatrixMut<STATES, CONTROLS, T>,
+    B: ControlMatrixMut<STATES, CONTROLS, T>,
 {
-    type InputTransitionMatrixMut = B;
+    type ControlTransitionMatrixMut = B;
 
-    fn input_transition_mut(&mut self) -> &mut Self::InputTransitionMatrixMut {
+    fn input_transition_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut {
         self.input_transition_mut()
     }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterInputCovariance<CONTROLS, T> for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    KalmanFilterControlCovariance<CONTROLS, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: InputCovarianceMatrix<CONTROLS, T>,
+    Q: ControlCovarianceMatrix<CONTROLS, T>,
 {
-    type InputCovarianceMatrix = Q;
+    type ControlCovarianceMatrix = Q;
 
-    fn input_covariance_ref(&self) -> &Self::InputCovarianceMatrix {
+    fn input_covariance_ref(&self) -> &Self::ControlCovarianceMatrix {
         self.input_covariance_ref()
     }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterInputCovarianceMut<CONTROLS, T> for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    KalmanFilterControlCovarianceMut<CONTROLS, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: InputCovarianceMatrixMut<CONTROLS, T>,
+    Q: ControlCovarianceMatrixMut<CONTROLS, T>,
 {
-    type InputCovarianceMatrixMut = Q;
+    type ControlCovarianceMatrixMut = Q;
 
-    fn input_covariance_mut(&mut self) -> &mut Self::InputCovarianceMatrixMut {
+    fn input_covariance_mut(&mut self) -> &mut Self::ControlCovarianceMatrixMut {
         self.input_covariance_mut()
     }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterInputApplyToFilter<STATES, T> for Input<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    KalmanFilterControlApplyToFilter<STATES, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    U: InputVector<CONTROLS, T>,
-    B: InputMatrix<STATES, CONTROLS, T>,
-    Q: InputCovarianceMatrix<CONTROLS, T>,
+    U: ControlVector<CONTROLS, T>,
+    B: ControlMatrix<STATES, CONTROLS, T>,
+    Q: ControlCovarianceMatrix<CONTROLS, T>,
     TempBQ: TemporaryBQMatrix<STATES, CONTROLS, T>,
     T: MatrixDataType,
 {
@@ -355,7 +356,7 @@ mod tests {
         let A = BufferBuilder::system_state_transition_A::<NUM_STATES>().new(0.0_f32);
         let P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
-        // Input buffers.
+        // Control buffers.
         let u = BufferBuilder::input_vector_u::<NUM_CONTROLS>().new(0.0_f32);
         let B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
         let Q = BufferBuilder::input_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
@@ -364,11 +365,11 @@ mod tests {
         let temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
         let temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
-        // Input temporaries
+        // Control temporaries
         let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
 
         let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
-        let mut input = InputBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
+        let mut input = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
 
         // State transition is identity.
         filter.state_transition_apply(|mat| {
@@ -390,14 +391,14 @@ mod tests {
             mat[3 * NUM_STATES + 3] = 1.0;
         });
 
-        // Input applies linearly to state.
+        // Control applies linearly to state.
         input.input_transition_apply(|mat| {
             mat[NUM_CONTROLS] = 1.0;
             mat[2 * NUM_CONTROLS + 1] = 1.0;
             mat[3 * NUM_CONTROLS + 2] = 1.0;
         });
 
-        // Input covariance is identity.
+        // Control covariance is identity.
         input.input_covariance_apply(|mat| {
             mat[0 * NUM_CONTROLS] = 1.0;
             mat[NUM_CONTROLS + 1] = 1.0;
@@ -452,7 +453,7 @@ mod tests {
 
     #[test]
     fn builder_simple() {
-        let _filter = InputBuilder::new::<3, 2, f32>(
+        let _filter = ControlBuilder::new::<3, 2, f32>(
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
@@ -460,28 +461,30 @@ mod tests {
         );
     }
 
-    impl<const CONTROLS: usize, T> InputVector<CONTROLS, T> for Dummy<T> {
+    impl<const CONTROLS: usize, T> ControlVector<CONTROLS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
 
         fn as_matrix(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<const CONTROLS: usize, T> InputVectorMut<CONTROLS, T> for Dummy<T> {
+    impl<const CONTROLS: usize, T> ControlVectorMut<CONTROLS, T> for Dummy<T> {
         type TargetMut = DummyMatrix<T>;
 
         fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
             &mut self.0
         }
     }
-    impl<const STATES: usize, const CONTROLS: usize, T> InputMatrix<STATES, CONTROLS, T> for Dummy<T> {
+    impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrix<STATES, CONTROLS, T>
+        for Dummy<T>
+    {
         type Target = DummyMatrix<T>;
 
         fn as_matrix(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<const STATES: usize, const CONTROLS: usize, T> InputMatrixMut<STATES, CONTROLS, T>
+    impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrixMut<STATES, CONTROLS, T>
         for Dummy<T>
     {
         type TargetMut = DummyMatrix<T>;
@@ -490,14 +493,14 @@ mod tests {
             &mut self.0
         }
     }
-    impl<const CONTROLS: usize, T> InputCovarianceMatrix<CONTROLS, T> for Dummy<T> {
+    impl<const CONTROLS: usize, T> ControlCovarianceMatrix<CONTROLS, T> for Dummy<T> {
         type Target = DummyMatrix<T>;
 
         fn as_matrix(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<const CONTROLS: usize, T> InputCovarianceMatrixMut<CONTROLS, T> for Dummy<T> {
+    impl<const CONTROLS: usize, T> ControlCovarianceMatrixMut<CONTROLS, T> for Dummy<T> {
         type TargetMut = DummyMatrix<T>;
 
         fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {

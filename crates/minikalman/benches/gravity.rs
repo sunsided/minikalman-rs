@@ -25,7 +25,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_A = BufferBuilder::system_state_transition_A::<NUM_STATES>().new(0.0_f32);
     let mut gravity_P = BufferBuilder::system_covariance_P::<NUM_STATES>().new(0.0_f32);
 
-    // Input buffers.
+    // Control buffers.
     // let mut gravity_u = BufferBuilder::input_vector_u::<NUM_CONTROLS>().new(0.0_f32);
     // let mut gravity_B = BufferBuilder::input_transition_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
     // let mut gravity_Q = BufferBuilder::input_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);

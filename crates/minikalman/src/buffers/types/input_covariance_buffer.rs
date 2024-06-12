@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::{InputCovarianceMatrix, InputCovarianceMatrixMut};
+use crate::kalman::{ControlCovarianceMatrix, ControlCovarianceMatrixMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
 
@@ -9,17 +9,17 @@ use crate::matrix::{Matrix, MatrixMut};
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::InputCovarianceMatrixBuffer;
+/// use minikalman::buffers::types::ControlCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = InputCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = ControlCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let data = [0.0; 4];
-/// let buffer = InputCovarianceMatrixBuffer::<2, f32, _>::from(data.as_ref());
+/// let buffer = ControlCovarianceMatrixBuffer::<2, f32, _>::from(data.as_ref());
 /// ```
-pub struct InputCovarianceMatrixBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
+pub struct ControlCovarianceMatrixBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
 where
     M: Matrix<CONTROLS, CONTROLS, T>;
 
@@ -27,24 +27,24 @@ where
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::InputCovarianceMatrixMutBuffer;
+/// use minikalman::buffers::types::ControlCovarianceMatrixMutBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = InputCovarianceMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = ControlCovarianceMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = InputCovarianceMatrixMutBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = ControlCovarianceMatrixMutBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct InputCovarianceMatrixMutBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
+pub struct ControlCovarianceMatrixMutBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>;
 
 // -----------------------------------------------------------
 
 impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputCovarianceMatrixBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>>
+    for ControlCovarianceMatrixBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -56,7 +56,7 @@ impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 }
 
 impl<'a, const CONTROLS: usize, T> From<&'a [T]>
-    for InputCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
+    for ControlCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
 {
     fn from(value: &'a [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -68,7 +68,7 @@ impl<'a, const CONTROLS: usize, T> From<&'a [T]>
 }
 
 impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
-    for InputCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
+    for ControlCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -80,7 +80,7 @@ impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
 }
 
 impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
-    for InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataMut<'a, CONTROLS, CONTROLS, T>>
+    for ControlCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataMut<'a, CONTROLS, CONTROLS, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -92,7 +92,7 @@ impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
 }
 
 impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>>
+    for ControlCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>>
 {
     fn from(value: [T; TOTAL]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -105,7 +105,7 @@ impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 
 // -----------------------------------------------------------
 
-impl<const CONTROLS: usize, T, M> InputCovarianceMatrixBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -122,7 +122,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> AsRef<[T]> for ControlCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -132,14 +132,14 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
-    for InputCovarianceMatrixBuffer<CONTROLS, T, M>
+    for ControlCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
 }
 
-impl<const CONTROLS: usize, T, M> InputCovarianceMatrix<CONTROLS, T>
-    for InputCovarianceMatrixBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlCovarianceMatrix<CONTROLS, T>
+    for ControlCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -150,7 +150,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -172,7 +172,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> AsRef<[T]> for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -181,7 +181,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> AsMut<[T]> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> AsMut<[T]> for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -191,21 +191,21 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
-    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
 }
 
 impl<const CONTROLS: usize, T, M> MatrixMut<CONTROLS, CONTROLS, T>
-    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
 }
 
-impl<const CONTROLS: usize, T, M> InputCovarianceMatrix<CONTROLS, T>
-    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlCovarianceMatrix<CONTROLS, T>
+    for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -216,8 +216,8 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> InputCovarianceMatrixMut<CONTROLS, T>
-    for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlCovarianceMatrixMut<CONTROLS, T>
+    for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -228,7 +228,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> Index<usize> for InputCovarianceMatrixBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> Index<usize> for ControlCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -239,7 +239,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> Index<usize> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> Index<usize> for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -250,7 +250,8 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> IndexMut<usize> for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> IndexMut<usize>
+    for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -261,7 +262,7 @@ where
 
 // -----------------------------------------------------------
 
-impl<const CONTROLS: usize, T, M> IntoInnerData for InputCovarianceMatrixBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> IntoInnerData for ControlCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T> + IntoInnerData,
 {
@@ -272,7 +273,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> IntoInnerData for InputCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> IntoInnerData for ControlCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T> + IntoInnerData,
 {
@@ -289,7 +290,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: InputCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: ControlCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -298,7 +299,7 @@ mod tests {
     #[test]
     fn test_from_ref() {
         let data = [0.0_f32; 100];
-        let value: InputCovarianceMatrixBuffer<5, f32, _> = data.as_ref().into();
+        let value: ControlCovarianceMatrixBuffer<5, f32, _> = data.as_ref().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
@@ -308,7 +309,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: InputCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: ControlCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
@@ -318,13 +319,13 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: InputCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: ControlCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 
     #[test]
     fn test_mut_from_array() {
-        let value: InputCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 100].into();
+        let value: ControlCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -333,7 +334,7 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: InputCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut().into();
+        let value: ControlCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -343,7 +344,7 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_mut_from_array_invalid_size() {
-        let value: InputCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 1].into();
+        let value: ControlCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }

@@ -475,7 +475,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P: SystemCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
-        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<CONTROLS>,
+        I: KalmanFilterControlApplyToFilter<STATES, T> + KalmanFilterNumControls<CONTROLS>,
     {
         input.apply_to(&mut self.x, &mut self.P)
     }
@@ -680,7 +680,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterApplyInput<STATES, T>
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterApplyControl<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
     P: SystemCovarianceMatrix<STATES, T>,
@@ -690,7 +690,7 @@ where
     #[inline(always)]
     fn input<const CONTROLS: usize, I>(&mut self, input: &mut I)
     where
-        I: KalmanFilterInputApplyToFilter<STATES, T> + KalmanFilterNumInputs<CONTROLS>,
+        I: KalmanFilterControlApplyToFilter<STATES, T> + KalmanFilterNumControls<CONTROLS>,
     {
         self.input(input)
     }

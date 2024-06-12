@@ -242,7 +242,7 @@ impl<
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
     /// #
-    /// # // Input buffers.
+    /// # // Control buffers.
     /// # impl_buffer_u!(mut gravity_u, NUM_CONTROLS, f32, 0.0);
     /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_CONTROLS, f32, 0.0);
     /// # impl_buffer_Q!(mut gravity_Q, NUM_CONTROLS, f32, 0.0);

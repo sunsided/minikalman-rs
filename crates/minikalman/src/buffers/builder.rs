@@ -23,20 +23,20 @@ impl BufferBuilder {
         SystemCovarianceMatrixBufferBuilder
     }
 
-    pub fn input_vector_u<const CONTROLS: usize>() -> InputVectorBufferBuilder<CONTROLS> {
-        InputVectorBufferBuilder
+    pub fn input_vector_u<const CONTROLS: usize>() -> ControlVectorBufferBuilder<CONTROLS> {
+        ControlVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
     pub fn input_transition_B<const STATES: usize, const CONTROLS: usize>(
-    ) -> InputTransitionMatrixBufferBuilder<STATES, CONTROLS> {
-        InputTransitionMatrixBufferBuilder
+    ) -> ControlTransitionMatrixBufferBuilder<STATES, CONTROLS> {
+        ControlTransitionMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
     pub fn input_covariance_Q<const CONTROLS: usize>(
-    ) -> InputCovarianceMatrixBufferBuilder<CONTROLS> {
-        InputCovarianceMatrixBufferBuilder
+    ) -> ControlCovarianceMatrixBufferBuilder<CONTROLS> {
+        ControlCovarianceMatrixBufferBuilder
     }
 
     pub fn measurement_vector_z<const MEASUREMENTS: usize>(
@@ -124,13 +124,13 @@ pub struct StateTransitionMatrixBufferBuilder<const STATES: usize>;
 pub struct SystemCovarianceMatrixBufferBuilder<const STATES: usize>;
 
 /// A builder for input vectors (`num_inputs` × `1`).
-pub struct InputVectorBufferBuilder<const CONTROLS: usize>;
+pub struct ControlVectorBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for input transition matrices (`num_states` × `num_inputs`).
-pub struct InputTransitionMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
+pub struct ControlTransitionMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
 
 /// A builder for input covariance matrices (`num_inputs` × `num_inputs`).
-pub struct InputCovarianceMatrixBufferBuilder<const CONTROLS: usize>;
+pub struct ControlCovarianceMatrixBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for measurement vectors (`num_measurements` × `1`).
 pub struct MeasurementVectorBufferBuilder<const MEASUREMENTS: usize>;
@@ -270,19 +270,19 @@ impl<const STATES: usize> SystemCovarianceMatrixBufferBuilder<STATES> {
 /// The type of owned control vector buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type ControlVectorBufferOwnedType<const STATES: usize, T> =
-    InputVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
+    ControlVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>;
 
-impl<const CONTROLS: usize> InputVectorBufferBuilder<CONTROLS> {
-    /// Builds a new [`InputVectorBuffer`] that owns its data.
+impl<const CONTROLS: usize> ControlVectorBufferBuilder<CONTROLS> {
+    /// Builds a new [`ControlVectorBuffer`] that owns its data.
     ///
     /// ## Example
     /// ```
-    /// use minikalman::buffers::types::InputVectorBuffer;
+    /// use minikalman::buffers::types::ControlVectorBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::input_vector_u::<2>().new(0.0);
     ///
-    /// let buffer: InputVectorBuffer<2, f32, _> = buffer;
+    /// let buffer: ControlVectorBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 2);
     /// ```
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
@@ -291,11 +291,11 @@ impl<const CONTROLS: usize> InputVectorBufferBuilder<CONTROLS> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InputVectorBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>
+    ) -> ControlVectorBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>
     where
         T: Copy,
     {
-        InputVectorBuffer::<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>::new(
+        ControlVectorBuffer::<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>::new(
             MatrixData::new_array::<CONTROLS, 1, CONTROLS, T>([init; CONTROLS]),
         )
     }
@@ -304,21 +304,21 @@ impl<const CONTROLS: usize> InputVectorBufferBuilder<CONTROLS> {
 /// The type of owned control matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type ControlMatrixBufferOwnedType<const STATES: usize, const CONTROLS: usize, T> =
-    InputMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>;
+    ControlMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>;
 
 impl<const STATES: usize, const CONTROLS: usize>
-    InputTransitionMatrixBufferBuilder<STATES, CONTROLS>
+    ControlTransitionMatrixBufferBuilder<STATES, CONTROLS>
 {
-    /// Builds a new [`InputMatrixMutBuffer`] that owns its data.
+    /// Builds a new [`ControlMatrixMutBuffer`] that owns its data.
     ///
     /// ## Example
     /// ```
-    /// use minikalman::buffers::types::InputMatrixMutBuffer;
+    /// use minikalman::buffers::types::ControlMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer  = BufferBuilder::input_transition_B::<3, 2>().new(0.0);
     ///
-    /// let buffer: InputMatrixMutBuffer<3, 2, f32, _> = buffer;
+    /// let buffer: ControlMatrixMutBuffer<3, 2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 6);
     /// ```
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
@@ -327,11 +327,11 @@ impl<const STATES: usize, const CONTROLS: usize>
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InputMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>
+    ) -> ControlMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>
     where
         T: Copy,
     {
-        InputMatrixMutBuffer::<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>::new(
+        ControlMatrixMutBuffer::<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>::new(
             MatrixData::new_boxed::<STATES, CONTROLS, T, _>(vec![init; STATES * CONTROLS]),
         )
     }
@@ -340,19 +340,19 @@ impl<const STATES: usize, const CONTROLS: usize>
 /// The type of owned control matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type ControlCovarianceMatrixBufferOwnedType<const CONTROLS: usize, T> =
-    InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>;
+    ControlCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>;
 
-impl<const CONTROLS: usize> InputCovarianceMatrixBufferBuilder<CONTROLS> {
-    /// Builds a new [`InputCovarianceMatrixMutBuffer`] that owns its data.
+impl<const CONTROLS: usize> ControlCovarianceMatrixBufferBuilder<CONTROLS> {
+    /// Builds a new [`ControlCovarianceMatrixMutBuffer`] that owns its data.
     ///
     /// ## Example
     /// ```
-    /// use minikalman::buffers::types::InputCovarianceMatrixMutBuffer;
+    /// use minikalman::buffers::types::ControlCovarianceMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer  = BufferBuilder::input_covariance_Q::<2>().new(0.0);
     ///
-    /// let buffer: InputCovarianceMatrixMutBuffer<2, f32, _> = buffer;
+    /// let buffer: ControlCovarianceMatrixMutBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 4);
     /// ```
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
@@ -361,11 +361,11 @@ impl<const CONTROLS: usize> InputCovarianceMatrixBufferBuilder<CONTROLS> {
     pub fn new<T>(
         &self,
         init: T,
-    ) -> InputCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>
+    ) -> ControlCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>
     where
         T: Copy,
     {
-        InputCovarianceMatrixMutBuffer::<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>::new(
+        ControlCovarianceMatrixMutBuffer::<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>::new(
             MatrixData::new_boxed::<CONTROLS, CONTROLS, T, _>(vec![init; CONTROLS * CONTROLS]),
         )
     }

@@ -3,16 +3,16 @@ use core::marker::PhantomData;
 use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
-use crate::inputs::{Input, InputBuilder};
+use crate::inputs::{Control, ControlBuilder};
 use crate::{BufferBuilder, Kalman, KalmanBuilder, Measurement, MeasurementBuilder};
 
 /// A simple builder for [`Kalman`] instances.
 #[derive(Copy, Clone)]
 pub struct KalmanFilterBuilder<const STATES: usize, T>(PhantomData<T>);
 
-/// A simple builder for [`Input`] instances.
+/// A simple builder for [`Control`] instances.
 #[derive(Copy, Clone)]
-pub struct KalmanFilterInputBuilder<const STATES: usize, T>(PhantomData<T>);
+pub struct KalmanFilterControlBuilder<const STATES: usize, T>(PhantomData<T>);
 
 /// A simple builder for [`Measurement`] instances.
 #[derive(Copy, Clone)]
@@ -59,7 +59,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
     /// ```
     ///
-    /// See also [`KalmanFilterInputBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
+    /// See also [`KalmanFilterControlBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
     pub fn build(&self) -> KalmanFilterType<STATES, T>
     where
         T: MatrixDataType,
@@ -85,8 +85,8 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
         )
     }
 
-    /// Convenience function to return a [`KalmanFilterInputBuilder`].
-    pub fn inputs(&self) -> KalmanFilterInputBuilder<STATES, T> {
+    /// Convenience function to return a [`KalmanFilterControlBuilder`].
+    pub fn inputs(&self) -> KalmanFilterControlBuilder<STATES, T> {
         Default::default()
     }
 
@@ -96,7 +96,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     }
 }
 
-impl<const STATES: usize, T> Default for KalmanFilterInputBuilder<STATES, T> {
+impl<const STATES: usize, T> Default for KalmanFilterControlBuilder<STATES, T> {
     fn default() -> Self {
         Self::new()
     }
@@ -104,8 +104,8 @@ impl<const STATES: usize, T> Default for KalmanFilterInputBuilder<STATES, T> {
 
 /// The type of Kalman filter inputs with owned buffers.
 ///
-/// See also the [`KalmanFilterInput`](minikalman::kalman::KalmanFilterInput) trait.
-pub type KalmanFilterInputType<const STATES: usize, const CONTROLS: usize, T> = Input<
+/// See also the [`KalmanFilterControl`](minikalman::kalman::KalmanFilterControl) trait.
+pub type KalmanFilterControlType<const STATES: usize, const CONTROLS: usize, T> = Control<
     STATES,
     CONTROLS,
     T,
@@ -115,8 +115,8 @@ pub type KalmanFilterInputType<const STATES: usize, const CONTROLS: usize, T> = 
     TemporaryBQMatrixBufferOwnedType<STATES, CONTROLS, T>,
 >;
 
-impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
-    /// Creates a new [`KalmanFilterInputBuilder`] instance.
+impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
+    /// Creates a new [`KalmanFilterControlBuilder`] instance.
     pub fn new() -> Self {
         Self(PhantomData)
     }
@@ -136,22 +136,22 @@ impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
-    pub fn build<const CONTROLS: usize>(&self) -> KalmanFilterInputType<STATES, CONTROLS, T>
+    pub fn build<const CONTROLS: usize>(&self) -> KalmanFilterControlType<STATES, CONTROLS, T>
     where
         T: MatrixDataType,
     {
         // The initialization value.
         let zero = T::zero();
 
-        // Input buffers.
+        // Control buffers.
         let input_vector = BufferBuilder::input_vector_u::<CONTROLS>().new(zero);
         let input_transition = BufferBuilder::input_transition_B::<STATES, CONTROLS>().new(zero);
         let input_covariance = BufferBuilder::input_covariance_Q::<CONTROLS>().new(zero);
 
-        // Input temporaries.
+        // Control temporaries.
         let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new(zero);
 
-        InputBuilder::new::<STATES, CONTROLS, T>(
+        ControlBuilder::new::<STATES, CONTROLS, T>(
             input_transition,
             input_vector,
             input_covariance,
@@ -206,7 +206,7 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
     /// let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
     /// ```
     ///
-    /// See also [`KalmanFilterBuilder`] and [`KalmanFilterInputBuilder`] for further information.
+    /// See also [`KalmanFilterBuilder`] and [`KalmanFilterControlBuilder`] for further information.
     pub fn build<const MEASUREMENTS: usize>(
         &self,
     ) -> KalmanFilterMeasurementType<STATES, MEASUREMENTS, T>
@@ -251,7 +251,7 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kalman::{KalmanFilter, KalmanFilterInput, KalmanFilterMeasurement};
+    use crate::kalman::{KalmanFilter, KalmanFilterControl, KalmanFilterMeasurement};
 
     const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
     const NUM_CONTROLS: usize = 1; // constant velocity
@@ -265,7 +265,7 @@ mod tests {
 
     fn accept_input<I, T>(_input: I)
     where
-        I: KalmanFilterInput<NUM_STATES, NUM_CONTROLS, T>,
+        I: KalmanFilterControl<NUM_STATES, NUM_CONTROLS, T>,
     {
     }
 

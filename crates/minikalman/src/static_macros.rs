@@ -200,7 +200,7 @@ macro_rules! impl_buffer_P {
 
 /// Sizes a static buffer fitting the input vector (`num_inputs` × `1`).
 ///
-/// This will create a [`InputVectorBuffer`](crate::buffers::types::InputVectorBuffer)
+/// This will create a [`ControlVectorBuffer`](crate::buffers::types::ControlVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -242,11 +242,11 @@ macro_rules! impl_buffer_u {
         $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, static)
     };
     ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffers::types::InputVectorBuffer<
+        $($keywords)* $vec_name: $crate::buffers::types::ControlVectorBuffer<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
-        > = $crate::buffers::types::InputVectorBuffer::<
+        > = $crate::buffers::types::ControlVectorBuffer::<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
@@ -258,7 +258,7 @@ macro_rules! impl_buffer_u {
 
 /// Creates a static buffer fitting the input transition matrix (`num_states` × `num_inputs`).
 ///
-/// This will create a [`InputMatrixMutBuffer`](crate::buffers::types::InputMatrixMutBuffer)
+/// This will create a [`ControlMatrixMutBuffer`](crate::buffers::types::ControlMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -303,12 +303,12 @@ macro_rules! impl_buffer_B {
         $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::InputMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::ControlMatrixMutBuffer<
             $num_states,
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        > = $crate::buffers::types::InputMatrixMutBuffer::<
+        > = $crate::buffers::types::ControlMatrixMutBuffer::<
             $num_states,
             $num_inputs,
             $t,
@@ -321,7 +321,7 @@ macro_rules! impl_buffer_B {
 
 /// Creates a static buffer fitting the square input covariance matrix (`num_inputs` × `num_inputs`).
 ///
-/// This will create a [`InputCovarianceMatrixMutBuffer`](crate::buffers::types::InputCovarianceMatrixMutBuffer)
+/// This will create a [`ControlCovarianceMatrixMutBuffer`](crate::buffers::types::ControlCovarianceMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -364,11 +364,11 @@ macro_rules! impl_buffer_Q {
         $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::InputCovarianceMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::ControlCovarianceMatrixMutBuffer<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
-        > = $crate::buffers::types::InputCovarianceMatrixMutBuffer::<
+        > = $crate::buffers::types::ControlCovarianceMatrixMutBuffer::<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,

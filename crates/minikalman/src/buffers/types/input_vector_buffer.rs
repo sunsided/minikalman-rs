@@ -1,34 +1,34 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::{InputVector, InputVectorMut};
+use crate::kalman::{ControlVector, ControlVectorMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-// TODO: Add InputVectorMutBuffer
+// TODO: Add ControlVectorMutBuffer
 
 /// Mutable buffer for the control (input) vector (`num_inputs` × `1`).
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::InputVectorBuffer;
+/// use minikalman::buffers::types::ControlVectorBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = InputVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
+/// let buffer = ControlVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = InputVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = ControlVectorBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct InputVectorBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
+pub struct ControlVectorBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<CONTROLS, 1, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
-    for InputVectorBuffer<CONTROLS, T, MatrixDataMut<'a, CONTROLS, 1, T>>
+    for ControlVectorBuffer<CONTROLS, T, MatrixDataMut<'a, CONTROLS, 1, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -43,18 +43,18 @@ impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
 /// Buffers can be trivially constructed from correctly-sized arrays:
 ///
 /// ```
-/// # use minikalman::buffers::types::InputVectorBuffer;
-/// let _value: InputVectorBuffer<5, f32, _> = [0.0; 5].into();
+/// # use minikalman::buffers::types::ControlVectorBuffer;
+/// let _value: ControlVectorBuffer<5, f32, _> = [0.0; 5].into();
 /// ```
 ///
 /// Invalid buffer sizes fail to compile:
 ///
 /// ```fail_compile
-/// # use minikalman::prelude::InputVectorBuffer;
-/// let _value: InputVectorBuffer<5, f32, _> = [0.0; 1].into();
+/// # use minikalman::prelude::ControlVectorBuffer;
+/// let _value: ControlVectorBuffer<5, f32, _> = [0.0; 1].into();
 /// ```
 impl<const CONTROLS: usize, T> From<[T; CONTROLS]>
-    for InputVectorBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>
+    for ControlVectorBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>
 {
     fn from(value: [T; CONTROLS]) -> Self {
         Self::new(MatrixData::new_array::<CONTROLS, 1, CONTROLS, T>(value))
@@ -63,7 +63,7 @@ impl<const CONTROLS: usize, T> From<[T; CONTROLS]>
 
 // -----------------------------------------------------------
 
-impl<const CONTROLS: usize, T, M> InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T>,
 {
@@ -85,7 +85,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> AsRef<[T]> for InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> AsRef<[T]> for ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T>,
 {
@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> AsMut<[T]> for InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> AsMut<[T]> for ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T>,
 {
@@ -103,17 +103,17 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, 1, T> for InputVectorBuffer<CONTROLS, T, M> where
+impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, 1, T> for ControlVectorBuffer<CONTROLS, T, M> where
     M: MatrixMut<CONTROLS, 1, T>
 {
 }
 
-impl<const CONTROLS: usize, T, M> MatrixMut<CONTROLS, 1, T> for InputVectorBuffer<CONTROLS, T, M> where
+impl<const CONTROLS: usize, T, M> MatrixMut<CONTROLS, 1, T> for ControlVectorBuffer<CONTROLS, T, M> where
     M: MatrixMut<CONTROLS, 1, T>
 {
 }
 
-impl<const CONTROLS: usize, T, M> InputVector<CONTROLS, T> for InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlVector<CONTROLS, T> for ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T>,
 {
@@ -124,7 +124,8 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> InputVectorMut<CONTROLS, T> for InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlVectorMut<CONTROLS, T>
+    for ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T>,
 {
@@ -135,7 +136,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> Index<usize> for InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> Index<usize> for ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T>,
 {
@@ -146,7 +147,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> IndexMut<usize> for InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> IndexMut<usize> for ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T>,
 {
@@ -157,7 +158,7 @@ where
 
 // -----------------------------------------------------------
 
-impl<const CONTROLS: usize, T, M> IntoInnerData for InputVectorBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> IntoInnerData for ControlVectorBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, 1, T> + IntoInnerData,
 {
@@ -174,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: InputVectorBuffer<5, f32, _> = [0.0; 5].into();
+        let value: ControlVectorBuffer<5, f32, _> = [0.0; 5].into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -183,7 +184,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 5];
-        let value: InputVectorBuffer<5, f32, _> = data.as_mut().into();
+        let value: ControlVectorBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
