@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use minikalman_traits::matrix::MatrixDataType;
+use crate::matrix::MatrixDataType;
 
 use crate::buffer_builder::*;
 use crate::inputs::{Input, InputBuilder};
@@ -26,7 +26,7 @@ impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
 
 /// The type of Kalman filters with owned buffers.
 ///
-/// See also the [`KalmanFilter`](minikalman_traits::kalman::KalmanFilter) trait.
+/// See also the [`KalmanFilter`](minikalman::kalman::KalmanFilter) trait.
 pub type KalmanFilterType<const STATES: usize, T> = Kalman<
     STATES,
     T,
@@ -104,7 +104,7 @@ impl<const STATES: usize, T> Default for KalmanFilterInputBuilder<STATES, T> {
 
 /// The type of Kalman filter inputs with owned buffers.
 ///
-/// See also the [`KalmanFilterInput`](minikalman_traits::kalman::KalmanFilterInput) trait.
+/// See also the [`KalmanFilterInput`](minikalman::kalman::KalmanFilterInput) trait.
 pub type KalmanFilterInputType<const STATES: usize, const INPUTS: usize, T> = Input<
     STATES,
     INPUTS,
@@ -168,7 +168,7 @@ impl<const STATES: usize, T> Default for KalmanFilterMeasurementBuilder<STATES, 
 
 /// The type of Kalman filter measurements with owned buffers.
 ///
-/// See also the [`KalmanFilterMeasurement`](minikalman_traits::kalman::KalmanFilterMeasurement) trait.
+/// See also the [`KalmanFilterMeasurement`](minikalman::kalman::KalmanFilterMeasurement) trait.
 pub type KalmanFilterMeasurementType<const STATES: usize, const MEASUREMENTS: usize, T> =
     Measurement<
         STATES,
@@ -251,7 +251,7 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use minikalman_traits::kalman::{KalmanFilter, KalmanFilterInput, KalmanFilterMeasurement};
+    use crate::kalman::{KalmanFilter, KalmanFilterInput, KalmanFilterMeasurement};
 
     const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
     const NUM_INPUTS: usize = 1; // constant velocity

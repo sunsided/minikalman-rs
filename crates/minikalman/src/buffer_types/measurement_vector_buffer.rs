@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use minikalman_traits::kalman::{MeasurementVector, MeasurementVectorMut};
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
-use minikalman_traits::matrix::{Matrix, MatrixMut};
+use crate::kalman::{MeasurementVector, MeasurementVectorMut};
+use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
+use crate::matrix::{Matrix, MatrixMut};
 
 // TODO: Add MeasurementVectorMutBuffer
 
@@ -12,7 +12,6 @@ use minikalman_traits::matrix::{Matrix, MatrixMut};
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = MeasurementVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));

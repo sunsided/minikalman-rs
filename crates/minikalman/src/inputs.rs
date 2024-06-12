@@ -1,6 +1,6 @@
+use crate::kalman::*;
+use crate::matrix::*;
 use core::marker::PhantomData;
-use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::*;
 
 /// A builder for a [`Input`] filter instances.
 #[allow(clippy::type_complexity)]
@@ -341,8 +341,8 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn input_only() {
+        use crate::matrix::MatrixMut;
         use assert_float_eq::*;
-        use minikalman_traits::matrix::MatrixMut;
 
         use crate::prelude::{BufferBuilder, KalmanBuilder};
 

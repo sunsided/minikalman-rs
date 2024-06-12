@@ -1,5 +1,5 @@
+use crate::matrix::{MatrixData, MatrixDataArray, MatrixDataBoxed};
 use crate::prelude::*;
-use minikalman_traits::matrix::{MatrixData, MatrixDataArray, MatrixDataBoxed};
 
 // TODO: Provide Kalman builder that returns impl KalmanFilter, or export a type alias e.g. via associated type.
 

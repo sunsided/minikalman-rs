@@ -1,18 +1,15 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use minikalman_traits::kalman::{InputMatrix, InputMatrixMut};
-use minikalman_traits::matrix::{
-    IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
-};
-use minikalman_traits::matrix::{Matrix, MatrixMut};
+use crate::kalman::{InputMatrix, InputMatrixMut};
+use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
+use crate::matrix::{Matrix, MatrixMut};
 
 /// Immutable buffer for the control matrix (`num_states` × `num_inputs`).
 ///
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = InputMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
@@ -30,7 +27,6 @@ where
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = InputMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));

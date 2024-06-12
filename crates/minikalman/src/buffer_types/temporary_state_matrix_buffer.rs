@@ -1,16 +1,15 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use minikalman_traits::kalman::TemporaryStateMatrix;
-use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
-use minikalman_traits::matrix::{Matrix, MatrixMut};
+use crate::kalman::TemporaryStateMatrix;
+use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
+use crate::matrix::{Matrix, MatrixMut};
 
 /// Mutable buffer for the temporary system matrix (`num_states` × `num_states`).
 ///
 /// ## Example
 /// ```
 /// use minikalman::prelude::*;
-/// use minikalman_traits::matrix::MatrixData;
 ///
 /// // From owned data
 /// let buffer = TemporaryStateMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));

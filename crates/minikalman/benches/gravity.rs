@@ -2,8 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use minikalman::buffer_types::*;
 use minikalman::{BufferBuilder, KalmanBuilder, MeasurementBuilder};
 
-use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::*;
+use minikalman::prelude::*;
 
 const REAL_DISTANCE: [f32; 15] = [
     0.0, 4.905, 19.62, 44.145, 78.48, 122.63, 176.58, 240.35, 313.92, 397.31, 490.5, 593.51,

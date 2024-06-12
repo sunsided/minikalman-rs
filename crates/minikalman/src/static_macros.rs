@@ -1,7 +1,7 @@
 /// Creates a static buffer fitting the state vector (`num_states` × `1`).
 ///
 /// This will create a [`StateVectorBuffer`](crate::buffer_types::StateVectorBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -58,12 +58,12 @@ macro_rules! impl_buffer_x {
         $($keywords)* $vec_name: $crate::buffer_types::StateVectorBuffer<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
         > = $crate::buffer_types::StateVectorBuffer::<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * 1 }],
         ));
     };
@@ -72,7 +72,7 @@ macro_rules! impl_buffer_x {
 /// Creates a static buffer fitting the square state transition matrix (`num_states` × `num_states`).
 ///
 /// This will create a [`SystemMatrixMutBuffer`](crate::buffer_types::SystemMatrixMutBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -128,12 +128,12 @@ macro_rules! impl_buffer_A {
         $($keywords)* $mat_name: $crate::buffer_types::SystemMatrixMutBuffer<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::SystemMatrixMutBuffer::<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };
@@ -142,7 +142,7 @@ macro_rules! impl_buffer_A {
 /// Creates a static buffer fitting the square state covariance matrix (`num_states` × `num_states`).
 ///
 /// This will create a [`SystemCovarianceMatrixBuffer`](crate::buffer_types::SystemCovarianceMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -187,12 +187,12 @@ macro_rules! impl_buffer_P {
         $($keywords)* $mat_name: $crate::buffer_types::SystemCovarianceMatrixBuffer<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::SystemCovarianceMatrixBuffer::<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };
@@ -201,7 +201,7 @@ macro_rules! impl_buffer_P {
 /// Sizes a static buffer fitting the input vector (`num_inputs` × `1`).
 ///
 /// This will create a [`InputVectorBuffer`](crate::buffer_types::InputVectorBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -245,12 +245,12 @@ macro_rules! impl_buffer_u {
         $($keywords)* $vec_name: $crate::buffer_types::InputVectorBuffer<
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
+            $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
         > = $crate::buffer_types::InputVectorBuffer::<
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_inputs * 1 }],
         ));
     };
@@ -259,7 +259,7 @@ macro_rules! impl_buffer_u {
 /// Creates a static buffer fitting the input transition matrix (`num_states` × `num_inputs`).
 ///
 /// This will create a [`InputMatrixMutBuffer`](crate::buffer_types::InputMatrixMutBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -307,13 +307,13 @@ macro_rules! impl_buffer_B {
             $num_states,
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
         > = $crate::buffer_types::InputMatrixMutBuffer::<
             $num_states,
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_inputs }],
         ));
     };
@@ -322,7 +322,7 @@ macro_rules! impl_buffer_B {
 /// Creates a static buffer fitting the square input covariance matrix (`num_inputs` × `num_inputs`).
 ///
 /// This will create a [`InputCovarianceMatrixMutBuffer`](crate::buffer_types::InputCovarianceMatrixMutBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_inputs` - The number of inputs to the system.
@@ -367,12 +367,12 @@ macro_rules! impl_buffer_Q {
         $($keywords)* $mat_name: $crate::buffer_types::InputCovarianceMatrixMutBuffer<
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
+            $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
         > = $crate::buffer_types::InputCovarianceMatrixMutBuffer::<
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_inputs * $num_inputs }],
         ));
     };
@@ -381,7 +381,7 @@ macro_rules! impl_buffer_Q {
 /// Creates a static buffer fitting the measurement vector z (`num_measurements` × `1`).
 ///
 /// This will create a [`MeasurementVectorBuffer`](crate::buffer_types::MeasurementVectorBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -425,12 +425,12 @@ macro_rules! impl_buffer_z {
         $($keywords)* $vec_name: $crate::buffer_types::MeasurementVectorBuffer<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+            $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
         > = $crate::buffer_types::MeasurementVectorBuffer::<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_measurements * 1 }],
         ));
     };
@@ -439,7 +439,7 @@ macro_rules! impl_buffer_z {
 /// Creates a static buffer fitting the measurement transformation matrix (`num_measurements` × `num_states`).
 ///
 /// This will create a [`MeasurementTransformationMatrixMutBuffer`](crate::buffer_types::MeasurementObservationMatrixMutBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -487,7 +487,7 @@ macro_rules! impl_buffer_H {
             $num_measurements,
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
@@ -497,13 +497,13 @@ macro_rules! impl_buffer_H {
             $num_measurements,
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
                 $t,
             >,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_measurements * $num_states }],
         ));
     };
@@ -512,7 +512,7 @@ macro_rules! impl_buffer_H {
 /// Creates a static buffer fitting the square measurement uncertainty matrix (`num_measurements` × `num_measurements`).
 ///
 /// This will create a [`MeasurementProcessNoiseCovarianceMatrixBuffer`](crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -557,7 +557,7 @@ macro_rules! impl_buffer_R {
         $($keywords)* $mat_name: $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
@@ -566,13 +566,13 @@ macro_rules! impl_buffer_R {
         > = $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer::<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_measurements * $num_measurements }],
         ));
     };
@@ -581,7 +581,7 @@ macro_rules! impl_buffer_R {
 /// Creates a static buffer fitting the innovation vector (`num_measurements` × `1`).
 ///
 /// This will create a [`InnovationVectorBuffer`](crate::buffer_types::InnovationVectorBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -625,12 +625,12 @@ macro_rules! impl_buffer_y {
         $($keywords)* $vec_name: $crate::buffer_types::InnovationVectorBuffer<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+            $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
         > = $crate::buffer_types::InnovationVectorBuffer::<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_measurements * 1 }],
         ));
     };
@@ -639,7 +639,7 @@ macro_rules! impl_buffer_y {
 /// Creates a static buffer fitting the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
 ///
 /// This will create a [`InnovationResidualCovarianceMatrixBuffer`](crate::buffer_types::InnovationResidualCovarianceMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -684,7 +684,7 @@ macro_rules! impl_buffer_S {
         $($keywords)* $mat_name: $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
@@ -693,13 +693,13 @@ macro_rules! impl_buffer_S {
         > = $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer::<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_measurements * $num_measurements }],
         ));
     };
@@ -708,7 +708,7 @@ macro_rules! impl_buffer_S {
 /// Creates a static buffer fitting the Kalman gain matrix (`num_states` × `num_measurements`).
 ///
 /// This will create a [`KalmanGainMatrixBuffer`](crate::buffer_types::KalmanGainMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -756,7 +756,7 @@ macro_rules! impl_buffer_K {
             $num_states,
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
@@ -766,13 +766,13 @@ macro_rules! impl_buffer_K {
             $num_states,
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
                 $t,
             >,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_measurements }],
         ));
     };
@@ -781,7 +781,7 @@ macro_rules! impl_buffer_K {
 /// Creates a static buffer fitting the temporary x predictions (`num_states` × `1`).
 ///
 /// This will create a [`StatePredictionVectorBuffer`](crate::buffer_types::TemporaryStatePredictionVectorBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -825,12 +825,12 @@ macro_rules! impl_buffer_temp_x {
         $($keywords)* $vec_name: $crate::buffer_types::TemporaryStatePredictionVectorBuffer<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
         > = $crate::buffer_types::TemporaryStatePredictionVectorBuffer::<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * 1 }],
         ));
     };
@@ -839,7 +839,7 @@ macro_rules! impl_buffer_temp_x {
 /// Creates a static buffer fitting the square temporary P matrix (`num_states` × `num_states`).
 ///
 /// This will create a [`TemporaryStateMatrixBuffer`](crate::buffer_types::TemporaryStateMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -884,12 +884,12 @@ macro_rules! impl_buffer_temp_P {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryStateMatrixBuffer<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::TemporaryStateMatrixBuffer::<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };
@@ -898,7 +898,7 @@ macro_rules! impl_buffer_temp_P {
 /// Creates a static buffer fitting the temporary B×Q matrix (`num_states` × `num_inputs`).
 ///
 /// This will create a [`TemporaryBQMatrixBuffer`](crate::buffer_types::TemporaryBQMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -946,13 +946,13 @@ macro_rules! impl_buffer_temp_BQ {
             $num_states,
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
         > = $crate::buffer_types::TemporaryBQMatrixBuffer::<
             $num_states,
             $num_inputs,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_inputs }],
         ));
     };
@@ -961,7 +961,7 @@ macro_rules! impl_buffer_temp_BQ {
 /// Creates a static buffer fitting the square temporary S-inverted (`num_measurements` × `num_measurements`).
 ///
 /// This will create a [`TemporaryResidualCovarianceInvertedMatrixBuffer`](crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -1006,7 +1006,7 @@ macro_rules! impl_buffer_temp_S_inv {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
@@ -1015,13 +1015,13 @@ macro_rules! impl_buffer_temp_S_inv {
         > = $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer::<
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_measurements,
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_measurements * $num_measurements }],
         ));
     };
@@ -1030,7 +1030,7 @@ macro_rules! impl_buffer_temp_S_inv {
 /// Creates a static buffer fitting the temporary H×P matrix (`num_measurements` × `num_states`).
 ///
 /// This will create a [`TemporaryHPMatrixBuffer`](crate::buffer_types::TemporaryHPMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -1078,7 +1078,7 @@ macro_rules! impl_buffer_temp_HP {
             $num_measurements,
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
@@ -1088,13 +1088,13 @@ macro_rules! impl_buffer_temp_HP {
             $num_measurements,
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_measurements,
                 $num_states,
                 { $num_measurements * $num_states },
                 $t,
             >,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_measurements * $num_states }],
         ));
     };
@@ -1103,7 +1103,7 @@ macro_rules! impl_buffer_temp_HP {
 /// Creates a buffer fitting the temporary P×Hᵀ buffer (`num_states` × `num_measurements`).
 ///
 /// This will create a [`TemporaryPHTMatrixBuffer`](crate::buffer_types::TemporaryPHTMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -1151,7 +1151,7 @@ macro_rules! impl_buffer_temp_PHt {
             $num_states,
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
@@ -1161,13 +1161,13 @@ macro_rules! impl_buffer_temp_PHt {
             $num_states,
             $num_measurements,
             $t,
-            $crate::traits::matrix::MatrixDataArray<
+            $crate::matrix::MatrixDataArray<
                 $num_states,
                 $num_measurements,
                 { $num_states * $num_measurements },
                 $t,
             >,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_measurements }],
         ));
     };
@@ -1176,7 +1176,7 @@ macro_rules! impl_buffer_temp_PHt {
 /// Creates a buffer fitting the temporary K×(H×P) buffer (`num_states` × `num_states`).
 ///
 /// This will create a [`TemporaryKHPMatrixBuffer`](crate::buffer_types::TemporaryKHPMatrixBuffer)
-/// backed by a [`MatrixDataOwned`](crate::MatrixDataOwned).
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -1221,12 +1221,12 @@ macro_rules! impl_buffer_temp_KHP {
         $($keywords)* $mat_name: $crate::buffer_types::TemporaryKHPMatrixBuffer<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
         > = $crate::buffer_types::TemporaryKHPMatrixBuffer::<
             $num_states,
             $t,
-            $crate::traits::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::traits::matrix::MatrixDataArray::new_unchecked(
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_states * $num_states }],
         ));
     };

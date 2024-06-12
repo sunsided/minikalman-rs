@@ -1,17 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lazy_static::lazy_static;
 
-use minikalman::buffer_types::{
-    InnovationResidualCovarianceMatrixBuffer, InnovationVectorBuffer, KalmanGainMatrixBuffer,
-    MeasurementObservationMatrixMutBuffer, MeasurementProcessNoiseCovarianceMatrixBuffer,
-    MeasurementVectorBuffer, StateVectorBuffer, SystemCovarianceMatrixBuffer,
-    SystemMatrixMutBuffer, TemporaryHPMatrixBuffer, TemporaryKHPMatrixBuffer,
-    TemporaryPHTMatrixBuffer, TemporaryResidualCovarianceInvertedMatrixBuffer,
-    TemporaryStateMatrixBuffer, TemporaryStatePredictionVectorBuffer,
-};
-use minikalman::prelude::{fixed::I16F16, *};
-use minikalman_traits::kalman::*;
-use minikalman_traits::matrix::*;
+use minikalman::prelude::{I16F16, *};
 
 lazy_static! {
     /// Measurements.
@@ -221,7 +211,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 }
 
 /// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut impl StateVector<NUM_STATES, I16F16>) {
+fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>) {
     filter.apply(|state| {
         state[0] = I16F16::ZERO; // position
         state[1] = I16F16::ZERO; // velocity

@@ -6,7 +6,11 @@
 //!
 //! This implementation uses statically allocated buffers for all matrix operations. Due to lack
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
-//! to create the required arrays (see e.g. [`create_buffer_A`]).
+//! to create the required arrays (see e.g. [`impl_buffer_A`]).
+//!
+//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanBuilder`] can be
+//! used to quickly create a [`Kalman`] filter instance with all necessary buffers, alongside
+//! [`Input`] and [`Measurement`] instances.
 //!
 //! ## Crate Features
 //!
@@ -41,6 +45,7 @@ mod kalman_builder;
 pub mod buffer_types;
 mod inputs;
 mod kalman;
+pub mod matrix;
 mod measurement;
 mod static_macros;
 
@@ -51,16 +56,12 @@ mod test_dummies;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub use crate::buffer_builder::BufferBuilder;
+pub use crate::inputs::{Input, InputBuilder};
 pub use crate::kalman::{Kalman, KalmanBuilder};
 pub use crate::measurement::{Measurement, MeasurementBuilder};
 
 /// Re-export `num_traits`.
 pub use num_traits;
-
-pub mod traits {
-    pub use minikalman_traits::kalman;
-    pub use minikalman_traits::matrix;
-}
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
@@ -80,8 +81,8 @@ pub mod prelude {
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::measurement::{Measurement, MeasurementBuilder};
 
-    pub use minikalman_traits::kalman::*;
-    pub use minikalman_traits::matrix::*;
+    pub use crate::kalman::*;
+    pub use crate::matrix::*;
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,
@@ -426,7 +427,6 @@ macro_rules! size_buffer_temp_BQ {
 /// # use minikalman::*;
 /// const NUM_MEASUREMENTS: usize = 1;
 /// assert_eq!(size_buffer_temp_S_inv!(NUM_MEASUREMENTS), 1);
-/// ```
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
