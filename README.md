@@ -51,8 +51,8 @@ const NUM_MEASUREMENTS: usize = 1;
 fn example() {
     let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
-    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
     let mut input = builder.inputs().build::<NUM_INPUTS>();
+    let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
 
     // Set up the system dynamics, input matrices, observation matrices, ...
 
