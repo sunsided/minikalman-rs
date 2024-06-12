@@ -337,12 +337,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builder::KalmanFilterBuilder;
     use crate::test_dummies::{Dummy, DummyMatrix};
 
     #[test]
     #[cfg(feature = "alloc")]
     fn test_apply() {
+        use crate::builder::KalmanFilterBuilder;
+
         let builder = KalmanFilterBuilder::<3, f32>::default();
         let mut filter = builder.build();
         let mut control = builder.controls().build::<1>();

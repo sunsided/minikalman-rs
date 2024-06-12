@@ -701,7 +701,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::builder::KalmanFilterBuilder;
     use crate::test_dummies::{Dummy, DummyMatrix};
 
     use super::*;
@@ -709,6 +708,8 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test_apply() {
+        use crate::builder::KalmanFilterBuilder;
+
         let builder = KalmanFilterBuilder::<3, f32>::default();
         let mut filter = builder.build();
         let mut measurement = builder.measurements().build::<5>();
