@@ -861,6 +861,15 @@ impl<const N: usize, T, M> SquareMatrixMut<N, T> for M where M: MatrixMut<N, N, 
 pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     AsMut<[T]> + Matrix<ROWS, COLS, T> + IndexMut<usize, Output = T>
 {
+    /// Sets all elements of the matrix to the zero.
+    #[doc(alias = "fill")]
+    fn clear(&mut self)
+    where
+        T: Copy + Zero,
+    {
+        self.set_all(T::zero());
+    }
+
     /// Sets a matrix element
     ///
     /// ## Arguments
@@ -872,6 +881,18 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     fn set(&mut self, row: usize, column: usize, value: T) {
         let cols = self.cols();
         self.as_mut()[idx!(row * cols + column)] = value;
+    }
+
+    /// Sets all elements of the matrix to the provided value.
+    ///
+    /// ## Arguments
+    /// * `value` - The value to set the elements to.
+    #[doc(alias = "fill")]
+    fn set_all(&mut self, value: T)
+    where
+        T: Copy,
+    {
+        self.as_mut().fill(value);
     }
 
     /// Sets matrix elements in a symmetric matrix
