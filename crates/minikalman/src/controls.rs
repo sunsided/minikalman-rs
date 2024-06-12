@@ -337,7 +337,19 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::builder::KalmanFilterBuilder;
     use crate::test_dummies::{Dummy, DummyMatrix};
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn test_apply() {
+        let builder = KalmanFilterBuilder::<3, f32>::default();
+        let mut filter = builder.build();
+        let mut control = builder.controls().build::<1>();
+
+        filter.predict();
+        filter.control(&mut control);
+    }
 
     #[allow(non_snake_case)]
     #[test]
@@ -451,14 +463,29 @@ mod tests {
         assert_f32_near!(state[3], 20.0);
     }
 
+    fn trait_impl<const STATES: usize, const CONTROLS: usize, T, M>(controls: M) -> M
+    where
+        M: KalmanFilterControl<STATES, CONTROLS, T>,
+    {
+        assert_eq!(controls.states(), STATES);
+        assert_eq!(controls.controls(), CONTROLS);
+        controls
+    }
+
     #[test]
     fn builder_simple() {
-        let _filter = ControlBuilder::new::<3, 2, f32>(
+        let control = ControlBuilder::new::<3, 2, f32>(
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
         );
+
+        let control = trait_impl(control);
+
+        let _controls = control.control_vector_ref();
+        let _matrix = control.control_matrix_ref();
+        let _covariance = control.control_covariance_ref();
     }
 
     impl<const CONTROLS: usize, T> ControlVector<CONTROLS, T> for Dummy<T> {

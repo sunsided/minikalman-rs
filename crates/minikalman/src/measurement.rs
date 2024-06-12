@@ -701,14 +701,29 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::builder::KalmanFilterBuilder;
     use crate::test_dummies::{Dummy, DummyMatrix};
 
     use super::*;
 
-    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(_measurement: M)
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn test_apply() {
+        let builder = KalmanFilterBuilder::<3, f32>::default();
+        let mut filter = builder.build();
+        let mut measurement = builder.measurements().build::<5>();
+
+        filter.predict();
+        filter.correct(&mut measurement);
+    }
+
+    fn trait_impl<const STATES: usize, const MEASUREMENTS: usize, T, M>(measurement: M) -> M
     where
         M: KalmanFilterMeasurement<STATES, MEASUREMENTS, T>,
     {
+        assert_eq!(measurement.states(), STATES);
+        assert_eq!(measurement.measurements(), MEASUREMENTS);
+        measurement
     }
 
     #[test]
@@ -726,7 +741,11 @@ mod tests {
             Dummy::default(),
         );
 
-        trait_impl(measurement);
+        let measurement = trait_impl(measurement);
+
+        let _measurements = measurement.measurement_vector_ref();
+        let _matrix = measurement.measurement_transformation_ref();
+        let _noise = measurement.process_noise_ref();
     }
 
     impl<const STATES: usize, T> MeasurementVector<STATES, T> for Dummy<T> {
