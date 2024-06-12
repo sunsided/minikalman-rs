@@ -1,6 +1,5 @@
 use core::marker::PhantomData;
 
-use minikalman_traits::kalman::*;
 use minikalman_traits::matrix::MatrixDataType;
 
 use crate::buffer_builder::*;
@@ -27,7 +26,7 @@ impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
 
 /// The type of Kalman filters with owned buffers.
 ///
-/// See also the [`KalmanFilter`] trait.
+/// See also the [`KalmanFilter`](minikalman_traits::kalman::KalmanFilter) trait.
 pub type KalmanFilterType<const STATES: usize, T> = Kalman<
     STATES,
     T,
@@ -103,9 +102,9 @@ impl<const STATES: usize, T> Default for KalmanFilterInputBuilder<STATES, T> {
     }
 }
 
-/// The type of Kalman filters with owned buffers.
+/// The type of Kalman filter inputs with owned buffers.
 ///
-/// See also the [`KalmanFilter`] trait.
+/// See also the [`KalmanFilterInput`](minikalman_traits::kalman::KalmanFilterInput) trait.
 pub type KalmanFilterInputType<const STATES: usize, const INPUTS: usize, T> = Input<
     STATES,
     INPUTS,
@@ -167,6 +166,26 @@ impl<const STATES: usize, T> Default for KalmanFilterMeasurementBuilder<STATES, 
     }
 }
 
+/// The type of Kalman filter measurements with owned buffers.
+///
+/// See also the [`KalmanFilterMeasurement`](minikalman_traits::kalman::KalmanFilterMeasurement) trait.
+pub type KalmanFilterMeasurementType<const STATES: usize, const MEASUREMENTS: usize, T> =
+    Measurement<
+        STATES,
+        MEASUREMENTS,
+        T,
+        ObservationMatrixBufferOwnedType<MEASUREMENTS, STATES, T>,
+        ObservationVectorBufferOwnedType<MEASUREMENTS, T>,
+        ObservationCovarianceBufferOwnedType<MEASUREMENTS, T>,
+        InnovationVectorBufferOwnedType<MEASUREMENTS, T>,
+        InnovationResidualCovarianceMatrixBufferOwnedType<MEASUREMENTS, T>,
+        KalmanGainMatrixBufferOwnedType<STATES, MEASUREMENTS, T>,
+        TemporarySInvertedMatrixBufferOwnedType<MEASUREMENTS, T>,
+        TemporaryHPMatrixBufferOwnedType<MEASUREMENTS, STATES, T>,
+        TemporaryPHtMatrixBufferOwnedType<STATES, MEASUREMENTS, T>,
+        TemporaryKHPMatrixBufferOwnedType<STATES, T>,
+    >;
+
 impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
     /// Creates a new [`KalmanFilterMeasurementBuilder`] instance.
     pub fn new() -> Self {
@@ -190,21 +209,7 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterInputBuilder`] for further information.
     pub fn build<const MEASUREMENTS: usize>(
         &self,
-    ) -> Measurement<
-        STATES,
-        MEASUREMENTS,
-        T,
-        impl MeasurementObservationMatrixMut<MEASUREMENTS, STATES, T>,
-        impl MeasurementVectorMut<MEASUREMENTS, T>,
-        impl MeasurementProcessNoiseCovarianceMatrix<MEASUREMENTS, T>,
-        impl InnovationVector<MEASUREMENTS, T>,
-        impl ResidualCovarianceMatrix<MEASUREMENTS, T>,
-        impl KalmanGainMatrix<STATES, MEASUREMENTS, T>,
-        impl TemporaryResidualCovarianceInvertedMatrix<MEASUREMENTS, T>,
-        impl TemporaryHPMatrix<MEASUREMENTS, STATES, T>,
-        impl TemporaryPHTMatrix<STATES, MEASUREMENTS, T>,
-        impl TemporaryKHPMatrix<STATES, T>,
-    >
+    ) -> KalmanFilterMeasurementType<STATES, MEASUREMENTS, T>
     where
         T: MatrixDataType,
     {
@@ -246,6 +251,7 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use minikalman_traits::kalman::{KalmanFilter, KalmanFilterInput, KalmanFilterMeasurement};
 
     const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
     const NUM_INPUTS: usize = 1; // constant velocity
