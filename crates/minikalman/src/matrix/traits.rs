@@ -1,5 +1,6 @@
 use crate::matrix::MatrixDataType;
 use core::ops::{Index, IndexMut};
+use num_traits::{One, Zero};
 
 /// Replaces `x` with `(x) as usize` to simplify index accesses.
 macro_rules! idx {
@@ -798,7 +799,60 @@ pub trait SquareMatrix<const N: usize, T = f32>: AsRef<[T]> {
 }
 
 /// A square matrix wrapping a data buffer.
-pub trait SquareMatrixMut<const N: usize, T = f32>: AsMut<[T]> + SquareMatrix<N, T> {}
+pub trait SquareMatrixMut<const N: usize, T = f32>: AsMut<[T]> + SquareMatrix<N, T> {
+    /// Sets this matrix to the identity matrix, i.e. all off-diagonal entries are set to zero,
+    /// diagonal entries are set to 1.0.
+    fn make_identity(&mut self)
+    where
+        T: One + Zero + Copy,
+    {
+        self.make_comatrix(T::one(), T::zero())
+    }
+
+    /// Sets this matrix to a scalar matrix, i.e. all off-diagonal entries are set to zero,
+    /// diagonal entries are set to the provided value.
+    ///
+    /// ## Arguments
+    /// * `value` - The value to set the diagonal elements to.
+    fn make_scalar(&mut self, diagonal: T)
+    where
+        T: Zero + Copy,
+    {
+        self.make_comatrix(diagonal, T::zero())
+    }
+
+    /// Sets the diagonal elements of the matrix to the provided value.
+    ///
+    /// ## Arguments
+    /// * `value` - The value to set the diagonal elements to.
+    fn set_diagonal_to_scalar(&mut self, value: T)
+    where
+        T: Copy,
+    {
+        let data = self.as_mut();
+        for i in 0..N {
+            data[i * N + i] = value;
+        }
+    }
+
+    /// Sets this matrix to a comatrix, or constant diagonal matrix, i.e. a matrix where all off-diagonal entries
+    /// are identical and all diagonal entries are identical.
+    ///
+    /// ## Arguments
+    /// * `diagonal` - The value to set the diagonal elements to.
+    /// * `off_diagonal` - The value to set the off-diagonal elements to.
+    fn make_comatrix(&mut self, diagonal: T, off_diagonal: T)
+    where
+        T: Copy,
+    {
+        let data = self.as_mut();
+        for i in 0..N {
+            for j in 0..N {
+                data[i * N + j] = if i == j { diagonal } else { off_diagonal };
+            }
+        }
+    }
+}
 
 impl<const N: usize, T, M> SquareMatrix<N, T> for M where M: Matrix<N, N, T> {}
 impl<const N: usize, T, M> SquareMatrixMut<N, T> for M where M: MatrixMut<N, N, T> {}
@@ -810,7 +864,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// Sets a matrix element
     ///
     /// ## Arguments
-    /// * `mat` - The matrix to set    /// * `rows` - The row
+    /// * `rows` - The row
     /// * `cols` - The column
     /// * `value` - The value to set
     #[inline(always)]
@@ -823,7 +877,6 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// Sets matrix elements in a symmetric matrix
     ///
     /// ## Arguments
-    /// * `mat` - The matrix to set
     /// * `rows` - The row
     /// * `cols` - The column
     /// * `value` - The value to set
@@ -1386,5 +1439,89 @@ mod tests {
         let m = MatrixData::empty::<f32>();
         assert!(m.is_empty());
         assert_eq!(m.len(), 0);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_set_diagonal_to_scalar() {
+        // data buffer for the original and decomposed matrix
+        let d = [42.0; 16];
+        let mut m = MatrixData::new_array::<4, 4, 16, f32>(d);
+
+        // Set all diagonal elements, keeping the rest.
+        m.set_diagonal_to_scalar(0.0);
+
+        assert_eq!(
+            m.as_ref(),
+            [
+                 0.0, 42.0, 42.0, 42.0,
+                42.0,  0.0, 42.0, 42.0,
+                42.0, 42.0,  0.0, 42.0,
+                42.0, 42.0, 42.0,  0.0,
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_make_centrosymmetric() {
+        // data buffer for the original and decomposed matrix
+        let d = [42.0; 16];
+        let mut m = MatrixData::new_array::<4, 4, 16, f32>(d);
+
+        // Make it comatrix.
+        m.make_comatrix(42.0, 1.0);
+
+        assert_eq!(
+            m.as_ref(),
+            [
+                42.0,  1.0,  1.0,  1.0,
+                 1.0, 42.0,  1.0,  1.0,
+                 1.0,  1.0, 42.0,  1.0,
+                 1.0,  1.0,  1.0,  42.0,
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_make_scalar() {
+        // data buffer for the original and decomposed matrix
+        let d = [42.0; 16];
+        let mut m = MatrixData::new_array::<4, 4, 16, f32>(d);
+
+        // Make it scalar.
+        m.make_scalar(10.0);
+
+        assert_eq!(
+            m.as_ref(),
+            [
+                10.0,  0.0,  0.0,  0.0,
+                 0.0, 10.0,  0.0,  0.0,
+                 0.0,  0.0, 10.0,  0.0,
+                 0.0,  0.0,  0.0, 10.0,
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_make_identity() {
+        // data buffer for the original and decomposed matrix
+        let d = [42.0; 16];
+        let mut m = MatrixData::new_array::<4, 4, 16, f32>(d);
+
+        // Make it identity.
+        m.make_identity();
+
+        assert_eq!(
+            m.as_ref(),
+            [
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0,
+            ]
+        );
     }
 }
