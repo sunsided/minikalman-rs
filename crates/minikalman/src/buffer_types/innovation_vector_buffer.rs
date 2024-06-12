@@ -50,6 +50,11 @@ where
     pub const fn is_empty(&self) -> bool {
         MEASUREMENTS == 0
     }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
 }
 
 impl<const MEASUREMENTS: usize, T, M> AsRef<[T]> for InnovationVectorBuffer<MEASUREMENTS, T, M>

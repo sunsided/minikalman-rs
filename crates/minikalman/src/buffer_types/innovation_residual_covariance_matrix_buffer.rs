@@ -77,6 +77,11 @@ where
     pub const fn is_empty(&self) -> bool {
         MEASUREMENTS == 0
     }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
 }
 
 impl<const MEASUREMENTS: usize, T, M> AsRef<[T]>
@@ -163,5 +168,25 @@ where
 
     fn into_inner(self) -> Self::Target {
         self.0.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_ref() {
+        let mut data = [0.0_f32; 100];
+        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
     }
 }

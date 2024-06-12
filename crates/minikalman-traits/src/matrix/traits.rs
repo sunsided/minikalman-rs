@@ -27,9 +27,19 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         ROWS * COLS
     }
 
+    /// Gets the number of elements in the underlying buffer..
+    fn buffer_len(&self) -> usize {
+        self.as_ref().len()
+    }
+
     /// Determines if this matrix has zero elements.
     fn is_empty(&self) -> bool {
         ROWS * COLS == 0
+    }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    fn is_valid(&self) -> bool {
+        self.len() <= self.buffer_len()
     }
 
     /// Gets a matrix element

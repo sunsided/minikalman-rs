@@ -126,6 +126,11 @@ where
     pub const fn is_empty(&self) -> bool {
         INPUTS == 0
     }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
 }
 
 impl<const INPUTS: usize, T, M> AsRef<[T]> for InputCovarianceMatrixMutBuffer<INPUTS, T, M>

@@ -63,6 +63,11 @@ where
     pub const fn is_empty(&self) -> bool {
         MEASUREMENT * MEASUREMENT == 0
     }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
 }
 
 impl<const MEASUREMENT: usize, T, M> AsRef<[T]>
