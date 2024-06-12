@@ -49,8 +49,6 @@ impl<T> MatrixDataTypeBase for T where
 {
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "float")))]
-#[cfg(feature = "float")]
 impl MatrixDataType for f32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
@@ -81,8 +79,6 @@ impl MatrixDataType for f32 {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "float")))]
-#[cfg(feature = "float")]
 impl MatrixDataType for f64 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {

@@ -333,17 +333,17 @@ where
 }
 
 #[cfg(test)]
-#[cfg(feature = "float")]
 mod tests {
     use super::*;
     use crate::test_dummies::{Dummy, DummyMatrix};
-    use assert_float_eq::*;
-    use minikalman_traits::matrix::MatrixMut;
 
     #[allow(non_snake_case)]
     #[test]
     #[cfg(feature = "alloc")]
     fn input_only() {
+        use assert_float_eq::*;
+        use minikalman_traits::matrix::MatrixMut;
+
         use crate::prelude::{BufferBuilder, KalmanBuilder};
 
         const NUM_STATES: usize = 4;
@@ -450,7 +450,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "float")]
     fn builder_simple() {
         let _filter = InputBuilder::new::<3, 2, f32>(
             Dummy::default(),

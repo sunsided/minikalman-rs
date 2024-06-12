@@ -99,41 +99,13 @@ the [libfixkalman](https://github.com/sunsided/libfixkalman) C library.
 cargo run --example fixed --features=fixed
 ```
 
-To disable floating-point support, run
+### Gravity Constant Estimation Example
+
+To run the example [`gravity`] simulation, run either
 
 ```shell
-cargo run --example fixed --no-default-features --features=fixed
-```
-
-### `f32`/`f64` floating-point
-
-The provided example code will print output only on `float` builds. Selecting this feature
-simply enables the following implementation for `f32` and `f64`:
-
-```rust
-impl MatrixDataType for f32 {
-    /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
-    fn recip(self) -> Self {
-        self.recip()
-    }
-
-    /// Calculates the square root of a number.
-    fn square_root(self) -> Self {
-        self.sqrt()
-    }
-}
-```
-
-To run the example [`gravity`] simulation, run
-
-```shell
-cargo run --example gravity --features=float,libm
-```
-
-or
-
-```shell
-cargo run --example gravity --features=float,std
+cargo run --example gravity --features=std
+cargo run --example gravity --features=std,libm
 ```
 
 This will estimate the (earth's) gravitational constant (g ≈ 9.807 m/s²) through observation

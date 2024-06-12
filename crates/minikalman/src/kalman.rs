@@ -693,7 +693,6 @@ where
 }
 
 #[cfg(test)]
-#[cfg(feature = "float")]
 mod tests {
     use super::*;
     use crate::test_dummies::{Dummy, DummyMatrix};

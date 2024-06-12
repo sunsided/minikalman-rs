@@ -22,7 +22,6 @@ harness = false
 [[bench]]
 name = "gravity"
 harness = false
-required-features = ["float"]
 
 [[bench]]
 name = "gravity_fixed"
@@ -32,7 +31,7 @@ required-features = ["fixed"]
 [[example]]
 name = "gravity"
 path = "examples/gravity.rs"
-required-features = ["float", "std", "alloc"]
+required-features = ["std", "alloc"]
 
 [[example]]
 name = "fixed"
@@ -40,10 +39,9 @@ path = "examples/gravity_fixed.rs"
 required-features = ["fixed", "std", "alloc"]
 
 [features]
-default = ["float", "libm", "alloc", "minikalman-traits/default"]
+default = ["libm", "alloc", "minikalman-traits/default"]
 std = ["num-traits/std", "alloc", "minikalman-traits/std"]
 libm = ["dep:libm", "num-traits/libm", "minikalman-traits/libm"]
-float = ["minikalman-traits/float"]
 unsafe = []
 fixed = ["dep:fixed", "fixed/num-traits", "minikalman-traits/fixed"]
 no_assert = ["minikalman-traits/no_assert"]

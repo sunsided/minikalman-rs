@@ -13,7 +13,6 @@
 //! * `std` - Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
 //! * `alloc` - Enables allocation support for builder types.
 //! * `libm` - Enables libm support.
-//! * `float` - Enables some in-built support for `f32` and `f64` support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!              compiles the crate as `#![forbid(unsafe)]`.
