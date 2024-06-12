@@ -127,7 +127,7 @@ where
 {
     /// Gets a reference to the control transition matrix B.
     #[inline(always)]
-    pub fn control_transition_ref(&self) -> &B {
+    pub fn control_matrix_ref(&self) -> &B {
         &self.B
     }
 }
@@ -139,14 +139,14 @@ where
 {
     /// Gets a mutable reference to the control transition matrix B.
     #[inline(always)]
-    #[doc(alias = "kalman_get_control_transition")]
-    pub fn control_transition_mut(&mut self) -> &mut B {
+    #[doc(alias = "kalman_get_control_matrix")]
+    pub fn control_matrix_mut(&mut self) -> &mut B {
         &mut self.B
     }
 
     /// Applies a function to the control transition matrix B.
     #[inline(always)]
-    pub fn control_transition_apply<F>(&mut self, mut f: F)
+    pub fn control_matrix_apply<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut B),
     {
@@ -273,8 +273,8 @@ where
 {
     type ControlTransitionMatrix = B;
 
-    fn control_transition_ref(&self) -> &Self::ControlTransitionMatrix {
-        self.control_transition_ref()
+    fn control_matrix_ref(&self) -> &Self::ControlTransitionMatrix {
+        self.control_matrix_ref()
     }
 }
 
@@ -286,8 +286,8 @@ where
 {
     type ControlTransitionMatrixMut = B;
 
-    fn control_transition_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut {
-        self.control_transition_mut()
+    fn control_matrix_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut {
+        self.control_matrix_mut()
     }
 }
 
@@ -358,7 +358,7 @@ mod tests {
 
         // Control buffers.
         let u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new(0.0_f32);
-        let B = BufferBuilder::control_transition_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
+        let B = BufferBuilder::control_matrix_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
         let Q = BufferBuilder::control_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
 
         // Filter temporaries.
@@ -392,7 +392,7 @@ mod tests {
         });
 
         // Control applies linearly to state.
-        control.control_transition_apply(|mat| {
+        control.control_matrix_apply(|mat| {
             mat[NUM_CONTROLS] = 1.0;
             mat[2 * NUM_CONTROLS + 1] = 1.0;
             mat[3 * NUM_CONTROLS + 2] = 1.0;

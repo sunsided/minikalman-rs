@@ -32,7 +32,7 @@ fn main() {
 
     // Set up controls.
     initialize_control_vector(control.control_vector_mut());
-    initialize_control_matrix(control.control_transition_mut());
+    initialize_control_matrix(control.control_matrix_mut());
     initialize_control_covariance_matrix(control.control_covariance_mut());
 
     // Set up measurements.

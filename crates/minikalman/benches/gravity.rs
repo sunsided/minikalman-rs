@@ -27,7 +27,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     // Control buffers.
     // let mut gravity_u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new(0.0_f32);
-    // let mut gravity_B = BufferBuilder::control_transition_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
+    // let mut gravity_B = BufferBuilder::control_matrix_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
     // let mut gravity_Q = BufferBuilder::control_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
 
     // Measurement buffers.

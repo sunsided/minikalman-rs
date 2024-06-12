@@ -242,7 +242,7 @@ pub trait KalmanFilterControlTransition<const STATES: usize, const CONTROLS: usi
     type ControlTransitionMatrix: ControlMatrix<STATES, CONTROLS, T>;
 
     /// Gets a reference to the control transition matrix B.
-    fn control_transition_ref(&self) -> &Self::ControlTransitionMatrix;
+    fn control_matrix_ref(&self) -> &Self::ControlTransitionMatrix;
 }
 
 pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: usize, T>:
@@ -251,16 +251,16 @@ pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: 
     type ControlTransitionMatrixMut: ControlMatrixMut<STATES, CONTROLS, T>;
 
     /// Gets a mutable reference to the control transition matrix B.
-    #[doc(alias = "kalman_get_control_transition")]
-    fn control_transition_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut;
+    #[doc(alias = "kalman_get_control_matrix")]
+    fn control_matrix_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut;
 
     /// Applies a function to the control transition matrix B.
     #[inline(always)]
-    fn control_transition_apply<F>(&mut self, mut f: F)
+    fn control_matrix_apply<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut Self::ControlTransitionMatrixMut),
     {
-        f(self.control_transition_mut())
+        f(self.control_matrix_mut())
     }
 }
 

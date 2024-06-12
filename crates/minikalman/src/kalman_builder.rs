@@ -145,15 +145,14 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
 
         // Control buffers.
         let control_vector = BufferBuilder::control_vector_u::<CONTROLS>().new(zero);
-        let control_transition =
-            BufferBuilder::control_transition_B::<STATES, CONTROLS>().new(zero);
+        let control_matrix = BufferBuilder::control_matrix_B::<STATES, CONTROLS>().new(zero);
         let control_covariance = BufferBuilder::control_covariance_Q::<CONTROLS>().new(zero);
 
         // Control temporaries.
         let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new(zero);
 
         ControlBuilder::new::<STATES, CONTROLS, T>(
-            control_transition,
+            control_matrix,
             control_vector,
             control_covariance,
             temp_bq,

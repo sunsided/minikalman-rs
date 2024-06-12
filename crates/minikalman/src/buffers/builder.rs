@@ -28,7 +28,7 @@ impl BufferBuilder {
     }
 
     #[allow(non_snake_case)]
-    pub fn control_transition_B<const STATES: usize, const CONTROLS: usize>(
+    pub fn control_matrix_B<const STATES: usize, const CONTROLS: usize>(
     ) -> ControlTransitionMatrixBufferBuilder<STATES, CONTROLS> {
         ControlTransitionMatrixBufferBuilder
     }
@@ -316,7 +316,7 @@ impl<const STATES: usize, const CONTROLS: usize>
     /// use minikalman::buffers::types::ControlMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::control_transition_B::<3, 2>().new(0.0);
+    /// let buffer  = BufferBuilder::control_matrix_B::<3, 2>().new(0.0);
     ///
     /// let buffer: ControlMatrixMutBuffer<3, 2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 6);
