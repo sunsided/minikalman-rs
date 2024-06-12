@@ -7,16 +7,18 @@ on:
     paths:
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - 'build.rs'
-      - 'src/**'
+      - 'crates/**/minikalman/**'
+      - 'crates/**/minikalman-traits/**'
+      - 'xbuild-tests/**'
       - '.github/workflows/rust.yml'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - 'build.rs'
-      - 'src/**'
+      - 'crates/**/minikalman/**'
+      - 'crates/**/minikalman-traits/**'
+      - 'xbuild-tests/**'
       - '.github/workflows/rust.yml'
 
 env:
