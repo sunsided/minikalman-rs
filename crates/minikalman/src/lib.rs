@@ -44,6 +44,7 @@ mod kalman;
 mod measurement;
 mod static_macros;
 
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[cfg(test)]
 mod test_dummies;
 

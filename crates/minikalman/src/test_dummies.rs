@@ -1,5 +1,3 @@
-#![cfg_attr(coverage_nightly, coverage(off))]
-
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
