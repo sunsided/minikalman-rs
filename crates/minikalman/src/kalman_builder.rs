@@ -3,12 +3,16 @@ use std::marker::PhantomData;
 use minikalman_traits::kalman::{
     InnovationVector, InputCovarianceMatrixMut, InputMatrixMut, InputVectorMut, KalmanGainMatrix,
     MeasurementObservationMatrixMut, MeasurementProcessNoiseCovarianceMatrix, MeasurementVectorMut,
-    ResidualCovarianceMatrix, StatePredictionVector, StateVector, SystemCovarianceMatrix,
-    SystemMatrixMut, TemporaryBQMatrix, TemporaryHPMatrix, TemporaryKHPMatrix, TemporaryPHTMatrix,
-    TemporaryResidualCovarianceInvertedMatrix, TemporaryStateMatrix,
+    ResidualCovarianceMatrix, TemporaryBQMatrix, TemporaryHPMatrix, TemporaryKHPMatrix,
+    TemporaryPHTMatrix, TemporaryResidualCovarianceInvertedMatrix,
 };
 use minikalman_traits::matrix::MatrixDataType;
 
+use crate::buffer_builder::{
+    StatePredictionVectorBufferOwnedType, StateVectorBufferOwnedType,
+    SystemCovarianceMatrixBufferOwnedType, SystemMatrixMutBufferOwnedType,
+    TemporarySystemCovarianceMatrixBufferOwnedType,
+};
 use crate::inputs::{Input, InputBuilder};
 use crate::{BufferBuilder, Kalman, KalmanBuilder, Measurement, MeasurementBuilder};
 
@@ -27,22 +31,41 @@ impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
     }
 }
 
+/// The type of Kalman filters with owned buffers.
+pub type KalmanFilterType<const STATES: usize, T> = Kalman<
+    STATES,
+    T,
+    SystemMatrixMutBufferOwnedType<STATES, T>,
+    StateVectorBufferOwnedType<STATES, T>,
+    SystemCovarianceMatrixBufferOwnedType<STATES, T>,
+    StatePredictionVectorBufferOwnedType<STATES, T>,
+    TemporarySystemCovarianceMatrixBufferOwnedType<STATES, T>,
+>;
+
 impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
+    /// Creates a new [`KalmanFilterBuilder`] instance.
     pub fn new() -> Self {
         Self(PhantomData)
     }
 
-    pub fn build(
-        &self,
-    ) -> Kalman<
-        STATES,
-        T,
-        impl SystemMatrixMut<STATES, T>,
-        impl StateVector<STATES, T>,
-        impl SystemCovarianceMatrix<STATES, T>,
-        impl StatePredictionVector<STATES, T>,
-        impl TemporaryStateMatrix<STATES, T>,
-    >
+    /// Builds a new Kalman filter using heap allocated buffers.
+    ///
+    /// ## Example
+    /// ```rust
+    /// use minikalman::builder::KalmanFilterBuilder;
+    ///
+    /// const NUM_STATES: usize = 3;
+    /// const NUM_INPUTS: usize = 2;
+    /// const NUM_MEASUREMENTS: usize = 5;
+    ///
+    /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    /// let mut filter = builder.build();
+    /// let mut input = builder.inputs().build::<NUM_INPUTS>();
+    /// let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+    /// ```
+    ///
+    /// See also [`KalmanFilterInputBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
+    pub fn build(&self) -> KalmanFilterType<STATES, T>
     where
         T: MatrixDataType,
     {
@@ -67,11 +90,13 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
         )
     }
 
-    pub fn measurements(&self) -> KalmanFilterMeasurementBuilder<STATES, T> {
+    /// Convenience function to return a [`KalmanFilterInputBuilder`].
+    pub fn inputs(&self) -> KalmanFilterInputBuilder<STATES, T> {
         Default::default()
     }
 
-    pub fn inputs(&self) -> KalmanFilterInputBuilder<STATES, T> {
+    /// Convenience function to return a [`KalmanFilterMeasurementBuilder`].
+    pub fn measurements(&self) -> KalmanFilterMeasurementBuilder<STATES, T> {
         Default::default()
     }
 }
@@ -83,10 +108,26 @@ impl<const STATES: usize, T> Default for KalmanFilterInputBuilder<STATES, T> {
 }
 
 impl<const STATES: usize, T> KalmanFilterInputBuilder<STATES, T> {
+    /// Creates a new [`KalmanFilterInputBuilder`] instance.
     pub fn new() -> Self {
         Self(PhantomData)
     }
 
+    /// Builds a new Kalman filter inputs using heap allocated buffers.
+    ///
+    /// ## Example
+    /// ```rust
+    /// use minikalman::builder::KalmanFilterBuilder;
+    ///
+    /// const NUM_STATES: usize = 3;
+    /// const NUM_INPUTS: usize = 2;
+    ///
+    /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    /// // let mut filter = builder.build();
+    /// let mut input = builder.inputs().build::<NUM_INPUTS>();
+    /// ```
+    ///
+    /// See also [`KalmanFilterBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
     pub fn build<const INPUTS: usize>(
         &self,
     ) -> Input<
@@ -128,10 +169,26 @@ impl<const STATES: usize, T> Default for KalmanFilterMeasurementBuilder<STATES, 
 }
 
 impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
+    /// Creates a new [`KalmanFilterMeasurementBuilder`] instance.
     pub fn new() -> Self {
         Self(PhantomData)
     }
 
+    /// Builds a new Kalman filter measurements using heap allocated buffers.
+    ///
+    /// ## Example
+    /// ```rust
+    /// use minikalman::builder::KalmanFilterBuilder;
+    ///
+    /// const NUM_STATES: usize = 3;
+    /// const NUM_MEASUREMENTS: usize = 5;
+    ///
+    /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    /// // let mut filter = builder.build();
+    /// let mut measurement = builder.measurements().build::<NUM_MEASUREMENTS>();
+    /// ```
+    ///
+    /// See also [`KalmanFilterBuilder`] and [`KalmanFilterInputBuilder`] for further information.
     pub fn build<const MEASUREMENTS: usize>(
         &self,
     ) -> Measurement<

@@ -173,6 +173,12 @@ pub struct TemporaryPHtMatrixBufferBuilder<const STATES: usize, const MEASUREMEN
 /// A builder for temporary K×(H×P) sized matrices (`num_states` × `num_states`).
 pub struct TemporaryKHPMatrixBufferBuilder<const STATES: usize>;
 
+/// The type of owned state vector buffers.
+#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type StateVectorBufferOwnedType<const STATES: usize, T> =
+    StateVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>;
+
 impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
     /// Builds a new [`StateVectorBufferBuilder`] that owns its data.
     ///
@@ -188,10 +194,7 @@ impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(
-        &self,
-        init: T,
-    ) -> StateVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>
+    pub fn new<T>(&self, init: T) -> StateVectorBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -200,6 +203,12 @@ impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
         )
     }
 }
+
+/// The type of owned state transition matrix buffers.
+#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type SystemMatrixMutBufferOwnedType<const STATES: usize, T> =
+    SystemMatrixMutBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
 
 impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
     /// Builds a new [`SystemMatrixMutBuffer`] that owns its data.
@@ -216,10 +225,7 @@ impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(
-        &self,
-        init: T,
-    ) -> SystemMatrixMutBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>
+    pub fn new<T>(&self, init: T) -> SystemMatrixMutBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -228,6 +234,12 @@ impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
         )
     }
 }
+
+/// The type of owned state transition matrix buffers.
+#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type SystemCovarianceMatrixBufferOwnedType<const STATES: usize, T> =
+    SystemCovarianceMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
 
 impl<const STATES: usize> SystemCovarianceMatrixBufferBuilder<STATES> {
     /// Builds a new [`SystemCovarianceMatrixBuffer`] that owns its data.
@@ -244,10 +256,7 @@ impl<const STATES: usize> SystemCovarianceMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(
-        &self,
-        init: T,
-    ) -> SystemCovarianceMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>
+    pub fn new<T>(&self, init: T) -> SystemCovarianceMatrixBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -544,6 +553,12 @@ impl<const STATES: usize, const MEASUREMENTS: usize>
     }
 }
 
+/// The type of owned state vector buffers.
+#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type StatePredictionVectorBufferOwnedType<const STATES: usize, T> =
+    StatePredictionVectorBuffer<STATES, T, MatrixDataOwned<STATES, 1, STATES, T>>;
+
 impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
     /// Builds a new [`StatePredictionVectorBuffer`] that owns its data.
     ///
@@ -572,6 +587,12 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
     }
 }
 
+/// The type of owned state transition matrix buffers.
+#[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type TemporarySystemCovarianceMatrixBufferOwnedType<const STATES: usize, T> =
+    TemporaryStateMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
+
 impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
     /// Builds a new [`TemporaryStateMatrixBuffer`] that owns its data.
     ///
@@ -587,10 +608,7 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(
-        &self,
-        init: T,
-    ) -> TemporaryStateMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>
+    pub fn new<T>(&self, init: T) -> TemporarySystemCovarianceMatrixBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
