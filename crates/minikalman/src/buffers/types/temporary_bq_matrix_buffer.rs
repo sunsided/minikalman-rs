@@ -9,6 +9,7 @@ use crate::matrix::{Matrix, MatrixMut};
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::TemporaryBQMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data

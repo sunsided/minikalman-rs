@@ -12,6 +12,7 @@ use crate::matrix::{Matrix, MatrixMut};
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::TemporaryHPMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data

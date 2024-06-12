@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use crate::matrix::MatrixDataType;
 
-use crate::buffer_builder::*;
+use crate::buffers::builder::*;
 use crate::inputs::{Input, InputBuilder};
 use crate::{BufferBuilder, Kalman, KalmanBuilder, Measurement, MeasurementBuilder};
 

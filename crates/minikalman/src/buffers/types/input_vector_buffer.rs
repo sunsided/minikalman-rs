@@ -11,6 +11,7 @@ use crate::matrix::{Matrix, MatrixMut};
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::InputVectorBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
@@ -42,7 +43,7 @@ impl<'a, const INPUTS: usize, T> From<&'a mut [T]>
 /// Buffers can be trivially constructed from correctly-sized arrays:
 ///
 /// ```
-/// # use minikalman::prelude::InputVectorBuffer;
+/// # use minikalman::buffers::types::InputVectorBuffer;
 /// let _value: InputVectorBuffer<5, f32, _> = [0.0; 5].into();
 /// ```
 ///

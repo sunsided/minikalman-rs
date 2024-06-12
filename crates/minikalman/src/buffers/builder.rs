@@ -1,5 +1,5 @@
+use crate::buffers::types::*;
 use crate::matrix::{MatrixData, MatrixDataArray, MatrixDataBoxed};
-use crate::prelude::*;
 
 // TODO: Provide Kalman builder that returns impl KalmanFilter, or export a type alias e.g. via associated type.
 
@@ -183,6 +183,7 @@ impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::StateVectorBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::state_vector_x::<3>().new(0.0);
@@ -213,7 +214,8 @@ impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
     ///
     /// ## Example
     /// ```
-    /// use minikalman::prelude::*;
+    /// use minikalman::BufferBuilder;
+    /// use minikalman::buffers::types::SystemMatrixMutBuffer;
     ///
     /// let buffer  = BufferBuilder::system_state_transition_A::<3>().new(0.0);
     ///
@@ -243,6 +245,7 @@ impl<const STATES: usize> SystemCovarianceMatrixBufferBuilder<STATES> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::SystemCovarianceMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::system_covariance_P::<3>().new(0.0);
@@ -273,6 +276,7 @@ impl<const INPUTS: usize> InputVectorBufferBuilder<INPUTS> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::InputVectorBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::input_vector_u::<2>().new(0.0);
@@ -306,6 +310,7 @@ impl<const STATES: usize, const INPUTS: usize> InputTransitionMatrixBufferBuilde
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::InputMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer  = BufferBuilder::input_transition_B::<3, 2>().new(0.0);
@@ -339,6 +344,7 @@ impl<const INPUTS: usize> InputCovarianceMatrixBufferBuilder<INPUTS> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::InputCovarianceMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer  = BufferBuilder::input_covariance_Q::<2>().new(0.0);
@@ -372,6 +378,7 @@ impl<const MEASUREMENTS: usize> MeasurementVectorBufferBuilder<MEASUREMENTS> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::MeasurementVectorBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::measurement_vector_z::<5>().new(0.0);
@@ -409,6 +416,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize>
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::MeasurementObservationMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::measurement_transformation_H::<5, 3>().new(0.0);
@@ -448,6 +456,7 @@ impl<const MEASUREMENTS: usize> MeasurementProcessNoiseCovarianceMatrixBufferBui
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::measurement_covariance_R::<5>().new(0.0);
@@ -482,6 +491,7 @@ impl<const MEASUREMENTS: usize> InnovationVectorBufferBuilder<MEASUREMENTS> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::InnovationVectorBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::innovation_vector_y::<5>().new(0.0);
@@ -516,6 +526,7 @@ impl<const MEASUREMENTS: usize> InnovationResidualCovarianceMatrixBufferBuilder<
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::InnovationResidualCovarianceMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::innovation_covariance_S::<5>().new(0.0);
@@ -555,6 +566,7 @@ impl<const STATES: usize, const MEASUREMENTS: usize>
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::KalmanGainMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::kalman_gain_K::<3, 5>().new(0.0);
@@ -590,6 +602,7 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::TemporaryStatePredictionVectorBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::state_prediction_temp_x::<3>().new(0.0);
@@ -620,6 +633,7 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::TemporaryStateMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::temp_system_covariance_P::<3>().new(0.0);
@@ -650,6 +664,7 @@ impl<const STATES: usize, const INPUTS: usize> TemporaryBQMatrixBufferBuilder<ST
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::TemporaryBQMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::temp_BQ::<3, 2>().new(0.0);
@@ -684,6 +699,7 @@ impl<const MEASUREMENTS: usize> TemporarySInvMatrixBufferBuilder<MEASUREMENTS> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::temp_S_inv::<5>().new(0.0);
@@ -720,6 +736,7 @@ impl<const MEASUREMENTS: usize, const STATES: usize>
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::TemporaryHPMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::temp_HP::<5, 3>().new(0.0);
@@ -757,6 +774,7 @@ impl<const STATES: usize, const MEASUREMENTS: usize>
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::TemporaryPHTMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer = BufferBuilder::temp_PHt::<3, 5>().new(0.0);
@@ -792,6 +810,7 @@ impl<const STATES: usize> TemporaryKHPMatrixBufferBuilder<STATES> {
     ///
     /// ## Example
     /// ```
+    /// use minikalman::buffers::types::TemporaryKHPMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
     /// let buffer  = BufferBuilder::temp_KHP::<3>().new(0.0);

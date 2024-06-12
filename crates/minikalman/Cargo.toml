@@ -45,6 +45,7 @@ libm = ["dep:libm", "num-traits/libm"]
 unsafe = []
 fixed = ["dep:fixed", "fixed/num-traits"]
 alloc = []
+no_assert = []
 
 [dependencies]
 fixed = { version = "1.27.0", optional = true }

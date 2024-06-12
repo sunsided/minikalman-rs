@@ -1,6 +1,6 @@
 /// Creates a static buffer fitting the state vector (`num_states` × `1`).
 ///
-/// This will create a [`StateVectorBuffer`](crate::buffer_types::StateVectorBuffer)
+/// This will create a [`StateVectorBuffer`](crate::buffers::types::StateVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -55,11 +55,11 @@ macro_rules! impl_buffer_x {
         $crate::impl_buffer_x!($vec_name, $num_states, $t, $init, static)
     };
     ($vec_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffer_types::StateVectorBuffer<
+        $($keywords)* $vec_name: $crate::buffers::types::StateVectorBuffer<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
-        > = $crate::buffer_types::StateVectorBuffer::<
+        > = $crate::buffers::types::StateVectorBuffer::<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
@@ -71,7 +71,7 @@ macro_rules! impl_buffer_x {
 
 /// Creates a static buffer fitting the square state transition matrix (`num_states` × `num_states`).
 ///
-/// This will create a [`SystemMatrixMutBuffer`](crate::buffer_types::SystemMatrixMutBuffer)
+/// This will create a [`SystemMatrixMutBuffer`](crate::buffers::types::SystemMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -125,11 +125,11 @@ macro_rules! impl_buffer_A {
         $crate::impl_buffer_A!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::SystemMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::SystemMatrixMutBuffer<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::SystemMatrixMutBuffer::<
+        > = $crate::buffers::types::SystemMatrixMutBuffer::<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
@@ -141,7 +141,7 @@ macro_rules! impl_buffer_A {
 
 /// Creates a static buffer fitting the square state covariance matrix (`num_states` × `num_states`).
 ///
-/// This will create a [`SystemCovarianceMatrixBuffer`](crate::buffer_types::SystemCovarianceMatrixBuffer)
+/// This will create a [`SystemCovarianceMatrixBuffer`](crate::buffers::types::SystemCovarianceMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -184,11 +184,11 @@ macro_rules! impl_buffer_P {
         $crate::impl_buffer_P!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::SystemCovarianceMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::SystemCovarianceMatrixBuffer<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::SystemCovarianceMatrixBuffer::<
+        > = $crate::buffers::types::SystemCovarianceMatrixBuffer::<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
@@ -200,7 +200,7 @@ macro_rules! impl_buffer_P {
 
 /// Sizes a static buffer fitting the input vector (`num_inputs` × `1`).
 ///
-/// This will create a [`InputVectorBuffer`](crate::buffer_types::InputVectorBuffer)
+/// This will create a [`InputVectorBuffer`](crate::buffers::types::InputVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -242,11 +242,11 @@ macro_rules! impl_buffer_u {
         $crate::impl_buffer_u!($vec_name, $num_inputs, $t, $init, static)
     };
     ($vec_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffer_types::InputVectorBuffer<
+        $($keywords)* $vec_name: $crate::buffers::types::InputVectorBuffer<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
-        > = $crate::buffer_types::InputVectorBuffer::<
+        > = $crate::buffers::types::InputVectorBuffer::<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, 1, { $num_inputs * 1 }, $t>,
@@ -258,7 +258,7 @@ macro_rules! impl_buffer_u {
 
 /// Creates a static buffer fitting the input transition matrix (`num_states` × `num_inputs`).
 ///
-/// This will create a [`InputMatrixMutBuffer`](crate::buffer_types::InputMatrixMutBuffer)
+/// This will create a [`InputMatrixMutBuffer`](crate::buffers::types::InputMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -303,12 +303,12 @@ macro_rules! impl_buffer_B {
         $crate::impl_buffer_B!($mat_name, $num_states, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::InputMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::InputMatrixMutBuffer<
             $num_states,
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        > = $crate::buffer_types::InputMatrixMutBuffer::<
+        > = $crate::buffers::types::InputMatrixMutBuffer::<
             $num_states,
             $num_inputs,
             $t,
@@ -321,7 +321,7 @@ macro_rules! impl_buffer_B {
 
 /// Creates a static buffer fitting the square input covariance matrix (`num_inputs` × `num_inputs`).
 ///
-/// This will create a [`InputCovarianceMatrixMutBuffer`](crate::buffer_types::InputCovarianceMatrixMutBuffer)
+/// This will create a [`InputCovarianceMatrixMutBuffer`](crate::buffers::types::InputCovarianceMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -364,11 +364,11 @@ macro_rules! impl_buffer_Q {
         $crate::impl_buffer_Q!($mat_name, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::InputCovarianceMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::InputCovarianceMatrixMutBuffer<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
-        > = $crate::buffer_types::InputCovarianceMatrixMutBuffer::<
+        > = $crate::buffers::types::InputCovarianceMatrixMutBuffer::<
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_inputs, $num_inputs, { $num_inputs * $num_inputs }, $t>,
@@ -380,7 +380,7 @@ macro_rules! impl_buffer_Q {
 
 /// Creates a static buffer fitting the measurement vector z (`num_measurements` × `1`).
 ///
-/// This will create a [`MeasurementVectorBuffer`](crate::buffer_types::MeasurementVectorBuffer)
+/// This will create a [`MeasurementVectorBuffer`](crate::buffers::types::MeasurementVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -422,11 +422,11 @@ macro_rules! impl_buffer_z {
         $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, static)
     };
     ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffer_types::MeasurementVectorBuffer<
+        $($keywords)* $vec_name: $crate::buffers::types::MeasurementVectorBuffer<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        > = $crate::buffer_types::MeasurementVectorBuffer::<
+        > = $crate::buffers::types::MeasurementVectorBuffer::<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
@@ -438,7 +438,7 @@ macro_rules! impl_buffer_z {
 
 /// Creates a static buffer fitting the measurement transformation matrix (`num_measurements` × `num_states`).
 ///
-/// This will create a [`MeasurementTransformationMatrixMutBuffer`](crate::buffer_types::MeasurementObservationMatrixMutBuffer)
+/// This will create a [`MeasurementTransformationMatrixMutBuffer`](crate::buffers::types::MeasurementObservationMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -483,7 +483,7 @@ macro_rules! impl_buffer_H {
         $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::MeasurementObservationMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::MeasurementObservationMatrixMutBuffer<
             $num_measurements,
             $num_states,
             $t,
@@ -493,7 +493,7 @@ macro_rules! impl_buffer_H {
                 { $num_measurements * $num_states },
                 $t,
             >,
-        > = $crate::buffer_types::MeasurementObservationMatrixMutBuffer::<
+        > = $crate::buffers::types::MeasurementObservationMatrixMutBuffer::<
             $num_measurements,
             $num_states,
             $t,
@@ -511,7 +511,7 @@ macro_rules! impl_buffer_H {
 
 /// Creates a static buffer fitting the square measurement uncertainty matrix (`num_measurements` × `num_measurements`).
 ///
-/// This will create a [`MeasurementProcessNoiseCovarianceMatrixBuffer`](crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer)
+/// This will create a [`MeasurementProcessNoiseCovarianceMatrixBuffer`](crate::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -554,7 +554,7 @@ macro_rules! impl_buffer_R {
         $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<
@@ -563,7 +563,7 @@ macro_rules! impl_buffer_R {
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        > = $crate::buffer_types::MeasurementProcessNoiseCovarianceMatrixBuffer::<
+        > = $crate::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer::<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<
@@ -580,7 +580,7 @@ macro_rules! impl_buffer_R {
 
 /// Creates a static buffer fitting the innovation vector (`num_measurements` × `1`).
 ///
-/// This will create a [`InnovationVectorBuffer`](crate::buffer_types::InnovationVectorBuffer)
+/// This will create a [`InnovationVectorBuffer`](crate::buffers::types::InnovationVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -622,11 +622,11 @@ macro_rules! impl_buffer_y {
         $crate::impl_buffer_y!($vec_name, $num_measurements, $t, $init, static)
     };
     ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffer_types::InnovationVectorBuffer<
+        $($keywords)* $vec_name: $crate::buffers::types::InnovationVectorBuffer<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        > = $crate::buffer_types::InnovationVectorBuffer::<
+        > = $crate::buffers::types::InnovationVectorBuffer::<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
@@ -638,7 +638,7 @@ macro_rules! impl_buffer_y {
 
 /// Creates a static buffer fitting the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
 ///
-/// This will create a [`InnovationResidualCovarianceMatrixBuffer`](crate::buffer_types::InnovationResidualCovarianceMatrixBuffer)
+/// This will create a [`InnovationResidualCovarianceMatrixBuffer`](crate::buffers::types::InnovationResidualCovarianceMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -681,7 +681,7 @@ macro_rules! impl_buffer_S {
         $crate::impl_buffer_S!($mat_name, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::InnovationResidualCovarianceMatrixBuffer<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<
@@ -690,7 +690,7 @@ macro_rules! impl_buffer_S {
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        > = $crate::buffer_types::InnovationResidualCovarianceMatrixBuffer::<
+        > = $crate::buffers::types::InnovationResidualCovarianceMatrixBuffer::<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<
@@ -707,7 +707,7 @@ macro_rules! impl_buffer_S {
 
 /// Creates a static buffer fitting the Kalman gain matrix (`num_states` × `num_measurements`).
 ///
-/// This will create a [`KalmanGainMatrixBuffer`](crate::buffer_types::KalmanGainMatrixBuffer)
+/// This will create a [`KalmanGainMatrixBuffer`](crate::buffers::types::KalmanGainMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -752,7 +752,7 @@ macro_rules! impl_buffer_K {
         $crate::impl_buffer_K!($mat_name, $num_states, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::KalmanGainMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::KalmanGainMatrixBuffer<
             $num_states,
             $num_measurements,
             $t,
@@ -762,7 +762,7 @@ macro_rules! impl_buffer_K {
                 { $num_states * $num_measurements },
                 $t,
             >,
-        > = $crate::buffer_types::KalmanGainMatrixBuffer::<
+        > = $crate::buffers::types::KalmanGainMatrixBuffer::<
             $num_states,
             $num_measurements,
             $t,
@@ -780,7 +780,7 @@ macro_rules! impl_buffer_K {
 
 /// Creates a static buffer fitting the temporary x predictions (`num_states` × `1`).
 ///
-/// This will create a [`StatePredictionVectorBuffer`](crate::buffer_types::TemporaryStatePredictionVectorBuffer)
+/// This will create a [`StatePredictionVectorBuffer`](crate::buffers::types::TemporaryStatePredictionVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -822,11 +822,11 @@ macro_rules! impl_buffer_temp_x {
         $crate::impl_buffer_temp_x!($vec_name, $num_states, $t, $init, static)
     };
     ($vec_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffer_types::TemporaryStatePredictionVectorBuffer<
+        $($keywords)* $vec_name: $crate::buffers::types::TemporaryStatePredictionVectorBuffer<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
-        > = $crate::buffer_types::TemporaryStatePredictionVectorBuffer::<
+        > = $crate::buffers::types::TemporaryStatePredictionVectorBuffer::<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, 1, { $num_states * 1 }, $t>,
@@ -838,7 +838,7 @@ macro_rules! impl_buffer_temp_x {
 
 /// Creates a static buffer fitting the square temporary P matrix (`num_states` × `num_states`).
 ///
-/// This will create a [`TemporaryStateMatrixBuffer`](crate::buffer_types::TemporaryStateMatrixBuffer)
+/// This will create a [`TemporaryStateMatrixBuffer`](crate::buffers::types::TemporaryStateMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -881,11 +881,11 @@ macro_rules! impl_buffer_temp_P {
         $crate::impl_buffer_temp_P!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::TemporaryStateMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::TemporaryStateMatrixBuffer<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::TemporaryStateMatrixBuffer::<
+        > = $crate::buffers::types::TemporaryStateMatrixBuffer::<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
@@ -897,7 +897,7 @@ macro_rules! impl_buffer_temp_P {
 
 /// Creates a static buffer fitting the temporary B×Q matrix (`num_states` × `num_inputs`).
 ///
-/// This will create a [`TemporaryBQMatrixBuffer`](crate::buffer_types::TemporaryBQMatrixBuffer)
+/// This will create a [`TemporaryBQMatrixBuffer`](crate::buffers::types::TemporaryBQMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -942,12 +942,12 @@ macro_rules! impl_buffer_temp_BQ {
         $crate::impl_buffer_temp_BQ!($mat_name, $num_states, $num_inputs, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_inputs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::TemporaryBQMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::TemporaryBQMatrixBuffer<
             $num_states,
             $num_inputs,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_inputs, { $num_states * $num_inputs }, $t>,
-        > = $crate::buffer_types::TemporaryBQMatrixBuffer::<
+        > = $crate::buffers::types::TemporaryBQMatrixBuffer::<
             $num_states,
             $num_inputs,
             $t,
@@ -960,7 +960,7 @@ macro_rules! impl_buffer_temp_BQ {
 
 /// Creates a static buffer fitting the square temporary S-inverted (`num_measurements` × `num_measurements`).
 ///
-/// This will create a [`TemporaryResidualCovarianceInvertedMatrixBuffer`](crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer)
+/// This will create a [`TemporaryResidualCovarianceInvertedMatrixBuffer`](crate::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -1003,7 +1003,7 @@ macro_rules! impl_buffer_temp_S_inv {
         $crate::impl_buffer_temp_S_inv!($mat_name, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<
@@ -1012,7 +1012,7 @@ macro_rules! impl_buffer_temp_S_inv {
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        > = $crate::buffer_types::TemporaryResidualCovarianceInvertedMatrixBuffer::<
+        > = $crate::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer::<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<
@@ -1029,7 +1029,7 @@ macro_rules! impl_buffer_temp_S_inv {
 
 /// Creates a static buffer fitting the temporary H×P matrix (`num_measurements` × `num_states`).
 ///
-/// This will create a [`TemporaryHPMatrixBuffer`](crate::buffer_types::TemporaryHPMatrixBuffer)
+/// This will create a [`TemporaryHPMatrixBuffer`](crate::buffers::types::TemporaryHPMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -1074,7 +1074,7 @@ macro_rules! impl_buffer_temp_HP {
         $crate::impl_buffer_temp_HP!($mat_name, $num_measurements, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::TemporaryHPMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::TemporaryHPMatrixBuffer<
             $num_measurements,
             $num_states,
             $t,
@@ -1084,7 +1084,7 @@ macro_rules! impl_buffer_temp_HP {
                 { $num_measurements * $num_states },
                 $t,
             >,
-        > = $crate::buffer_types::TemporaryHPMatrixBuffer::<
+        > = $crate::buffers::types::TemporaryHPMatrixBuffer::<
             $num_measurements,
             $num_states,
             $t,
@@ -1102,7 +1102,7 @@ macro_rules! impl_buffer_temp_HP {
 
 /// Creates a buffer fitting the temporary P×Hᵀ buffer (`num_states` × `num_measurements`).
 ///
-/// This will create a [`TemporaryPHTMatrixBuffer`](crate::buffer_types::TemporaryPHTMatrixBuffer)
+/// This will create a [`TemporaryPHTMatrixBuffer`](crate::buffers::types::TemporaryPHTMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -1147,7 +1147,7 @@ macro_rules! impl_buffer_temp_PHt {
         $crate::impl_buffer_temp_PHt!($mat_name, $num_states, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::TemporaryPHTMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::TemporaryPHTMatrixBuffer<
             $num_states,
             $num_measurements,
             $t,
@@ -1157,7 +1157,7 @@ macro_rules! impl_buffer_temp_PHt {
                 { $num_states * $num_measurements },
                 $t,
             >,
-        > = $crate::buffer_types::TemporaryPHTMatrixBuffer::<
+        > = $crate::buffers::types::TemporaryPHTMatrixBuffer::<
             $num_states,
             $num_measurements,
             $t,
@@ -1175,7 +1175,7 @@ macro_rules! impl_buffer_temp_PHt {
 
 /// Creates a buffer fitting the temporary K×(H×P) buffer (`num_states` × `num_states`).
 ///
-/// This will create a [`TemporaryKHPMatrixBuffer`](crate::buffer_types::TemporaryKHPMatrixBuffer)
+/// This will create a [`TemporaryKHPMatrixBuffer`](crate::buffers::types::TemporaryKHPMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -1218,11 +1218,11 @@ macro_rules! impl_buffer_temp_KHP {
         $crate::impl_buffer_temp_KHP!($mat_name, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffer_types::TemporaryKHPMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::TemporaryKHPMatrixBuffer<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffer_types::TemporaryKHPMatrixBuffer::<
+        > = $crate::buffers::types::TemporaryKHPMatrixBuffer::<
             $num_states,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,

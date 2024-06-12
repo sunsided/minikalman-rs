@@ -9,6 +9,7 @@ use crate::matrix::{Matrix, MatrixMut};
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::MeasurementObservationMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
@@ -29,6 +30,7 @@ where
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::MeasurementObservationMatrixMutBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data

@@ -1,31 +1,32 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::{StateVector, StateVectorMut};
+use crate::kalman::StatePredictionVector;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-/// Mutable buffer for the state vector (`num_states` × `1`).
+/// Mutable buffer for the temporary state prediction vector (`num_states` × `1`).
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::TemporaryStatePredictionVectorBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = StateVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
+/// let buffer = TemporaryStatePredictionVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = StateVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = TemporaryStatePredictionVectorBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct StateVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
+pub struct TemporaryStatePredictionVectorBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, 1, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const STATES: usize, T> From<&'a mut [T]>
-    for StateVectorBuffer<STATES, T, MatrixDataMut<'a, STATES, 1, T>>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, MatrixDataMut<'a, STATES, 1, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -40,18 +41,18 @@ impl<'a, const STATES: usize, T> From<&'a mut [T]>
 /// Buffers can be trivially constructed from correctly-sized arrays:
 ///
 /// ```
-/// # use minikalman::prelude::StateVectorBuffer;
-/// let _value: StateVectorBuffer<5, f32, _> = [0.0; 5].into();
+/// # use minikalman::buffers::types::TemporaryStatePredictionVectorBuffer;
+/// let _value: TemporaryStatePredictionVectorBuffer<5, f32, _> = [0.0; 5].into();
 /// ```
 ///
 /// Invalid buffer sizes fail to compile:
 ///
 /// ```fail_compile
-/// # use minikalman::prelude::StateVectorBuffer;
-/// let _value: StateVectorBuffer<5, f32, _> = [0.0; 1].into();
+/// # use minikalman::prelude::TemporaryStatePredictionVectorBuffer;
+/// let _value: TemporaryStatePredictionVectorBuffer<5, f32, _> = [0.0; 1].into();
 /// ```
 impl<const STATES: usize, T> From<[T; STATES]>
-    for StateVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, MatrixDataArray<STATES, 1, STATES, T>>
 {
     fn from(value: [T; STATES]) -> Self {
         Self::new(MatrixData::new_array::<STATES, 1, STATES, T>(value))
@@ -60,7 +61,7 @@ impl<const STATES: usize, T> From<[T; STATES]>
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> StateVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -82,7 +83,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsRef<[T]> for StateVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsRef<[T]> for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -91,7 +92,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsMut<[T]> for StateVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> AsMut<[T]> for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -100,39 +101,38 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> Matrix<STATES, 1, T> for StateVectorBuffer<STATES, T, M> where
-    M: MatrixMut<STATES, 1, T>
+impl<const STATES: usize, T, M> Matrix<STATES, 1, T>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, 1, T>,
 {
 }
 
-impl<const STATES: usize, T, M> MatrixMut<STATES, 1, T> for StateVectorBuffer<STATES, T, M> where
-    M: MatrixMut<STATES, 1, T>
+impl<const STATES: usize, T, M> MatrixMut<STATES, 1, T>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
+where
+    M: MatrixMut<STATES, 1, T>,
 {
 }
 
-impl<const STATES: usize, T, M> StateVector<STATES, T> for StateVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> StatePredictionVector<STATES, T>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
     type Target = M;
+    type TargetMut = M;
 
     fn as_matrix(&self) -> &Self::Target {
         &self.0
     }
-}
-
-impl<const STATES: usize, T, M> StateVectorMut<STATES, T> for StateVectorBuffer<STATES, T, M>
-where
-    M: MatrixMut<STATES, 1, T>,
-{
-    type TargetMut = M;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
         &mut self.0
     }
 }
 
-impl<const STATES: usize, T, M> Index<usize> for StateVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> Index<usize> for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -143,7 +143,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> IndexMut<usize> for StateVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IndexMut<usize>
+    for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T>,
 {
@@ -154,7 +155,7 @@ where
 
 // -----------------------------------------------------------
 
-impl<const STATES: usize, T, M> IntoInnerData for StateVectorBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> IntoInnerData for TemporaryStatePredictionVectorBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, 1, T> + IntoInnerData,
 {
@@ -171,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: StateVectorBuffer<5, f32, _> = [0.0; 5].into();
+        let value: TemporaryStatePredictionVectorBuffer<5, f32, _> = [0.0; 5].into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -180,7 +181,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 5];
-        let value: StateVectorBuffer<5, f32, _> = data.as_mut().into();
+        let value: TemporaryStatePredictionVectorBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());

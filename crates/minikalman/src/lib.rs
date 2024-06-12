@@ -36,26 +36,21 @@ extern crate alloc;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
-mod buffer_builder;
-
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 mod kalman_builder;
 
-pub mod buffer_types;
+pub mod buffers;
 mod inputs;
 mod kalman;
 pub mod matrix;
 mod measurement;
 mod static_macros;
 
-#[cfg_attr(coverage_nightly, coverage(off))]
 #[cfg(test)]
 mod test_dummies;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
-pub use crate::buffer_builder::BufferBuilder;
+pub use crate::buffers::builder::BufferBuilder;
 pub use crate::inputs::{Input, InputBuilder};
 pub use crate::kalman::{Kalman, KalmanBuilder};
 pub use crate::measurement::{Measurement, MeasurementBuilder};
@@ -75,8 +70,8 @@ pub mod builder {
 pub mod prelude {
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub use crate::buffer_builder::BufferBuilder;
-    pub use crate::buffer_types::*;
+    pub use crate::buffers::builder::*;
+
     pub use crate::inputs::{Input, InputBuilder};
     pub use crate::kalman::{Kalman, KalmanBuilder};
     pub use crate::measurement::{Measurement, MeasurementBuilder};

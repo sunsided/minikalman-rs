@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use minikalman::buffers::types::*;
 use minikalman::prelude::*;
 
 /// Measurements.

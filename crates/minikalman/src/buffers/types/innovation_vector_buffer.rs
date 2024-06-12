@@ -1,33 +1,32 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::{MeasurementVector, MeasurementVectorMut};
+use crate::kalman::InnovationVector;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
-// TODO: Add MeasurementVectorMutBuffer
-
-/// Mutable buffer for the observation (measurement) vector (`num_measurements` × `1`).
+/// Mutable buffer for the innovation vector (`num_measurements` × `1`).
 ///
 /// ## Example
 /// ```
+/// use minikalman::buffers::types::InnovationVectorBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = MeasurementVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
+/// let buffer = InnovationVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = MeasurementVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = InnovationVectorBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct MeasurementVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
+pub struct InnovationVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<MEASUREMENTS, 1, T>;
 
 // -----------------------------------------------------------
 
 impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataMut<'a, MEASUREMENTS, 1, T>>
+    for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataMut<'a, MEASUREMENTS, 1, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -42,18 +41,18 @@ impl<'a, const MEASUREMENTS: usize, T> From<&'a mut [T]>
 /// Buffers can be trivially constructed from correctly-sized arrays:
 ///
 /// ```
-/// # use minikalman::prelude::MeasurementVectorBuffer;
-/// let _value: MeasurementVectorBuffer<5, f32, _> = [0.0; 5].into();
+/// # use minikalman::buffers::types::InnovationVectorBuffer;
+/// let _value: InnovationVectorBuffer<5, f32, _> = [0.0; 5].into();
 /// ```
 ///
 /// Invalid buffer sizes fail to compile:
 ///
 /// ```fail_compile
-/// # use minikalman::prelude::MeasurementVectorBuffer;
-/// let _value: MeasurementVectorBuffer<5, f32, _> = [0.0; 1].into();
+/// # use minikalman::prelude::InnovationVectorBuffer;
+/// let _value: InnovationVectorBuffer<5, f32, _> = [0.0; 1].into();
 /// ```
 impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
+    for InnovationVectorBuffer<MEASUREMENTS, T, MatrixDataArray<MEASUREMENTS, 1, MEASUREMENTS, T>>
 {
     fn from(value: [T; MEASUREMENTS]) -> Self {
         Self::new(MatrixData::new_array::<MEASUREMENTS, 1, MEASUREMENTS, T>(
@@ -64,7 +63,7 @@ impl<const MEASUREMENTS: usize, T> From<[T; MEASUREMENTS]>
 
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, T, M> MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENTS: usize, T, M> InnovationVectorBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, 1, T>,
 {
@@ -86,7 +85,7 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> AsRef<[T]> for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENTS: usize, T, M> AsRef<[T]> for InnovationVectorBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, 1, T>,
 {
@@ -95,7 +94,47 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> Index<usize> for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENTS: usize, T, M> AsMut<[T]> for InnovationVectorBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, 1, T>,
+{
+    fn as_mut(&mut self) -> &mut [T] {
+        self.0.as_mut()
+    }
+}
+
+impl<const MEASUREMENTS: usize, T, M> Matrix<MEASUREMENTS, 1, T>
+    for InnovationVectorBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, 1, T>,
+{
+}
+
+impl<const MEASUREMENTS: usize, T, M> MatrixMut<MEASUREMENTS, 1, T>
+    for InnovationVectorBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, 1, T>,
+{
+}
+
+impl<const MEASUREMENTS: usize, T, M> InnovationVector<MEASUREMENTS, T>
+    for InnovationVectorBuffer<MEASUREMENTS, T, M>
+where
+    M: MatrixMut<MEASUREMENTS, 1, T>,
+{
+    type Target = M;
+    type TargetMut = M;
+
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const MEASUREMENTS: usize, T, M> Index<usize> for InnovationVectorBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, 1, T>,
 {
@@ -106,8 +145,7 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> IndexMut<usize>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENTS: usize, T, M> IndexMut<usize> for InnovationVectorBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, 1, T>,
 {
@@ -116,56 +154,9 @@ where
     }
 }
 
-impl<const MEASUREMENTS: usize, T, M> AsMut<[T]> for MeasurementVectorBuffer<MEASUREMENTS, T, M>
-where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
-{
-    fn as_mut(&mut self) -> &mut [T] {
-        self.0.as_mut()
-    }
-}
-
-impl<const MEASUREMENTS: usize, T, M> Matrix<MEASUREMENTS, 1, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
-where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
-{
-}
-
-impl<const MEASUREMENTS: usize, T, M> MatrixMut<MEASUREMENTS, 1, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
-where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
-{
-}
-
-impl<const MEASUREMENTS: usize, T, M> MeasurementVector<MEASUREMENTS, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
-where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
-{
-    type Target = M;
-
-    fn as_matrix(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<const MEASUREMENTS: usize, T, M> MeasurementVectorMut<MEASUREMENTS, T>
-    for MeasurementVectorBuffer<MEASUREMENTS, T, M>
-where
-    M: MatrixMut<MEASUREMENTS, 1, T>,
-{
-    type TargetMut = M;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-        &mut self.0
-    }
-}
-
 // -----------------------------------------------------------
 
-impl<const MEASUREMENTS: usize, T, M> IntoInnerData for MeasurementVectorBuffer<MEASUREMENTS, T, M>
+impl<const MEASUREMENTS: usize, T, M> IntoInnerData for InnovationVectorBuffer<MEASUREMENTS, T, M>
 where
     M: MatrixMut<MEASUREMENTS, 1, T> + IntoInnerData,
 {
@@ -182,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: MeasurementVectorBuffer<5, f32, _> = [0.0; 5].into();
+        let value: InnovationVectorBuffer<5, f32, _> = [0.0; 5].into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -191,7 +182,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 5];
-        let value: MeasurementVectorBuffer<5, f32, _> = data.as_mut().into();
+        let value: InnovationVectorBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
