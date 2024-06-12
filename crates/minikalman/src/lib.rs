@@ -10,7 +10,7 @@
 //!
 //! If allocation is available (via `std` or `alloc` crate features), the [`KalmanBuilder`] can be
 //! used to quickly create a [`Kalman`] filter instance with all necessary buffers, alongside
-//! [`Control`] and [`Measurement`] instances.
+//! [`Control`] and [`Observation`] instances.
 //!
 //! ## Crate Features
 //!
@@ -53,7 +53,7 @@ mod test_dummies;
 pub use crate::buffers::builder::BufferBuilder;
 pub use crate::controls::{Control, ControlBuilder};
 pub use crate::kalman::{Kalman, KalmanBuilder};
-pub use crate::measurement::{Measurement, MeasurementBuilder};
+pub use crate::measurement::{Observation, ObservationBuilder};
 
 /// Re-export `num_traits`.
 pub use num_traits;
@@ -62,7 +62,7 @@ pub use num_traits;
 #[cfg(feature = "alloc")]
 pub mod builder {
     pub use crate::kalman_builder::{
-        KalmanFilterBuilder, KalmanFilterControlBuilder, KalmanFilterMeasurementBuilder,
+        KalmanFilterBuilder, KalmanFilterControlBuilder, KalmanFilterObservationBuilder,
     };
 }
 
@@ -74,7 +74,7 @@ pub mod prelude {
 
     pub use crate::controls::{Control, ControlBuilder};
     pub use crate::kalman::{Kalman, KalmanBuilder};
-    pub use crate::measurement::{Measurement, MeasurementBuilder};
+    pub use crate::measurement::{Observation, ObservationBuilder};
 
     pub use crate::kalman::*;
     pub use crate::matrix::*;

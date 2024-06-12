@@ -7,7 +7,7 @@
 
 use minikalman::prelude::*;
 
-/// Measurements.
+/// Observations.
 ///
 /// MATLAB source:
 /// ```matlab
@@ -19,7 +19,7 @@ const REAL_DISTANCE: [f64; 15] = [
     706.32, 828.94, 961.38,
 ];
 
-/// Measurement noise with variance 0.5
+/// Observation noise with variance 0.5
 ///
 /// MATLAB source:
 /// ```matlab
@@ -41,7 +41,7 @@ fn test_gravity_estimation_tuned() {
     impl_buffer_A!(mut gravity_A, NUM_STATES, f64, 0.0);
     impl_buffer_P!(mut gravity_P, NUM_STATES, f64, 0.0);
 
-    // Measurement buffers.
+    // Observation buffers.
     impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f64, 0.0);
     impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f64, 0.0);
     impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f64, 0.0);
@@ -53,7 +53,7 @@ fn test_gravity_estimation_tuned() {
     impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f64, 0.0);
     impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f64, 0.0);
 
-    // Measurement temporaries.
+    // Observation temporaries.
     impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f64, 0.0);
     impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f64, 0.0);
     impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f64, 0.0);
@@ -67,7 +67,7 @@ fn test_gravity_estimation_tuned() {
         gravity_temp_P,
     );
 
-    let mut measurement = MeasurementBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f64>(
+    let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f64>(
         gravity_H,
         gravity_z,
         gravity_R,
@@ -175,7 +175,7 @@ fn initialize_state_covariance_matrix(filter: &mut impl SystemCovarianceMatrix<N
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f64>,
+    measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f64>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
@@ -190,7 +190,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f64>,
+    measurement: &mut impl ObservationProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f64>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)

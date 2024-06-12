@@ -216,10 +216,10 @@ pub trait TemporaryBQMatrix<const STATES: usize, const CONTROLS: usize, T = f32>
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
-/// Measurement vector.
+/// Observation vector.
 ///
-/// Immutable variant. For a mutable variant, see [`MeasurementVectorMut`].
-pub trait MeasurementVector<const OBSERVATIONS: usize, T = f32>:
+/// Immutable variant. For a mutable variant, see [`ObservationVectorMut`].
+pub trait ObservationVector<const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, 1, T>;
@@ -227,11 +227,11 @@ pub trait MeasurementVector<const OBSERVATIONS: usize, T = f32>:
     fn as_matrix(&self) -> &Self::Target;
 }
 
-/// Measurement vector.
+/// Observation vector.
 ///
-/// Mutable variant. For a immutable variant, see [`MeasurementVector`].
-pub trait MeasurementVectorMut<const OBSERVATIONS: usize, T = f32>:
-    MeasurementVector<OBSERVATIONS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+/// Mutable variant. For a immutable variant, see [`ObservationVector`].
+pub trait ObservationVectorMut<const OBSERVATIONS: usize, T = f32>:
+    ObservationVector<OBSERVATIONS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<OBSERVATIONS, 1, T>;
 
@@ -247,10 +247,10 @@ pub trait MeasurementVectorMut<const OBSERVATIONS: usize, T = f32>:
     }
 }
 
-/// Measurement transformation matrix.
+/// Observation transformation matrix.
 ///
-/// Immutable variant. For a mutable variant, see [`MeasurementObservationMatrixMut`].
-pub trait MeasurementObservationMatrix<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
+/// Immutable variant. For a mutable variant, see [`ObservationMatrixMut`].
+pub trait ObservationMatrix<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, STATES, T>;
@@ -258,11 +258,11 @@ pub trait MeasurementObservationMatrix<const OBSERVATIONS: usize, const STATES: 
     fn as_matrix(&self) -> &Self::Target;
 }
 
-/// Measurement transformation matrix.
+/// Observation transformation matrix.
 ///
-/// Mutable variant. For a immutable variant, see [`MeasurementObservationMatrix`].
-pub trait MeasurementObservationMatrixMut<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
-    MeasurementObservationMatrix<OBSERVATIONS, STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+/// Mutable variant. For a immutable variant, see [`ObservationMatrix`].
+pub trait ObservationMatrixMut<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
+    ObservationMatrix<OBSERVATIONS, STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<OBSERVATIONS, STATES, T>;
 
@@ -278,10 +278,10 @@ pub trait MeasurementObservationMatrixMut<const OBSERVATIONS: usize, const STATE
     }
 }
 
-/// Measurement process noise covariance matrix.
+/// Observation process noise covariance matrix.
 ///
 /// Always mutable.
-pub trait MeasurementProcessNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
+pub trait ObservationProcessNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
     AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, OBSERVATIONS, T>;

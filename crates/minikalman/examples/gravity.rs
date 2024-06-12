@@ -194,7 +194,7 @@ fn initialize_control_covariance_matrix(
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
+    measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
@@ -209,7 +209,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
+    measurement: &mut impl ObservationProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)

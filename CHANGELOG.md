@@ -90,8 +90,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Set MSRV to `1.70.0` and Rust Edition to `2021`.
 - Added CI/CD cross-platform builds, code coverage and ensure examples and benchmarks build correctly.
 - Remove dependency on [stdint](https://github.com/sunsided/stdint-rs) crate unless explicitly enabled with the
-  `stdint` crate feature. This should unblock builds on Windows. 
-  
+  `stdint` crate feature. This should unblock builds on Windows.
+
 ## [0.0.2] - 2023-07-11
 
 [0.0.2]: https://github.com/sunsided/minikalman-rs/releases/tag/0.0.2

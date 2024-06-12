@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMut};
+use crate::kalman::{ObservationMatrix, ObservationMatrixMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
 
@@ -9,17 +9,17 @@ use crate::matrix::{Matrix, MatrixMut};
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::MeasurementObservationMatrixBuffer;
+/// use minikalman::buffers::types::ObservationMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = MeasurementObservationMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = ObservationMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let data = [0.0; 4];
-/// let buffer = MeasurementObservationMatrixBuffer::<2, 2, f32, _>::from(data.as_ref());
+/// let buffer = ObservationMatrixBuffer::<2, 2, f32, _>::from(data.as_ref());
 /// ```
-pub struct MeasurementObservationMatrixBuffer<const OBSERVATIONS: usize, const STATES: usize, T, M>(
+pub struct ObservationMatrixBuffer<const OBSERVATIONS: usize, const STATES: usize, T, M>(
     M,
     PhantomData<T>,
 )
@@ -30,29 +30,27 @@ where
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::MeasurementObservationMatrixMutBuffer;
+/// use minikalman::buffers::types::ObservationMatrixMutBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = MeasurementObservationMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = ObservationMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = MeasurementObservationMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// let buffer = ObservationMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
 /// ```
-pub struct MeasurementObservationMatrixMutBuffer<
-    const OBSERVATIONS: usize,
-    const STATES: usize,
-    T,
+pub struct ObservationMatrixMutBuffer<const OBSERVATIONS: usize, const STATES: usize, T, M>(
     M,
->(M, PhantomData<T>)
+    PhantomData<T>,
+)
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>;
 
 // -----------------------------------------------------------
 
 impl<const OBSERVATIONS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for MeasurementObservationMatrixBuffer<
+    for ObservationMatrixBuffer<
         OBSERVATIONS,
         STATES,
         T,
@@ -71,12 +69,7 @@ impl<const OBSERVATIONS: usize, const STATES: usize, const TOTAL: usize, T> From
 }
 
 impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a [T]>
-    for MeasurementObservationMatrixBuffer<
-        OBSERVATIONS,
-        STATES,
-        T,
-        MatrixDataRef<'a, OBSERVATIONS, STATES, T>,
-    >
+    for ObservationMatrixBuffer<OBSERVATIONS, STATES, T, MatrixDataRef<'a, OBSERVATIONS, STATES, T>>
 {
     fn from(value: &'a [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -88,12 +81,7 @@ impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a [T]>
 }
 
 impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a mut [T]>
-    for MeasurementObservationMatrixBuffer<
-        OBSERVATIONS,
-        STATES,
-        T,
-        MatrixDataRef<'a, OBSERVATIONS, STATES, T>,
-    >
+    for ObservationMatrixBuffer<OBSERVATIONS, STATES, T, MatrixDataRef<'a, OBSERVATIONS, STATES, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -105,7 +93,7 @@ impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a mut [T]>
-    for MeasurementObservationMatrixMutBuffer<
+    for ObservationMatrixMutBuffer<
         OBSERVATIONS,
         STATES,
         T,
@@ -122,7 +110,7 @@ impl<'a, const OBSERVATIONS: usize, const STATES: usize, T> From<&'a mut [T]>
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for MeasurementObservationMatrixMutBuffer<
+    for ObservationMatrixMutBuffer<
         OBSERVATIONS,
         STATES,
         T,
@@ -143,7 +131,7 @@ impl<const OBSERVATIONS: usize, const STATES: usize, const TOTAL: usize, T> From
 // -----------------------------------------------------------
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
-    MeasurementObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
+    ObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: Matrix<OBSERVATIONS, STATES, T>,
 {
@@ -166,7 +154,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> AsRef<[T]>
-    for MeasurementObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: Matrix<OBSERVATIONS, STATES, T>,
 {
@@ -176,15 +164,15 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Matrix<OBSERVATIONS, STATES, T>
-    for MeasurementObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: Matrix<OBSERVATIONS, STATES, T>,
 {
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
-    MeasurementObservationMatrix<OBSERVATIONS, STATES, T>
-    for MeasurementObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
+    ObservationMatrix<OBSERVATIONS, STATES, T>
+    for ObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: Matrix<OBSERVATIONS, STATES, T>,
 {
@@ -196,7 +184,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
-    MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -219,7 +207,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> AsRef<[T]>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -229,7 +217,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> AsMut<[T]>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -239,22 +227,22 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Matrix<OBSERVATIONS, STATES, T>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> MatrixMut<OBSERVATIONS, STATES, T>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
-    MeasurementObservationMatrix<OBSERVATIONS, STATES, T>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    ObservationMatrix<OBSERVATIONS, STATES, T>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -266,8 +254,8 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M>
-    MeasurementObservationMatrixMut<OBSERVATIONS, STATES, T>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    ObservationMatrixMut<OBSERVATIONS, STATES, T>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -279,7 +267,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Index<usize>
-    for MeasurementObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: Matrix<OBSERVATIONS, STATES, T>,
 {
@@ -291,7 +279,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> Index<usize>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -303,7 +291,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> IndexMut<usize>
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -315,7 +303,7 @@ where
 // -----------------------------------------------------------
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> IntoInnerData
-    for MeasurementObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T> + IntoInnerData,
 {
@@ -327,7 +315,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T, M> IntoInnerData
-    for MeasurementObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
+    for ObservationMatrixMutBuffer<OBSERVATIONS, STATES, T, M>
 where
     M: MatrixMut<OBSERVATIONS, STATES, T> + IntoInnerData,
 {
@@ -344,7 +332,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
+        let value: ObservationMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -353,7 +341,7 @@ mod tests {
     #[test]
     fn test_from_ref() {
         let data = [0.0_f32; 100];
-        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = data.as_ref().into();
+        let value: ObservationMatrixBuffer<5, 3, f32, _> = data.as_ref().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -363,7 +351,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: ObservationMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -373,13 +361,13 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
+        let value: ObservationMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 
     #[test]
     fn test_mut_from_array() {
-        let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = [0.0; 100].into();
+        let value: ObservationMatrixMutBuffer<5, 3, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -388,7 +376,7 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: ObservationMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -398,7 +386,7 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_mut_from_array_invalid_size() {
-        let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = [0.0; 1].into();
+        let value: ObservationMatrixMutBuffer<5, 3, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }

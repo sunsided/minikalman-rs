@@ -380,7 +380,7 @@ macro_rules! impl_buffer_Q {
 
 /// Creates a static buffer fitting the measurement vector z (`num_measurements` × `1`).
 ///
-/// This will create a [`MeasurementVectorBuffer`](crate::buffers::types::MeasurementVectorBuffer)
+/// This will create a [`ObservationVectorBuffer`](crate::buffers::types::ObservationVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -422,11 +422,11 @@ macro_rules! impl_buffer_z {
         $crate::impl_buffer_z!($vec_name, $num_measurements, $t, $init, static)
     };
     ($vec_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $vec_name: $crate::buffers::types::MeasurementVectorBuffer<
+        $($keywords)* $vec_name: $crate::buffers::types::ObservationVectorBuffer<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
-        > = $crate::buffers::types::MeasurementVectorBuffer::<
+        > = $crate::buffers::types::ObservationVectorBuffer::<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<$num_measurements, 1, { $num_measurements * 1 }, $t>,
@@ -438,7 +438,7 @@ macro_rules! impl_buffer_z {
 
 /// Creates a static buffer fitting the measurement transformation matrix (`num_measurements` × `num_states`).
 ///
-/// This will create a [`MeasurementTransformationMatrixMutBuffer`](crate::buffers::types::MeasurementObservationMatrixMutBuffer)
+/// This will create a [`ObservationTransformationMatrixMutBuffer`](crate::buffers::types::ObservationMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -483,7 +483,7 @@ macro_rules! impl_buffer_H {
         $crate::impl_buffer_H!($mat_name, $num_measurements, $num_states, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::MeasurementObservationMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::ObservationMatrixMutBuffer<
             $num_measurements,
             $num_states,
             $t,
@@ -493,7 +493,7 @@ macro_rules! impl_buffer_H {
                 { $num_measurements * $num_states },
                 $t,
             >,
-        > = $crate::buffers::types::MeasurementObservationMatrixMutBuffer::<
+        > = $crate::buffers::types::ObservationMatrixMutBuffer::<
             $num_measurements,
             $num_states,
             $t,
@@ -511,7 +511,7 @@ macro_rules! impl_buffer_H {
 
 /// Creates a static buffer fitting the square measurement uncertainty matrix (`num_measurements` × `num_measurements`).
 ///
-/// This will create a [`MeasurementProcessNoiseCovarianceMatrixBuffer`](crate::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer)
+/// This will create a [`ObservationProcessNoiseCovarianceMatrixBuffer`](crate::buffers::types::ObservationProcessNoiseCovarianceMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -554,7 +554,7 @@ macro_rules! impl_buffer_R {
         $crate::impl_buffer_R!($mat_name, $num_measurements, $t, $init, static)
     };
     ($mat_name:ident, $num_measurements:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::ObservationProcessNoiseCovarianceMatrixBuffer<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<
@@ -563,7 +563,7 @@ macro_rules! impl_buffer_R {
                 { $num_measurements * $num_measurements },
                 $t,
             >,
-        > = $crate::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer::<
+        > = $crate::buffers::types::ObservationProcessNoiseCovarianceMatrixBuffer::<
             $num_measurements,
             $t,
             $crate::matrix::MatrixDataArray<

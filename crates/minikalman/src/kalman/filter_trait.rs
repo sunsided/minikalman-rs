@@ -1,7 +1,7 @@
 use crate::kalman::{
     ControlCovarianceMatrix, ControlCovarianceMatrixMut, ControlMatrix, ControlMatrixMut,
-    ControlVector, ControlVectorMut, MeasurementObservationMatrix, MeasurementObservationMatrixMut,
-    MeasurementProcessNoiseCovarianceMatrix, MeasurementVector, MeasurementVectorMut, StateVector,
+    ControlVector, ControlVectorMut, ObservationMatrix, ObservationMatrixMut,
+    ObservationProcessNoiseCovarianceMatrix, ObservationVector, ObservationVectorMut, StateVector,
     StateVectorMut, SystemCovarianceMatrix, SystemMatrix, SystemMatrixMut,
 };
 
@@ -25,12 +25,12 @@ pub trait KalmanFilterControl<const STATES: usize, const CONTROLS: usize, T>:
 {
 }
 
-pub trait KalmanFilterMeasurement<const STATES: usize, const OBSERVATIONS: usize, T>:
+pub trait KalmanFilterObservation<const STATES: usize, const OBSERVATIONS: usize, T>:
     KalmanFilterNumStates<STATES>
-    + KalmanFilterNumMeasurements<OBSERVATIONS>
-    + KalmanFilterMeasurementVectorMut<OBSERVATIONS, T>
-    + KalmanFilterMeasurementTransformation<STATES, OBSERVATIONS, T>
-    + KalmanFilterMeasurementProcessNoiseMut<OBSERVATIONS, T>
+    + KalmanFilterNumObservations<OBSERVATIONS>
+    + KalmanFilterObservationVectorMut<OBSERVATIONS, T>
+    + KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
+    + KalmanFilterObservationProcessNoiseMut<OBSERVATIONS, T>
 {
 }
 
@@ -59,16 +59,16 @@ where
 {
 }
 
-/// Auto-implementation of [`KalmanFilterMeasurement`] for types that implement all necessary traits.
-impl<const STATES: usize, const OBSERVATIONS: usize, T, Measurement>
-    KalmanFilterMeasurement<STATES, OBSERVATIONS, T> for Measurement
+/// Auto-implementation of [`KalmanFilterObservation`] for types that implement all necessary traits.
+impl<const STATES: usize, const OBSERVATIONS: usize, T, Observation>
+    KalmanFilterObservation<STATES, OBSERVATIONS, T> for Observation
 where
-    Measurement: KalmanFilterNumStates<STATES>
-        + KalmanFilterNumMeasurements<OBSERVATIONS>
-        + KalmanFilterMeasurementVectorMut<OBSERVATIONS, T>
-        + KalmanFilterMeasurementTransformation<STATES, OBSERVATIONS, T>
-        + KalmanFilterMeasurementProcessNoiseMut<OBSERVATIONS, T>
-        + KalmanFilterMeasurementCorrectFilter<STATES, T>,
+    Observation: KalmanFilterNumStates<STATES>
+        + KalmanFilterNumObservations<OBSERVATIONS>
+        + KalmanFilterObservationVectorMut<OBSERVATIONS, T>
+        + KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
+        + KalmanFilterObservationProcessNoiseMut<OBSERVATIONS, T>
+        + KalmanFilterObservationCorrectFilter<STATES, T>,
 {
 }
 
@@ -107,8 +107,8 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     /// * `measurement` - The measurement to update the state prediction with.
     fn correct<const OBSERVATIONS: usize, M>(&mut self, measurement: &mut M)
     where
-        M: KalmanFilterMeasurementCorrectFilter<STATES, T>
-            + KalmanFilterNumMeasurements<OBSERVATIONS>;
+        M: KalmanFilterObservationCorrectFilter<STATES, T>
+            + KalmanFilterNumObservations<OBSERVATIONS>;
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {
@@ -291,7 +291,7 @@ pub trait KalmanFilterControlCovarianceMut<const CONTROLS: usize, T>:
     }
 }
 
-pub trait KalmanFilterNumMeasurements<const OBSERVATIONS: usize> {
+pub trait KalmanFilterNumObservations<const OBSERVATIONS: usize> {
     /// The number of measurements.
     const NUM_OBSERVATIONS: usize = OBSERVATIONS;
 
@@ -301,7 +301,7 @@ pub trait KalmanFilterNumMeasurements<const OBSERVATIONS: usize> {
     }
 }
 
-pub trait KalmanFilterMeasurementCorrectFilter<const STATES: usize, T> {
+pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
     /// Performs the measurement update step.
     ///
     /// ## Arguments
@@ -314,85 +314,81 @@ pub trait KalmanFilterMeasurementCorrectFilter<const STATES: usize, T> {
         P: SystemCovarianceMatrix<STATES, T>;
 }
 
-pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
-    type MeasurementVector: MeasurementVector<OBSERVATIONS, T>;
+pub trait KalmanFilterObservationVector<const OBSERVATIONS: usize, T> {
+    type ObservationVector: ObservationVector<OBSERVATIONS, T>;
 
     /// Gets a reference to the measurement vector z.
-    fn measurement_vector_ref(&self) -> &Self::MeasurementVector;
+    fn measurement_vector_ref(&self) -> &Self::ObservationVector;
 }
 
-pub trait KalmanFilterMeasurementVectorMut<const OBSERVATIONS: usize, T>:
-    KalmanFilterMeasurementVector<OBSERVATIONS, T>
+pub trait KalmanFilterObservationVectorMut<const OBSERVATIONS: usize, T>:
+    KalmanFilterObservationVector<OBSERVATIONS, T>
 {
-    type MeasurementVectorMut: MeasurementVectorMut<OBSERVATIONS, T>;
+    type ObservationVectorMut: ObservationVectorMut<OBSERVATIONS, T>;
 
     /// Gets a mutable reference to the measurement vector z.
     #[doc(alias = "kalman_get_measurement_vector")]
-    fn measurement_vector_mut(&mut self) -> &mut Self::MeasurementVectorMut;
+    fn measurement_vector_mut(&mut self) -> &mut Self::ObservationVectorMut;
 
     #[inline(always)]
     fn measurement_vector_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Self::MeasurementVectorMut),
+        F: FnMut(&mut Self::ObservationVectorMut),
     {
         f(self.measurement_vector_mut())
     }
 }
 
-pub trait KalmanFilterMeasurementTransformation<const STATES: usize, const OBSERVATIONS: usize, T> {
-    type MeasurementTransformationMatrix: MeasurementObservationMatrix<OBSERVATIONS, STATES, T>;
+pub trait KalmanFilterObservationTransformation<const STATES: usize, const OBSERVATIONS: usize, T> {
+    type ObservationTransformationMatrix: ObservationMatrix<OBSERVATIONS, STATES, T>;
 
     /// Gets a reference to the measurement transformation matrix H.
-    fn measurement_transformation_ref(&self) -> &Self::MeasurementTransformationMatrix;
+    fn measurement_transformation_ref(&self) -> &Self::ObservationTransformationMatrix;
 }
 
-pub trait KalmanFilterMeasurementTransformationMut<
+pub trait KalmanFilterObservationTransformationMut<
     const STATES: usize,
     const OBSERVATIONS: usize,
     T,
->: KalmanFilterMeasurementTransformation<STATES, OBSERVATIONS, T>
+>: KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
 {
-    type MeasurementTransformationMatrixMut: MeasurementObservationMatrixMut<
-        OBSERVATIONS,
-        STATES,
-        T,
-    >;
+    type ObservationTransformationMatrixMut: ObservationMatrixMut<OBSERVATIONS, STATES, T>;
 
     /// Gets a mutable reference to the measurement transformation matrix H.
     #[doc(alias = "kalman_get_measurement_transformation")]
-    fn measurement_transformation_mut(&mut self) -> &mut Self::MeasurementTransformationMatrixMut;
+    fn measurement_transformation_mut(&mut self) -> &mut Self::ObservationTransformationMatrixMut;
 
     /// Applies a function to the measurement transformation matrix H.
     #[inline(always)]
     fn measurement_transformation_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Self::MeasurementTransformationMatrixMut),
+        F: FnMut(&mut Self::ObservationTransformationMatrixMut),
     {
         f(self.measurement_transformation_mut())
     }
 }
 
-pub trait KalmanFilterMeasurementProcessNoise<const OBSERVATIONS: usize, T> {
-    type MeasurementProcessNoiseMatrix: MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>;
+pub trait KalmanFilterObservationProcessNoise<const OBSERVATIONS: usize, T> {
+    type ObservationProcessNoiseMatrix: ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>;
 
     /// Gets a reference to the process noise matrix R.
-    fn process_noise_ref(&self) -> &Self::MeasurementProcessNoiseMatrix;
+    fn process_noise_ref(&self) -> &Self::ObservationProcessNoiseMatrix;
 }
 
-pub trait KalmanFilterMeasurementProcessNoiseMut<const OBSERVATIONS: usize, T>:
-    KalmanFilterMeasurementProcessNoise<OBSERVATIONS, T>
+pub trait KalmanFilterObservationProcessNoiseMut<const OBSERVATIONS: usize, T>:
+    KalmanFilterObservationProcessNoise<OBSERVATIONS, T>
 {
-    type MeasurementProcessNoiseMatrixMut: MeasurementProcessNoiseCovarianceMatrix<OBSERVATIONS, T>;
+    type ObservationProcessNoiseMatrixMut: ObservationProcessNoiseCovarianceMatrix<OBSERVATIONS, T>;
 
     /// Gets a mutable reference to the process noise matrix R.
     #[doc(alias = "kalman_get_process_noise")]
-    fn process_noise_mut(&mut self) -> &mut Self::MeasurementProcessNoiseMatrixMut;
+    fn process_noise_mut(&mut self) -> &mut Self::ObservationProcessNoiseMatrixMut;
 
     /// Applies a function to the process noise matrix R.
     #[inline(always)]
     fn process_noise_apply<F>(&mut self, mut f: F)
     where
-        F: FnMut(&mut Self::MeasurementProcessNoiseMatrixMut),
+        F: FnMut(&mut Self::ObservationProcessNoiseMatrixMut),
     {
         f(self.process_noise_mut())
     }

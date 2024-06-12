@@ -4,7 +4,7 @@ use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
 use crate::controls::{Control, ControlBuilder};
-use crate::{BufferBuilder, Kalman, KalmanBuilder, Measurement, MeasurementBuilder};
+use crate::{BufferBuilder, Kalman, KalmanBuilder, Observation, ObservationBuilder};
 
 /// A simple builder for [`Kalman`] instances.
 #[derive(Copy, Clone)]
@@ -14,9 +14,9 @@ pub struct KalmanFilterBuilder<const STATES: usize, T>(PhantomData<T>);
 #[derive(Copy, Clone)]
 pub struct KalmanFilterControlBuilder<const STATES: usize, T>(PhantomData<T>);
 
-/// A simple builder for [`Measurement`] instances.
+/// A simple builder for [`Observation`] instances.
 #[derive(Copy, Clone)]
-pub struct KalmanFilterMeasurementBuilder<const STATES: usize, T>(PhantomData<T>);
+pub struct KalmanFilterObservationBuilder<const STATES: usize, T>(PhantomData<T>);
 
 impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
     fn default() -> Self {
@@ -59,7 +59,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// let mut measurement = builder.measurements().build::<NUM_OBSERVATIONS>();
     /// ```
     ///
-    /// See also [`KalmanFilterControlBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
+    /// See also [`KalmanFilterControlBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
     pub fn build(&self) -> KalmanFilterType<STATES, T>
     where
         T: MatrixDataType,
@@ -90,8 +90,8 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
         Default::default()
     }
 
-    /// Convenience function to return a [`KalmanFilterMeasurementBuilder`].
-    pub fn measurements(&self) -> KalmanFilterMeasurementBuilder<STATES, T> {
+    /// Convenience function to return a [`KalmanFilterObservationBuilder`].
+    pub fn measurements(&self) -> KalmanFilterObservationBuilder<STATES, T> {
         Default::default()
     }
 }
@@ -135,7 +135,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
     /// let mut control = builder.controls().build::<NUM_CONTROLS>();
     /// ```
     ///
-    /// See also [`KalmanFilterBuilder`] and [`KalmanFilterMeasurementBuilder`] for further information.
+    /// See also [`KalmanFilterBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
     pub fn build<const CONTROLS: usize>(&self) -> KalmanFilterControlType<STATES, CONTROLS, T>
     where
         T: MatrixDataType,
@@ -160,7 +160,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
     }
 }
 
-impl<const STATES: usize, T> Default for KalmanFilterMeasurementBuilder<STATES, T> {
+impl<const STATES: usize, T> Default for KalmanFilterObservationBuilder<STATES, T> {
     fn default() -> Self {
         Self::new()
     }
@@ -168,9 +168,9 @@ impl<const STATES: usize, T> Default for KalmanFilterMeasurementBuilder<STATES, 
 
 /// The type of Kalman filter measurements with owned buffers.
 ///
-/// See also the [`KalmanFilterMeasurement`](minikalman::kalman::KalmanFilterMeasurement) trait.
-pub type KalmanFilterMeasurementType<const STATES: usize, const OBSERVATIONS: usize, T> =
-    Measurement<
+/// See also the [`KalmanFilterObservation`](minikalman::kalman::KalmanFilterObservation) trait.
+pub type KalmanFilterObservationType<const STATES: usize, const OBSERVATIONS: usize, T> =
+    Observation<
         STATES,
         OBSERVATIONS,
         T,
@@ -186,8 +186,8 @@ pub type KalmanFilterMeasurementType<const STATES: usize, const OBSERVATIONS: us
         TemporaryKHPMatrixBufferOwnedType<STATES, T>,
     >;
 
-impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
-    /// Creates a new [`KalmanFilterMeasurementBuilder`] instance.
+impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
+    /// Creates a new [`KalmanFilterObservationBuilder`] instance.
     pub fn new() -> Self {
         Self(PhantomData)
     }
@@ -209,14 +209,14 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterControlBuilder`] for further information.
     pub fn build<const OBSERVATIONS: usize>(
         &self,
-    ) -> KalmanFilterMeasurementType<STATES, OBSERVATIONS, T>
+    ) -> KalmanFilterObservationType<STATES, OBSERVATIONS, T>
     where
         T: MatrixDataType,
     {
         // The initialization value.
         let zero = T::zero();
 
-        // Measurement buffers.
+        // Observation buffers.
         let measurement_vector = BufferBuilder::measurement_vector_z::<OBSERVATIONS>().new(zero);
         let observation_matrix =
             BufferBuilder::measurement_transformation_H::<OBSERVATIONS, STATES>().new(zero);
@@ -227,13 +227,13 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
             BufferBuilder::innovation_covariance_S::<OBSERVATIONS>().new(zero);
         let kalman_gain = BufferBuilder::kalman_gain_K::<STATES, OBSERVATIONS>().new(zero);
 
-        // Measurement temporaries.
+        // Observation temporaries.
         let temp_s_inverted = BufferBuilder::temp_S_inv::<OBSERVATIONS>().new(zero);
         let temp_hp = BufferBuilder::temp_HP::<OBSERVATIONS, STATES>().new(zero);
         let temp_pht = BufferBuilder::temp_PHt::<STATES, OBSERVATIONS>().new(zero);
         let temp_khp = BufferBuilder::temp_KHP::<STATES>().new(zero);
 
-        MeasurementBuilder::new::<STATES, OBSERVATIONS, T>(
+        ObservationBuilder::new::<STATES, OBSERVATIONS, T>(
             observation_matrix,
             measurement_vector,
             observation_covariance,
@@ -251,7 +251,7 @@ impl<const STATES: usize, T> KalmanFilterMeasurementBuilder<STATES, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kalman::{KalmanFilter, KalmanFilterControl, KalmanFilterMeasurement};
+    use crate::kalman::{KalmanFilter, KalmanFilterControl, KalmanFilterObservation};
 
     const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
     const NUM_CONTROLS: usize = 1; // constant velocity
@@ -271,7 +271,7 @@ mod tests {
 
     fn accept_measurement<M, T>(_measurement: M)
     where
-        M: KalmanFilterMeasurement<NUM_STATES, NUM_OBSERVATIONS, T>,
+        M: KalmanFilterObservation<NUM_STATES, NUM_OBSERVATIONS, T>,
     {
     }
 

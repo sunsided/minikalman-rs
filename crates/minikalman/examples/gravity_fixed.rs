@@ -17,7 +17,7 @@ const NUM_STATES: usize = 3;
 const NUM_OBSERVATIONS: usize = 1;
 
 lazy_static! {
-    /// Measurements.
+    /// Observations.
     ///
     /// MATLAB source:
     /// ```matlab
@@ -42,7 +42,7 @@ lazy_static! {
         I16F16::from_num(961.38),
     ];
 
-    /// Measurement noise with variance 0.5
+    /// Observation noise with variance 0.5
     ///
     /// MATLAB source:
     /// ```matlab
@@ -171,7 +171,7 @@ fn initialize_state_covariance_matrix(
 /// z = 1×s + 0×v + 0×a
 /// ```
 fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl MeasurementObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, I16F16>,
+    measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, I16F16>,
 ) {
     measurement.apply(|h| {
         h.set(0, 0, I16F16::ONE); // z = 1*s
@@ -186,7 +186,7 @@ fn initialize_position_measurement_transformation_matrix(
 /// individual variation components. It is the measurement counterpart
 /// of the state covariance matrix.
 fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
+    measurement: &mut impl ObservationProcessNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
 ) {
     measurement.apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)

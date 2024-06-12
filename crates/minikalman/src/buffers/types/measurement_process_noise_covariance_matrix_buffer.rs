@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::MeasurementProcessNoiseCovarianceMatrix;
+use crate::kalman::ObservationProcessNoiseCovarianceMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 
@@ -9,17 +9,17 @@ use crate::matrix::{Matrix, MatrixMut};
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::MeasurementProcessNoiseCovarianceMatrixBuffer;
+/// use minikalman::buffers::types::ObservationProcessNoiseCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = MeasurementProcessNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = ObservationProcessNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = MeasurementProcessNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = ObservationProcessNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
 /// ```
-pub struct MeasurementProcessNoiseCovarianceMatrixBuffer<const OBSERVATION: usize, T, M>(
+pub struct ObservationProcessNoiseCovarianceMatrixBuffer<const OBSERVATION: usize, T, M>(
     M,
     PhantomData<T>,
 )
@@ -29,7 +29,7 @@ where
 // -----------------------------------------------------------
 
 impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<
+    for ObservationProcessNoiseCovarianceMatrixBuffer<
         OBSERVATIONS,
         T,
         MatrixDataMut<'a, OBSERVATIONS, OBSERVATIONS, T>,
@@ -45,7 +45,7 @@ impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
 }
 
 impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<
+    for ObservationProcessNoiseCovarianceMatrixBuffer<
         OBSERVATIONS,
         T,
         MatrixDataArray<OBSERVATIONS, OBSERVATIONS, TOTAL, T>,
@@ -63,7 +63,7 @@ impl<const OBSERVATIONS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 // -----------------------------------------------------------
 
 impl<const OBSERVATION: usize, T, M>
-    MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -86,7 +86,7 @@ where
 }
 
 impl<const OBSERVATION: usize, T, M> AsRef<[T]>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -96,7 +96,7 @@ where
 }
 
 impl<const OBSERVATION: usize, T, M> AsMut<[T]>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -106,21 +106,21 @@ where
 }
 
 impl<const OBSERVATION: usize, T, M> Matrix<OBSERVATION, OBSERVATION, T>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
 impl<const OBSERVATION: usize, T, M> MatrixMut<OBSERVATION, OBSERVATION, T>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
 }
 
-impl<const OBSERVATION: usize, T, M> MeasurementProcessNoiseCovarianceMatrix<OBSERVATION, T>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+impl<const OBSERVATION: usize, T, M> ObservationProcessNoiseCovarianceMatrix<OBSERVATION, T>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
@@ -137,7 +137,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> Index<usize>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -149,7 +149,7 @@ where
 }
 
 impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
@@ -161,7 +161,7 @@ where
 // -----------------------------------------------------------
 
 impl<const OBSERVATIONS: usize, T, M> IntoInnerData
-    for MeasurementProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
+    for ObservationProcessNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T> + IntoInnerData,
 {
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: MeasurementProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: ObservationProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: MeasurementProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: ObservationProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: MeasurementProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: ObservationProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 }
