@@ -138,3 +138,31 @@ where
         self.0.into_inner()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        let value: InnovationVectorBuffer<5, f32, _> = [0.0; 5].into();
+        assert_eq!(value.len(), 5);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_ref() {
+        let mut data = [0.0_f32; 5];
+        let value: InnovationVectorBuffer<5, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 5);
+        assert!(value.is_valid());
+    }
+
+    /* TODO: Turn into compile_fail doctest
+    #[test]
+    fn test_from_array_invalid_size() {
+        let value: InnovationVectorBuffer<5, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
+    }
+    */
+}

@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMut};
 
+use minikalman_traits::kalman::{MeasurementObservationMatrix, MeasurementObservationMatrixMut};
 use minikalman_traits::matrix::{
     IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
 };
@@ -24,6 +24,25 @@ where
     M: MatrixMut<MEASUREMENTS, STATES, T>;
 
 // -----------------------------------------------------------
+
+impl<const MEASUREMENTS: usize, const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for MeasurementObservationMatrixBuffer<
+        MEASUREMENTS,
+        STATES,
+        T,
+        MatrixDataArray<MEASUREMENTS, STATES, TOTAL, T>,
+    >
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(MEASUREMENTS * STATES, TOTAL);
+        }
+        Self::new(MatrixData::new_array::<MEASUREMENTS, STATES, TOTAL, T>(
+            value,
+        ))
+    }
+}
 
 impl<'a, const MEASUREMENTS: usize, const STATES: usize, T> From<&'a [T]>
     for MeasurementObservationMatrixBuffer<
@@ -166,6 +185,11 @@ where
     pub const fn is_empty(&self) -> bool {
         MEASUREMENTS * STATES == 0
     }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    pub fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
 }
 
 impl<const MEASUREMENTS: usize, const STATES: usize, T, M> AsRef<[T]>
@@ -285,5 +309,54 @@ where
 
     fn into_inner(self) -> Self::Target {
         self.0.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 15);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_ref() {
+        let mut data = [0.0_f32; 100];
+        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 15);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_from_array_invalid_size() {
+        let value: MeasurementObservationMatrixBuffer<5, 3, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_array() {
+        let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 15);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_ref() {
+        let mut data = [0.0_f32; 100];
+        let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 15);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_mut_from_array_invalid_size() {
+        let value: MeasurementObservationMatrixMutBuffer<5, 3, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
     }
 }

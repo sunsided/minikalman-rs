@@ -1,11 +1,10 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
-use minikalman_traits::kalman::{SystemMatrix, SystemMatrixMut};
 
+use minikalman_traits::kalman::{SystemMatrix, SystemMatrixMut};
 use minikalman_traits::matrix::{
     IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef,
 };
-
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 pub struct SystemMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
@@ -17,6 +16,18 @@ where
     M: MatrixMut<STATES, STATES, T>;
 
 // -----------------------------------------------------------
+
+impl<const STATES: usize, const TOTAL: usize, T> From<[T; TOTAL]>
+    for SystemMatrixBuffer<STATES, T, MatrixDataArray<STATES, STATES, TOTAL, T>>
+{
+    fn from(value: [T; TOTAL]) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        {
+            debug_assert_eq!(STATES * STATES, TOTAL);
+        }
+        Self::new(MatrixData::new_array::<STATES, STATES, TOTAL, T>(value))
+    }
+}
 
 impl<'a, const STATES: usize, T> From<&'a [T]>
     for SystemMatrixBuffer<STATES, T, MatrixDataRef<'a, STATES, STATES, T>>
@@ -234,5 +245,54 @@ where
 
     fn into_inner(self) -> Self::Target {
         self.0.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        let value: SystemMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_ref() {
+        let mut data = [0.0_f32; 100];
+        let value: SystemMatrixBuffer<5, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_from_array_invalid_size() {
+        let value: SystemMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_array() {
+        let value: SystemMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_mut_from_ref() {
+        let mut data = [0.0_f32; 100];
+        let value: SystemMatrixMutBuffer<5, f32, _> = data.as_mut().into();
+        assert_eq!(value.len(), 25);
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_mut_from_array_invalid_size() {
+        let value: SystemMatrixMutBuffer<5, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
     }
 }

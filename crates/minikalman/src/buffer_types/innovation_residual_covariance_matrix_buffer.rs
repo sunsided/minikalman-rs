@@ -189,4 +189,11 @@ mod tests {
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
     }
+
+    #[test]
+    #[cfg(feature = "no_assert")]
+    fn test_from_array_invalid_size() {
+        let value: InnovationResidualCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        assert!(!value.is_valid());
+    }
 }
