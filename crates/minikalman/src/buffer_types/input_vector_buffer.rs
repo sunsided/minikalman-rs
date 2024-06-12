@@ -7,6 +7,20 @@ use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 // TODO: Add InputVectorMutBuffer
 
+/// Mutable buffer for the control (input) vector (`num_inputs` × `1`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = InputVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = InputVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// ```
 pub struct InputVectorBuffer<const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<INPUTS, 1, T>;

@@ -7,6 +7,20 @@ use minikalman_traits::matrix::{
 };
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Immutable buffer for the observation matrix (`num_inputs` × `num_states`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = MeasurementObservationMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let data = [0.0; 4];
+/// let buffer = MeasurementObservationMatrixBuffer::<2, 2, f32, _>::from(data.as_ref());
+/// ```
 pub struct MeasurementObservationMatrixBuffer<const MEASUREMENTS: usize, const STATES: usize, T, M>(
     M,
     PhantomData<T>,
@@ -14,6 +28,20 @@ pub struct MeasurementObservationMatrixBuffer<const MEASUREMENTS: usize, const S
 where
     M: Matrix<MEASUREMENTS, STATES, T>;
 
+/// Mmutable buffer for the observation matrix (`num_inputs` × `num_states`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = MeasurementObservationMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = MeasurementObservationMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// ```
 pub struct MeasurementObservationMatrixMutBuffer<
     const MEASUREMENTS: usize,
     const STATES: usize,

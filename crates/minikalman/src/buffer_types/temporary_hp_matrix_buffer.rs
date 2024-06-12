@@ -5,6 +5,23 @@ use minikalman_traits::kalman::TemporaryHPMatrix;
 use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Mutable buffer for the temporary H×P matrix (`num_measurements` × `num_states`).
+///
+/// # See also
+/// * [`TemporaryPHTMatrixBuffer`](crate::buffer_types::TemporaryPHTMatrixBuffer).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = TemporaryHPMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = TemporaryHPMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// ```
 pub struct TemporaryHPMatrixBuffer<const MEASUREMENTS: usize, const STATES: usize, T, M>(
     M,
     PhantomData<T>,

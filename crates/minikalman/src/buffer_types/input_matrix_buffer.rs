@@ -7,10 +7,38 @@ use minikalman_traits::matrix::{
 };
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Immutable buffer for the control matrix (`num_states` × `num_inputs`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = InputMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let data = [0.0; 4];
+/// let buffer = InputMatrixBuffer::<2, 2, f32, _>::from(data.as_ref());
+/// ```
 pub struct InputMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
     M: Matrix<STATES, INPUTS, T>;
 
+/// Mutable buffer for the control matrix (`num_states` × `num_inputs`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = InputMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = InputMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// ```
 pub struct InputMatrixMutBuffer<const STATES: usize, const INPUTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, INPUTS, T>;

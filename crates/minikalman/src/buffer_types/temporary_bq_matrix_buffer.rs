@@ -5,6 +5,20 @@ use minikalman_traits::kalman::TemporaryBQMatrix;
 use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Mutable buffer for the temporary B×Q matrix (`num_states` × `num_inputs`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = TemporaryBQMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = TemporaryBQMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// ```
 pub struct TemporaryBQMatrixBuffer<const STATES: usize, const INPUTS: usize, T, M>(
     M,
     PhantomData<T>,

@@ -5,6 +5,20 @@ use minikalman_traits::kalman::TemporaryResidualCovarianceInvertedMatrix;
 use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Mutable buffer for the temporary inverted innovation residual covariance matrix (`num_measurements` × `num_measurements`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = TemporaryResidualCovarianceInvertedMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = TemporaryResidualCovarianceInvertedMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// ```
 pub struct TemporaryResidualCovarianceInvertedMatrixBuffer<const MEASUREMENTS: usize, T, M>(
     M,
     PhantomData<T>,

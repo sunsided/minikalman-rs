@@ -5,6 +5,20 @@ use minikalman_traits::kalman::TemporaryStateMatrix;
 use minikalman_traits::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use minikalman_traits::matrix::{Matrix, MatrixMut};
 
+/// Mutable buffer for the temporary system matrix (`num_states` × `num_states`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = TemporaryStateMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = TemporaryStateMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// ```
 pub struct TemporaryStateMatrixBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<STATES, STATES, T>;

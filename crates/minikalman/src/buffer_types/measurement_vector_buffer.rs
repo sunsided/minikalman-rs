@@ -7,6 +7,20 @@ use minikalman_traits::matrix::{Matrix, MatrixMut};
 
 // TODO: Add MeasurementVectorMutBuffer
 
+/// Mutable buffer for the observation (measurement) vector (`num_measurements` × `1`).
+///
+/// ## Example
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman_traits::matrix::MatrixData;
+///
+/// // From owned data
+/// let buffer = MeasurementVectorBuffer::new(MatrixData::new_array::<4, 1, 4, f32>([0.0; 4]));
+///
+/// // From a reference
+/// let mut data = [0.0; 4];
+/// let buffer = MeasurementVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// ```
 pub struct MeasurementVectorBuffer<const MEASUREMENTS: usize, T, M>(M, PhantomData<T>)
 where
     M: MatrixMut<MEASUREMENTS, 1, T>;
