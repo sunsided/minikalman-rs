@@ -862,11 +862,12 @@ mod tests {
     {
         assert_eq!(filter.states(), STATES);
 
-        let test_fn = || {};
+        let test_fn = || 42;
 
         let mut temp = 0;
         let mut test_fn_mut = || {
             temp += 0;
+            42
         };
 
         let _vec = filter.state_vector_ref();
@@ -905,11 +906,12 @@ mod tests {
 
         let mut filter = trait_impl(filter);
 
-        let test_fn = || {};
+        let test_fn = || 42;
 
         let mut temp = 0;
         let mut test_fn_mut = || {
             temp += 0;
+            42
         };
 
         let _vec = filter.state_vector_ref();

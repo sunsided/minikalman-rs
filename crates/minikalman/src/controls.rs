@@ -621,11 +621,12 @@ mod tests {
         assert_eq!(control.states(), STATES);
         assert_eq!(control.controls(), CONTROLS);
 
-        let test_fn = || {};
+        let test_fn = || 42;
 
         let mut temp = 0;
         let mut test_fn_mut = || {
             temp += 0;
+            42
         };
 
         let _vec = control.control_vector_ref();
@@ -663,11 +664,12 @@ mod tests {
 
         let mut control = trait_impl(control);
 
-        let test_fn = || {};
+        let test_fn = || 42;
 
         let mut temp = 0;
         let mut test_fn_mut = || {
             temp += 0;
+            42
         };
 
         let _vec = control.control_vector_ref();
