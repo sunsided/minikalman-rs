@@ -826,9 +826,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::test_dummies::{Dummy, DummyMatrix};
-
     use super::*;
+    use crate::test_dummies::make_dummy_observation;
 
     #[test]
     #[cfg(feature = "alloc")]
@@ -885,20 +884,11 @@ mod tests {
 
     #[test]
     fn builder_simple() {
-        let measurement = ObservationBuilder::new::<3, 1, f32>(
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-        );
+        let measurement = make_dummy_observation();
 
         let mut measurement = trait_impl(measurement);
+        assert_eq!(measurement.states(), 3);
+        assert_eq!(measurement.observations(), 1);
 
         let test_fn = || 42;
 
@@ -928,153 +918,5 @@ mod tests {
         measurement.measurement_noise_covariance_inspect_mut(|_mat| test_fn_mut());
         measurement.measurement_noise_covariance_apply(|_mat| test_fn());
         measurement.measurement_noise_covariance_apply_mut(|_mat| test_fn_mut());
-    }
-
-    impl<const STATES: usize, T> MeasurementVector<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-
-    impl<const STATES: usize, T> MeasurementVectorMut<STATES, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const OBSERVATIONS: usize, const STATES: usize, T>
-        ObservationMatrix<OBSERVATIONS, STATES, T> for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-
-    impl<const OBSERVATIONS: usize, const STATES: usize, T>
-        ObservationMatrixMut<OBSERVATIONS, STATES, T> for Dummy<T>
-    {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const OBSERVATIONS: usize, T> MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::TargetMut {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const OBSERVATIONS: usize, T> InnovationVector<OBSERVATIONS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const OBSERVATIONS: usize, T> InnovationCovarianceMatrix<OBSERVATIONS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const STATES: usize, const OBSERVATIONS: usize, T>
-        KalmanGainMatrix<STATES, OBSERVATIONS, T> for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const OBSERVATIONS: usize, T> TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>
-        for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const OBSERVATIONS: usize, const STATES: usize, T>
-        TemporaryHPMatrix<OBSERVATIONS, STATES, T> for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const STATES: usize, T> TemporaryKHPMatrix<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const STATES: usize, const OBSERVATIONS: usize, T>
-        TemporaryPHTMatrix<STATES, OBSERVATIONS, T> for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
     }
 }

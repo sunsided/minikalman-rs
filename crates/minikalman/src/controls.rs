@@ -486,7 +486,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_dummies::{Dummy, DummyMatrix};
+    use crate::test_dummies::make_dummy_control;
 
     #[test]
     #[cfg(feature = "alloc")]
@@ -655,14 +655,11 @@ mod tests {
 
     #[test]
     fn builder_simple() {
-        let control = ControlBuilder::new::<3, 2, f32>(
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-        );
+        let control = make_dummy_control();
 
         let mut control = trait_impl(control);
+        assert_eq!(control.states(), 3);
+        assert_eq!(control.controls(), 2);
 
         let test_fn = || 42;
 
@@ -692,67 +689,5 @@ mod tests {
         control.process_noise_covariance_inspect_mut(|_mat| test_fn_mut());
         control.process_noise_covariance_apply(|_mat| test_fn());
         control.process_noise_covariance_apply_mut(|_mat| test_fn_mut());
-    }
-
-    impl<const CONTROLS: usize, T> ControlVector<CONTROLS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const CONTROLS: usize, T> ControlVectorMut<CONTROLS, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrix<STATES, CONTROLS, T>
-        for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrixMut<STATES, CONTROLS, T>
-        for Dummy<T>
-    {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const CONTROLS: usize, T> ProcessNoiseCovarianceMatrix<CONTROLS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const CONTROLS: usize, T> ProcessNoiseCovarianceMatrixMut<CONTROLS, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const STATES: usize, const CONTROLS: usize, T> TemporaryBQMatrix<STATES, CONTROLS, T>
-        for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
     }
 }

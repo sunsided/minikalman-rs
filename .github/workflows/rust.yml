@@ -59,7 +59,7 @@ jobs:
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Generate code coverage
-        run: cargo llvm-cov nextest --features=std,fixed --package minikalman --lcov --output-path lcov.info
+        run: cargo llvm-cov nextest --features=std,fixed,alloc --package minikalman --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:

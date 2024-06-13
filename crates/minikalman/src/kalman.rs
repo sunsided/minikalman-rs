@@ -1,11 +1,12 @@
 use core::marker::PhantomData;
 
-mod filter_trait;
-mod matrix_types;
-
-use crate::matrix::{Matrix, MatrixDataType};
 pub use filter_trait::*;
 pub use matrix_types::*;
+
+use crate::matrix::{Matrix, MatrixDataType};
+
+mod filter_trait;
+mod matrix_types;
 
 /// A builder for a [`Kalman`] filter instances.
 #[allow(clippy::type_complexity)]
@@ -854,7 +855,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_dummies::{Dummy, DummyMatrix};
+    use crate::test_dummies::make_dummy_filter;
 
     fn trait_impl<const STATES: usize, T, K>(mut filter: K) -> K
     where
@@ -891,20 +892,17 @@ mod tests {
         filter.estimate_covariance_apply(|_mat| test_fn());
         filter.estimate_covariance_apply_mut(|_mat| test_fn_mut());
 
+        filter.predict();
+
         filter
     }
 
     #[test]
     fn builder_simple() {
-        let filter = KalmanBuilder::new::<3, f32>(
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-        );
+        let filter = make_dummy_filter();
 
         let mut filter = trait_impl(filter);
+        assert_eq!(filter.states(), 3);
 
         let test_fn = || 42;
 
@@ -934,70 +932,8 @@ mod tests {
         filter.estimate_covariance_inspect_mut(|_mat| test_fn_mut());
         filter.estimate_covariance_apply(|_mat| test_fn());
         filter.estimate_covariance_apply_mut(|_mat| test_fn_mut());
-    }
 
-    impl<const STATES: usize, T> StateVector<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-
-    impl<const STATES: usize, T> StateVectorMut<STATES, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const STATES: usize, T> StateTransitionMatrix<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const STATES: usize, T> StateTransitionMatrixMut<STATES, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const STATES: usize, T> EstimateCovarianceMatrix<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const STATES: usize, T> PredictedStateEstimateVector<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const STATES: usize, T> TemporaryStateMatrix<STATES, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
+        filter.predict();
     }
 
     #[test]
