@@ -105,11 +105,11 @@ where
     /// The control vector contains the external inputs to the system that can influence its state.
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
     #[inline(always)]
-    pub fn control_vector_inspect<F, O>(&mut self, f: F) -> O
+    pub fn control_vector_inspect<F, O>(&self, f: F) -> O
     where
         F: Fn(&U) -> O,
     {
-        f(&mut self.u)
+        f(&self.u)
     }
 
     /// Applies a function to the control vector u.

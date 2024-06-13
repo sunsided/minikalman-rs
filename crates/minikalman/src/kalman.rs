@@ -342,7 +342,7 @@ where
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
     #[inline(always)]
     #[doc(alias = "system_covariance_inspect")]
-    pub fn estimate_covariance_inspect<F, O>(&mut self, f: F) -> O
+    pub fn estimate_covariance_inspect<F, O>(&self, f: F) -> O
     where
         F: Fn(&P) -> O,
     {
