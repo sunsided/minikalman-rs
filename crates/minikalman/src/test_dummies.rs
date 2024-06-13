@@ -55,12 +55,12 @@ pub fn make_dummy_observation() -> Observation<
 }
 
 /// A dummy buffer type that holds a [`DummyMatrix`]
-#[derive(Default, Copy, Clone)]
+#[derive(Default)]
 pub struct Dummy<T>(pub DummyMatrix<T>, PhantomData<T>);
 
 /// A dummy matrix that is arbitrarily shaped.
-#[derive(Default, Copy, Clone)]
-pub struct DummyMatrix<T>(PhantomData<T>);
+#[derive(Default)]
+pub struct DummyMatrix<T>([T; 9], PhantomData<T>);
 
 impl<T> AsRef<[T]> for Dummy<T> {
     fn as_ref(&self) -> &[T] {
@@ -90,27 +90,27 @@ impl<T> IndexMut<usize> for Dummy<T> {
 
 impl<T> AsRef<[T]> for DummyMatrix<T> {
     fn as_ref(&self) -> &[T] {
-        unimplemented!("A dummy matrix cannot actually dereference into data")
+        self.0.as_ref()
     }
 }
 
 impl<T> AsMut<[T]> for DummyMatrix<T> {
     fn as_mut(&mut self) -> &mut [T] {
-        unimplemented!("A dummy matrix cannot actually dereference into data")
+        self.0.as_mut()
     }
 }
 
 impl<T> Index<usize> for DummyMatrix<T> {
     type Output = T;
 
-    fn index(&self, _index: usize) -> &Self::Output {
-        unimplemented!("A dummy matrix cannot actually index into data")
+    fn index(&self, index: usize) -> &Self::Output {
+        self.0.index(index)
     }
 }
 
 impl<T> IndexMut<usize> for DummyMatrix<T> {
-    fn index_mut(&mut self, _index: usize) -> &mut Self::Output {
-        unimplemented!("A dummy matrix cannot actually index into data")
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.0.index_mut(index)
     }
 }
 
