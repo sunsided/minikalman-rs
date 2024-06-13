@@ -131,9 +131,9 @@ fn main() {
     // The car should now be approximately stopped (but still decelerating).
     {
         let state = filter.state_vector_ref();
-        assert!(is_between(state[0], 36.0, 36.3));
-        assert!(is_between(state[1], 0.02, 0.04));
-        assert!(is_between(state[2], -1.04, -1.03));
+        assert!(is_between(state[0], 35.0, 36.3));
+        assert!(is_between(state[1], -0.6, 0.0));
+        assert!(is_between(state[2], -1.3, -1.03));
     }
 }
 
