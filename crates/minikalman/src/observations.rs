@@ -378,50 +378,16 @@ impl<
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
-    pub fn measurement_noise_ref(&self) -> &R {
+    pub fn measurement_noise_covariance_ref(&self) -> &R {
         &self.R
     }
 
-    /// Gets a mutable reference to the measurement noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_measurement_noise")]
-    pub fn measurement_noise_mut(&mut self) -> &mut R {
-        &mut self.R
-    }
-
     /// Applies a function to the measurement noise matrix R.
     ///
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
-    pub fn measurement_noise_apply<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut R) -> O,
-    {
-        f(&mut self.R)
-    }
-
-    /// Applies a function to the measurement noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    pub fn measurement_noise_apply_mut<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut R) -> O,
-    {
-        f(&mut self.R)
-    }
-
-    /// Applies a function to the measurement noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    pub fn measurement_noise_inspect<F, O>(&self, f: F) -> O
+    pub fn measurement_noise_covariance_inspect<F, O>(&self, f: F) -> O
     where
         F: Fn(&R) -> O,
     {
@@ -433,11 +399,45 @@ impl<
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
-    pub fn measurement_noise_inspect_mut<F, O>(&self, mut f: F) -> O
+    pub fn measurement_noise_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
     where
         F: FnMut(&R) -> O,
     {
         f(&self.R)
+    }
+
+    /// Gets a mutable reference to the measurement noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_measurement_noise")]
+    pub fn measurement_noise_covariance_mut(&mut self) -> &mut R {
+        &mut self.R
+    }
+
+    /// Applies a function to the measurement noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
+    #[inline(always)]
+    pub fn measurement_noise_covariance_apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut R) -> O,
+    {
+        f(&mut self.R)
+    }
+
+    /// Applies a function to the measurement noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
+    #[inline(always)]
+    pub fn measurement_noise_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
+    where
+        F: FnMut(&mut R) -> O,
+    {
+        f(&mut self.R)
     }
 }
 
@@ -753,7 +753,7 @@ where
     type MeasurementNoiseCovarianceMatrix = R;
 
     fn measurement_noise_covariance_ref(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
-        self.measurement_noise_ref()
+        self.measurement_noise_covariance_ref()
     }
 }
 
@@ -781,7 +781,7 @@ where
     fn measurement_noise_covariance_mut(
         &mut self,
     ) -> &mut Self::MeasurementNoiseCovarianceMatrixMut {
-        self.measurement_noise_mut()
+        self.measurement_noise_covariance_mut()
     }
 }
 

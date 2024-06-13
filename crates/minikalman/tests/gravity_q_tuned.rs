@@ -85,7 +85,9 @@ fn test_gravity_estimation_tuned() {
     initialize_state_transition_matrix(filter.state_transition_mut());
     initialize_state_covariance_matrix(filter.estimate_covariance_mut());
     initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
-    initialize_position_measurement_process_noise_matrix(measurement.measurement_noise_mut());
+    initialize_position_measurement_process_noise_matrix(
+        measurement.measurement_noise_covariance_mut(),
+    );
 
     const LAMBDA: f64 = 0.5;
 

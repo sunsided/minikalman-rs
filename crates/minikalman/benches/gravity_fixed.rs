@@ -110,7 +110,9 @@ fn criterion_benchmark(c: &mut Criterion) {
         initialize_state_transition_matrix(filter.state_transition_mut());
         initialize_state_covariance_matrix(filter.estimate_covariance_mut());
         initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
-        initialize_position_measurement_process_noise_matrix(measurement.measurement_noise_mut());
+        initialize_position_measurement_process_noise_matrix(
+            measurement.measurement_noise_covariance_mut(),
+        );
 
         bencher.iter(|| {
             for t in 0..REAL_DISTANCE.len() {
@@ -150,7 +152,9 @@ fn criterion_benchmark(c: &mut Criterion) {
         initialize_state_transition_matrix(filter.state_transition_mut());
         initialize_state_covariance_matrix(filter.estimate_covariance_mut());
         initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
-        initialize_position_measurement_process_noise_matrix(measurement.measurement_noise_mut());
+        initialize_position_measurement_process_noise_matrix(
+            measurement.measurement_noise_covariance_mut(),
+        );
 
         bencher.iter(|| {
             filter.predict();
@@ -184,7 +188,9 @@ fn criterion_benchmark(c: &mut Criterion) {
         initialize_state_transition_matrix(filter.state_transition_mut());
         initialize_state_covariance_matrix(filter.estimate_covariance_mut());
         initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
-        initialize_position_measurement_process_noise_matrix(measurement.measurement_noise_mut());
+        initialize_position_measurement_process_noise_matrix(
+            measurement.measurement_noise_covariance_mut(),
+        );
 
         measurement.measurement_vector_apply(|z| {
             z[0] = black_box(REAL_DISTANCE[0]) + black_box(OBSERVATION_ERROR[0])

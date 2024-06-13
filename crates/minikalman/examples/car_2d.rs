@@ -71,7 +71,7 @@ fn main() {
     });
 
     // Set up the process noise covariance matrix as an identity matrix.
-    measurement.measurement_noise_apply(|mat| {
+    measurement.measurement_noise_covariance_apply(|mat| {
         mat.make_scalar(0.1);
     });
 
