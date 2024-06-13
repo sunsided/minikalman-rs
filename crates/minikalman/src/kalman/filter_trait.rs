@@ -93,9 +93,9 @@ pub trait KalmanFilterApplyControl<const STATES: usize, T> {
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
-    fn control<const CONTROLS: usize, I>(&mut self, control: &mut I)
+    fn control<I>(&mut self, control: &mut I)
     where
-        I: KalmanFilterControlApplyToFilter<STATES, T> + KalmanFilterNumControls<CONTROLS>;
+        I: KalmanFilterControlApplyToFilter<STATES, T>;
 }
 
 pub trait KalmanFilterUpdate<const STATES: usize, T> {

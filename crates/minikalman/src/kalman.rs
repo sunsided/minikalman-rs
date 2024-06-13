@@ -512,12 +512,12 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     }
 
     #[inline(always)]
-    pub fn control<const CONTROLS: usize, I>(&mut self, control: &mut I)
+    pub fn control<I>(&mut self, control: &mut I)
     where
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
-        I: KalmanFilterControlApplyToFilter<STATES, T> + KalmanFilterNumControls<CONTROLS>,
+        I: KalmanFilterControlApplyToFilter<STATES, T>,
     {
         control.apply_to(&mut self.x, &mut self.P)
     }
@@ -727,9 +727,9 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn control<const CONTROLS: usize, I>(&mut self, control: &mut I)
+    fn control<I>(&mut self, control: &mut I)
     where
-        I: KalmanFilterControlApplyToFilter<STATES, T> + KalmanFilterNumControls<CONTROLS>,
+        I: KalmanFilterControlApplyToFilter<STATES, T>,
     {
         self.control(control)
     }
