@@ -37,7 +37,7 @@ fn main() {
 
     // Set up measurements.
     initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
-    initialize_position_measurement_process_noise_matrix(measurement.process_noise_mut());
+    initialize_position_measurement_process_noise_matrix(measurement.measurement_noise_mut());
 
     // Generate the data.
     let measurements = generate_values(100);

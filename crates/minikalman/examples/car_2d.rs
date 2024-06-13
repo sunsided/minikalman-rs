@@ -59,13 +59,19 @@ fn main() {
         mat.set(2, 0, DELTA_T); // affect acceleration directly
     });
 
+    // Control vector is empty.
+    control.control_vector_mut().set_zero();
+
+    // Process noise covariance is identity.
+    control.process_noise_covariance_mut().make_identity();
+
     // Set up the observation matrix.
     measurement.observation_matrix_apply(|mat| {
         mat.set(0, 0, 1.0); // only the first element is set.
     });
 
     // Set up the process noise covariance matrix as an identity matrix.
-    measurement.process_noise_apply(|mat| {
+    measurement.measurement_noise_apply(|mat| {
         mat.make_scalar(0.1);
     });
 

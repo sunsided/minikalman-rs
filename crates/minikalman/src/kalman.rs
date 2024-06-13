@@ -152,7 +152,19 @@ where
     /// The state vector represents the internal state of the system at a given time. It contains
     /// all the necessary information to describe the system's current situation.
     #[inline(always)]
-    pub fn state_vector_apply<F, O>(&mut self, mut f: F) -> O
+    pub fn state_vector_apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut X) -> O,
+    {
+        f(&mut self.x)
+    }
+
+    /// Applies a function to the state vector x.
+    ///
+    /// The state vector represents the internal state of the system at a given time. It contains
+    /// all the necessary information to describe the system's current situation.
+    #[inline(always)]
+    pub fn state_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
     where
         F: FnMut(&mut X) -> O,
     {
@@ -223,7 +235,21 @@ where
     /// current state, accounting for the inherent dynamics of the system.
     #[inline(always)]
     #[doc(alias = "system_matrix_apply")]
-    pub fn state_transition_apply<F, O>(&mut self, mut f: F) -> O
+    pub fn state_transition_apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut A) -> O,
+    {
+        f(&mut self.A)
+    }
+
+    /// Applies a function to the state transition matrix A.
+    ///
+    /// This matrix describes how the state vector evolves from one time step to the next in the
+    /// absence of control inputs. It defines the relationship between the previous state and the
+    /// current state, accounting for the inherent dynamics of the system.
+    #[inline(always)]
+    #[doc(alias = "system_matrix_apply_mut")]
+    pub fn state_transition_apply_mut<F, O>(&mut self, mut f: F) -> O
     where
         F: FnMut(&mut A) -> O,
     {
@@ -290,7 +316,20 @@ where
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
     #[inline(always)]
     #[doc(alias = "system_covariance_apply")]
-    pub fn estimate_covariance_apply<F, O>(&mut self, mut f: F) -> O
+    pub fn estimate_covariance_apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut P) -> O,
+    {
+        f(&mut self.P)
+    }
+
+    /// Applies a function to the system covariance matrix P.
+    ///
+    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
+    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
+    #[inline(always)]
+    #[doc(alias = "system_covariance_apply")]
+    pub fn estimate_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
     where
         F: FnMut(&mut P) -> O,
     {
@@ -817,15 +856,53 @@ mod tests {
     use super::*;
     use crate::test_dummies::{Dummy, DummyMatrix};
 
+    fn trait_impl<const STATES: usize, T, M>(controls: M) -> M
+    where
+        M: KalmanFilter<STATES, T>,
+    {
+        assert_eq!(controls.states(), STATES);
+        controls
+    }
+
     #[test]
     fn builder_simple() {
-        let _filter = KalmanBuilder::new::<3, f32>(
+        let filter = KalmanBuilder::new::<3, f32>(
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
             Dummy::default(),
         );
+
+        let mut filter = trait_impl(filter);
+
+        let test_fn = || {};
+
+        let mut temp = 0;
+        let mut test_fn_mut = || {
+            temp += 0;
+        };
+
+        let _vec = filter.state_vector_ref();
+        let _vec = filter.state_vector_mut();
+        filter.state_vector_inspect(|_vec| test_fn());
+        filter.state_vector_inspect_mut(|_vec| test_fn_mut());
+        filter.state_vector_apply(|_vec| test_fn());
+        filter.state_vector_apply_mut(|_vec| test_fn_mut());
+
+        let _mat = filter.state_transition_ref();
+        let _mat = filter.state_transition_mut();
+        filter.state_transition_inspect(|_mat| test_fn());
+        filter.state_transition_inspect_mut(|_mat| test_fn_mut());
+        filter.state_transition_apply(|_mat| test_fn());
+        filter.state_transition_apply_mut(|_mat| test_fn_mut());
+
+        let _mat = filter.estimate_covariance_ref();
+        let _mat = filter.estimate_covariance_mut();
+        filter.estimate_covariance_inspect(|_mat| test_fn());
+        filter.estimate_covariance_inspect_mut(|_mat| test_fn_mut());
+        filter.estimate_covariance_apply(|_mat| test_fn());
+        filter.estimate_covariance_apply_mut(|_mat| test_fn_mut());
     }
 
     impl<const STATES: usize, T> StateVector<STATES, T> for Dummy<T> {

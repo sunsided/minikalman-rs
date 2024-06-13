@@ -145,7 +145,17 @@ where
     /// The control vector contains the external inputs to the system that can influence its state.
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
     #[inline(always)]
-    pub fn control_vector_apply<F, O>(&mut self, mut f: F) -> O
+    pub fn control_vector_apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut U) -> O,
+    {
+        f(&mut self.u)
+    }
+
+    /// The control vector contains the external inputs to the system that can influence its state.
+    /// These inputs might include forces, accelerations, or other actuations applied to the system.
+    #[inline(always)]
+    pub fn control_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
     where
         F: FnMut(&mut U) -> O,
     {
@@ -212,7 +222,19 @@ where
     /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
-    pub fn control_matrix_apply<F, O>(&mut self, mut f: F) -> O
+    pub fn control_matrix_apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut B) -> O,
+    {
+        f(&mut self.B)
+    }
+
+    /// Applies a function to the control transition matrix B.
+    ///
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
+    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    #[inline(always)]
+    pub fn control_matrix_apply_mut<F, O>(&mut self, mut f: F) -> O
     where
         F: FnMut(&mut B) -> O,
     {
@@ -292,7 +314,22 @@ where
     #[inline(always)]
     #[doc(alias = "kalman_get_control_covariance")]
     #[doc(alias = "control_covariance_apply")]
-    pub fn process_noise_covariance_apply<F, O>(&mut self, mut f: F) -> O
+    pub fn process_noise_covariance_apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut Q) -> O,
+    {
+        f(&mut self.Q)
+    }
+
+    /// Applies a function to the control covariance matrix Q.
+    ///
+    /// This matrix represents the uncertainty in the state transition process, accounting for the
+    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
+    /// state transition.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_control_covariance_mut")]
+    #[doc(alias = "control_covariance_apply_mut")]
+    pub fn process_noise_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
     where
         F: FnMut(&mut Q) -> O,
     {
@@ -594,11 +631,35 @@ mod tests {
             Dummy::default(),
         );
 
-        let control = trait_impl(control);
+        let mut control = trait_impl(control);
 
-        let _controls = control.control_vector_ref();
-        let _matrix = control.control_matrix_ref();
-        let _covariance = control.process_noise_covariance_ref();
+        let test_fn = || {};
+
+        let mut temp = 0;
+        let mut test_fn_mut = || {
+            temp += 0;
+        };
+
+        let _vec = control.control_vector_ref();
+        let _vec = control.control_vector_mut();
+        control.control_vector_inspect(|_vec| test_fn());
+        control.control_vector_inspect_mut(|_vec| test_fn_mut());
+        control.control_vector_apply(|_vec| test_fn());
+        control.control_vector_apply_mut(|_vec| test_fn_mut());
+
+        let _mat = control.control_matrix_ref();
+        let _mat = control.control_matrix_mut();
+        control.control_matrix_inspect(|_mat| test_fn());
+        control.control_matrix_inspect_mut(|_mat| test_fn_mut());
+        control.control_matrix_apply(|_mat| test_fn());
+        control.control_matrix_apply_mut(|_mat| test_fn_mut());
+
+        let _mat = control.process_noise_covariance_ref();
+        let _mat = control.process_noise_covariance_mut();
+        control.process_noise_covariance_inspect(|_mat| test_fn());
+        control.process_noise_covariance_inspect_mut(|_mat| test_fn_mut());
+        control.process_noise_covariance_apply(|_mat| test_fn());
+        control.process_noise_covariance_apply_mut(|_mat| test_fn_mut());
     }
 
     impl<const CONTROLS: usize, T> ControlVector<CONTROLS, T> for Dummy<T> {

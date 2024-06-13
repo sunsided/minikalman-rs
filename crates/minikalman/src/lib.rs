@@ -76,6 +76,7 @@
 //! to `static mut` variables.
 //!
 //! ```
+//! # #![allow(non_snake_case)]
 //! use minikalman::buffers::types::*;
 //! use minikalman::prelude::*;
 //!
