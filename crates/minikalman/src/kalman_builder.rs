@@ -26,7 +26,7 @@ impl<const STATES: usize, T> Default for KalmanFilterBuilder<STATES, T> {
 
 /// The type of Kalman filters with owned buffers.
 ///
-/// See also the [`KalmanFilter`](minikalman::kalman::KalmanFilter) trait.
+/// See also the [`KalmanFilter`](crate::kalman::KalmanFilter) trait.
 pub type KalmanFilterType<const STATES: usize, T> = Kalman<
     STATES,
     T,
@@ -101,7 +101,7 @@ impl<const STATES: usize, T> Default for KalmanFilterControlBuilder<STATES, T> {
 
 /// The type of Kalman filter controls with owned buffers.
 ///
-/// See also the [`KalmanFilterControl`](minikalman::kalman::KalmanFilterControl) trait.
+/// See also the [`KalmanFilterControl`](crate::kalman::KalmanFilterControl) trait.
 pub type KalmanFilterControlType<const STATES: usize, const CONTROLS: usize, T> = Control<
     STATES,
     CONTROLS,
@@ -162,7 +162,7 @@ impl<const STATES: usize, T> Default for KalmanFilterObservationBuilder<STATES, 
 
 /// The type of Kalman filter measurement / observation with owned buffers.
 ///
-/// See also the [`KalmanFilterObservation`](minikalman::kalman::KalmanFilterObservation) trait.
+/// See also the [`KalmanFilterObservation`](crate::kalman::KalmanFilterObservation) trait.
 pub type KalmanFilterObservationType<const STATES: usize, const OBSERVATIONS: usize, T> =
     Observation<
         STATES,
