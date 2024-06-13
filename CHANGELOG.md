@@ -10,6 +10,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#10](https://github.com/sunsided/minikalman-rs/pull/10):
   Builder types were added for Kalman filters, control inputs and observations. The `KalmanFilterBuilder` type
   serves as a simple entry point on `alloc` crate features.
+- [#21](https://github.com/sunsided/minikalman-rs/pull/21):
+  Added the functions `make_identity`, `make_scalar`, `make_comatrix` and `set_diagonal_to_scalar` for square matrices. 
 
 ### Changed
 
