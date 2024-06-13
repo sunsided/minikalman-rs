@@ -145,6 +145,7 @@
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 extern crate alloc;
+extern crate core;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]

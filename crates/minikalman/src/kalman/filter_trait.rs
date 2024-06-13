@@ -1,9 +1,4 @@
-use crate::kalman::{
-    ControlMatrix, ControlMatrixMut, ControlVector, ControlVectorMut, EstimateCovarianceMatrix,
-    MeasurementNoiseCovarianceMatrix, MeasurementVector, MeasurementVectorMut, ObservationMatrix,
-    ObservationMatrixMut, ProcessNoiseCovarianceMatrix, ProcessNoiseCovarianceMatrixMut,
-    StateTransitionMatrix, StateTransitionMatrixMut, StateVector, StateVectorMut,
-};
+use crate::kalman::*;
 
 /// A Kalman filter.
 pub trait KalmanFilter<const STATES: usize, T>:
@@ -108,10 +103,9 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
-    fn correct<const OBSERVATIONS: usize, M>(&mut self, measurement: &mut M)
+    fn correct<M>(&mut self, measurement: &mut M)
     where
-        M: KalmanFilterObservationCorrectFilter<STATES, T>
-            + KalmanFilterNumObservations<OBSERVATIONS>;
+        M: KalmanFilterObservationCorrectFilter<STATES, T>;
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {

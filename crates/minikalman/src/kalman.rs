@@ -1,3 +1,4 @@
+use core::borrow::BorrowMut;
 use core::marker::PhantomData;
 
 mod filter_trait;
@@ -592,14 +593,12 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///     filter.correct(&mut measurement);
     /// }
     /// ```
-    #[allow(non_snake_case)]
-    pub fn correct<const OBSERVATIONS: usize, M>(&mut self, measurement: &mut M)
+    pub fn correct<M>(&mut self, measurement: &mut M)
     where
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
-        M: KalmanFilterObservationCorrectFilter<STATES, T>
-            + KalmanFilterNumObservations<OBSERVATIONS>,
+        M: KalmanFilterObservationCorrectFilter<STATES, T>,
     {
         measurement.correct(&mut self.x, &mut self.P);
     }
@@ -712,12 +711,11 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn correct<const OBSERVATIONS: usize, M>(&mut self, measurement: &mut M)
+    fn correct<M>(&mut self, measurement: &mut M)
     where
-        M: KalmanFilterObservationCorrectFilter<STATES, T>
-            + KalmanFilterNumObservations<OBSERVATIONS>,
+        M: KalmanFilterObservationCorrectFilter<STATES, T>,
     {
-        self.correct(measurement)
+        self.correct(measurement.borrow_mut())
     }
 }
 
