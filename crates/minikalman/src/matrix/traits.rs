@@ -863,6 +863,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 {
     /// Sets all elements of the matrix to the zero.
     #[doc(alias = "fill")]
+    #[inline(always)]
     fn clear(&mut self)
     where
         T: Copy + Zero,
@@ -888,11 +889,24 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// ## Arguments
     /// * `value` - The value to set the elements to.
     #[doc(alias = "fill")]
+    #[inline(always)]
     fn set_all(&mut self, value: T)
     where
         T: Copy,
     {
         self.as_mut().fill(value);
+    }
+
+    /// Sets all elements of the matrix to the provided value.
+    ///
+    /// ## Arguments
+    /// * `value` - The value to set the elements to.
+    #[inline(always)]
+    fn set_zero(&mut self)
+    where
+        T: Copy + Zero,
+    {
+        self.set_all(T::zero())
     }
 
     /// Sets matrix elements in a symmetric matrix

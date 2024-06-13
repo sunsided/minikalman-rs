@@ -13,8 +13,7 @@ impl MatrixData {
     where
         T: Default,
     {
-        let nothing = [T::default(); 0];
-        MatrixDataArray::<0, 0, 0, T>(nothing)
+        MatrixDataArray::<0, 0, 0, T>([])
     }
 
     /// Creates a new matrix buffer that owns the data.

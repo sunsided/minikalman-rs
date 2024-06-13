@@ -76,6 +76,7 @@
 //! to `static mut` variables.
 //!
 //! ```
+//! # #![allow(non_snake_case)]
 //! use minikalman::buffers::types::*;
 //! use minikalman::prelude::*;
 //!
@@ -145,6 +146,7 @@
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 extern crate alloc;
+extern crate core;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
@@ -159,6 +161,9 @@ mod static_macros;
 
 #[cfg(test)]
 mod test_dummies;
+
+#[cfg(all(test, feature = "alloc"))]
+mod test_filter;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
@@ -190,6 +195,12 @@ pub mod prelude {
 
     pub use crate::kalman::*;
     pub use crate::matrix::*;
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub use crate::kalman_builder::{
+        KalmanFilterControlType, KalmanFilterObservationType, KalmanFilterType,
+    };
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,

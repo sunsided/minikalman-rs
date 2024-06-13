@@ -99,6 +99,30 @@ where
     pub fn control_vector_ref(&self) -> &U {
         &self.u
     }
+
+    /// Applies a function to the control vector u.
+    ///
+    /// The control vector contains the external inputs to the system that can influence its state.
+    /// These inputs might include forces, accelerations, or other actuations applied to the system.
+    #[inline(always)]
+    pub fn control_vector_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&U) -> O,
+    {
+        f(&self.u)
+    }
+
+    /// Applies a function to the control vector u.
+    ///
+    /// The control vector contains the external inputs to the system that can influence its state.
+    /// These inputs might include forces, accelerations, or other actuations applied to the system.
+    #[inline(always)]
+    pub fn control_vector_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&U) -> O,
+    {
+        f(&self.u)
+    }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
@@ -121,9 +145,19 @@ where
     /// The control vector contains the external inputs to the system that can influence its state.
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
     #[inline(always)]
-    pub fn control_vector_apply<F>(&mut self, mut f: F)
+    pub fn control_vector_apply<F, O>(&mut self, f: F) -> O
     where
-        F: FnMut(&mut U),
+        F: Fn(&mut U) -> O,
+    {
+        f(&mut self.u)
+    }
+
+    /// The control vector contains the external inputs to the system that can influence its state.
+    /// These inputs might include forces, accelerations, or other actuations applied to the system.
+    #[inline(always)]
+    pub fn control_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
+    where
+        F: FnMut(&mut U) -> O,
     {
         f(&mut self.u)
     }
@@ -136,11 +170,35 @@ where
 {
     /// Gets a reference to the control transition matrix B.
     ///
-    /// his matrix maps the control inputs to the state space, allowing the control vector to
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
     pub fn control_matrix_ref(&self) -> &B {
         &self.B
+    }
+
+    /// Applies a function to the control transition matrix B.
+    ///
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
+    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    #[inline(always)]
+    pub fn control_matrix_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&B) -> O,
+    {
+        f(&self.B)
+    }
+
+    /// Applies a function to the control transition matrix B.
+    ///
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
+    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    #[inline(always)]
+    pub fn control_matrix_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&B) -> O,
+    {
+        f(&self.B)
     }
 }
 
@@ -151,7 +209,7 @@ where
 {
     /// Gets a mutable reference to the control transition matrix B.
     ///
-    /// his matrix maps the control inputs to the state space, allowing the control vector to
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
     #[doc(alias = "kalman_get_control_matrix")]
@@ -161,12 +219,24 @@ where
 
     /// Applies a function to the control transition matrix B.
     ///
-    /// his matrix maps the control inputs to the state space, allowing the control vector to
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
-    pub fn control_matrix_apply<F>(&mut self, mut f: F)
+    pub fn control_matrix_apply<F, O>(&mut self, f: F) -> O
     where
-        F: FnMut(&mut B),
+        F: Fn(&mut B) -> O,
+    {
+        f(&mut self.B)
+    }
+
+    /// Applies a function to the control transition matrix B.
+    ///
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
+    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    #[inline(always)]
+    pub fn control_matrix_apply_mut<F, O>(&mut self, mut f: F) -> O
+    where
+        F: FnMut(&mut B) -> O,
     {
         f(&mut self.B)
     }
@@ -186,6 +256,36 @@ where
     #[doc(alias = "control_covariance_ref")]
     pub fn process_noise_covariance_ref(&self) -> &Q {
         &self.Q
+    }
+
+    /// Applies a function to the control covariance matrix Q.
+    ///
+    /// This matrix represents the uncertainty in the state transition process, accounting for the
+    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
+    /// state transition.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_control_covariance")]
+    #[doc(alias = "control_covariance_inspect")]
+    pub fn process_noise_covariance_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&Q) -> O,
+    {
+        f(&self.Q)
+    }
+
+    /// Applies a function to the control covariance matrix Q.
+    ///
+    /// This matrix represents the uncertainty in the state transition process, accounting for the
+    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
+    /// state transition.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_control_covariance")]
+    #[doc(alias = "control_covariance_inspect")]
+    pub fn process_noise_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&Q) -> O,
+    {
+        f(&self.Q)
     }
 }
 
@@ -214,9 +314,24 @@ where
     #[inline(always)]
     #[doc(alias = "kalman_get_control_covariance")]
     #[doc(alias = "control_covariance_apply")]
-    pub fn process_noise_covariance_apply<F>(&mut self, mut f: F)
+    pub fn process_noise_covariance_apply<F, O>(&mut self, f: F) -> O
     where
-        F: FnMut(&mut Q),
+        F: Fn(&mut Q) -> O,
+    {
+        f(&mut self.Q)
+    }
+
+    /// Applies a function to the control covariance matrix Q.
+    ///
+    /// This matrix represents the uncertainty in the state transition process, accounting for the
+    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
+    /// state transition.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_control_covariance_mut")]
+    #[doc(alias = "control_covariance_apply_mut")]
+    pub fn process_noise_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
+    where
+        F: FnMut(&mut Q) -> O,
     {
         f(&mut self.Q)
     }
@@ -371,7 +486,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_dummies::{Dummy, DummyMatrix};
+    use crate::test_dummies::make_dummy_control;
 
     #[test]
     #[cfg(feature = "alloc")]
@@ -399,21 +514,21 @@ mod tests {
         const NUM_CONTROLS: usize = 3;
 
         // System buffers.
-        let x = BufferBuilder::state_vector_x::<NUM_STATES>().new(0.0_f32);
-        let A = BufferBuilder::system_matrix_A::<NUM_STATES>().new(0.0_f32);
-        let P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new(0.0_f32);
+        let x = BufferBuilder::state_vector_x::<NUM_STATES>().new();
+        let A = BufferBuilder::system_matrix_A::<NUM_STATES>().new();
+        let P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new();
 
         // Control buffers.
-        let u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new(0.0_f32);
-        let B = BufferBuilder::control_matrix_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
-        let Q = BufferBuilder::process_noise_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
+        let u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new();
+        let B = BufferBuilder::control_matrix_B::<NUM_STATES, NUM_CONTROLS>().new();
+        let Q = BufferBuilder::process_noise_covariance_Q::<NUM_CONTROLS>().new();
 
         // Filter temporaries.
-        let temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
-        let temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
+        let temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new();
+        let temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new();
 
         // Control temporaries
-        let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
+        let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new();
 
         let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
         let mut control = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
@@ -498,90 +613,81 @@ mod tests {
         assert_f32_near!(state[3], 20.0);
     }
 
-    fn trait_impl<const STATES: usize, const CONTROLS: usize, T, M>(controls: M) -> M
+    fn trait_impl<const STATES: usize, const CONTROLS: usize, T, M>(mut control: M) -> M
     where
-        M: KalmanFilterControl<STATES, CONTROLS, T>,
+        M: KalmanFilterControl<STATES, CONTROLS, T>
+            + KalmanFilterControlTransitionMut<STATES, CONTROLS, T>,
     {
-        assert_eq!(controls.states(), STATES);
-        assert_eq!(controls.controls(), CONTROLS);
-        controls
+        assert_eq!(control.states(), STATES);
+        assert_eq!(control.controls(), CONTROLS);
+
+        let test_fn = || 42;
+
+        let mut temp = 0;
+        let mut test_fn_mut = || {
+            temp += 0;
+            42
+        };
+
+        let _vec = control.control_vector_ref();
+        let _vec = control.control_vector_mut();
+        control.control_vector_inspect(|_vec| test_fn());
+        control.control_vector_inspect_mut(|_vec| test_fn_mut());
+        control.control_vector_apply(|_vec| test_fn());
+        control.control_vector_apply_mut(|_vec| test_fn_mut());
+
+        let _mat = control.control_matrix_ref();
+        let _mat = control.control_matrix_mut();
+        control.control_matrix_inspect(|_mat| test_fn());
+        control.control_matrix_inspect_mut(|_mat| test_fn_mut());
+        control.control_matrix_apply(|_mat| test_fn());
+        control.control_matrix_apply_mut(|_mat| test_fn_mut());
+
+        let _mat = control.process_noise_covariance_ref();
+        let _mat = control.process_noise_covariance_mut();
+        control.process_noise_covariance_inspect(|_mat| test_fn());
+        control.process_noise_covariance_inspect_mut(|_mat| test_fn_mut());
+        control.process_noise_covariance_apply(|_mat| test_fn());
+        control.process_noise_covariance_apply_mut(|_mat| test_fn_mut());
+
+        control
     }
 
     #[test]
     fn builder_simple() {
-        let control = ControlBuilder::new::<3, 2, f32>(
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-            Dummy::default(),
-        );
+        let control = make_dummy_control();
 
-        let control = trait_impl(control);
+        let mut control = trait_impl(control);
+        assert_eq!(control.states(), 3);
+        assert_eq!(control.controls(), 2);
 
-        let _controls = control.control_vector_ref();
-        let _matrix = control.control_matrix_ref();
-        let _covariance = control.process_noise_covariance_ref();
-    }
+        let test_fn = || 42;
 
-    impl<const CONTROLS: usize, T> ControlVector<CONTROLS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
+        let mut temp = 0;
+        let mut test_fn_mut = || {
+            temp += 0;
+            42
+        };
 
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const CONTROLS: usize, T> ControlVectorMut<CONTROLS, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
+        let _vec = control.control_vector_ref();
+        let _vec = control.control_vector_mut();
+        control.control_vector_inspect(|_vec| test_fn());
+        control.control_vector_inspect_mut(|_vec| test_fn_mut());
+        control.control_vector_apply(|_vec| test_fn());
+        control.control_vector_apply_mut(|_vec| test_fn_mut());
 
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrix<STATES, CONTROLS, T>
-        for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
+        let _mat = control.control_matrix_ref();
+        let _mat = control.control_matrix_mut();
+        control.control_matrix_inspect(|_mat| test_fn());
+        control.control_matrix_inspect_mut(|_mat| test_fn_mut());
+        control.control_matrix_apply(|_mat| test_fn());
+        control.control_matrix_apply_mut(|_mat| test_fn_mut());
 
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrixMut<STATES, CONTROLS, T>
-        for Dummy<T>
-    {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-    impl<const CONTROLS: usize, T> ProcessNoiseCovarianceMatrix<CONTROLS, T> for Dummy<T> {
-        type Target = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl<const CONTROLS: usize, T> ProcessNoiseCovarianceMatrixMut<CONTROLS, T> for Dummy<T> {
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
-    }
-
-    impl<const STATES: usize, const CONTROLS: usize, T> TemporaryBQMatrix<STATES, CONTROLS, T>
-        for Dummy<T>
-    {
-        type Target = DummyMatrix<T>;
-        type TargetMut = DummyMatrix<T>;
-
-        fn as_matrix(&self) -> &Self::Target {
-            &self.0
-        }
-
-        fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-            &mut self.0
-        }
+        let _mat = control.process_noise_covariance_ref();
+        let _mat = control.process_noise_covariance_mut();
+        control.process_noise_covariance_inspect(|_mat| test_fn());
+        control.process_noise_covariance_inspect_mut(|_mat| test_fn_mut());
+        control.process_noise_covariance_apply(|_mat| test_fn());
+        control.process_noise_covariance_apply_mut(|_mat| test_fn_mut());
     }
 }

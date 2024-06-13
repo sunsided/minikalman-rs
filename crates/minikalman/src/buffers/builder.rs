@@ -190,7 +190,7 @@ impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
     /// use minikalman::buffers::types::StateVectorBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::state_vector_x::<3>().new(0.0);
+    /// let buffer = BufferBuilder::state_vector_x::<3>().new();
     ///
     /// let buffer: StateVectorBuffer<3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 3);
@@ -198,7 +198,29 @@ impl<const STATES: usize> StateVectorBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> StateVectorBufferOwnedType<STATES, T>
+    pub fn new<T>(&self) -> StateVectorBufferOwnedType<STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`StateVectorBufferBuilder`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::StateVectorBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::state_vector_x::<3>().new_with(0.0);
+    ///
+    /// let buffer: StateVectorBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 3);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> StateVectorBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -221,7 +243,7 @@ impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
     /// use minikalman::BufferBuilder;
     /// use minikalman::buffers::types::StateTransitionMatrixMutBuffer;
     ///
-    /// let buffer  = BufferBuilder::system_matrix_A::<3>().new(0.0);
+    /// let buffer  = BufferBuilder::system_matrix_A::<3>().new();
     ///
     /// let buffer: StateTransitionMatrixMutBuffer<3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 9);
@@ -229,7 +251,29 @@ impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> SystemMatrixMutBufferOwnedType<STATES, T>
+    pub fn new<T>(&self) -> SystemMatrixMutBufferOwnedType<STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`StateTransitionMatrixMutBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::BufferBuilder;
+    /// use minikalman::buffers::types::StateTransitionMatrixMutBuffer;
+    ///
+    /// let buffer  = BufferBuilder::system_matrix_A::<3>().new_with(0.0);
+    ///
+    /// let buffer: StateTransitionMatrixMutBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 9);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> SystemMatrixMutBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -253,7 +297,7 @@ impl<const STATES: usize> EstimateCovarianceMatrixBufferBuilder<STATES> {
     /// use minikalman::buffers::types::EstimateCovarianceMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::estimate_covariance_P::<3>().new(0.0);
+    /// let buffer = BufferBuilder::estimate_covariance_P::<3>().new();
     ///
     /// let buffer: EstimateCovarianceMatrixBuffer<3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 9);
@@ -261,7 +305,29 @@ impl<const STATES: usize> EstimateCovarianceMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> EstimateCovarianceMatrixBufferOwnedType<STATES, T>
+    pub fn new<T>(&self) -> EstimateCovarianceMatrixBufferOwnedType<STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`EstimateCovarianceMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::EstimateCovarianceMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::estimate_covariance_P::<3>().new_with(0.0);
+    ///
+    /// let buffer: EstimateCovarianceMatrixBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 9);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> EstimateCovarianceMatrixBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -284,7 +350,7 @@ impl<const CONTROLS: usize> ControlVectorBufferBuilder<CONTROLS> {
     /// use minikalman::buffers::types::ControlVectorBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::control_vector_u::<2>().new(0.0);
+    /// let buffer = BufferBuilder::control_vector_u::<2>().new();
     ///
     /// let buffer: ControlVectorBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 2);
@@ -293,6 +359,30 @@ impl<const CONTROLS: usize> ControlVectorBufferBuilder<CONTROLS> {
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
     pub fn new<T>(
+        &self,
+    ) -> ControlVectorBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`ControlVectorBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::ControlVectorBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::control_vector_u::<2>().new_with(0.0);
+    ///
+    /// let buffer: ControlVectorBuffer<2, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 2);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(
         &self,
         init: T,
     ) -> ControlVectorBuffer<CONTROLS, T, MatrixDataArray<CONTROLS, 1, CONTROLS, T>>
@@ -320,7 +410,7 @@ impl<const STATES: usize, const CONTROLS: usize>
     /// use minikalman::buffers::types::ControlMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::control_matrix_B::<3, 2>().new(0.0);
+    /// let buffer  = BufferBuilder::control_matrix_B::<3, 2>().new();
     ///
     /// let buffer: ControlMatrixMutBuffer<3, 2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 6);
@@ -329,6 +419,30 @@ impl<const STATES: usize, const CONTROLS: usize>
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
     pub fn new<T>(
+        &self,
+    ) -> ControlMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`ControlMatrixMutBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::ControlMatrixMutBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer  = BufferBuilder::control_matrix_B::<3, 2>().new_with(0.0);
+    ///
+    /// let buffer: ControlMatrixMutBuffer<3, 2, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 6);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(
         &self,
         init: T,
     ) -> ControlMatrixMutBuffer<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>
@@ -354,7 +468,7 @@ impl<const CONTROLS: usize> ProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> 
     /// use minikalman::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::process_noise_covariance_Q::<2>().new(0.0);
+    /// let buffer  = BufferBuilder::process_noise_covariance_Q::<2>().new();
     ///
     /// let buffer: ProcessNoiseCovarianceMatrixMutBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 4);
@@ -363,6 +477,30 @@ impl<const CONTROLS: usize> ProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
     pub fn new<T>(
+        &self,
+    ) -> ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`ProcessNoiseCovarianceMatrixMutBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer  = BufferBuilder::process_noise_covariance_Q::<2>().new_with(0.0);
+    ///
+    /// let buffer: ProcessNoiseCovarianceMatrixMutBuffer<2, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 4);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(
         &self,
         init: T,
     ) -> ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>
@@ -388,7 +526,7 @@ impl<const OBSERVATIONS: usize> ObservationVectorBufferBuilder<OBSERVATIONS> {
     /// use minikalman::buffers::types::MeasurementVectorBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::measurement_vector_z::<5>().new(0.0);
+    /// let buffer = BufferBuilder::measurement_vector_z::<5>().new();
     ///
     /// let buffer: MeasurementVectorBuffer<5, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 5);
@@ -396,7 +534,29 @@ impl<const OBSERVATIONS: usize> ObservationVectorBufferBuilder<OBSERVATIONS> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> ObservationVectorBufferOwnedType<OBSERVATIONS, T>
+    pub fn new<T>(&self) -> ObservationVectorBufferOwnedType<OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`MeasurementVectorBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::MeasurementVectorBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::measurement_vector_z::<5>().new_with(0.0);
+    ///
+    /// let buffer: MeasurementVectorBuffer<5, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 5);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> ObservationVectorBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
@@ -421,7 +581,7 @@ impl<const OBSERVATIONS: usize, const STATES: usize>
     /// use minikalman::buffers::types::ObservationMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::observation_matrix_H::<5, 3>().new(0.0);
+    /// let buffer = BufferBuilder::observation_matrix_H::<5, 3>().new();
     ///
     /// let buffer: ObservationMatrixMutBuffer<5, 3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 15);
@@ -429,7 +589,29 @@ impl<const OBSERVATIONS: usize, const STATES: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> ObservationMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
+    pub fn new<T>(&self) -> ObservationMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`ObservationMatrixMutBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::ObservationMatrixMutBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::observation_matrix_H::<5, 3>().new_with(0.0);
+    ///
+    /// let buffer: ObservationMatrixMutBuffer<5, 3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 15);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> ObservationMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
     where
         T: Copy,
     {
@@ -461,7 +643,7 @@ impl<const OBSERVATIONS: usize> MeasurementNoiseCovarianceMatrixBufferBuilder<OB
     /// use minikalman::buffers::types::MeasurementNoiseCovarianceMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::observation_covariance_R::<5>().new(0.0);
+    /// let buffer = BufferBuilder::observation_covariance_R::<5>().new();
     ///
     /// let buffer: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 25);
@@ -469,7 +651,29 @@ impl<const OBSERVATIONS: usize> MeasurementNoiseCovarianceMatrixBufferBuilder<OB
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> MeasurementNoiseCovarianceBufferOwnedType<OBSERVATIONS, T>
+    pub fn new<T>(&self) -> MeasurementNoiseCovarianceBufferOwnedType<OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`MeasurementNoiseCovarianceMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::MeasurementNoiseCovarianceMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::observation_covariance_R::<5>().new_with(0.0);
+    ///
+    /// let buffer: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 25);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> MeasurementNoiseCovarianceBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
@@ -496,7 +700,7 @@ impl<const OBSERVATIONS: usize> InnovationVectorBufferBuilder<OBSERVATIONS> {
     /// use minikalman::buffers::types::InnovationVectorBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::innovation_vector_y::<5>().new(0.0);
+    /// let buffer = BufferBuilder::innovation_vector_y::<5>().new();
     ///
     /// let buffer: InnovationVectorBuffer<5, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 5);
@@ -504,7 +708,29 @@ impl<const OBSERVATIONS: usize> InnovationVectorBufferBuilder<OBSERVATIONS> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> InnovationVectorBufferOwnedType<OBSERVATIONS, T>
+    pub fn new<T>(&self) -> InnovationVectorBufferOwnedType<OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`InnovationVectorBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::InnovationVectorBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::innovation_vector_y::<5>().new_with(0.0);
+    ///
+    /// let buffer: InnovationVectorBuffer<5, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 5);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> InnovationVectorBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
@@ -531,7 +757,7 @@ impl<const OBSERVATIONS: usize> InnovationResidualCovarianceMatrixBufferBuilder<
     /// use minikalman::buffers::types::InnovationCovarianceMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::innovation_covariance_S::<5>().new(0.0);
+    /// let buffer = BufferBuilder::innovation_covariance_S::<5>().new();
     ///
     /// let buffer: InnovationCovarianceMatrixBuffer<5, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 25);
@@ -539,7 +765,29 @@ impl<const OBSERVATIONS: usize> InnovationResidualCovarianceMatrixBufferBuilder<
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(
+    pub fn new<T>(&self) -> InnovationResidualCovarianceMatrixBufferOwnedType<OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`InnovationCovarianceMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::InnovationCovarianceMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::innovation_covariance_S::<5>().new_with(0.0);
+    ///
+    /// let buffer: InnovationCovarianceMatrixBuffer<5, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 25);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(
         &self,
         init: T,
     ) -> InnovationResidualCovarianceMatrixBufferOwnedType<OBSERVATIONS, T>
@@ -571,7 +819,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize>
     /// use minikalman::buffers::types::KalmanGainMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::kalman_gain_K::<3, 5>().new(0.0);
+    /// let buffer = BufferBuilder::kalman_gain_K::<3, 5>().new();
     ///
     /// let buffer: KalmanGainMatrixBuffer<3, 5, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 15);
@@ -579,7 +827,29 @@ impl<const STATES: usize, const OBSERVATIONS: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
+    pub fn new<T>(&self) -> KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`KalmanGainMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::KalmanGainMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::kalman_gain_K::<3, 5>().new_with(0.0);
+    ///
+    /// let buffer: KalmanGainMatrixBuffer<3, 5, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 15);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
     where
         T: Copy,
     {
@@ -607,7 +877,7 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
     /// use minikalman::buffers::types::PredictedStateEstimateVectorBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::state_prediction_temp_x::<3>().new(0.0);
+    /// let buffer = BufferBuilder::state_prediction_temp_x::<3>().new();
     ///
     /// let buffer: PredictedStateEstimateVectorBuffer<3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 3);
@@ -615,7 +885,29 @@ impl<const STATES: usize> StatePredictionVectorBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryStatePredictionVectorBufferOwnedType<STATES, T>
+    pub fn new<T>(&self) -> TemporaryStatePredictionVectorBufferOwnedType<STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`PredictedStateEstimateVectorBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::PredictedStateEstimateVectorBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::state_prediction_temp_x::<3>().new_with(0.0);
+    ///
+    /// let buffer: PredictedStateEstimateVectorBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 3);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TemporaryStatePredictionVectorBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -638,7 +930,7 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
     /// use minikalman::buffers::types::TemporaryStateMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::temp_system_covariance_P::<3>().new(0.0);
+    /// let buffer = BufferBuilder::temp_system_covariance_P::<3>().new();
     ///
     /// let buffer: TemporaryStateMatrixBuffer<3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 9);
@@ -646,7 +938,29 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryStateMatrixBufferOwnedType<STATES, T>
+    pub fn new<T>(&self) -> TemporaryStateMatrixBufferOwnedType<STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`TemporaryStateMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::TemporaryStateMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::temp_system_covariance_P::<3>().new_with(0.0);
+    ///
+    /// let buffer: TemporaryStateMatrixBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 9);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TemporaryStateMatrixBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
@@ -669,7 +983,7 @@ impl<const STATES: usize, const CONTROLS: usize> TemporaryBQMatrixBufferBuilder<
     /// use minikalman::buffers::types::TemporaryBQMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::temp_BQ::<3, 2>().new(0.0);
+    /// let buffer = BufferBuilder::temp_BQ::<3, 2>().new();
     ///
     /// let buffer: TemporaryBQMatrixBuffer<3, 2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 6);
@@ -677,7 +991,29 @@ impl<const STATES: usize, const CONTROLS: usize> TemporaryBQMatrixBufferBuilder<
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryBQMatrixBufferOwnedType<STATES, CONTROLS, T>
+    pub fn new<T>(&self) -> TemporaryBQMatrixBufferOwnedType<STATES, CONTROLS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`TemporaryBQMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::TemporaryBQMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::temp_BQ::<3, 2>().new_with(0.0);
+    ///
+    /// let buffer: TemporaryBQMatrixBuffer<3, 2, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 6);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TemporaryBQMatrixBufferOwnedType<STATES, CONTROLS, T>
     where
         T: Copy,
     {
@@ -704,7 +1040,7 @@ impl<const OBSERVATIONS: usize> TemporarySInvMatrixBufferBuilder<OBSERVATIONS> {
     /// use minikalman::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::temp_S_inv::<5>().new(0.0);
+    /// let buffer = BufferBuilder::temp_S_inv::<5>().new();
     ///
     /// let buffer: TemporaryResidualCovarianceInvertedMatrixBuffer<5, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 25);
@@ -712,7 +1048,29 @@ impl<const OBSERVATIONS: usize> TemporarySInvMatrixBufferBuilder<OBSERVATIONS> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporarySInvertedMatrixBufferOwnedType<OBSERVATIONS, T>
+    pub fn new<T>(&self) -> TemporarySInvertedMatrixBufferOwnedType<OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`TemporaryResidualCovarianceInvertedMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::temp_S_inv::<5>().new_with(0.0);
+    ///
+    /// let buffer: TemporaryResidualCovarianceInvertedMatrixBuffer<5, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 25);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TemporarySInvertedMatrixBufferOwnedType<OBSERVATIONS, T>
     where
         T: Copy,
     {
@@ -741,7 +1099,7 @@ impl<const OBSERVATIONS: usize, const STATES: usize>
     /// use minikalman::buffers::types::TemporaryHPMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::temp_HP::<5, 3>().new(0.0);
+    /// let buffer = BufferBuilder::temp_HP::<5, 3>().new();
     ///
     /// let buffer: TemporaryHPMatrixBuffer<5, 3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 15);
@@ -749,7 +1107,29 @@ impl<const OBSERVATIONS: usize, const STATES: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryHPMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
+    pub fn new<T>(&self) -> TemporaryHPMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`TemporaryHPMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::TemporaryHPMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::temp_HP::<5, 3>().new_with(0.0);
+    ///
+    /// let buffer: TemporaryHPMatrixBuffer<5, 3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 15);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TemporaryHPMatrixBufferOwnedType<OBSERVATIONS, STATES, T>
     where
         T: Copy,
     {
@@ -779,7 +1159,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize>
     /// use minikalman::buffers::types::TemporaryPHTMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer = BufferBuilder::temp_PHt::<3, 5>().new(0.0);
+    /// let buffer = BufferBuilder::temp_PHt::<3, 5>().new();
     ///
     /// let buffer: TemporaryPHTMatrixBuffer<3, 5, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 15);
@@ -787,7 +1167,29 @@ impl<const STATES: usize, const OBSERVATIONS: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryPHtMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
+    pub fn new<T>(&self) -> TemporaryPHtMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`TemporaryPHTMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::TemporaryPHTMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer = BufferBuilder::temp_PHt::<3, 5>().new_with(0.0);
+    ///
+    /// let buffer: TemporaryPHTMatrixBuffer<3, 5, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 15);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TemporaryPHtMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
     where
         T: Copy,
     {
@@ -815,7 +1217,7 @@ impl<const STATES: usize> TemporaryKHPMatrixBufferBuilder<STATES> {
     /// use minikalman::buffers::types::TemporaryKHPMatrixBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::temp_KHP::<3>().new(0.0);
+    /// let buffer  = BufferBuilder::temp_KHP::<3>().new();
     ///
     /// let buffer: TemporaryKHPMatrixBuffer<3, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 9);
@@ -823,7 +1225,29 @@ impl<const STATES: usize> TemporaryKHPMatrixBufferBuilder<STATES> {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self, init: T) -> TemporaryKHPMatrixBufferOwnedType<STATES, T>
+    pub fn new<T>(&self) -> TemporaryKHPMatrixBufferOwnedType<STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`TemporaryKHPMatrixBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::TemporaryKHPMatrixBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer  = BufferBuilder::temp_KHP::<3>().new_with(0.0);
+    ///
+    /// let buffer: TemporaryKHPMatrixBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 9);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TemporaryKHPMatrixBufferOwnedType<STATES, T>
     where
         T: Copy,
     {
