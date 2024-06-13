@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct TestFilter {
     pub filter: KalmanFilterType<3, f32>,
     pub control: KalmanFilterControlType<3, 1, f32>,
-    pub measurement: KalmanFilterObservationType<3, 1, f32>,
+    pub measurement: KalmanFilterObservationType<3, 2, f32>,
 }
 
 #[allow(unused)]
@@ -16,7 +16,7 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     let mut control = controls.build::<1>();
 
     let measurements = builder.observations();
-    let mut measurement = measurements.build::<1>();
+    let mut measurement = measurements.build::<2>();
 
     // Simple model of linear motion.
     filter.state_transition_apply(|mat| {
@@ -50,11 +50,18 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     // No control inputs now.
     control.control_vector_mut().set_zero();
 
-    // Process noise is identity.
-    control.process_noise_covariance_mut().make_identity();
+    // Process noise is almost-identity.
+    control
+        .process_noise_covariance_mut()
+        .make_comatrix(1.0, 0.1);
 
-    // The measurement is an average of the states.
+    // The measurement is both directly observing position and an average of the states.
     measurement.observation_matrix_mut().set_all(1.0 / 3.0);
+    measurement.observation_matrix_apply(|mat| {
+        mat.set(0, 0, 1.0); // measure position directly
+        mat.set(0, 1, 0.0);
+        mat.set(0, 2, 0.0);
+    });
 
     // Measurement noise covariance is identity.
     measurement

@@ -1,4 +1,3 @@
-use core::borrow::BorrowMut;
 use core::marker::PhantomData;
 
 mod filter_trait;
@@ -793,7 +792,7 @@ where
     where
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
     {
-        self.correct(measurement.borrow_mut())
+        self.correct(measurement)
     }
 }
 
@@ -927,11 +926,7 @@ mod tests {
         });
 
         // The measurement is zero.
-        example
-            .measurement
-            .measurement_vector_mut()
-            .as_matrix_mut()
-            .set(0, 0, 0.0);
+        example.measurement.measurement_vector_mut().set(0, 0, 0.0);
 
         // Apply a measurement of the unchanged state.
         example.filter.correct(&mut example.measurement);
@@ -946,9 +941,60 @@ mod tests {
 
         // The estimate covariance has improved.
         example.filter.estimate_covariance_inspect(|mat| {
-            assert_f32_near!(mat.get(0, 0), 6.0466003);
-            assert_f32_near!(mat.get(1, 1), 0.2947359);
-            assert_f32_near!(mat.get(2, 2), 0.0053902715);
+            assert_f32_near!(mat.get(0, 0), 0.85736084);
+            assert_f32_near!(mat.get(1, 1), 0.12626839);
+            assert_f32_near!(mat.get(2, 2), 0.0040448904);
+        });
+
+        // Set an input.
+        example.control.control_vector_mut().set(0, 0, 1.0);
+
+        // Predict and apply an input.
+        example.filter.predict();
+        example.filter.control(&mut example.control);
+
+        // All states are still zero.
+        example.filter.state_vector_inspect(|vec| {
+            assert_eq!(vec.get(0, 0), 0.5, "incorrect position after control input");
+            assert_eq!(vec.get(1, 0), 1.0, "incorrect velocity after control input");
+            assert_eq!(
+                vec.get(2, 0),
+                1.0,
+                "incorrect acceleration after control input"
+            );
+        });
+
+        // Predict without input.
+        example.filter.predict();
+
+        // All states are still zero.
+        example.filter.state_vector_inspect(|vec| {
+            assert_eq!(vec.get(0, 0), 2.0, "incorrect position");
+            assert_eq!(vec.get(1, 0), 2.0, "incorrect velocity");
+            assert_eq!(vec.get(2, 0), 1.0, "incorrect acceleration");
+        });
+
+        // The estimate covariance has worsened.
+        example.filter.estimate_covariance_inspect(|mat| {
+            assert_f32_near!(mat.get(0, 0), 6.226019);
+            assert_f32_near!(mat.get(1, 1), 4.229596);
+            assert_f32_near!(mat.get(2, 2), 1.0040449);
+        });
+
+        // Set a new measurement
+        example.measurement.measurement_vector_apply(|vec| {
+            vec.set(0, 0, 2.0);
+            vec.set(1, 0, (2.0 + 2.0 + 1.0) / 3.0);
+        });
+
+        // Apply a measurement of the state.
+        example.filter.correct(&mut example.measurement);
+
+        // The estimate covariance has improved.
+        example.filter.estimate_covariance_inspect(|mat| {
+            assert_f32_near!(mat.get(0, 0), 0.6483326);
+            assert_f32_near!(mat.get(1, 1), 0.8424177);
+            assert_f32_near!(mat.get(2, 2), 0.27818835);
         });
     }
 }
