@@ -856,12 +856,41 @@ mod tests {
     use super::*;
     use crate::test_dummies::{Dummy, DummyMatrix};
 
-    fn trait_impl<const STATES: usize, T, M>(controls: M) -> M
+    fn trait_impl<const STATES: usize, T, K>(mut filter: K) -> K
     where
-        M: KalmanFilter<STATES, T>,
+        K: KalmanFilter<STATES, T> + KalmanFilterStateTransitionMut<STATES, T>,
     {
-        assert_eq!(controls.states(), STATES);
-        controls
+        assert_eq!(filter.states(), STATES);
+
+        let test_fn = || {};
+
+        let mut temp = 0;
+        let mut test_fn_mut = || {
+            temp += 0;
+        };
+
+        let _vec = filter.state_vector_ref();
+        let _vec = filter.state_vector_mut();
+        filter.state_vector_inspect(|_vec| test_fn());
+        filter.state_vector_inspect_mut(|_vec| test_fn_mut());
+        filter.state_vector_apply(|_vec| test_fn());
+        filter.state_vector_apply_mut(|_vec| test_fn_mut());
+
+        let _mat = filter.state_transition_ref();
+        let _mat = filter.state_transition_mut();
+        filter.state_transition_inspect(|_mat| test_fn());
+        filter.state_transition_inspect_mut(|_mat| test_fn_mut());
+        filter.state_transition_apply(|_mat| test_fn());
+        filter.state_transition_apply_mut(|_mat| test_fn_mut());
+
+        let _mat = filter.estimate_covariance_ref();
+        let _mat = filter.estimate_covariance_mut();
+        filter.estimate_covariance_inspect(|_mat| test_fn());
+        filter.estimate_covariance_inspect_mut(|_mat| test_fn_mut());
+        filter.estimate_covariance_apply(|_mat| test_fn());
+        filter.estimate_covariance_apply_mut(|_mat| test_fn_mut());
+
+        filter
     }
 
     #[test]

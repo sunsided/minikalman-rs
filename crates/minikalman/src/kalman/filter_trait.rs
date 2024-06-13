@@ -285,9 +285,9 @@ pub trait KalmanFilterSystemCovariance<const STATES: usize, T> {
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
     #[inline(always)]
     #[doc(alias = "system_covariance_inspect_mut")]
-    fn estimate_covariance_inspect_mut<F, O>(&mut self, f: F) -> O
+    fn estimate_covariance_inspect_mut<F, O>(&mut self, mut f: F) -> O
     where
-        F: Fn(&Self::EstimateCovarianceMatrix) -> O,
+        F: FnMut(&Self::EstimateCovarianceMatrix) -> O,
     {
         f(self.estimate_covariance_ref())
     }

@@ -843,12 +843,42 @@ mod tests {
         filter.correct(&mut measurement);
     }
 
-    fn trait_impl<const STATES: usize, const OBSERVATIONS: usize, T, M>(measurement: M) -> M
+    fn trait_impl<const STATES: usize, const OBSERVATIONS: usize, T, M>(mut measurement: M) -> M
     where
-        M: KalmanFilterObservation<STATES, OBSERVATIONS, T>,
+        M: KalmanFilterObservation<STATES, OBSERVATIONS, T>
+            + KalmanFilterObservationTransformationMut<STATES, OBSERVATIONS, T>,
     {
         assert_eq!(measurement.states(), STATES);
         assert_eq!(measurement.observations(), OBSERVATIONS);
+
+        let test_fn = || {};
+
+        let mut temp = 0;
+        let mut test_fn_mut = || {
+            temp += 0;
+        };
+
+        let _vec = measurement.measurement_vector_ref();
+        let _vec = measurement.measurement_vector_mut();
+        measurement.measurement_vector_inspect(|_vec| test_fn());
+        measurement.measurement_vector_inspect_mut(|_vec| test_fn_mut());
+        measurement.measurement_vector_apply(|_vec| test_fn());
+        measurement.measurement_vector_apply_mut(|_vec| test_fn_mut());
+
+        let _mat = measurement.observation_matrix_ref();
+        let _mat = measurement.observation_matrix_mut();
+        measurement.observation_matrix_inspect(|_mat| test_fn());
+        measurement.observation_matrix_inspect_mut(|_mat| test_fn_mut());
+        measurement.observation_matrix_apply(|_mat| test_fn());
+        measurement.observation_matrix_apply_mut(|_mat| test_fn_mut());
+
+        let _mat = measurement.measurement_noise_covariance_ref();
+        let _mat = measurement.measurement_noise_covariance_mut();
+        measurement.measurement_noise_covariance_inspect(|_mat| test_fn());
+        measurement.measurement_noise_covariance_inspect_mut(|_mat| test_fn_mut());
+        measurement.measurement_noise_covariance_apply(|_mat| test_fn());
+        measurement.measurement_noise_covariance_apply_mut(|_mat| test_fn_mut());
+
         measurement
     }
 

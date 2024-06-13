@@ -613,13 +613,43 @@ mod tests {
         assert_f32_near!(state[3], 20.0);
     }
 
-    fn trait_impl<const STATES: usize, const CONTROLS: usize, T, M>(controls: M) -> M
+    fn trait_impl<const STATES: usize, const CONTROLS: usize, T, M>(mut control: M) -> M
     where
-        M: KalmanFilterControl<STATES, CONTROLS, T>,
+        M: KalmanFilterControl<STATES, CONTROLS, T>
+            + KalmanFilterControlTransitionMut<STATES, CONTROLS, T>,
     {
-        assert_eq!(controls.states(), STATES);
-        assert_eq!(controls.controls(), CONTROLS);
-        controls
+        assert_eq!(control.states(), STATES);
+        assert_eq!(control.controls(), CONTROLS);
+
+        let test_fn = || {};
+
+        let mut temp = 0;
+        let mut test_fn_mut = || {
+            temp += 0;
+        };
+
+        let _vec = control.control_vector_ref();
+        let _vec = control.control_vector_mut();
+        control.control_vector_inspect(|_vec| test_fn());
+        control.control_vector_inspect_mut(|_vec| test_fn_mut());
+        control.control_vector_apply(|_vec| test_fn());
+        control.control_vector_apply_mut(|_vec| test_fn_mut());
+
+        let _mat = control.control_matrix_ref();
+        let _mat = control.control_matrix_mut();
+        control.control_matrix_inspect(|_mat| test_fn());
+        control.control_matrix_inspect_mut(|_mat| test_fn_mut());
+        control.control_matrix_apply(|_mat| test_fn());
+        control.control_matrix_apply_mut(|_mat| test_fn_mut());
+
+        let _mat = control.process_noise_covariance_ref();
+        let _mat = control.process_noise_covariance_mut();
+        control.process_noise_covariance_inspect(|_mat| test_fn());
+        control.process_noise_covariance_inspect_mut(|_mat| test_fn_mut());
+        control.process_noise_covariance_apply(|_mat| test_fn());
+        control.process_noise_covariance_apply_mut(|_mat| test_fn_mut());
+
+        control
     }
 
     #[test]
