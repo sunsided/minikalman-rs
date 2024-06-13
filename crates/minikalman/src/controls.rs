@@ -99,6 +99,30 @@ where
     pub fn control_vector_ref(&self) -> &U {
         &self.u
     }
+
+    /// Applies a function to the control vector u.
+    ///
+    /// The control vector contains the external inputs to the system that can influence its state.
+    /// These inputs might include forces, accelerations, or other actuations applied to the system.
+    #[inline(always)]
+    pub fn control_vector_inspect<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&U) -> O,
+    {
+        f(&mut self.u)
+    }
+
+    /// Applies a function to the control vector u.
+    ///
+    /// The control vector contains the external inputs to the system that can influence its state.
+    /// These inputs might include forces, accelerations, or other actuations applied to the system.
+    #[inline(always)]
+    pub fn control_vector_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&U) -> O,
+    {
+        f(&self.u)
+    }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
@@ -121,9 +145,9 @@ where
     /// The control vector contains the external inputs to the system that can influence its state.
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
     #[inline(always)]
-    pub fn control_vector_apply<F>(&mut self, mut f: F)
+    pub fn control_vector_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut U),
+        F: FnMut(&mut U) -> O,
     {
         f(&mut self.u)
     }
@@ -136,11 +160,35 @@ where
 {
     /// Gets a reference to the control transition matrix B.
     ///
-    /// his matrix maps the control inputs to the state space, allowing the control vector to
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
     pub fn control_matrix_ref(&self) -> &B {
         &self.B
+    }
+
+    /// Applies a function to the control transition matrix B.
+    ///
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
+    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    #[inline(always)]
+    pub fn control_matrix_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&B) -> O,
+    {
+        f(&self.B)
+    }
+
+    /// Applies a function to the control transition matrix B.
+    ///
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
+    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    #[inline(always)]
+    pub fn control_matrix_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&B) -> O,
+    {
+        f(&self.B)
     }
 }
 
@@ -151,7 +199,7 @@ where
 {
     /// Gets a mutable reference to the control transition matrix B.
     ///
-    /// his matrix maps the control inputs to the state space, allowing the control vector to
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
     #[doc(alias = "kalman_get_control_matrix")]
@@ -161,12 +209,12 @@ where
 
     /// Applies a function to the control transition matrix B.
     ///
-    /// his matrix maps the control inputs to the state space, allowing the control vector to
+    /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
-    pub fn control_matrix_apply<F>(&mut self, mut f: F)
+    pub fn control_matrix_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut B),
+        F: FnMut(&mut B) -> O,
     {
         f(&mut self.B)
     }
@@ -186,6 +234,36 @@ where
     #[doc(alias = "control_covariance_ref")]
     pub fn process_noise_covariance_ref(&self) -> &Q {
         &self.Q
+    }
+
+    /// Applies a function to the control covariance matrix Q.
+    ///
+    /// This matrix represents the uncertainty in the state transition process, accounting for the
+    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
+    /// state transition.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_control_covariance")]
+    #[doc(alias = "control_covariance_inspect")]
+    pub fn process_noise_covariance_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&Q) -> O,
+    {
+        f(&self.Q)
+    }
+
+    /// Applies a function to the control covariance matrix Q.
+    ///
+    /// This matrix represents the uncertainty in the state transition process, accounting for the
+    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
+    /// state transition.
+    #[inline(always)]
+    #[doc(alias = "kalman_get_control_covariance")]
+    #[doc(alias = "control_covariance_inspect")]
+    pub fn process_noise_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&Q) -> O,
+    {
+        f(&self.Q)
     }
 }
 
@@ -214,9 +292,9 @@ where
     #[inline(always)]
     #[doc(alias = "kalman_get_control_covariance")]
     #[doc(alias = "control_covariance_apply")]
-    pub fn process_noise_covariance_apply<F>(&mut self, mut f: F)
+    pub fn process_noise_covariance_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut Q),
+        F: FnMut(&mut Q) -> O,
     {
         f(&mut self.Q)
     }

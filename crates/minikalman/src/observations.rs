@@ -303,11 +303,29 @@ impl<
     /// }
     /// ```
     #[inline(always)]
-    pub fn measurement_vector_apply<F>(&mut self, mut f: F)
+    pub fn measurement_vector_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut Z),
+        F: FnMut(&mut Z) -> O,
     {
         f(&mut self.z)
+    }
+
+    /// Applies a function to the measurement vector z.
+    #[inline(always)]
+    pub fn measurement_vector_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&Z) -> O,
+    {
+        f(&self.z)
+    }
+
+    /// Applies a function to the measurement vector z.
+    #[inline(always)]
+    pub fn measurement_vector_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&Z) -> O,
+    {
+        f(&self.z)
     }
 
     /// Gets a reference to the measurement transformation matrix H.
@@ -318,6 +336,32 @@ impl<
     #[inline(always)]
     pub fn observation_matrix_ref(&self) -> &H {
         &self.H
+    }
+
+    /// Applies a function to the measurement transformation matrix H.
+    ///
+    /// This matrix maps the state vector into the measurement space, relating the state of the
+    /// system to the observations or measurements. It defines how each state component contributes
+    /// to the measurement.
+    #[inline(always)]
+    pub fn observation_matrix_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&H) -> O,
+    {
+        f(&self.H)
+    }
+
+    /// Applies a function to the measurement transformation matrix H.
+    ///
+    /// This matrix maps the state vector into the measurement space, relating the state of the
+    /// system to the observations or measurements. It defines how each state component contributes
+    /// to the measurement.
+    #[inline(always)]
+    pub fn observation_matrix_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&H) -> O,
+    {
+        f(&self.H)
     }
 
     /// Gets a reference to the process noise matrix R.
@@ -344,11 +388,35 @@ impl<
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
-    pub fn process_noise_apply<F>(&mut self, mut f: F)
+    pub fn process_noise_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut R),
+        F: FnMut(&mut R) -> O,
     {
         f(&mut self.R)
+    }
+
+    /// Applies a function to the process noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
+    #[inline(always)]
+    pub fn process_noise_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&R) -> O,
+    {
+        f(&self.R)
+    }
+
+    /// Applies a function to the process noise matrix R.
+    ///
+    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
+    /// inaccuracies. It quantifies the expected variability in the measurement process.
+    #[inline(always)]
+    pub fn process_noise_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&R) -> O,
+    {
+        f(&self.R)
     }
 }
 
@@ -479,9 +547,9 @@ where
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
     #[inline(always)]
-    pub fn observation_matrix_apply<F>(&mut self, mut f: F)
+    pub fn observation_matrix_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut H),
+        F: FnMut(&mut H) -> O,
     {
         f(&mut self.H)
     }

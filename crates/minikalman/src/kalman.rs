@@ -153,11 +153,35 @@ where
     /// The state vector represents the internal state of the system at a given time. It contains
     /// all the necessary information to describe the system's current situation.
     #[inline(always)]
-    pub fn state_vector_apply<F>(&mut self, mut f: F)
+    pub fn state_vector_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut X),
+        F: FnMut(&mut X) -> O,
     {
         f(&mut self.x)
+    }
+
+    /// Applies a function to the state vector x.
+    ///
+    /// The state vector represents the internal state of the system at a given time. It contains
+    /// all the necessary information to describe the system's current situation.
+    #[inline(always)]
+    pub fn state_vector_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&X) -> O,
+    {
+        f(&self.x)
+    }
+
+    /// Applies a function to the state vector x.
+    ///
+    /// The state vector represents the internal state of the system at a given time. It contains
+    /// all the necessary information to describe the system's current situation.
+    #[inline(always)]
+    pub fn state_vector_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&X) -> O,
+    {
+        f(&self.x)
     }
 }
 
@@ -200,11 +224,39 @@ where
     /// current state, accounting for the inherent dynamics of the system.
     #[inline(always)]
     #[doc(alias = "system_matrix_apply")]
-    pub fn state_transition_apply<F>(&mut self, mut f: F)
+    pub fn state_transition_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut A),
+        F: FnMut(&mut A) -> O,
     {
         f(&mut self.A)
+    }
+
+    /// Applies a function to the state transition matrix A.
+    ///
+    /// This matrix describes how the state vector evolves from one time step to the next in the
+    /// absence of control inputs. It defines the relationship between the previous state and the
+    /// current state, accounting for the inherent dynamics of the system.
+    #[inline(always)]
+    #[doc(alias = "system_matrix_inspect")]
+    pub fn state_transition_inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&A) -> O,
+    {
+        f(&self.A)
+    }
+
+    /// Applies a function to the state transition matrix A.
+    ///
+    /// This matrix describes how the state vector evolves from one time step to the next in the
+    /// absence of control inputs. It defines the relationship between the previous state and the
+    /// current state, accounting for the inherent dynamics of the system.
+    #[inline(always)]
+    #[doc(alias = "system_matrix_inspect_mut")]
+    pub fn state_transition_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&A) -> O,
+    {
+        f(&self.A)
     }
 }
 
@@ -227,7 +279,7 @@ where
     /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
     #[inline(always)]
-    #[doc(alias = "system_covariance_ref")]
+    #[doc(alias = "system_covariance_mut")]
     #[doc(alias = "kalman_get_system_covariance")]
     pub fn estimate_covariance_mut(&mut self) -> &mut P {
         &mut self.P
@@ -238,12 +290,38 @@ where
     /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
     #[inline(always)]
-    #[doc(alias = "system_covariance_ref")]
-    pub fn estimate_covariance_apply<F>(&mut self, mut f: F)
+    #[doc(alias = "system_covariance_apply")]
+    pub fn estimate_covariance_apply<F, O>(&mut self, mut f: F) -> O
     where
-        F: FnMut(&mut P),
+        F: FnMut(&mut P) -> O,
     {
         f(&mut self.P)
+    }
+
+    /// Applies a function to the system covariance matrix P.
+    ///
+    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
+    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
+    #[inline(always)]
+    #[doc(alias = "system_covariance_inspect")]
+    pub fn estimate_covariance_inspect<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&P) -> O,
+    {
+        f(&self.P)
+    }
+
+    /// Applies a function to the system covariance matrix P.
+    ///
+    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
+    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
+    #[inline(always)]
+    #[doc(alias = "system_covariance_inspect")]
+    pub fn estimate_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&P) -> O,
+    {
+        f(&self.P)
     }
 }
 
@@ -813,5 +891,64 @@ mod tests {
         fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
             &mut self.0
         }
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn it_works() {
+        use crate::prelude::*;
+        use assert_float_eq::*;
+
+        let mut example = crate::test_filter::create_test_filter(1.0);
+
+        // The estimate covariance still is scalar.
+        assert!(example.filter.estimate_covariance_inspect(|mat| (0..3)
+            .into_iter()
+            .all(|i| { mat.get(i, i) == 0.1 })));
+
+        // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
+        for _ in 0..10 {
+            example.filter.predict();
+        }
+
+        // All states are zero.
+        assert!(example
+            .filter
+            .state_vector_ref()
+            .as_ref()
+            .iter()
+            .all(|&x| x == 0.0));
+
+        // The estimate covariance has changed.
+        example.filter.estimate_covariance_inspect(|mat| {
+            assert_f32_near!(mat.get(0, 0), 260.1);
+            assert_f32_near!(mat.get(1, 1), 10.1);
+            assert_f32_near!(mat.get(2, 2), 0.1);
+        });
+
+        // The measurement is zero.
+        example
+            .measurement
+            .measurement_vector_mut()
+            .as_matrix_mut()
+            .set(0, 0, 0.0);
+
+        // Apply a measurement of the unchanged state.
+        example.filter.correct(&mut example.measurement);
+
+        // All states are still zero.
+        assert!(example
+            .filter
+            .state_vector_ref()
+            .as_ref()
+            .iter()
+            .all(|&x| x == 0.0));
+
+        // The estimate covariance has improved.
+        example.filter.estimate_covariance_inspect(|mat| {
+            assert_f32_near!(mat.get(0, 0), 6.0466003);
+            assert_f32_near!(mat.get(1, 1), 0.2947359);
+            assert_f32_near!(mat.get(2, 2), 0.0053902715);
+        });
     }
 }
