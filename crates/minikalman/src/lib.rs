@@ -161,6 +161,9 @@ mod static_macros;
 #[cfg(test)]
 mod test_dummies;
 
+#[cfg(test)]
+mod test_filter;
+
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub use crate::buffers::builder::BufferBuilder;

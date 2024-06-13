@@ -61,35 +61,27 @@ const NUM_OBSERVATIONS: usize = 1;
 #[allow(non_snake_case)]
 fn criterion_benchmark(c: &mut Criterion) {
     // System buffers.
-    let mut gravity_x = BufferBuilder::state_vector_x::<NUM_STATES>().new(I16F16::ZERO);
-    let mut gravity_A = BufferBuilder::system_matrix_A::<NUM_STATES>().new(I16F16::ZERO);
-    let mut gravity_P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new(I16F16::ZERO);
+    let mut gravity_x = BufferBuilder::state_vector_x::<NUM_STATES>().new();
+    let mut gravity_A = BufferBuilder::system_matrix_A::<NUM_STATES>().new();
+    let mut gravity_P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new();
 
     // Observation buffers.
-    let mut gravity_z = BufferBuilder::measurement_vector_z::<NUM_OBSERVATIONS>().new(I16F16::ZERO);
-    let mut gravity_H =
-        BufferBuilder::observation_matrix_H::<NUM_OBSERVATIONS, NUM_STATES>().new(I16F16::ZERO);
-    let mut gravity_R =
-        BufferBuilder::observation_covariance_R::<NUM_OBSERVATIONS>().new(I16F16::ZERO);
-    let mut gravity_y = BufferBuilder::innovation_vector_y::<NUM_OBSERVATIONS>().new(I16F16::ZERO);
-    let mut gravity_S =
-        BufferBuilder::innovation_covariance_S::<NUM_OBSERVATIONS>().new(I16F16::ZERO);
-    let mut gravity_K =
-        BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_OBSERVATIONS>().new(I16F16::ZERO);
+    let mut gravity_z = BufferBuilder::measurement_vector_z::<NUM_OBSERVATIONS>().new();
+    let mut gravity_H = BufferBuilder::observation_matrix_H::<NUM_OBSERVATIONS, NUM_STATES>().new();
+    let mut gravity_R = BufferBuilder::observation_covariance_R::<NUM_OBSERVATIONS>().new();
+    let mut gravity_y = BufferBuilder::innovation_vector_y::<NUM_OBSERVATIONS>().new();
+    let mut gravity_S = BufferBuilder::innovation_covariance_S::<NUM_OBSERVATIONS>().new();
+    let mut gravity_K = BufferBuilder::kalman_gain_K::<NUM_STATES, NUM_OBSERVATIONS>().new();
 
     // Filter temporaries.
-    let mut gravity_temp_x =
-        BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(I16F16::ZERO);
-    let mut gravity_temp_P =
-        BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(I16F16::ZERO);
+    let mut gravity_temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new();
+    let mut gravity_temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new();
 
     // Observation temporaries.
-    let mut gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_OBSERVATIONS>().new(I16F16::ZERO);
-    let mut gravity_temp_HP =
-        BufferBuilder::temp_HP::<NUM_OBSERVATIONS, NUM_STATES>().new(I16F16::ZERO);
-    let mut gravity_temp_PHt =
-        BufferBuilder::temp_PHt::<NUM_STATES, NUM_OBSERVATIONS>().new(I16F16::ZERO);
-    let mut gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new(I16F16::ZERO);
+    let mut gravity_temp_S_inv = BufferBuilder::temp_S_inv::<NUM_OBSERVATIONS>().new();
+    let mut gravity_temp_HP = BufferBuilder::temp_HP::<NUM_OBSERVATIONS, NUM_STATES>().new();
+    let mut gravity_temp_PHt = BufferBuilder::temp_PHt::<NUM_STATES, NUM_OBSERVATIONS>().new();
+    let mut gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new();
 
     c.bench_function("filter loop (fixed-point)", |bencher| {
         let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(

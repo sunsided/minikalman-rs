@@ -62,19 +62,16 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// See also [`KalmanFilterControlBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
     pub fn build(&self) -> KalmanFilterType<STATES, T>
     where
-        T: MatrixDataType,
+        T: MatrixDataType + Default,
     {
-        // The initialization value.
-        let zero = T::zero();
-
         // System buffers.
-        let state_vector = BufferBuilder::state_vector_x::<STATES>().new(zero);
-        let system_matrix = BufferBuilder::system_matrix_A::<STATES>().new(zero);
-        let system_covariance = BufferBuilder::estimate_covariance_P::<STATES>().new(zero);
+        let state_vector = BufferBuilder::state_vector_x::<STATES>().new();
+        let system_matrix = BufferBuilder::system_matrix_A::<STATES>().new();
+        let system_covariance = BufferBuilder::estimate_covariance_P::<STATES>().new();
 
         // Filter temporaries.
-        let temp_x = BufferBuilder::state_prediction_temp_x::<STATES>().new(zero);
-        let temp_p = BufferBuilder::temp_system_covariance_P::<STATES>().new(zero);
+        let temp_x = BufferBuilder::state_prediction_temp_x::<STATES>().new();
+        let temp_p = BufferBuilder::temp_system_covariance_P::<STATES>().new();
 
         KalmanBuilder::new::<STATES, T>(
             system_matrix,
@@ -138,18 +135,15 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
     pub fn build<const CONTROLS: usize>(&self) -> KalmanFilterControlType<STATES, CONTROLS, T>
     where
-        T: MatrixDataType,
+        T: MatrixDataType + Default,
     {
-        // The initialization value.
-        let zero = T::zero();
-
         // Control buffers.
-        let control_vector = BufferBuilder::control_vector_u::<CONTROLS>().new(zero);
-        let control_matrix = BufferBuilder::control_matrix_B::<STATES, CONTROLS>().new(zero);
-        let control_covariance = BufferBuilder::process_noise_covariance_Q::<CONTROLS>().new(zero);
+        let control_vector = BufferBuilder::control_vector_u::<CONTROLS>().new();
+        let control_matrix = BufferBuilder::control_matrix_B::<STATES, CONTROLS>().new();
+        let control_covariance = BufferBuilder::process_noise_covariance_Q::<CONTROLS>().new();
 
         // Control temporaries.
-        let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new(zero);
+        let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new();
 
         ControlBuilder::new::<STATES, CONTROLS, T>(
             control_matrix,
@@ -211,27 +205,24 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
         &self,
     ) -> KalmanFilterObservationType<STATES, OBSERVATIONS, T>
     where
-        T: MatrixDataType,
+        T: MatrixDataType + Default,
     {
-        // The initialization value.
-        let zero = T::zero();
-
         // Observation buffers.
-        let measurement_vector = BufferBuilder::measurement_vector_z::<OBSERVATIONS>().new(zero);
+        let measurement_vector = BufferBuilder::measurement_vector_z::<OBSERVATIONS>().new();
         let observation_matrix =
-            BufferBuilder::observation_matrix_H::<OBSERVATIONS, STATES>().new(zero);
+            BufferBuilder::observation_matrix_H::<OBSERVATIONS, STATES>().new();
         let observation_covariance =
-            BufferBuilder::observation_covariance_R::<OBSERVATIONS>().new(zero);
-        let innovation_vector = BufferBuilder::innovation_vector_y::<OBSERVATIONS>().new(zero);
+            BufferBuilder::observation_covariance_R::<OBSERVATIONS>().new();
+        let innovation_vector = BufferBuilder::innovation_vector_y::<OBSERVATIONS>().new();
         let residual_covariance_matrix =
-            BufferBuilder::innovation_covariance_S::<OBSERVATIONS>().new(zero);
-        let kalman_gain = BufferBuilder::kalman_gain_K::<STATES, OBSERVATIONS>().new(zero);
+            BufferBuilder::innovation_covariance_S::<OBSERVATIONS>().new();
+        let kalman_gain = BufferBuilder::kalman_gain_K::<STATES, OBSERVATIONS>().new();
 
         // Observation temporaries.
-        let temp_s_inverted = BufferBuilder::temp_S_inv::<OBSERVATIONS>().new(zero);
-        let temp_hp = BufferBuilder::temp_HP::<OBSERVATIONS, STATES>().new(zero);
-        let temp_pht = BufferBuilder::temp_PHt::<STATES, OBSERVATIONS>().new(zero);
-        let temp_khp = BufferBuilder::temp_KHP::<STATES>().new(zero);
+        let temp_s_inverted = BufferBuilder::temp_S_inv::<OBSERVATIONS>().new();
+        let temp_hp = BufferBuilder::temp_HP::<OBSERVATIONS, STATES>().new();
+        let temp_pht = BufferBuilder::temp_PHt::<STATES, OBSERVATIONS>().new();
+        let temp_khp = BufferBuilder::temp_KHP::<STATES>().new();
 
         ObservationBuilder::new::<STATES, OBSERVATIONS, T>(
             observation_matrix,

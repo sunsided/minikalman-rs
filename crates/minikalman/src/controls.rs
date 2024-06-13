@@ -399,21 +399,21 @@ mod tests {
         const NUM_CONTROLS: usize = 3;
 
         // System buffers.
-        let x = BufferBuilder::state_vector_x::<NUM_STATES>().new(0.0_f32);
-        let A = BufferBuilder::system_matrix_A::<NUM_STATES>().new(0.0_f32);
-        let P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new(0.0_f32);
+        let x = BufferBuilder::state_vector_x::<NUM_STATES>().new();
+        let A = BufferBuilder::system_matrix_A::<NUM_STATES>().new();
+        let P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new();
 
         // Control buffers.
-        let u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new(0.0_f32);
-        let B = BufferBuilder::control_matrix_B::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
-        let Q = BufferBuilder::process_noise_covariance_Q::<NUM_CONTROLS>().new(0.0_f32);
+        let u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new();
+        let B = BufferBuilder::control_matrix_B::<NUM_STATES, NUM_CONTROLS>().new();
+        let Q = BufferBuilder::process_noise_covariance_Q::<NUM_CONTROLS>().new();
 
         // Filter temporaries.
-        let temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new(0.0_f32);
-        let temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new(0.0_f32);
+        let temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new();
+        let temp_P = BufferBuilder::temp_system_covariance_P::<NUM_STATES>().new();
 
         // Control temporaries
-        let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new(0.0_f32);
+        let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new();
 
         let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
         let mut control = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
