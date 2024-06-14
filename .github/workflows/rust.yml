@@ -81,7 +81,7 @@ jobs:
       - name: Run tests (std)
         run: cargo nextest run --verbose --package minikalman --no-default-features --features=std
       - name: Run tests (libm)
-        run: cargo nextest run --verbose --package minikalman --no-default-features --features=libm
+        run: cargo nextest run --verbose --package minikalman --no-default-features --features=libm,alloc
       - name: Run doctests
         run: cargo test --doc --verbose --package minikalman --no-default-features --features=std
       - name: Run doctests (libm)
