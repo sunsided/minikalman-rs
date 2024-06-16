@@ -115,7 +115,7 @@ pub trait KalmanFilterStateVector<const STATES: usize, T> {
     ///
     /// The state vector represents the internal state of the system at a given time.
     /// It contains all the necessary information to describe the system's current situation.
-    fn state_vector_ref(&self) -> &Self::StateVector;
+    fn state_vector(&self) -> &Self::StateVector;
 }
 
 pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
@@ -139,7 +139,7 @@ pub trait KalmanFilterStateTransition<const STATES: usize, T> {
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
-    fn state_transition_ref(&self) -> &Self::StateTransitionMatrix;
+    fn state_transition(&self) -> &Self::StateTransitionMatrix;
 }
 
 pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
@@ -163,8 +163,8 @@ pub trait KalmanFilterSystemCovariance<const STATES: usize, T> {
     ///
     /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[doc(alias = "system_covariance_ref")]
-    fn estimate_covariance_ref(&self) -> &Self::EstimateCovarianceMatrix;
+    #[doc(alias = "system_covariance")]
+    fn estimate_covariance(&self) -> &Self::EstimateCovarianceMatrix;
 }
 
 pub trait KalmanFilterSystemCovarianceMut<const STATES: usize, T>:
@@ -211,7 +211,7 @@ pub trait KalmanFilterControlVector<const CONTROLS: usize, T> {
     ///
     /// The control vector contains the external inputs to the system that can influence its state.
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
-    fn control_vector_ref(&self) -> &Self::ControlVector;
+    fn control_vector(&self) -> &Self::ControlVector;
 }
 
 pub trait KalmanFilterControlVectorMut<const CONTROLS: usize, T>:
@@ -234,7 +234,7 @@ pub trait KalmanFilterControlTransition<const STATES: usize, const CONTROLS: usi
     ///
     /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
-    fn control_matrix_ref(&self) -> &Self::ControlTransitionMatrix;
+    fn control_matrix(&self) -> &Self::ControlTransitionMatrix;
 }
 
 pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: usize, T>:
@@ -259,8 +259,8 @@ pub trait KalmanFilterProcessNoiseCovariance<const CONTROLS: usize, T> {
     /// This matrix represents the uncertainty in the state transition process, accounting for the
     /// randomness and inaccuracies in the model. It quantifies the expected variability in the
     /// state transition.
-    #[doc(alias = "control_covariance_ref")]
-    fn process_noise_covariance_ref(&self) -> &Self::ProcessNoiseCovarianceMatrix;
+    #[doc(alias = "control_covariance")]
+    fn process_noise_covariance(&self) -> &Self::ProcessNoiseCovarianceMatrix;
 }
 
 pub trait KalmanFilterControlCovarianceMut<const CONTROLS: usize, T>:
@@ -308,7 +308,7 @@ pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
     ///
     /// The measurement vector represents the observed measurements from the system.
     /// These measurements are typically taken from sensors and are used to update the state estimate.
-    fn measurement_vector_ref(&self) -> &Self::MeasurementVector;
+    fn measurement_vector(&self) -> &Self::MeasurementVector;
 }
 
 pub trait KalmanFilterObservationVectorMut<const OBSERVATIONS: usize, T>:
@@ -332,7 +332,7 @@ pub trait KalmanFilterObservationTransformation<const STATES: usize, const OBSER
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
-    fn observation_matrix_ref(&self) -> &Self::ObservationTransformationMatrix;
+    fn observation_matrix(&self) -> &Self::ObservationTransformationMatrix;
 }
 
 pub trait KalmanFilterObservationTransformationMut<
@@ -360,7 +360,7 @@ pub trait KalmanFilterMeasurementNoiseCovariance<const OBSERVATIONS: usize, T> {
     ///
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
-    fn measurement_noise_covariance_ref(&self) -> &Self::MeasurementNoiseCovarianceMatrix;
+    fn measurement_noise_covariance(&self) -> &Self::MeasurementNoiseCovarianceMatrix;
 }
 
 pub trait KalmanFilterMeasurementNoiseCovarianceMut<const OBSERVATIONS: usize, T>:

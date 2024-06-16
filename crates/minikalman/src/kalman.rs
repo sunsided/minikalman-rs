@@ -129,7 +129,7 @@ where
     /// The state vector represents the internal state of the system at a given time. It contains
     /// all the necessary information to describe the system's current situation.
     #[inline(always)]
-    pub fn state_vector_ref(&self) -> &X {
+    pub fn state_vector(&self) -> &X {
         &self.x
     }
 }
@@ -207,8 +207,8 @@ where
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
     #[inline(always)]
-    #[doc(alias = "system_matrix_ref")]
-    pub fn state_transition_ref(&self) -> &A {
+    #[doc(alias = "system_matrix")]
+    pub fn state_transition(&self) -> &A {
         &self.A
     }
 }
@@ -239,8 +239,8 @@ where
     /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
     #[inline(always)]
-    #[doc(alias = "system_covariance_ref")]
-    pub fn estimate_covariance_ref(&self) -> &P {
+    #[doc(alias = "system_covariance")]
+    pub fn estimate_covariance(&self) -> &P {
         &self.P
     }
 
@@ -626,8 +626,8 @@ where
     type StateVector = X;
 
     #[inline(always)]
-    fn state_vector_ref(&self) -> &Self::StateVector {
-        self.state_vector_ref()
+    fn state_vector(&self) -> &Self::StateVector {
+        self.state_vector()
     }
 }
 
@@ -652,8 +652,8 @@ where
     type StateTransitionMatrix = A;
 
     #[inline(always)]
-    fn state_transition_ref(&self) -> &Self::StateTransitionMatrix {
-        self.state_transition_ref()
+    fn state_transition(&self) -> &Self::StateTransitionMatrix {
+        self.state_transition()
     }
 }
 
@@ -678,8 +678,8 @@ where
     type EstimateCovarianceMatrix = P;
 
     #[inline(always)]
-    fn estimate_covariance_ref(&self) -> &Self::EstimateCovarianceMatrix {
-        self.estimate_covariance_ref()
+    fn estimate_covariance(&self) -> &Self::EstimateCovarianceMatrix {
+        self.estimate_covariance()
     }
 }
 
@@ -763,25 +763,25 @@ mod tests {
             42
         };
 
-        let _vec = filter.state_vector_ref();
+        let _vec = filter.state_vector();
         let _vec = filter.state_vector_mut();
-        let _ = filter.state_vector_ref().inspect(|_vec| test_fn());
+        let _ = filter.state_vector().inspect(|_vec| test_fn());
         let _ = filter.state_vector_mut().inspect(|_vec| test_fn_mut());
         filter.state_vector_mut().apply(|_vec| test_fn());
         filter.state_vector_mut().apply_mut(|_vec| test_fn_mut());
 
-        let _mat = filter.state_transition_ref();
+        let _mat = filter.state_transition();
         let _mat = filter.state_transition_mut();
-        let _ = filter.state_transition_ref().inspect(|_mat| test_fn());
+        let _ = filter.state_transition().inspect(|_mat| test_fn());
         let _ = filter.state_transition_mut().inspect(|_mat| test_fn_mut());
         filter.state_transition_mut().apply(|_mat| test_fn());
         filter
             .state_transition_mut()
             .apply_mut(|_mat| test_fn_mut());
 
-        let _mat = filter.estimate_covariance_ref();
+        let _mat = filter.estimate_covariance();
         let _mat = filter.estimate_covariance_mut();
-        let _ = filter.estimate_covariance_ref().inspect(|_mat| test_fn());
+        let _ = filter.estimate_covariance().inspect(|_mat| test_fn());
         let _ = filter
             .estimate_covariance_mut()
             .inspect(|_mat| test_fn_mut());
@@ -810,25 +810,25 @@ mod tests {
             42
         };
 
-        let _vec = filter.state_vector_ref();
+        let _vec = filter.state_vector();
         let _vec = filter.state_vector_mut();
-        let _ = filter.state_vector_ref().inspect(|_vec| test_fn());
+        let _ = filter.state_vector().inspect(|_vec| test_fn());
         let _ = filter.state_vector_mut().inspect(|_vec| test_fn_mut());
         filter.state_vector_mut().apply(|_vec| test_fn());
         filter.state_vector_mut().apply_mut(|_vec| test_fn_mut());
 
-        let _mat = filter.state_transition_ref();
+        let _mat = filter.state_transition();
         let _mat = filter.state_transition_mut();
-        let _ = filter.state_transition_ref().inspect(|_mat| test_fn());
+        let _ = filter.state_transition().inspect(|_mat| test_fn());
         let _ = filter.state_transition_mut().inspect(|_mat| test_fn_mut());
         filter.state_transition_mut().apply(|_mat| test_fn());
         filter
             .state_transition_mut()
             .apply_mut(|_mat| test_fn_mut());
 
-        let _mat = filter.estimate_covariance_ref();
+        let _mat = filter.estimate_covariance();
         let _mat = filter.estimate_covariance_mut();
-        let _ = filter.estimate_covariance_ref().inspect(|_mat| test_fn());
+        let _ = filter.estimate_covariance().inspect(|_mat| test_fn());
         let _ = filter
             .estimate_covariance_mut()
             .inspect(|_mat| test_fn_mut());
@@ -851,7 +851,7 @@ mod tests {
         // The estimate covariance still is scalar.
         assert!(example
             .filter
-            .estimate_covariance_ref()
+            .estimate_covariance()
             .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
 
         // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
@@ -862,13 +862,13 @@ mod tests {
         // All states are zero.
         assert!(example
             .filter
-            .state_vector_ref()
+            .state_vector()
             .as_ref()
             .iter()
             .all(|&x| x == 0.0));
 
         // The estimate covariance has changed.
-        example.filter.estimate_covariance_ref().inspect(|mat| {
+        example.filter.estimate_covariance().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 260.1);
             assert_f32_near!(mat.get(1, 1), 10.1);
             assert_f32_near!(mat.get(2, 2), 0.1);
@@ -883,13 +883,13 @@ mod tests {
         // All states are still zero.
         assert!(example
             .filter
-            .state_vector_ref()
+            .state_vector()
             .as_ref()
             .iter()
             .all(|&x| x == 0.0));
 
         // The estimate covariance has improved.
-        example.filter.estimate_covariance_ref().inspect(|mat| {
+        example.filter.estimate_covariance().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 0.85736084);
             assert_f32_near!(mat.get(1, 1), 0.12626839);
             assert_f32_near!(mat.get(2, 2), 0.0040448904);
@@ -903,7 +903,7 @@ mod tests {
         example.filter.control(&mut example.control);
 
         // All states are still zero.
-        example.filter.state_vector_ref().inspect(|vec| {
+        example.filter.state_vector().inspect(|vec| {
             assert_eq!(vec.get(0, 0), 0.5, "incorrect position after control input");
             assert_eq!(vec.get(1, 0), 1.0, "incorrect velocity after control input");
             assert_eq!(
@@ -917,14 +917,14 @@ mod tests {
         example.filter.predict();
 
         // All states are still zero.
-        example.filter.state_vector_ref().inspect(|vec| {
+        example.filter.state_vector().inspect(|vec| {
             assert_eq!(vec.get(0, 0), 2.0, "incorrect position");
             assert_eq!(vec.get(1, 0), 2.0, "incorrect velocity");
             assert_eq!(vec.get(2, 0), 1.0, "incorrect acceleration");
         });
 
         // The estimate covariance has worsened.
-        example.filter.estimate_covariance_ref().inspect(|mat| {
+        example.filter.estimate_covariance().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 6.226019);
             assert_f32_near!(mat.get(1, 1), 4.229596);
             assert_f32_near!(mat.get(2, 2), 1.0040449);
@@ -940,7 +940,7 @@ mod tests {
         example.filter.correct(&mut example.measurement);
 
         // The estimate covariance has improved.
-        example.filter.estimate_covariance_ref().inspect(|mat| {
+        example.filter.estimate_covariance().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 0.6483326);
             assert_f32_near!(mat.get(1, 1), 0.8424177);
             assert_f32_near!(mat.get(2, 2), 0.27818835);

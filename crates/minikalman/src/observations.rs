@@ -217,7 +217,7 @@ impl<
 
     /// Gets a reference to the measurement vector z.
     #[inline(always)]
-    pub fn measurement_vector_ref(&self) -> &Z {
+    pub fn measurement_vector(&self) -> &Z {
         &self.z
     }
 
@@ -234,7 +234,7 @@ impl<
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
     #[inline(always)]
-    pub fn observation_matrix_ref(&self) -> &H {
+    pub fn observation_matrix(&self) -> &H {
         &self.H
     }
 
@@ -243,7 +243,7 @@ impl<
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
-    pub fn measurement_noise_covariance_ref(&self) -> &R {
+    pub fn measurement_noise_covariance(&self) -> &R {
         &self.R
     }
 
@@ -439,8 +439,8 @@ where
 {
     type MeasurementVector = Z;
 
-    fn measurement_vector_ref(&self) -> &Self::MeasurementVector {
-        self.measurement_vector_ref()
+    fn measurement_vector(&self) -> &Self::MeasurementVector {
+        self.measurement_vector()
     }
 }
 
@@ -491,8 +491,8 @@ where
 {
     type ObservationTransformationMatrix = H;
 
-    fn observation_matrix_ref(&self) -> &Self::ObservationTransformationMatrix {
-        self.observation_matrix_ref()
+    fn observation_matrix(&self) -> &Self::ObservationTransformationMatrix {
+        self.observation_matrix()
     }
 }
 
@@ -543,8 +543,8 @@ where
 {
     type MeasurementNoiseCovarianceMatrix = R;
 
-    fn measurement_noise_covariance_ref(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
-        self.measurement_noise_covariance_ref()
+    fn measurement_noise_covariance(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
+        self.measurement_noise_covariance()
     }
 }
 
@@ -649,39 +649,35 @@ mod tests {
             42
         };
 
-        let _vec = measurement.measurement_vector_ref();
+        let _vec = measurement.measurement_vector();
         let _vec = measurement.measurement_vector_mut();
+        measurement.measurement_vector().inspect(|_vec| test_fn());
         measurement
-            .measurement_vector_ref()
-            .inspect(|_vec| test_fn());
-        measurement
-            .measurement_vector_ref()
+            .measurement_vector()
             .inspect_mut(|_vec| test_fn_mut());
         measurement.measurement_vector_mut().apply(|_vec| test_fn());
         measurement
             .measurement_vector_mut()
             .apply_mut(|_vec| test_fn_mut());
 
-        let _mat = measurement.observation_matrix_ref();
+        let _mat = measurement.observation_matrix();
         let _mat = measurement.observation_matrix_mut();
+        let _ = measurement.observation_matrix().inspect(|_mat| test_fn());
         let _ = measurement
-            .observation_matrix_ref()
-            .inspect(|_mat| test_fn());
-        let _ = measurement
-            .observation_matrix_ref()
+            .observation_matrix()
             .inspect_mut(|_mat| test_fn_mut());
         measurement.observation_matrix_mut().apply(|_mat| test_fn());
         measurement
             .observation_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
-        let _mat = measurement.measurement_noise_covariance_ref();
+        let _mat = measurement.measurement_noise_covariance();
         let _mat = measurement.measurement_noise_covariance_mut();
         let _ = measurement
-            .measurement_noise_covariance_ref()
+            .measurement_noise_covariance()
             .inspect(|_mat| test_fn());
         let _ = measurement
-            .measurement_noise_covariance_ref()
+            .measurement_noise_covariance()
             .inspect_mut(|_mat| test_fn_mut());
         measurement
             .measurement_noise_covariance_mut()
@@ -709,39 +705,35 @@ mod tests {
             42
         };
 
-        let _vec = measurement.measurement_vector_ref();
+        let _vec = measurement.measurement_vector();
         let _vec = measurement.measurement_vector_mut();
+        let _ = measurement.measurement_vector().inspect(|_vec| test_fn());
         let _ = measurement
-            .measurement_vector_ref()
-            .inspect(|_vec| test_fn());
-        let _ = measurement
-            .measurement_vector_ref()
+            .measurement_vector()
             .inspect_mut(|_vec| test_fn_mut());
         measurement.measurement_vector_mut().apply(|_vec| test_fn());
         measurement
             .measurement_vector_mut()
             .apply_mut(|_vec| test_fn_mut());
 
-        let _mat = measurement.observation_matrix_ref();
+        let _mat = measurement.observation_matrix();
         let _mat = measurement.observation_matrix_mut();
+        let _ = measurement.observation_matrix().inspect(|_mat| test_fn());
         let _ = measurement
-            .observation_matrix_ref()
-            .inspect(|_mat| test_fn());
-        let _ = measurement
-            .observation_matrix_ref()
+            .observation_matrix()
             .inspect_mut(|_mat| test_fn_mut());
         measurement.observation_matrix_mut().apply(|_mat| test_fn());
         measurement
             .observation_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
-        let _mat = measurement.measurement_noise_covariance_ref();
+        let _mat = measurement.measurement_noise_covariance();
         let _mat = measurement.measurement_noise_covariance_mut();
         let _ = measurement
-            .measurement_noise_covariance_ref()
+            .measurement_noise_covariance()
             .inspect(|_mat| test_fn());
         let _ = measurement
-            .measurement_noise_covariance_ref()
+            .measurement_noise_covariance()
             .inspect_mut(|_mat| test_fn_mut());
         measurement
             .measurement_noise_covariance_mut()

@@ -96,7 +96,7 @@ where
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
     #[inline(always)]
     #[doc(alias = "kalman_get_control_vector")]
-    pub fn control_vector_ref(&self) -> &U {
+    pub fn control_vector(&self) -> &U {
         &self.u
     }
 }
@@ -127,7 +127,7 @@ where
     /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[inline(always)]
-    pub fn control_matrix_ref(&self) -> &B {
+    pub fn control_matrix(&self) -> &B {
         &self.B
     }
 }
@@ -159,8 +159,8 @@ where
     /// randomness and inaccuracies in the model. It quantifies the expected variability in the
     /// state transition.
     #[inline(always)]
-    #[doc(alias = "control_covariance_ref")]
-    pub fn process_noise_covariance_ref(&self) -> &Q {
+    #[doc(alias = "control_covariance")]
+    pub fn process_noise_covariance(&self) -> &Q {
         &self.Q
     }
 }
@@ -242,8 +242,8 @@ where
 {
     type ControlVector = U;
 
-    fn control_vector_ref(&self) -> &Self::ControlVector {
-        self.control_vector_ref()
+    fn control_vector(&self) -> &Self::ControlVector {
+        self.control_vector()
     }
 }
 
@@ -267,8 +267,8 @@ where
 {
     type ControlTransitionMatrix = B;
 
-    fn control_matrix_ref(&self) -> &Self::ControlTransitionMatrix {
-        self.control_matrix_ref()
+    fn control_matrix(&self) -> &Self::ControlTransitionMatrix {
+        self.control_matrix()
     }
 }
 
@@ -293,8 +293,8 @@ where
 {
     type ProcessNoiseCovarianceMatrix = Q;
 
-    fn process_noise_covariance_ref(&self) -> &Self::ProcessNoiseCovarianceMatrix {
-        self.process_noise_covariance_ref()
+    fn process_noise_covariance(&self) -> &Self::ProcessNoiseCovarianceMatrix {
+        self.process_noise_covariance()
     }
 }
 
@@ -426,7 +426,7 @@ mod tests {
         assert_eq!(control.controls(), 3);
 
         // First round, state vector is empty.
-        let state = filter.state_vector_ref().as_ref();
+        let state = filter.state_vector().as_ref();
         assert_f32_near!(state[0], 0.0);
         assert_f32_near!(state[1], 0.0);
         assert_f32_near!(state[2], 0.0);
@@ -434,7 +434,7 @@ mod tests {
 
         // Predict one step - no controls, so no changes.
         filter.predict();
-        let state = filter.state_vector_ref().as_ref();
+        let state = filter.state_vector().as_ref();
         assert_f32_near!(state[0], 0.0);
         assert_f32_near!(state[1], 0.0);
         assert_f32_near!(state[2], 0.0);
@@ -443,7 +443,7 @@ mod tests {
         // Predict one step (with controls).
         filter.predict();
         filter.control(&mut control);
-        let state = filter.state_vector_ref().as_ref();
+        let state = filter.state_vector().as_ref();
         assert_f32_near!(state[0], 0.0);
         assert_f32_near!(state[1], 0.1);
         assert_f32_near!(state[2], 1.0);
@@ -452,7 +452,7 @@ mod tests {
         // Predict another step (with controls).
         filter.predict();
         filter.control(&mut control);
-        let state = filter.state_vector_ref().as_ref();
+        let state = filter.state_vector().as_ref();
         assert_f32_near!(state[0], 11.1);
         assert_f32_near!(state[1], 0.2);
         assert_f32_near!(state[2], 2.0);
@@ -475,31 +475,25 @@ mod tests {
             42
         };
 
-        let _vec = control.control_vector_ref();
+        let _vec = control.control_vector();
         let _vec = control.control_vector_mut();
-        let _ = control.control_vector_ref().inspect(|_vec| test_fn());
-        let _ = control
-            .control_vector_ref()
-            .inspect_mut(|_vec| test_fn_mut());
+        let _ = control.control_vector().inspect(|_vec| test_fn());
+        let _ = control.control_vector().inspect_mut(|_vec| test_fn_mut());
         control.control_vector_mut().apply(|_vec| test_fn());
         control.control_vector_mut().apply_mut(|_vec| test_fn_mut());
 
-        let _mat = control.control_matrix_ref();
+        let _mat = control.control_matrix();
         let _mat = control.control_matrix_mut();
-        let _ = control.control_matrix_ref().inspect(|_mat| test_fn());
-        let _ = control
-            .control_matrix_ref()
-            .inspect_mut(|_mat| test_fn_mut());
+        let _ = control.control_matrix().inspect(|_mat| test_fn());
+        let _ = control.control_matrix().inspect_mut(|_mat| test_fn_mut());
         control.control_matrix_mut().apply(|_mat| test_fn());
         control.control_matrix_mut().apply_mut(|_mat| test_fn_mut());
 
-        let _mat = control.process_noise_covariance_ref();
+        let _mat = control.process_noise_covariance();
         let _mat = control.process_noise_covariance_mut();
+        let _ = control.process_noise_covariance().inspect(|_mat| test_fn());
         let _ = control
-            .process_noise_covariance_ref()
-            .inspect(|_mat| test_fn());
-        let _ = control
-            .process_noise_covariance_ref()
+            .process_noise_covariance()
             .inspect_mut(|_mat| test_fn_mut());
         control
             .process_noise_covariance_mut()
@@ -527,31 +521,25 @@ mod tests {
             42
         };
 
-        let _vec = control.control_vector_ref();
+        let _vec = control.control_vector();
         let _vec = control.control_vector_mut();
-        let _ = control.control_vector_ref().inspect(|_vec| test_fn());
-        let _ = control
-            .control_vector_ref()
-            .inspect_mut(|_vec| test_fn_mut());
+        let _ = control.control_vector().inspect(|_vec| test_fn());
+        let _ = control.control_vector().inspect_mut(|_vec| test_fn_mut());
         control.control_vector_mut().apply(|_vec| test_fn());
         control.control_vector_mut().apply_mut(|_vec| test_fn_mut());
 
-        let _mat = control.control_matrix_ref();
+        let _mat = control.control_matrix();
         let _mat = control.control_matrix_mut();
-        let _ = control.control_matrix_ref().inspect(|_mat| test_fn());
-        let _ = control
-            .control_matrix_ref()
-            .inspect_mut(|_mat| test_fn_mut());
+        let _ = control.control_matrix().inspect(|_mat| test_fn());
+        let _ = control.control_matrix().inspect_mut(|_mat| test_fn_mut());
         control.control_matrix_mut().apply(|_mat| test_fn());
         control.control_matrix_mut().apply_mut(|_mat| test_fn_mut());
 
-        let _mat = control.process_noise_covariance_ref();
+        let _mat = control.process_noise_covariance();
         let _mat = control.process_noise_covariance_mut();
+        let _ = control.process_noise_covariance().inspect(|_mat| test_fn());
         let _ = control
-            .process_noise_covariance_ref()
-            .inspect(|_mat| test_fn());
-        let _ = control
-            .process_noise_covariance_ref()
+            .process_noise_covariance()
             .inspect_mut(|_mat| test_fn_mut());
         control
             .process_noise_covariance_mut()

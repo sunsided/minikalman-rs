@@ -55,7 +55,7 @@ fn main() {
         // Update prediction and apply the controls.
         filter.predict();
         filter.control(&mut control);
-        print_state_prediction(t, filter.state_vector_ref());
+        print_state_prediction(t, filter.state_vector());
 
         // Measure ...
         measurement
@@ -65,11 +65,11 @@ fn main() {
 
         // Update.
         filter.correct(&mut measurement);
-        print_state_correction(t, filter.state_vector_ref());
+        print_state_correction(t, filter.state_vector());
     }
 
     // Fetch estimated gravity constant.
-    let gravity_x = filter.state_vector_ref();
+    let gravity_x = filter.state_vector();
     let g_estimated = gravity_x.as_matrix().get(0, 2);
     assert!(g_estimated > 9.0 && g_estimated < 10.0);
 }

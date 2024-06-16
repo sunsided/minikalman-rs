@@ -103,7 +103,7 @@ fn test_gravity_estimation() {
     }
 
     // Fetch estimated gravity constant.
-    let gravity_x = filter.state_vector_ref();
+    let gravity_x = filter.state_vector();
     let g_estimated = gravity_x[2];
     assert!(g_estimated > 9.0 && g_estimated < 10.0);
 }

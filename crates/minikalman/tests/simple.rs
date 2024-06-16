@@ -90,7 +90,7 @@ fn simple_filter() {
     // The estimate covariance still is scalar.
     assert!(example
         .filter
-        .estimate_covariance_ref()
+        .estimate_covariance()
         .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
 
     // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
@@ -101,13 +101,13 @@ fn simple_filter() {
     // All states are zero.
     assert!(example
         .filter
-        .state_vector_ref()
+        .state_vector()
         .as_ref()
         .iter()
         .all(|&x| x == 0.0));
 
     // The estimate covariance has changed.
-    example.filter.estimate_covariance_ref().inspect(|mat| {
+    example.filter.estimate_covariance().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 260.1);
         assert_f32_near!(mat.get(1, 1), 10.1);
         assert_f32_near!(mat.get(2, 2), 0.1);
@@ -122,13 +122,13 @@ fn simple_filter() {
     // All states are still zero.
     assert!(example
         .filter
-        .state_vector_ref()
+        .state_vector()
         .as_ref()
         .iter()
         .all(|&x| x == 0.0));
 
     // The estimate covariance has improved.
-    example.filter.estimate_covariance_ref().inspect(|mat| {
+    example.filter.estimate_covariance().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 0.85736084);
         assert_f32_near!(mat.get(1, 1), 0.12626839);
         assert_f32_near!(mat.get(2, 2), 0.0040448904);
@@ -163,7 +163,7 @@ fn simple_filter() {
     });
 
     // The estimate covariance has worsened.
-    example.filter.estimate_covariance_ref().inspect(|mat| {
+    example.filter.estimate_covariance().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 6.226019);
         assert_f32_near!(mat.get(1, 1), 4.229596);
         assert_f32_near!(mat.get(2, 2), 1.0040449);
@@ -179,7 +179,7 @@ fn simple_filter() {
     example.filter.correct(&mut example.measurement);
 
     // The estimate covariance has improved.
-    example.filter.estimate_covariance_ref().inspect(|mat| {
+    example.filter.estimate_covariance().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 0.6483326);
         assert_f32_near!(mat.get(1, 1), 0.8424177);
         assert_f32_near!(mat.get(2, 2), 0.27818835);

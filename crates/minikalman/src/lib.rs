@@ -63,8 +63,8 @@
 //!     filter.correct(&mut measurement);
 //!
 //!     // Access the state
-//!     let state = filter.state_vector_ref();
-//!     let covariance = filter.estimate_covariance_ref();
+//!     let state = filter.state_vector();
+//!     let covariance = filter.estimate_covariance();
 //! }
 //! ```
 //!
