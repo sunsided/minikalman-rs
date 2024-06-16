@@ -58,7 +58,9 @@ fn main() {
         print_state_prediction(t, filter.state_vector_ref());
 
         // Measure ...
-        measurement.measurement_vector_apply(|z| z[0] = m + err);
+        measurement
+            .measurement_vector_mut()
+            .apply(|z| z[0] = m + err);
         print_measurement(t, m, err);
 
         // Update.
@@ -106,7 +108,7 @@ fn generate_error(n: usize) -> Vec<f32> {
 
 /// Initializes the state vector with initial assumptions.
 fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
-    filter.apply(|state| {
+    filter.as_matrix_mut().apply(|state| {
         state[0] = 0 as _; // position
         state[1] = 0 as _; // velocity
         state[2] = 6 as _; // acceleration (guess)
@@ -122,7 +124,7 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
 /// a₁ = 1×a₀
 /// ```
 fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut<NUM_STATES, f32>) {
-    filter.apply(|a| {
+    filter.as_matrix_mut().apply(|a| {
         // Time constant.
         const T: f32 = 1 as _;
 
@@ -149,7 +151,7 @@ fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
 fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f32>) {
-    filter.apply(|p| {
+    filter.as_matrix_mut().apply(|p| {
         p.set(0, 0, 0.1 as _); // var(s)
         p.set(0, 1, 0 as _); // cov(s, v)
         p.set(0, 2, 0 as _); // cov(s, g)
@@ -163,14 +165,14 @@ fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix
 
 /// Initializes the control vector.
 fn initialize_control_vector(filter: &mut impl ControlVectorMut<NUM_CONTROLS, f32>) {
-    filter.apply(|state| {
+    filter.as_matrix_mut().apply(|state| {
         state[0] = 0.0 as _; // acceleration
     });
 }
 
 /// Initializes the control transformation matrix.
 fn initialize_control_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_CONTROLS, f32>) {
-    filter.apply(|mat| {
+    filter.as_matrix_mut().apply(|mat| {
         mat[0] = 0.0;
         mat[1] = 0.0;
         mat[2] = 1.0;
@@ -181,7 +183,7 @@ fn initialize_control_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_
 fn initialize_control_covariance_matrix(
     filter: &mut impl ProcessNoiseCovarianceMatrixMut<NUM_CONTROLS, f32>,
 ) {
-    filter.apply(|mat| {
+    filter.as_matrix_mut().apply(|mat| {
         mat[0] = 1.0; // :)
     });
 }
@@ -196,7 +198,7 @@ fn initialize_control_covariance_matrix(
 fn initialize_position_measurement_transformation_matrix(
     measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
 ) {
-    measurement.apply(|h| {
+    measurement.as_matrix_mut().apply(|h| {
         h.set(0, 0, 1 as _); // z = 1*s
         h.set(0, 1, 0 as _); //   + 0*v
         h.set(0, 2, 0 as _); //   + 0*g
@@ -211,7 +213,7 @@ fn initialize_position_measurement_transformation_matrix(
 fn initialize_position_measurement_process_noise_matrix(
     measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
-    measurement.apply(|r| {
+    measurement.as_matrix_mut().apply(|r| {
         r.set(0, 0, 0.5 as _); // var(s)
     });
 }

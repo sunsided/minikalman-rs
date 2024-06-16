@@ -27,7 +27,7 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     let mut measurement = measurements.build::<2>();
 
     // Simple model of linear motion.
-    filter.state_transition_apply(|mat| {
+    filter.state_transition_mut().apply(|mat| {
         mat.set(0, 0, 1.0);
         mat.set(0, 1, delta_t);
         mat.set(0, 2, 0.5 * delta_t * delta_t);
@@ -49,7 +49,7 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
 
     // Control input directly affects the acceleration and, over the time step,
     // the velocity and position.
-    control.control_matrix_apply(|mat| {
+    control.control_matrix_mut().apply(|mat| {
         mat.set(0, 0, 0.5 * delta_t * delta_t);
         mat.set(1, 0, delta_t);
         mat.set(2, 0, 1.0);
@@ -65,7 +65,7 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
 
     // The measurement is both directly observing position and an average of the states.
     measurement.observation_matrix_mut().set_all(1.0 / 3.0);
-    measurement.observation_matrix_apply(|mat| {
+    measurement.observation_matrix_mut().apply(|mat| {
         mat.set(0, 0, 1.0); // measure position directly
         mat.set(0, 1, 0.0);
         mat.set(0, 2, 0.0);
@@ -90,7 +90,8 @@ fn simple_filter() {
     // The estimate covariance still is scalar.
     assert!(example
         .filter
-        .estimate_covariance_inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
+        .estimate_covariance_ref()
+        .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
 
     // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
     for _ in 0..10 {
@@ -106,7 +107,7 @@ fn simple_filter() {
         .all(|&x| x == 0.0));
 
     // The estimate covariance has changed.
-    example.filter.estimate_covariance_inspect(|mat| {
+    example.filter.estimate_covariance_ref().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 260.1);
         assert_f32_near!(mat.get(1, 1), 10.1);
         assert_f32_near!(mat.get(2, 2), 0.1);
@@ -127,7 +128,7 @@ fn simple_filter() {
         .all(|&x| x == 0.0));
 
     // The estimate covariance has improved.
-    example.filter.estimate_covariance_inspect(|mat| {
+    example.filter.estimate_covariance_ref().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 0.85736084);
         assert_f32_near!(mat.get(1, 1), 0.12626839);
         assert_f32_near!(mat.get(2, 2), 0.0040448904);
@@ -162,14 +163,14 @@ fn simple_filter() {
     });
 
     // The estimate covariance has worsened.
-    example.filter.estimate_covariance_inspect(|mat| {
+    example.filter.estimate_covariance_ref().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 6.226019);
         assert_f32_near!(mat.get(1, 1), 4.229596);
         assert_f32_near!(mat.get(2, 2), 1.0040449);
     });
 
     // Set a new measurement
-    example.measurement.measurement_vector_apply(|vec| {
+    example.measurement.measurement_vector_mut().apply(|vec| {
         vec.set(0, 0, 2.0);
         vec.set(1, 0, (2.0 + 2.0 + 1.0) / 3.0);
     });
@@ -178,7 +179,7 @@ fn simple_filter() {
     example.filter.correct(&mut example.measurement);
 
     // The estimate covariance has improved.
-    example.filter.estimate_covariance_inspect(|mat| {
+    example.filter.estimate_covariance_ref().inspect(|mat| {
         assert_f32_near!(mat.get(0, 0), 0.6483326);
         assert_f32_near!(mat.get(1, 1), 0.8424177);
         assert_f32_near!(mat.get(2, 2), 0.27818835);

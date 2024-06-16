@@ -32,7 +32,7 @@ fn main() {
     });
 
     // Set up the state transition matrix.
-    filter.state_transition_apply(|mat| {
+    filter.state_transition_mut().apply(|mat| {
         // p = p + v×∆t + a×0.5×∆t²
         mat.set(0, 0, 1.0);
         mat.set(0, 1, DELTA_T);
@@ -50,10 +50,12 @@ fn main() {
     });
 
     // Set up the initial estimate covariance as an identity matrix.
-    filter.estimate_covariance_apply(|mat| mat.make_identity());
+    filter
+        .estimate_covariance_mut()
+        .apply(|mat| mat.make_identity());
 
     // Set up the control matrix.
-    control.control_matrix_apply(|mat| {
+    control.control_matrix_mut().apply(|mat| {
         mat.set(0, 0, 0.0);
         mat.set(1, 0, 0.0);
         mat.set(2, 0, DELTA_T); // affect acceleration directly
@@ -66,17 +68,17 @@ fn main() {
     control.process_noise_covariance_mut().make_identity();
 
     // Set up the observation matrix.
-    measurement.observation_matrix_apply(|mat| {
+    measurement.observation_matrix_mut().apply(|mat| {
         mat.set(0, 0, 1.0); // only the first element is set.
     });
 
     // Set up the process noise covariance matrix as an identity matrix.
-    measurement.measurement_noise_covariance_apply(|mat| {
+    measurement.measurement_noise_covariance_mut().apply(|mat| {
         mat.make_scalar(0.1);
     });
 
     // Set up the measurement noise covariance.
-    measurement.measurement_noise_covariance_apply(|mat| {
+    measurement.measurement_noise_covariance_mut().apply(|mat| {
         mat.set(0, 0, 1.0); // matrix is 1x1
     });
 
@@ -109,7 +111,9 @@ fn main() {
     // The car now begins to brake.
     let ACCELERATION: f32 = -0.1333333; // m/s²
     for t in 10..20 {
-        control.control_vector_apply(|vec| vec.set(0, 0, ACCELERATION));
+        control
+            .control_vector_mut()
+            .apply(|vec| vec.set(0, 0, ACCELERATION));
 
         filter.predict();
         filter.control(&mut control);
@@ -119,7 +123,7 @@ fn main() {
         } else {
             print_state(t, &filter, State::PriorAboutToUpdate);
 
-            measurement.measurement_vector_apply(|measurement| {
+            measurement.measurement_vector_mut().apply(|measurement| {
                 measurement[0] = OBSERVATIONS[t - 10];
             });
 

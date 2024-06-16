@@ -21,15 +21,6 @@ pub trait StateVectorMut<const STATES: usize, T = f32>:
     type TargetMut: MatrixMut<STATES, 1, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the state vector x.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// State transition (system) matrix. Describes how the state evolves from one time step to the
@@ -56,15 +47,6 @@ pub trait StateTransitionMatrixMut<const STATES: usize, T = f32>:
     type TargetMut: MatrixMut<STATES, STATES, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the state transition matrix A.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Estimate covariance matrix. Represents the uncertainty in the state estimate.
@@ -80,15 +62,6 @@ pub trait EstimateCovarianceMatrix<const STATES: usize, T = f32>:
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the system covariance matrix P.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Control vector. Represents external inputs to the system that affect its state.
@@ -115,15 +88,6 @@ pub trait ControlVectorMut<const CONTROLS: usize, T = f32>:
     type TargetMut: MatrixMut<CONTROLS, 1, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the control vector u.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Control matrix. Maps the control vector to the state space, influencing the state transition.
@@ -150,15 +114,6 @@ pub trait ControlMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
     type TargetMut: MatrixMut<STATES, CONTROLS, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the control transition matrix B.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Process noise covariance matrix. Represents the uncertainty in the state transition process.
@@ -185,16 +140,6 @@ pub trait ProcessNoiseCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
     type TargetMut: MatrixMut<CONTROLS, CONTROLS, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the control covariance matrix Q.
-    #[inline(always)]
-    #[doc(alias = "kalman_get_control_covariance")]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Predicted state estimate. Represents the predicted state before considering the measurement.
@@ -260,15 +205,6 @@ pub trait MeasurementVectorMut<const OBSERVATIONS: usize, T = f32>:
     type TargetMut: MatrixMut<OBSERVATIONS, 1, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the measurement vector z.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Observation matrix. Maps the state vector into the measurement space.
@@ -293,15 +229,6 @@ pub trait ObservationMatrixMut<const OBSERVATIONS: usize, const STATES: usize, T
     type TargetMut: MatrixMut<OBSERVATIONS, STATES, T>;
 
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the measurement transformation matrix H.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Measurement noise covariance matrix. Represents the uncertainty in the measurements.
@@ -316,15 +243,6 @@ pub trait MeasurementNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
 
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
-
-    /// Applies a function to the measurement process noise covariance matrix R.
-    #[inline(always)]
-    fn apply<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self::TargetMut),
-    {
-        f(self.as_matrix_mut())
-    }
 }
 
 /// Innovation vector. Represents the difference between the actual and predicted measurements.

@@ -278,7 +278,7 @@ impl<const STATES: usize> StateTransitionMatrixBufferBuilder<STATES> {
         T: Copy,
     {
         StateTransitionMatrixMutBuffer::<STATES, T, MatrixDataBoxed<STATES, STATES, T>>::new(
-            MatrixData::new_boxed::<STATES, STATES, T, _>(vec![init; STATES * STATES]),
+            MatrixData::new_boxed::<STATES, STATES, T, _>(alloc::vec![init; STATES * STATES]),
         )
     }
 }
@@ -332,7 +332,7 @@ impl<const STATES: usize> EstimateCovarianceMatrixBufferBuilder<STATES> {
         T: Copy,
     {
         EstimateCovarianceMatrixBuffer::<STATES, T, MatrixDataBoxed<STATES, STATES, T>>::new(
-            MatrixData::new_boxed::<STATES, STATES, T, _>(vec![init; STATES * STATES]),
+            MatrixData::new_boxed::<STATES, STATES, T, _>(alloc::vec![init; STATES * STATES]),
         )
     }
 }
@@ -450,7 +450,7 @@ impl<const STATES: usize, const CONTROLS: usize>
         T: Copy,
     {
         ControlMatrixMutBuffer::<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>::new(
-            MatrixData::new_boxed::<STATES, CONTROLS, T, _>(vec![init; STATES * CONTROLS]),
+            MatrixData::new_boxed::<STATES, CONTROLS, T, _>(alloc::vec![init; STATES * CONTROLS]),
         )
     }
 }
@@ -508,7 +508,7 @@ impl<const CONTROLS: usize> ProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> 
         T: Copy,
     {
         ProcessNoiseCovarianceMatrixMutBuffer::<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>::new(
-            MatrixData::new_boxed::<CONTROLS, CONTROLS, T, _>(vec![init; CONTROLS * CONTROLS]),
+            MatrixData::new_boxed::<CONTROLS, CONTROLS, T, _>(alloc::vec![init; CONTROLS * CONTROLS]),
         )
     }
 }
@@ -621,7 +621,7 @@ impl<const OBSERVATIONS: usize, const STATES: usize>
             T,
             MatrixDataBoxed<OBSERVATIONS, STATES, T>,
         >::new(MatrixData::new_boxed::<OBSERVATIONS, STATES, T, _>(
-            vec![init; OBSERVATIONS * STATES],
+            alloc::vec![init; OBSERVATIONS * STATES],
         ))
     }
 }
@@ -682,7 +682,7 @@ impl<const OBSERVATIONS: usize> MeasurementNoiseCovarianceMatrixBufferBuilder<OB
             T,
             MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
         >::new(MatrixData::new_boxed::<OBSERVATIONS, OBSERVATIONS, T, _>(
-            vec![init; OBSERVATIONS * OBSERVATIONS],
+            alloc::vec![init; OBSERVATIONS * OBSERVATIONS],
         ))
     }
 }
@@ -799,7 +799,7 @@ impl<const OBSERVATIONS: usize> InnovationResidualCovarianceMatrixBufferBuilder<
             T,
             MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
         >::new(MatrixData::new_boxed::<OBSERVATIONS, OBSERVATIONS, T, _>(
-            vec![init; OBSERVATIONS * OBSERVATIONS],
+            alloc::vec![init; OBSERVATIONS * OBSERVATIONS],
         ))
     }
 }
@@ -859,7 +859,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize>
             T,
             MatrixDataBoxed<STATES, OBSERVATIONS, T>,
         >::new(MatrixData::new_boxed::<STATES, OBSERVATIONS, T, _>(
-            vec![init; STATES * OBSERVATIONS],
+            alloc::vec![init; STATES * OBSERVATIONS],
         ))
     }
 }
@@ -965,7 +965,7 @@ impl<const STATES: usize> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
         T: Copy,
     {
         TemporaryStateMatrixBuffer::<STATES, T, MatrixDataBoxed<STATES, STATES, T>>::new(
-            MatrixData::new_boxed::<STATES, STATES, T, _>(vec![init; STATES * STATES]),
+            MatrixData::new_boxed::<STATES, STATES, T, _>(alloc::vec![init; STATES * STATES]),
         )
     }
 }
@@ -1018,7 +1018,7 @@ impl<const STATES: usize, const CONTROLS: usize> TemporaryBQMatrixBufferBuilder<
         T: Copy,
     {
         TemporaryBQMatrixBuffer::<STATES, CONTROLS, T, MatrixDataBoxed<STATES, CONTROLS, T>>::new(
-            MatrixData::new_boxed::<STATES, CONTROLS, T, _>(vec![init; STATES * CONTROLS]),
+            MatrixData::new_boxed::<STATES, CONTROLS, T, _>(alloc::vec![init; STATES * CONTROLS]),
         )
     }
 }
@@ -1079,7 +1079,7 @@ impl<const OBSERVATIONS: usize> TemporarySInvMatrixBufferBuilder<OBSERVATIONS> {
             T,
             MatrixDataBoxed<OBSERVATIONS, OBSERVATIONS, T>,
         >::new(MatrixData::new_boxed::<OBSERVATIONS, OBSERVATIONS, T, _>(
-            vec![init; OBSERVATIONS * OBSERVATIONS],
+            alloc::vec![init; OBSERVATIONS * OBSERVATIONS],
         ))
     }
 }
@@ -1139,7 +1139,7 @@ impl<const OBSERVATIONS: usize, const STATES: usize>
             T,
             MatrixDataBoxed<OBSERVATIONS, STATES, T>,
         >::new(MatrixData::new_boxed::<OBSERVATIONS, STATES, T, _>(
-            vec![init; OBSERVATIONS * STATES],
+            alloc::vec![init; OBSERVATIONS * STATES],
         ))
     }
 }
@@ -1199,7 +1199,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize>
             T,
             MatrixDataBoxed<STATES, OBSERVATIONS, T>,
         >::new(MatrixData::new_boxed::<STATES, OBSERVATIONS, T, _>(
-            vec![init; STATES * OBSERVATIONS],
+            alloc::vec![init; STATES * OBSERVATIONS],
         ))
     }
 }
@@ -1252,7 +1252,7 @@ impl<const STATES: usize> TemporaryKHPMatrixBufferBuilder<STATES> {
         T: Copy,
     {
         TemporaryKHPMatrixBuffer::<STATES, T, MatrixDataBoxed<STATES, STATES, T>>::new(
-            MatrixData::new_boxed::<STATES, STATES, T, _>(vec![init; STATES * STATES]),
+            MatrixData::new_boxed::<STATES, STATES, T, _>(alloc::vec![init; STATES * STATES]),
         )
     }
 }

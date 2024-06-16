@@ -139,7 +139,7 @@
 // the `docsrs` configuration attribute is defined
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // Enable `no_std` if the `no_std` crate feature is enabled.
-#![cfg_attr(not(any(feature = "std", feature = "alloc")), no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 // Attempt to disable allocations.

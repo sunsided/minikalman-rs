@@ -43,6 +43,24 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         self.len() <= self.buffer_len()
     }
 
+    /// Applies a function to this matrix.
+    #[inline(always)]
+    fn inspect<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&Self) -> O,
+    {
+        f(self)
+    }
+
+    /// Applies a function to this matrix.
+    #[inline(always)]
+    fn inspect_mut<F, O>(&self, mut f: F) -> O
+    where
+        F: FnMut(&Self) -> O,
+    {
+        f(self)
+    }
+
     /// Gets a matrix element
     ///
     /// ## Arguments
@@ -861,6 +879,24 @@ impl<const N: usize, T, M> SquareMatrixMut<N, T> for M where M: MatrixMut<N, N, 
 pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     AsMut<[T]> + Matrix<ROWS, COLS, T> + IndexMut<usize, Output = T>
 {
+    /// Applies a function to this matrix.
+    #[inline(always)]
+    fn apply<F, O>(&mut self, f: F) -> O
+    where
+        F: Fn(&mut Self) -> O,
+    {
+        f(self)
+    }
+
+    /// Applies a function to this matrix.
+    #[inline(always)]
+    fn apply_mut<F, O>(&mut self, mut f: F) -> O
+    where
+        F: FnMut(&mut Self) -> O,
+    {
+        f(self)
+    }
+
     /// Sets all elements of the matrix to the zero.
     #[doc(alias = "fill")]
     #[inline(always)]

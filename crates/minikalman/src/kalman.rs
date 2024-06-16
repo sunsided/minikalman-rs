@@ -228,62 +228,6 @@ where
     pub fn state_transition_mut(&mut self) -> &mut A {
         &mut self.A
     }
-
-    /// Applies a function to the state transition matrix A.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    #[doc(alias = "system_matrix_apply")]
-    pub fn state_transition_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut A) -> O,
-    {
-        f(&mut self.A)
-    }
-
-    /// Applies a function to the state transition matrix A.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    #[doc(alias = "system_matrix_apply_mut")]
-    pub fn state_transition_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut A) -> O,
-    {
-        f(&mut self.A)
-    }
-
-    /// Applies a function to the state transition matrix A.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    #[doc(alias = "system_matrix_inspect")]
-    pub fn state_transition_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&A) -> O,
-    {
-        f(&self.A)
-    }
-
-    /// Applies a function to the state transition matrix A.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    #[doc(alias = "system_matrix_inspect_mut")]
-    pub fn state_transition_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&A) -> O,
-    {
-        f(&self.A)
-    }
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, TempP>
@@ -309,58 +253,6 @@ where
     #[doc(alias = "kalman_get_system_covariance")]
     pub fn estimate_covariance_mut(&mut self) -> &mut P {
         &mut self.P
-    }
-
-    /// Applies a function to the system covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_apply")]
-    pub fn estimate_covariance_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut P) -> O,
-    {
-        f(&mut self.P)
-    }
-
-    /// Applies a function to the system covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_apply")]
-    pub fn estimate_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut P) -> O,
-    {
-        f(&mut self.P)
-    }
-
-    /// Applies a function to the system covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_inspect")]
-    pub fn estimate_covariance_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&P) -> O,
-    {
-        f(&self.P)
-    }
-
-    /// Applies a function to the system covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_inspect")]
-    pub fn estimate_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&P) -> O,
-    {
-        f(&self.P)
     }
 }
 
@@ -429,7 +321,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     ///     // Measure ...
     ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_apply(|z| z[0] = m);
+    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
     ///
     ///     // Update.
     ///     filter.correct(&mut measurement);
@@ -526,7 +418,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     ///     // Measure ...
     ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_apply(|z| z[0] = m);
+    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
     ///
     ///     // Update.
     ///     filter.correct(&mut measurement);
@@ -704,7 +596,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     ///     // Measure ...
     ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_apply(|z| z[0] = m);
+    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
     ///
     ///     // Update.
     ///     filter.correct(&mut measurement);
@@ -873,24 +765,30 @@ mod tests {
 
         let _vec = filter.state_vector_ref();
         let _vec = filter.state_vector_mut();
-        filter.state_vector_inspect(|_vec| test_fn());
-        filter.state_vector_inspect_mut(|_vec| test_fn_mut());
-        filter.state_vector_apply(|_vec| test_fn());
-        filter.state_vector_apply_mut(|_vec| test_fn_mut());
+        let _ = filter.state_vector_ref().inspect(|_vec| test_fn());
+        let _ = filter.state_vector_mut().inspect(|_vec| test_fn_mut());
+        filter.state_vector_mut().apply(|_vec| test_fn());
+        filter.state_vector_mut().apply_mut(|_vec| test_fn_mut());
 
         let _mat = filter.state_transition_ref();
         let _mat = filter.state_transition_mut();
-        filter.state_transition_inspect(|_mat| test_fn());
-        filter.state_transition_inspect_mut(|_mat| test_fn_mut());
-        filter.state_transition_apply(|_mat| test_fn());
-        filter.state_transition_apply_mut(|_mat| test_fn_mut());
+        let _ = filter.state_transition_ref().inspect(|_mat| test_fn());
+        let _ = filter.state_transition_mut().inspect(|_mat| test_fn_mut());
+        filter.state_transition_mut().apply(|_mat| test_fn());
+        filter
+            .state_transition_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
         let _mat = filter.estimate_covariance_ref();
         let _mat = filter.estimate_covariance_mut();
-        filter.estimate_covariance_inspect(|_mat| test_fn());
-        filter.estimate_covariance_inspect_mut(|_mat| test_fn_mut());
-        filter.estimate_covariance_apply(|_mat| test_fn());
-        filter.estimate_covariance_apply_mut(|_mat| test_fn_mut());
+        let _ = filter.estimate_covariance_ref().inspect(|_mat| test_fn());
+        let _ = filter
+            .estimate_covariance_mut()
+            .inspect(|_mat| test_fn_mut());
+        filter.estimate_covariance_mut().apply(|_mat| test_fn());
+        filter
+            .estimate_covariance_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
         filter.predict();
 
@@ -914,24 +812,30 @@ mod tests {
 
         let _vec = filter.state_vector_ref();
         let _vec = filter.state_vector_mut();
-        filter.state_vector_inspect(|_vec| test_fn());
-        filter.state_vector_inspect_mut(|_vec| test_fn_mut());
-        filter.state_vector_apply(|_vec| test_fn());
-        filter.state_vector_apply_mut(|_vec| test_fn_mut());
+        let _ = filter.state_vector_ref().inspect(|_vec| test_fn());
+        let _ = filter.state_vector_mut().inspect(|_vec| test_fn_mut());
+        filter.state_vector_mut().apply(|_vec| test_fn());
+        filter.state_vector_mut().apply_mut(|_vec| test_fn_mut());
 
         let _mat = filter.state_transition_ref();
         let _mat = filter.state_transition_mut();
-        filter.state_transition_inspect(|_mat| test_fn());
-        filter.state_transition_inspect_mut(|_mat| test_fn_mut());
-        filter.state_transition_apply(|_mat| test_fn());
-        filter.state_transition_apply_mut(|_mat| test_fn_mut());
+        let _ = filter.state_transition_ref().inspect(|_mat| test_fn());
+        let _ = filter.state_transition_mut().inspect(|_mat| test_fn_mut());
+        filter.state_transition_mut().apply(|_mat| test_fn());
+        filter
+            .state_transition_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
         let _mat = filter.estimate_covariance_ref();
         let _mat = filter.estimate_covariance_mut();
-        filter.estimate_covariance_inspect(|_mat| test_fn());
-        filter.estimate_covariance_inspect_mut(|_mat| test_fn_mut());
-        filter.estimate_covariance_apply(|_mat| test_fn());
-        filter.estimate_covariance_apply_mut(|_mat| test_fn_mut());
+        let _ = filter.estimate_covariance_ref().inspect(|_mat| test_fn());
+        let _ = filter
+            .estimate_covariance_mut()
+            .inspect(|_mat| test_fn_mut());
+        filter.estimate_covariance_mut().apply(|_mat| test_fn());
+        filter
+            .estimate_covariance_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
         filter.predict();
     }
@@ -945,9 +849,10 @@ mod tests {
         let mut example = crate::test_filter::create_test_filter(1.0);
 
         // The estimate covariance still is scalar.
-        assert!(example.filter.estimate_covariance_inspect(|mat| (0..3)
-            .into_iter()
-            .all(|i| { mat.get(i, i) == 0.1 })));
+        assert!(example
+            .filter
+            .estimate_covariance_ref()
+            .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
 
         // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
         for _ in 0..10 {
@@ -963,7 +868,7 @@ mod tests {
             .all(|&x| x == 0.0));
 
         // The estimate covariance has changed.
-        example.filter.estimate_covariance_inspect(|mat| {
+        example.filter.estimate_covariance_ref().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 260.1);
             assert_f32_near!(mat.get(1, 1), 10.1);
             assert_f32_near!(mat.get(2, 2), 0.1);
@@ -984,7 +889,7 @@ mod tests {
             .all(|&x| x == 0.0));
 
         // The estimate covariance has improved.
-        example.filter.estimate_covariance_inspect(|mat| {
+        example.filter.estimate_covariance_ref().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 0.85736084);
             assert_f32_near!(mat.get(1, 1), 0.12626839);
             assert_f32_near!(mat.get(2, 2), 0.0040448904);
@@ -998,7 +903,7 @@ mod tests {
         example.filter.control(&mut example.control);
 
         // All states are still zero.
-        example.filter.state_vector_inspect(|vec| {
+        example.filter.state_vector_ref().inspect(|vec| {
             assert_eq!(vec.get(0, 0), 0.5, "incorrect position after control input");
             assert_eq!(vec.get(1, 0), 1.0, "incorrect velocity after control input");
             assert_eq!(
@@ -1012,21 +917,21 @@ mod tests {
         example.filter.predict();
 
         // All states are still zero.
-        example.filter.state_vector_inspect(|vec| {
+        example.filter.state_vector_ref().inspect(|vec| {
             assert_eq!(vec.get(0, 0), 2.0, "incorrect position");
             assert_eq!(vec.get(1, 0), 2.0, "incorrect velocity");
             assert_eq!(vec.get(2, 0), 1.0, "incorrect acceleration");
         });
 
         // The estimate covariance has worsened.
-        example.filter.estimate_covariance_inspect(|mat| {
+        example.filter.estimate_covariance_ref().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 6.226019);
             assert_f32_near!(mat.get(1, 1), 4.229596);
             assert_f32_near!(mat.get(2, 2), 1.0040449);
         });
 
         // Set a new measurement
-        example.measurement.measurement_vector_apply(|vec| {
+        example.measurement.measurement_vector_mut().apply(|vec| {
             vec.set(0, 0, 2.0);
             vec.set(1, 0, (2.0 + 2.0 + 1.0) / 3.0);
         });
@@ -1035,7 +940,7 @@ mod tests {
         example.filter.correct(&mut example.measurement);
 
         // The estimate covariance has improved.
-        example.filter.estimate_covariance_inspect(|mat| {
+        example.filter.estimate_covariance_ref().inspect(|mat| {
             assert_f32_near!(mat.get(0, 0), 0.6483326);
             assert_f32_near!(mat.get(1, 1), 0.8424177);
             assert_f32_near!(mat.get(2, 2), 0.27818835);
