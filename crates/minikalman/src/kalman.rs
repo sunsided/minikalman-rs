@@ -312,10 +312,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P: EstimateCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
-        F: Fn(
-            &<X as StateVector<STATES, T>>::Target,
-            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
-        ),
+        F: Fn(&X, &mut PX),
     {
         //* Predict next state using system dynamics
         //* x = A*x
@@ -340,10 +337,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P: EstimateCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
-        F: FnMut(
-            &<X as StateVector<STATES, T>>::Target,
-            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
-        ),
+        F: FnMut(&X, &mut PX),
     {
         //* Predict next state using system dynamics
         //* x = A*x
@@ -480,21 +474,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     fn predict_x_nonlinear<F>(&mut self, state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
-        A: StateTransitionMatrix<STATES, T>,
         PX: PredictedStateEstimateVector<STATES, T>,
-        TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
-        F: Fn(
-            &<X as StateVector<STATES, T>>::Target,
-            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
-        ),
+        F: Fn(&X, &mut PX),
     {
-        let x = self.x.as_matrix();
-        let x_predicted = self.predicted_x.as_matrix_mut();
-
-        state_transition(x, x_predicted);
+        state_transition(&self.x, &mut self.predicted_x);
 
         let x = self.x.as_matrix_mut();
+        let x_predicted = self.predicted_x.as_matrix_mut();
         x_predicted.copy(x);
     }
 
@@ -503,21 +490,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     fn predict_x_nonlinear_mut<F>(&mut self, mut state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
-        A: StateTransitionMatrix<STATES, T>,
         PX: PredictedStateEstimateVector<STATES, T>,
-        TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
-        F: FnMut(
-            &<X as StateVector<STATES, T>>::Target,
-            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
-        ),
+        F: FnMut(&X, &mut PX),
     {
-        let x = self.x.as_matrix();
-        let x_predicted = self.predicted_x.as_matrix_mut();
-
-        state_transition(x, x_predicted);
+        state_transition(&self.x, &mut self.predicted_x);
 
         let x = self.x.as_matrix_mut();
+        let x_predicted = self.predicted_x.as_matrix_mut();
         x_predicted.copy(x);
     }
 
