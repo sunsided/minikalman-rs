@@ -1,9 +1,8 @@
+use crate::impl_mutable_vec;
 use core::marker::PhantomData;
-use core::ops::{Index, IndexMut};
 
 use crate::kalman::{MeasurementVector, MeasurementVectorMut};
-use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
-use crate::matrix::{Matrix, MatrixMut};
+use crate::matrix::MatrixMut;
 
 // TODO: Add ObservationVectorMutBuffer
 
@@ -29,159 +28,17 @@ where
 
 // -----------------------------------------------------------
 
-impl<'a, const OBSERVATIONS: usize, T> From<&'a mut [T]>
-    for MeasurementVectorBuffer<OBSERVATIONS, T, MatrixDataMut<'a, OBSERVATIONS, 1, T>>
-{
-    fn from(value: &'a mut [T]) -> Self {
-        #[cfg(not(feature = "no_assert"))]
-        {
-            debug_assert!(OBSERVATIONS <= value.len());
-        }
-        Self::new(MatrixData::new_mut::<OBSERVATIONS, 1, T>(value))
-    }
-}
-
-/// # Example
-/// Buffers can be trivially constructed from correctly-sized arrays:
-///
-/// ```
-/// # use minikalman::buffers::types::MeasurementVectorBuffer;
-/// let _value: MeasurementVectorBuffer<5, f32, _> = [0.0; 5].into();
-/// ```
-///
-/// Invalid buffer sizes fail to compile:
-///
-/// ```fail_compile
-/// # use minikalman::prelude::ObservationVectorBuffer;
-/// let _value: ObservationVectorBuffer<5, f32, _> = [0.0; 1].into();
-/// ```
-impl<const OBSERVATIONS: usize, T> From<[T; OBSERVATIONS]>
-    for MeasurementVectorBuffer<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>
-{
-    fn from(value: [T; OBSERVATIONS]) -> Self {
-        Self::new(MatrixData::new_array::<OBSERVATIONS, 1, OBSERVATIONS, T>(
-            value,
-        ))
-    }
-}
-
-// -----------------------------------------------------------
-
-impl<const OBSERVATIONS: usize, T, M> MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-    pub const fn new(matrix: M) -> Self {
-        Self(matrix, PhantomData)
-    }
-
-    pub const fn len(&self) -> usize {
-        OBSERVATIONS
-    }
-
-    pub const fn is_empty(&self) -> bool {
-        OBSERVATIONS == 0
-    }
-
-    /// Ensures the underlying buffer has enough space for the expected number of values.
-    pub fn is_valid(&self) -> bool {
-        self.0.is_valid()
-    }
-}
-
-impl<const OBSERVATIONS: usize, T, M> AsRef<[T]> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-    fn as_ref(&self) -> &[T] {
-        self.0.as_ref()
-    }
-}
-
-impl<const OBSERVATIONS: usize, T, M> Index<usize> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-    type Output = T;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        self.0.index(index)
-    }
-}
-
-impl<const OBSERVATIONS: usize, T, M> IndexMut<usize>
-    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.0.index_mut(index)
-    }
-}
-
-impl<const OBSERVATIONS: usize, T, M> AsMut<[T]> for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-    fn as_mut(&mut self) -> &mut [T] {
-        self.0.as_mut()
-    }
-}
-
-impl<const OBSERVATIONS: usize, T, M> Matrix<OBSERVATIONS, 1, T>
-    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-}
-
-impl<const OBSERVATIONS: usize, T, M> MatrixMut<OBSERVATIONS, 1, T>
-    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-}
-
-impl<const OBSERVATIONS: usize, T, M> MeasurementVector<OBSERVATIONS, T>
-    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-    type Target = M;
-
-    fn as_matrix(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<const OBSERVATIONS: usize, T, M> MeasurementVectorMut<OBSERVATIONS, T>
-    for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T>,
-{
-    type TargetMut = M;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-        &mut self.0
-    }
-}
-
-// -----------------------------------------------------------
-
-impl<const OBSERVATIONS: usize, T, M> IntoInnerData for MeasurementVectorBuffer<OBSERVATIONS, T, M>
-where
-    M: MatrixMut<OBSERVATIONS, 1, T> + IntoInnerData,
-{
-    type Target = M::Target;
-
-    fn into_inner(self) -> Self::Target {
-        self.0.into_inner()
-    }
-}
+impl_mutable_vec!(
+    MeasurementVectorBuffer,
+    MeasurementVector,
+    MeasurementVectorMut,
+    OBSERVATIONS
+);
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::prelude::{AsMatrix, AsMatrixMut, IntoInnerData, Matrix};
 
     #[test]
     fn test_from_array() {

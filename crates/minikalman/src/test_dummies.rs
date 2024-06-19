@@ -171,18 +171,7 @@ impl<const STATES: usize, T> EstimateCovarianceMatrix<STATES, T> for Dummy<T, ST
     }
 }
 
-impl<const STATES: usize, T> PredictedStateEstimateVector<STATES, T> for Dummy<T, STATES, 1> {
-    type Target = DummyMatrix<T, STATES, 1>;
-    type TargetMut = DummyMatrix<T, STATES, 1>;
-
-    fn as_matrix(&self) -> &Self::Target {
-        &self.0
-    }
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-        &mut self.0
-    }
-}
+impl<const STATES: usize, T> PredictedStateEstimateVector<STATES, T> for Dummy<T, STATES, 1> {}
 
 impl<const STATES: usize, T> TemporaryStateMatrix<STATES, T> for Dummy<T, STATES, STATES> {
     type Target = DummyMatrix<T, STATES, STATES>;
@@ -266,21 +255,9 @@ impl<const STATES: usize, const CONTROLS: usize, T> TemporaryBQMatrix<STATES, CO
     }
 }
 
-impl<const STATES: usize, T> MeasurementVector<STATES, T> for Dummy<T, STATES, 1> {
-    type Target = DummyMatrix<T, STATES, 1>;
+impl<const STATES: usize, T> MeasurementVector<STATES, T> for Dummy<T, STATES, 1> {}
 
-    fn as_matrix(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<const STATES: usize, T> MeasurementVectorMut<STATES, T> for Dummy<T, STATES, 1> {
-    type TargetMut = DummyMatrix<T, STATES, 1>;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-        &mut self.0
-    }
-}
+impl<const STATES: usize, T> MeasurementVectorMut<STATES, T> for Dummy<T, STATES, 1> {}
 
 impl<const OBSERVATIONS: usize, const STATES: usize, T> ObservationMatrix<OBSERVATIONS, STATES, T>
     for Dummy<T, OBSERVATIONS, STATES>

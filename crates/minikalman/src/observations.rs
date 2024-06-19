@@ -720,6 +720,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::prelude::{AsMatrix, AsMatrixMut};
     use crate::test_dummies::make_dummy_observation;
 
     #[test]
