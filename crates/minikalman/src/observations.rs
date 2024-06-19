@@ -217,7 +217,7 @@ impl<
 
     /// Gets a reference to the measurement vector z.
     #[inline(always)]
-    pub fn measurement_vector_ref(&self) -> &Z {
+    pub fn measurement_vector(&self) -> &Z {
         &self.z
     }
 
@@ -228,149 +228,14 @@ impl<
         &mut self.z
     }
 
-    /// Applies a function to the measurement vector z.
-    ///
-    /// ## Example
-    /// ```
-    /// # #![allow(non_snake_case)]
-    /// # use minikalman::*;
-    /// # const NUM_STATES: usize = 3;
-    /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_OBSERVATIONS: usize = 1;
-    /// # // System buffers.
-    /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
-    /// #
-    /// # // Control buffers.
-    /// # impl_buffer_u!(mut gravity_u, NUM_CONTROLS, f32, 0.0);
-    /// # impl_buffer_B!(mut gravity_B, NUM_STATES, NUM_CONTROLS, f32, 0.0);
-    /// # impl_buffer_Q!(mut gravity_Q, NUM_CONTROLS, f32, 0.0);
-    /// #
-    /// # // Filter temporaries.
-    /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_BQ!(mut gravity_temp_BQ, NUM_STATES, NUM_CONTROLS, f32, 0.0);
-    /// #
-    /// # let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
-    /// #     gravity_A,
-    /// #     gravity_x,
-    /// #     gravity_P,
-    /// #     gravity_temp_x,
-    /// #     gravity_temp_P,
-    /// #  );
-    /// #
-    /// # // Observation buffers.
-    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-    /// #
-    /// # // Observation temporaries.
-    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
-    /// #
-    /// # let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-    /// #     gravity_H,
-    /// #     gravity_z,
-    /// #     gravity_R,
-    /// #     gravity_y,
-    /// #     gravity_S,
-    /// #     gravity_K,
-    /// #     gravity_temp_S_inv,
-    /// #     gravity_temp_HP,
-    /// #     gravity_temp_PHt,
-    /// #     gravity_temp_KHP,
-    /// # );
-    /// #
-    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
-    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
-    /// #
-    /// for t in 0..REAL_DISTANCE.len() {
-    ///     // Prediction.
-    ///     filter.predict();
-    ///
-    ///     // Measure ...
-    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_apply(|z| z[0] = m);
-    ///
-    ///     // Update.
-    ///     filter.correct(&mut measurement);
-    /// }
-    /// ```
-    #[inline(always)]
-    pub fn measurement_vector_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Z) -> O,
-    {
-        f(&mut self.z)
-    }
-
-    /// Applies a function to the measurement vector z.
-    #[inline(always)]
-    pub fn measurement_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Z) -> O,
-    {
-        f(&mut self.z)
-    }
-
-    /// Applies a function to the measurement vector z.
-    #[inline(always)]
-    pub fn measurement_vector_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Z) -> O,
-    {
-        f(&self.z)
-    }
-
-    /// Applies a function to the measurement vector z.
-    #[inline(always)]
-    pub fn measurement_vector_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Z) -> O,
-    {
-        f(&self.z)
-    }
-
     /// Gets a reference to the measurement transformation matrix H.
     ///
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
     #[inline(always)]
-    pub fn observation_matrix_ref(&self) -> &H {
+    pub fn observation_matrix(&self) -> &H {
         &self.H
-    }
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    pub fn observation_matrix_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&H) -> O,
-    {
-        f(&self.H)
-    }
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    pub fn observation_matrix_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&H) -> O,
-    {
-        f(&self.H)
     }
 
     /// Gets a reference to the measurement noise matrix R.
@@ -378,32 +243,8 @@ impl<
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
     #[inline(always)]
-    pub fn measurement_noise_covariance_ref(&self) -> &R {
+    pub fn measurement_noise_covariance(&self) -> &R {
         &self.R
-    }
-
-    /// Applies a function to the measurement noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    pub fn measurement_noise_covariance_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&R) -> O,
-    {
-        f(&self.R)
-    }
-
-    /// Applies a function to the measurement noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    pub fn measurement_noise_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&R) -> O,
-    {
-        f(&self.R)
     }
 
     /// Gets a mutable reference to the measurement noise matrix R.
@@ -414,30 +255,6 @@ impl<
     #[doc(alias = "kalman_get_measurement_noise")]
     pub fn measurement_noise_covariance_mut(&mut self) -> &mut R {
         &mut self.R
-    }
-
-    /// Applies a function to the measurement noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    pub fn measurement_noise_covariance_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut R) -> O,
-    {
-        f(&mut self.R)
-    }
-
-    /// Applies a function to the measurement noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    pub fn measurement_noise_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut R) -> O,
-    {
-        f(&mut self.R)
     }
 }
 
@@ -561,32 +378,6 @@ where
     pub fn observation_matrix_mut(&mut self) -> &mut H {
         &mut self.H
     }
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    pub fn observation_matrix_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut H) -> O,
-    {
-        f(&mut self.H)
-    }
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    pub fn observation_matrix_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut H) -> O,
-    {
-        f(&mut self.H)
-    }
 }
 
 impl<
@@ -648,8 +439,8 @@ where
 {
     type MeasurementVector = Z;
 
-    fn measurement_vector_ref(&self) -> &Self::MeasurementVector {
-        self.measurement_vector_ref()
+    fn measurement_vector(&self) -> &Self::MeasurementVector {
+        self.measurement_vector()
     }
 }
 
@@ -700,8 +491,8 @@ where
 {
     type ObservationTransformationMatrix = H;
 
-    fn observation_matrix_ref(&self) -> &Self::ObservationTransformationMatrix {
-        self.observation_matrix_ref()
+    fn observation_matrix(&self) -> &Self::ObservationTransformationMatrix {
+        self.observation_matrix()
     }
 }
 
@@ -752,8 +543,8 @@ where
 {
     type MeasurementNoiseCovarianceMatrix = R;
 
-    fn measurement_noise_covariance_ref(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
-        self.measurement_noise_covariance_ref()
+    fn measurement_noise_covariance(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
+        self.measurement_noise_covariance()
     }
 }
 
@@ -831,7 +622,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "alloc")]
-    fn test_apply() {
+    fn test_mut_apply() {
         use crate::builder::KalmanFilterBuilder;
 
         let builder = KalmanFilterBuilder::<3, f32>::default();
@@ -858,26 +649,62 @@ mod tests {
             42
         };
 
-        let _vec = measurement.measurement_vector_ref();
+        let _vec = measurement.measurement_vector();
         let _vec = measurement.measurement_vector_mut();
-        measurement.measurement_vector_inspect(|_vec| test_fn());
-        measurement.measurement_vector_inspect_mut(|_vec| test_fn_mut());
-        measurement.measurement_vector_apply(|_vec| test_fn());
-        measurement.measurement_vector_apply_mut(|_vec| test_fn_mut());
+        measurement
+            .measurement_vector()
+            .as_matrix()
+            .inspect(|_vec| test_fn());
+        measurement
+            .measurement_vector()
+            .as_matrix()
+            .inspect_mut(|_vec| test_fn_mut());
+        measurement
+            .measurement_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        measurement
+            .measurement_vector_mut()
+            .as_matrix_mut()
+            .apply_mut(|_vec| test_fn_mut());
 
-        let _mat = measurement.observation_matrix_ref();
+        let _mat = measurement.observation_matrix();
         let _mat = measurement.observation_matrix_mut();
-        measurement.observation_matrix_inspect(|_mat| test_fn());
-        measurement.observation_matrix_inspect_mut(|_mat| test_fn_mut());
-        measurement.observation_matrix_apply(|_mat| test_fn());
-        measurement.observation_matrix_apply_mut(|_mat| test_fn_mut());
+        let _ = measurement
+            .observation_matrix()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = measurement
+            .observation_matrix()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
+        measurement
+            .observation_matrix_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        measurement
+            .observation_matrix_mut()
+            .as_matrix_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
-        let _mat = measurement.measurement_noise_covariance_ref();
+        let _mat = measurement.measurement_noise_covariance();
         let _mat = measurement.measurement_noise_covariance_mut();
-        measurement.measurement_noise_covariance_inspect(|_mat| test_fn());
-        measurement.measurement_noise_covariance_inspect_mut(|_mat| test_fn_mut());
-        measurement.measurement_noise_covariance_apply(|_mat| test_fn());
-        measurement.measurement_noise_covariance_apply_mut(|_mat| test_fn_mut());
+        let _ = measurement
+            .measurement_noise_covariance()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = measurement
+            .measurement_noise_covariance()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
+        measurement
+            .measurement_noise_covariance_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        measurement
+            .measurement_noise_covariance_mut()
+            .as_matrix_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
         measurement
     }
@@ -898,25 +725,61 @@ mod tests {
             42
         };
 
-        let _vec = measurement.measurement_vector_ref();
+        let _vec = measurement.measurement_vector();
         let _vec = measurement.measurement_vector_mut();
-        measurement.measurement_vector_inspect(|_vec| test_fn());
-        measurement.measurement_vector_inspect_mut(|_vec| test_fn_mut());
-        measurement.measurement_vector_apply(|_vec| test_fn());
-        measurement.measurement_vector_apply_mut(|_vec| test_fn_mut());
+        let _ = measurement
+            .measurement_vector()
+            .as_matrix()
+            .inspect(|_vec| test_fn());
+        let _ = measurement
+            .measurement_vector()
+            .as_matrix()
+            .inspect_mut(|_vec| test_fn_mut());
+        measurement
+            .measurement_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        measurement
+            .measurement_vector_mut()
+            .as_matrix_mut()
+            .apply_mut(|_vec| test_fn_mut());
 
-        let _mat = measurement.observation_matrix_ref();
+        let _mat = measurement.observation_matrix();
         let _mat = measurement.observation_matrix_mut();
-        measurement.observation_matrix_inspect(|_mat| test_fn());
-        measurement.observation_matrix_inspect_mut(|_mat| test_fn_mut());
-        measurement.observation_matrix_apply(|_mat| test_fn());
-        measurement.observation_matrix_apply_mut(|_mat| test_fn_mut());
+        let _ = measurement
+            .observation_matrix()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = measurement
+            .observation_matrix()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
+        measurement
+            .observation_matrix_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        measurement
+            .observation_matrix_mut()
+            .as_matrix_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
-        let _mat = measurement.measurement_noise_covariance_ref();
+        let _mat = measurement.measurement_noise_covariance();
         let _mat = measurement.measurement_noise_covariance_mut();
-        measurement.measurement_noise_covariance_inspect(|_mat| test_fn());
-        measurement.measurement_noise_covariance_inspect_mut(|_mat| test_fn_mut());
-        measurement.measurement_noise_covariance_apply(|_mat| test_fn());
-        measurement.measurement_noise_covariance_apply_mut(|_mat| test_fn_mut());
+        let _ = measurement
+            .measurement_noise_covariance()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = measurement
+            .measurement_noise_covariance()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
+        measurement
+            .measurement_noise_covariance_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        measurement
+            .measurement_noise_covariance_mut()
+            .as_matrix_mut()
+            .apply_mut(|_mat| test_fn_mut());
     }
 }

@@ -115,37 +115,13 @@ pub trait KalmanFilterStateVector<const STATES: usize, T> {
     ///
     /// The state vector represents the internal state of the system at a given time.
     /// It contains all the necessary information to describe the system's current situation.
-    fn state_vector_ref(&self) -> &Self::StateVector;
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time.
-    /// It contains all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    fn state_vector_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::StateVector) -> O,
-    {
-        f(self.state_vector_ref())
-    }
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time.
-    /// It contains all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    fn state_vector_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::StateVector) -> O,
-    {
-        f(self.state_vector_ref())
-    }
+    fn state_vector(&self) -> &Self::StateVector;
 }
 
 pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
     KalmanFilterStateVector<STATES, T>
 {
-    type StateVectorMut: StateVector<STATES, T>;
+    type StateVectorMut: StateVectorMut<STATES, T>;
 
     /// Gets a reference to the state vector x.
     ///
@@ -153,30 +129,6 @@ pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
     /// It contains all the necessary information to describe the system's current situation.
     #[doc(alias = "kalman_get_state_vector")]
     fn state_vector_mut(&mut self) -> &mut Self::StateVectorMut;
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time.
-    /// It contains all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    fn state_vector_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::StateVectorMut) -> O,
-    {
-        f(self.state_vector_mut())
-    }
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time.
-    /// It contains all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    fn state_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::StateVectorMut) -> O,
-    {
-        f(self.state_vector_mut())
-    }
 }
 
 pub trait KalmanFilterStateTransition<const STATES: usize, T> {
@@ -187,33 +139,7 @@ pub trait KalmanFilterStateTransition<const STATES: usize, T> {
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
-    fn state_transition_ref(&self) -> &Self::StateTransitionMatrix;
-
-    /// Applies a function to the state transition matrix A/F.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    fn state_transition_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::StateTransitionMatrix) -> O,
-    {
-        f(self.state_transition_ref())
-    }
-
-    /// Applies a function to the state transition matrix A/F.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    fn state_transition_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::StateTransitionMatrix) -> O,
-    {
-        f(self.state_transition_ref())
-    }
+    fn state_transition(&self) -> &Self::StateTransitionMatrix;
 }
 
 pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
@@ -228,32 +154,6 @@ pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
     /// current state, accounting for the inherent dynamics of the system.
     #[doc(alias = "kalman_get_state_transition")]
     fn state_transition_mut(&mut self) -> &mut Self::StateTransitionMatrixMut;
-
-    /// Applies a function to the state transition matrix A/F.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    fn state_transition_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::StateTransitionMatrixMut) -> O,
-    {
-        f(self.state_transition_mut())
-    }
-
-    /// Applies a function to the state transition matrix A/F.
-    ///
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
-    #[inline(always)]
-    fn state_transition_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::StateTransitionMatrixMut) -> O,
-    {
-        f(self.state_transition_mut())
-    }
 }
 
 pub trait KalmanFilterSystemCovariance<const STATES: usize, T> {
@@ -263,34 +163,8 @@ pub trait KalmanFilterSystemCovariance<const STATES: usize, T> {
     ///
     /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
     /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[doc(alias = "system_covariance_ref")]
-    fn estimate_covariance_ref(&self) -> &Self::EstimateCovarianceMatrix;
-
-    /// Applies a function to the estimate covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_inspect")]
-    fn estimate_covariance_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::EstimateCovarianceMatrix) -> O,
-    {
-        f(self.estimate_covariance_ref())
-    }
-
-    /// Applies a function to the estimate covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_inspect_mut")]
-    fn estimate_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::EstimateCovarianceMatrix) -> O,
-    {
-        f(self.estimate_covariance_ref())
-    }
+    #[doc(alias = "system_covariance")]
+    fn estimate_covariance(&self) -> &Self::EstimateCovarianceMatrix;
 }
 
 pub trait KalmanFilterSystemCovarianceMut<const STATES: usize, T>:
@@ -305,32 +179,6 @@ pub trait KalmanFilterSystemCovarianceMut<const STATES: usize, T>:
     #[doc(alias = "kalman_get_system_covariance")]
     #[doc(alias = "system_covariance_mut")]
     fn estimate_covariance_mut(&mut self) -> &mut Self::EstimateCovarianceMatrixMut;
-
-    /// Applies a function to the estimate covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_apply")]
-    fn estimate_covariance_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::EstimateCovarianceMatrixMut) -> O,
-    {
-        f(self.estimate_covariance_mut())
-    }
-
-    /// Applies a function to the estimate covariance matrix P.
-    ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
-    #[inline(always)]
-    #[doc(alias = "system_covariance_apply_mut")]
-    fn estimate_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::EstimateCovarianceMatrixMut) -> O,
-    {
-        f(self.estimate_covariance_mut())
-    }
 }
 
 pub trait KalmanFilterNumControls<const CONTROLS: usize> {
@@ -363,31 +211,7 @@ pub trait KalmanFilterControlVector<const CONTROLS: usize, T> {
     ///
     /// The control vector contains the external inputs to the system that can influence its state.
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
-    fn control_vector_ref(&self) -> &Self::ControlVector;
-
-    /// Applies a function to the control vector u.
-    ///
-    /// The control vector contains the external inputs to the system that can influence its state.
-    /// These inputs might include forces, accelerations, or other actuations applied to the system.
-    #[inline(always)]
-    fn control_vector_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::ControlVector) -> O,
-    {
-        f(self.control_vector_ref())
-    }
-
-    /// Applies a function to the control vector u.
-    ///
-    /// The control vector contains the external inputs to the system that can influence its state.
-    /// These inputs might include forces, accelerations, or other actuations applied to the system.
-    #[inline(always)]
-    fn control_vector_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::ControlVector) -> O,
-    {
-        f(self.control_vector_ref())
-    }
+    fn control_vector(&self) -> &Self::ControlVector;
 }
 
 pub trait KalmanFilterControlVectorMut<const CONTROLS: usize, T>:
@@ -401,30 +225,6 @@ pub trait KalmanFilterControlVectorMut<const CONTROLS: usize, T>:
     /// These inputs might include forces, accelerations, or other actuations applied to the system.
     #[doc(alias = "kalman_get_control_vector")]
     fn control_vector_mut(&mut self) -> &mut Self::ControlVectorMut;
-
-    /// Applies a function to the control vector u.
-    ///
-    /// The control vector contains the external inputs to the system that can influence its state.
-    /// These inputs might include forces, accelerations, or other actuations applied to the system.
-    #[inline(always)]
-    fn control_vector_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::ControlVectorMut) -> O,
-    {
-        f(self.control_vector_mut())
-    }
-
-    /// Applies a function to the control vector u.
-    ///
-    /// The control vector contains the external inputs to the system that can influence its state.
-    /// These inputs might include forces, accelerations, or other actuations applied to the system.
-    #[inline(always)]
-    fn control_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::ControlVectorMut) -> O,
-    {
-        f(self.control_vector_mut())
-    }
 }
 
 pub trait KalmanFilterControlTransition<const STATES: usize, const CONTROLS: usize, T> {
@@ -434,31 +234,7 @@ pub trait KalmanFilterControlTransition<const STATES: usize, const CONTROLS: usi
     ///
     /// This matrix maps the control inputs to the state space, allowing the control vector to
     /// influence the state transition. It quantifies how the control inputs affect the state change.
-    fn control_matrix_ref(&self) -> &Self::ControlTransitionMatrix;
-
-    /// Applies a function to the control transition matrix B.
-    ///
-    /// This matrix maps the control inputs to the state space, allowing the control vector to
-    /// influence the state transition. It quantifies how the control inputs affect the state change.
-    #[inline(always)]
-    fn control_matrix_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::ControlTransitionMatrix) -> O,
-    {
-        f(self.control_matrix_ref())
-    }
-
-    /// Applies a function to the control transition matrix B.
-    ///
-    /// This matrix maps the control inputs to the state space, allowing the control vector to
-    /// influence the state transition. It quantifies how the control inputs affect the state change.
-    #[inline(always)]
-    fn control_matrix_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::ControlTransitionMatrix) -> O,
-    {
-        f(self.control_matrix_ref())
-    }
+    fn control_matrix(&self) -> &Self::ControlTransitionMatrix;
 }
 
 pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: usize, T>:
@@ -472,30 +248,6 @@ pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: 
     /// influence the state transition. It quantifies how the control inputs affect the state change.
     #[doc(alias = "kalman_get_control_matrix")]
     fn control_matrix_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut;
-
-    /// Applies a function to the control transition matrix B.
-    ///
-    /// This matrix maps the control inputs to the state space, allowing the control vector to
-    /// influence the state transition. It quantifies how the control inputs affect the state change.
-    #[inline(always)]
-    fn control_matrix_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::ControlTransitionMatrixMut) -> O,
-    {
-        f(self.control_matrix_mut())
-    }
-
-    /// Applies a function to the control transition matrix B.
-    ///
-    /// This matrix maps the control inputs to the state space, allowing the control vector to
-    /// influence the state transition. It quantifies how the control inputs affect the state change.
-    #[inline(always)]
-    fn control_matrix_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::ControlTransitionMatrixMut) -> O,
-    {
-        f(self.control_matrix_mut())
-    }
 }
 
 #[doc(alias = "KalmanFilterControlCovariance")]
@@ -507,36 +259,8 @@ pub trait KalmanFilterProcessNoiseCovariance<const CONTROLS: usize, T> {
     /// This matrix represents the uncertainty in the state transition process, accounting for the
     /// randomness and inaccuracies in the model. It quantifies the expected variability in the
     /// state transition.
-    #[doc(alias = "control_covariance_ref")]
-    fn process_noise_covariance_ref(&self) -> &Self::ProcessNoiseCovarianceMatrix;
-
-    /// Applies a function to the control covariance matrix Q.
-    ///
-    /// This matrix represents the uncertainty in the state transition process, accounting for the
-    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
-    /// state transition.
-    #[inline(always)]
-    #[doc(alias = "control_covariance_inspect")]
-    fn process_noise_covariance_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::ProcessNoiseCovarianceMatrix) -> O,
-    {
-        f(self.process_noise_covariance_ref())
-    }
-
-    /// Applies a function to the control covariance matrix Q.
-    ///
-    /// This matrix represents the uncertainty in the state transition process, accounting for the
-    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
-    /// state transition.
-    #[inline(always)]
-    #[doc(alias = "control_covariance_inspect_mut")]
-    fn process_noise_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::ProcessNoiseCovarianceMatrix) -> O,
-    {
-        f(self.process_noise_covariance_ref())
-    }
+    #[doc(alias = "control_covariance")]
+    fn process_noise_covariance(&self) -> &Self::ProcessNoiseCovarianceMatrix;
 }
 
 pub trait KalmanFilterControlCovarianceMut<const CONTROLS: usize, T>:
@@ -552,34 +276,6 @@ pub trait KalmanFilterControlCovarianceMut<const CONTROLS: usize, T>:
     #[doc(alias = "kalman_get_control_covariance")]
     #[doc(alias = "control_covariance_mut")]
     fn process_noise_covariance_mut(&mut self) -> &mut Self::ProcessNoiseCovarianceMatrixMut;
-
-    /// Applies a function to the control covariance matrix Q.
-    ///
-    /// This matrix represents the uncertainty in the state transition process, accounting for the
-    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
-    /// state transition.
-    #[inline(always)]
-    #[doc(alias = "control_covariance_apply")]
-    fn process_noise_covariance_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::ProcessNoiseCovarianceMatrixMut) -> O,
-    {
-        f(self.process_noise_covariance_mut())
-    }
-
-    /// Applies a function to the control covariance matrix Q.
-    ///
-    /// This matrix represents the uncertainty in the state transition process, accounting for the
-    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
-    /// state transition.
-    #[inline(always)]
-    #[doc(alias = "control_covariance_apply_mut")]
-    fn process_noise_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::ProcessNoiseCovarianceMatrixMut) -> O,
-    {
-        f(self.process_noise_covariance_mut())
-    }
 }
 
 pub trait KalmanFilterNumObservations<const OBSERVATIONS: usize> {
@@ -612,31 +308,7 @@ pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
     ///
     /// The measurement vector represents the observed measurements from the system.
     /// These measurements are typically taken from sensors and are used to update the state estimate.
-    fn measurement_vector_ref(&self) -> &Self::MeasurementVector;
-
-    /// Applies a function to the measurement vector z.
-    ///
-    /// The measurement vector represents the observed measurements from the system.
-    /// These measurements are typically taken from sensors and are used to update the state estimate.
-    #[inline(always)]
-    fn measurement_vector_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::MeasurementVector) -> O,
-    {
-        f(self.measurement_vector_ref())
-    }
-
-    /// Applies a function to the measurement vector z.
-    ///
-    /// The measurement vector represents the observed measurements from the system.
-    /// These measurements are typically taken from sensors and are used to update the state estimate.
-    #[inline(always)]
-    fn measurement_vector_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::MeasurementVector) -> O,
-    {
-        f(self.measurement_vector_ref())
-    }
+    fn measurement_vector(&self) -> &Self::MeasurementVector;
 }
 
 pub trait KalmanFilterObservationVectorMut<const OBSERVATIONS: usize, T>:
@@ -650,30 +322,6 @@ pub trait KalmanFilterObservationVectorMut<const OBSERVATIONS: usize, T>:
     /// These measurements are typically taken from sensors and are used to update the state estimate.
     #[doc(alias = "kalman_get_measurement_vector")]
     fn measurement_vector_mut(&mut self) -> &mut Self::MeasurementVectorMut;
-
-    /// Applies a function to the measurement vector z.
-    ///
-    /// The measurement vector represents the observed measurements from the system.
-    /// These measurements are typically taken from sensors and are used to update the state estimate.
-    #[inline(always)]
-    fn measurement_vector_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::MeasurementVectorMut) -> O,
-    {
-        f(self.measurement_vector_mut())
-    }
-
-    /// Applies a function to the measurement vector z.
-    ///
-    /// The measurement vector represents the observed measurements from the system.
-    /// These measurements are typically taken from sensors and are used to update the state estimate.
-    #[inline(always)]
-    fn measurement_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::MeasurementVectorMut) -> O,
-    {
-        f(self.measurement_vector_mut())
-    }
 }
 
 pub trait KalmanFilterObservationTransformation<const STATES: usize, const OBSERVATIONS: usize, T> {
@@ -684,33 +332,7 @@ pub trait KalmanFilterObservationTransformation<const STATES: usize, const OBSER
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
-    fn observation_matrix_ref(&self) -> &Self::ObservationTransformationMatrix;
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    fn observation_matrix_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::ObservationTransformationMatrix) -> O,
-    {
-        f(self.observation_matrix_ref())
-    }
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    fn observation_matrix_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::ObservationTransformationMatrix) -> O,
-    {
-        f(self.observation_matrix_ref())
-    }
+    fn observation_matrix(&self) -> &Self::ObservationTransformationMatrix;
 }
 
 pub trait KalmanFilterObservationTransformationMut<
@@ -729,32 +351,6 @@ pub trait KalmanFilterObservationTransformationMut<
     #[doc(alias = "kalman_get_measurement_transformation")]
     #[doc(alias = "measurement_transformation_mut")]
     fn observation_matrix_mut(&mut self) -> &mut Self::ObservationTransformationMatrixMut;
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    fn observation_matrix_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::ObservationTransformationMatrixMut) -> O,
-    {
-        f(self.observation_matrix_mut())
-    }
-
-    /// Applies a function to the measurement transformation matrix H.
-    ///
-    /// This matrix maps the state vector into the measurement space, relating the state of the
-    /// system to the observations or measurements. It defines how each state component contributes
-    /// to the measurement.
-    #[inline(always)]
-    fn observation_matrix_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::ObservationTransformationMatrixMut) -> O,
-    {
-        f(self.observation_matrix_mut())
-    }
 }
 
 pub trait KalmanFilterMeasurementNoiseCovariance<const OBSERVATIONS: usize, T> {
@@ -764,31 +360,7 @@ pub trait KalmanFilterMeasurementNoiseCovariance<const OBSERVATIONS: usize, T> {
     ///
     /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
     /// inaccuracies. It quantifies the expected variability in the measurement process.
-    fn measurement_noise_covariance_ref(&self) -> &Self::MeasurementNoiseCovarianceMatrix;
-
-    /// Applies a function to the process noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    fn measurement_noise_covariance_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self::MeasurementNoiseCovarianceMatrix) -> O,
-    {
-        f(self.measurement_noise_covariance_ref())
-    }
-
-    /// Applies a function to the process noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    fn measurement_noise_covariance_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&Self::MeasurementNoiseCovarianceMatrix) -> O,
-    {
-        f(self.measurement_noise_covariance_ref())
-    }
+    fn measurement_noise_covariance(&self) -> &Self::MeasurementNoiseCovarianceMatrix;
 }
 
 pub trait KalmanFilterMeasurementNoiseCovarianceMut<const OBSERVATIONS: usize, T>:
@@ -804,28 +376,4 @@ pub trait KalmanFilterMeasurementNoiseCovarianceMut<const OBSERVATIONS: usize, T
     fn measurement_noise_covariance_mut(
         &mut self,
     ) -> &mut Self::MeasurementNoiseCovarianceMatrixMut;
-
-    /// Applies a function to the process noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    fn measurement_noise_covariance_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self::MeasurementNoiseCovarianceMatrixMut) -> O,
-    {
-        f(self.measurement_noise_covariance_mut())
-    }
-
-    /// Applies a function to the process noise matrix R.
-    ///
-    /// This matrix represents the uncertainty in the measurements, accounting for sensor noise and
-    /// inaccuracies. It quantifies the expected variability in the measurement process.
-    #[inline(always)]
-    fn measurement_noise_covariance_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut Self::MeasurementNoiseCovarianceMatrixMut) -> O,
-    {
-        f(self.measurement_noise_covariance_mut())
-    }
 }

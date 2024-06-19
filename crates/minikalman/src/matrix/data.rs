@@ -24,7 +24,7 @@ impl MatrixData {
     where
         T: Copy,
     {
-        MatrixDataBoxed::<ROWS, COLS, T>::new(vec![init; ROWS * COLS])
+        MatrixDataBoxed::<ROWS, COLS, T>::new(alloc::vec![init; ROWS * COLS])
     }
 
     /// Creates a new matrix buffer that owns the data.

@@ -28,6 +28,7 @@
 //!
 //! ```no_run
 //! use minikalman::builder::KalmanFilterBuilder;
+//! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
 //! const NUM_CONTROLS: usize = 2;
@@ -43,13 +44,13 @@
 //! // Filter!
 //! loop {
 //!     // Update your control vector(s).
-//!     control.control_vector_apply(|u| {
+//!     control.control_vector_mut().apply(|u| {
 //!         u[0] = 0.0;
 //!         u[1] = 1.0;
 //!     });
 //!
 //!     // Update your measurement vectors.
-//!     measurement.measurement_vector_apply(|z| {
+//!     measurement.measurement_vector_mut().apply(|z| {
 //!         z[0] = 42.0;
 //!     });
 //!
@@ -63,8 +64,8 @@
 //!     filter.correct(&mut measurement);
 //!
 //!     // Access the state
-//!     let state = filter.state_vector_ref();
-//!     let covariance = filter.estimate_covariance_ref();
+//!     let state = filter.state_vector();
+//!     let covariance = filter.estimate_covariance();
 //! }
 //! ```
 //!
@@ -139,7 +140,7 @@
 // the `docsrs` configuration attribute is defined
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // Enable `no_std` if the `no_std` crate feature is enabled.
-#![cfg_attr(not(any(feature = "std", feature = "alloc")), no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 // Attempt to disable allocations.

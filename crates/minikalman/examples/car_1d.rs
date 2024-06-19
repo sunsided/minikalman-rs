@@ -25,14 +25,14 @@ fn main() {
     const DELTA_T: f32 = 1.0;
 
     // Set up the initial state vector.
-    filter.state_vector_apply(|state| {
+    filter.state_vector_mut().apply(|state| {
         state[0] = -5.0; // the car is at -5 m
         state[1] = 0.0; // with no velocity
         state[2] = 0.3; // and an acceleration of 0.3 m/s²
     });
 
     // Set up the state transition matrix.
-    filter.state_transition_apply(|mat| {
+    filter.state_transition_mut().apply(|mat| {
         // p = p + v×∆t + a×0.5×∆t²
         mat.set(0, 0, 1.0);
         mat.set(0, 1, DELTA_T);
@@ -50,10 +50,12 @@ fn main() {
     });
 
     // Set up the initial estimate covariance as an identity matrix.
-    filter.estimate_covariance_apply(|mat| mat.make_identity());
+    filter
+        .estimate_covariance_mut()
+        .apply(|mat| mat.make_identity());
 
     // Set up the control matrix.
-    control.control_matrix_apply(|mat| {
+    control.control_matrix_mut().apply(|mat| {
         mat.set(0, 0, 0.0);
         mat.set(1, 0, 0.0);
         mat.set(2, 0, DELTA_T); // affect acceleration directly
@@ -66,17 +68,17 @@ fn main() {
     control.process_noise_covariance_mut().make_identity();
 
     // Set up the observation matrix.
-    measurement.observation_matrix_apply(|mat| {
+    measurement.observation_matrix_mut().apply(|mat| {
         mat.set(0, 0, 1.0); // only the first element is set.
     });
 
     // Set up the process noise covariance matrix as an identity matrix.
-    measurement.measurement_noise_covariance_apply(|mat| {
+    measurement.measurement_noise_covariance_mut().apply(|mat| {
         mat.make_scalar(0.1);
     });
 
     // Set up the measurement noise covariance.
-    measurement.measurement_noise_covariance_apply(|mat| {
+    measurement.measurement_noise_covariance_mut().apply(|mat| {
         mat.set(0, 0, 1.0); // matrix is 1x1
     });
 
@@ -86,7 +88,7 @@ fn main() {
     for t in 0..10 {
         filter.predict();
 
-        let state = filter.state_vector_ref();
+        let state = filter.state_vector();
         println!(
             "  t={t:3} s, p={:.2} m, v={:.2} m/s, a={:.2} m/s²",
             state[0], state[1], state[2]
@@ -95,7 +97,7 @@ fn main() {
 
     // The car should now be at approximately 10 m, at 3.3 m/s with an unchanged acceleration.
     {
-        let state = filter.state_vector_ref();
+        let state = filter.state_vector();
         assert_f32_near!(state[0], 10.0);
         assert_f32_near!(state[1], 3.0);
         assert_f32_near!(state[2], 0.3);
@@ -109,7 +111,9 @@ fn main() {
     // The car now begins to brake.
     let ACCELERATION: f32 = -0.1333333; // m/s²
     for t in 10..20 {
-        control.control_vector_apply(|vec| vec.set(0, 0, ACCELERATION));
+        control
+            .control_vector_mut()
+            .apply(|vec| vec.set(0, 0, ACCELERATION));
 
         filter.predict();
         filter.control(&mut control);
@@ -119,7 +123,7 @@ fn main() {
         } else {
             print_state(t, &filter, State::PriorAboutToUpdate);
 
-            measurement.measurement_vector_apply(|measurement| {
+            measurement.measurement_vector_mut().apply(|measurement| {
                 measurement[0] = OBSERVATIONS[t - 10];
             });
 
@@ -130,7 +134,7 @@ fn main() {
 
     // The car should now be approximately stopped (but still decelerating).
     {
-        let state = filter.state_vector_ref();
+        let state = filter.state_vector();
         assert!(is_between(state[0], 35.0, 36.3));
         assert!(is_between(state[1], -0.6, 0.0));
         assert!(is_between(state[2], -1.3, -1.03));
@@ -153,9 +157,9 @@ where
         State::Posterior => '✅',
     };
 
-    let state = filter.state_vector_ref();
+    let state = filter.state_vector();
 
-    let covariances = filter.estimate_covariance_ref();
+    let covariances = filter.estimate_covariance();
     let covariances = covariances.as_matrix();
 
     let std_p = covariances.get(0, 0).sqrt();

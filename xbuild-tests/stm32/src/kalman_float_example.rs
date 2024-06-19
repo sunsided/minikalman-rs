@@ -95,7 +95,7 @@ pub fn predict_gravity() -> f32 {
 
         // Measure ...
         let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-        measurement.measurement_vector_apply(|z| z[0] = m);
+        measurement.measurement_vector_mut().apply(|z| z[0] = m);
 
         // Update.
         filter.correct(&mut measurement);
@@ -107,7 +107,7 @@ pub fn predict_gravity() -> f32 {
 
 /// Initializes the state vector with initial assumptions.
 fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
-    filter.apply(|state| {
+    filter.as_matrix_mut().apply(|state| {
         state[0] = 0.0; // position
         state[1] = 0.0; // velocity
         state[2] = 6.0; // acceleration
@@ -123,7 +123,7 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
 /// a₁ = 1×a₀
 /// ```
 fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut<NUM_STATES, f32>) {
-    filter.apply(|a| {
+    filter.as_matrix_mut().apply(|a| {
         // Time constant.
         const T: f32 = 1.0;
 
@@ -150,7 +150,7 @@ fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut
 /// over time. In this setup we claim that position, velocity and acceleration
 /// are linearly independent.
 fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f32>) {
-    filter.apply(|p| {
+    filter.as_matrix_mut().apply(|p| {
         p.set(0, 0, 0.1); // var(s)
         p.set(0, 1, 0.0); // cov(s, v)
         p.set(0, 2, 0.0); // cov(s, g)
@@ -172,7 +172,7 @@ fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix
 fn initialize_position_measurement_transformation_matrix(
     measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
 ) {
-    measurement.apply(|h| {
+    measurement.as_matrix_mut().apply(|h| {
         h.set(0, 0, 1.0); // z = 1*s
         h.set(0, 1, 0.0); //   + 0*v
         h.set(0, 2, 0.0); //   + 0*g
@@ -187,7 +187,7 @@ fn initialize_position_measurement_transformation_matrix(
 fn initialize_position_measurement_process_noise_matrix(
     measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
-    measurement.apply(|r| {
+    measurement.as_matrix_mut().apply(|r| {
         r.set(0, 0, 0.5); // var(s)
     });
 }

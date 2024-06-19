@@ -117,7 +117,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         bencher.iter(|| {
             for t in 0..REAL_DISTANCE.len() {
                 filter.predict();
-                measurement.measurement_vector_apply(|z| {
+                measurement.measurement_vector_mut().apply(|z| {
                     z[0] = black_box(REAL_DISTANCE[t]) + black_box(OBSERVATION_ERROR[t])
                 });
                 filter.correct(black_box(&mut measurement));
@@ -192,9 +192,9 @@ fn criterion_benchmark(c: &mut Criterion) {
             measurement.measurement_noise_covariance_mut(),
         );
 
-        measurement.measurement_vector_apply(|z| {
-            z[0] = black_box(REAL_DISTANCE[0]) + black_box(OBSERVATION_ERROR[0])
-        });
+        measurement
+            .measurement_vector_mut()
+            .apply(|z| z[0] = black_box(REAL_DISTANCE[0]) + black_box(OBSERVATION_ERROR[0]));
 
         bencher.iter(|| {
             filter.correct(black_box(&mut measurement));
@@ -204,7 +204,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
 /// Initializes the state vector with initial assumptions.
 fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>) {
-    filter.apply(|state| {
+    filter.as_matrix_mut().apply(|state| {
         state[0] = I16F16::ZERO; // position
         state[1] = I16F16::ZERO; // velocity
         state[2] = I16F16::from_num(6.0); // acceleration
@@ -222,7 +222,7 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, I16F16>)
 fn initialize_state_transition_matrix(
     filter: &mut impl StateTransitionMatrixMut<NUM_STATES, I16F16>,
 ) {
-    filter.apply(|a| {
+    filter.as_matrix_mut().apply(|a| {
         // Time constant.
         const T: I16F16 = I16F16::ONE;
 
@@ -251,7 +251,7 @@ fn initialize_state_transition_matrix(
 fn initialize_state_covariance_matrix(
     filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, I16F16>,
 ) {
-    filter.apply(|p| {
+    filter.as_matrix_mut().apply(|p| {
         p.set(0, 0, I16F16::from_num(0.1)); // var(s)
         p.set(0, 1, I16F16::ZERO); // cov(s, v)
         p.set(0, 2, I16F16::ZERO); // cov(s, g)
@@ -273,7 +273,7 @@ fn initialize_state_covariance_matrix(
 fn initialize_position_measurement_transformation_matrix(
     measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, I16F16>,
 ) {
-    measurement.apply(|h| {
+    measurement.as_matrix_mut().apply(|h| {
         h.set(0, 0, I16F16::ONE); // z = 1*s
         h.set(0, 1, I16F16::ZERO); //   + 0*v
         h.set(0, 2, I16F16::ZERO); //   + 0*g
@@ -288,7 +288,7 @@ fn initialize_position_measurement_transformation_matrix(
 fn initialize_position_measurement_process_noise_matrix(
     measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
 ) {
-    measurement.apply(|r| {
+    measurement.as_matrix_mut().apply(|r| {
         r.set(0, 0, I16F16::from_num(0.5)); // var(s)
     });
 }

@@ -19,7 +19,7 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     let mut measurement = measurements.build::<2>();
 
     // Simple model of linear motion.
-    filter.state_transition_apply(|mat| {
+    filter.state_transition_mut().apply(|mat| {
         mat.set(0, 0, 1.0);
         mat.set(0, 1, delta_t);
         mat.set(0, 2, 0.5 * delta_t * delta_t);
@@ -41,7 +41,7 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
 
     // Control input directly affects the acceleration and, over the time step,
     // the velocity and position.
-    control.control_matrix_apply(|mat| {
+    control.control_matrix_mut().apply(|mat| {
         mat.set(0, 0, 0.5 * delta_t * delta_t);
         mat.set(1, 0, delta_t);
         mat.set(2, 0, 1.0);
@@ -57,7 +57,7 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
 
     // The measurement is both directly observing position and an average of the states.
     measurement.observation_matrix_mut().set_all(1.0 / 3.0);
-    measurement.observation_matrix_apply(|mat| {
+    measurement.observation_matrix_mut().apply(|mat| {
         mat.set(0, 0, 1.0); // measure position directly
         mat.set(0, 1, 0.0);
         mat.set(0, 2, 0.0);
