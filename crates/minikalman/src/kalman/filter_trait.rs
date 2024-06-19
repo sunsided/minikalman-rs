@@ -288,6 +288,10 @@ pub trait KalmanFilterNumObservations<const OBSERVATIONS: usize> {
     }
 }
 
+/// The observation function for a regular Kalman Filter.
+///
+/// ## Extended Kalman Filters
+/// See [`KalmanFilterNonlinearObservationCorrectFilter`].
 pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
     /// Performs the measurement update step.
     ///
@@ -301,6 +305,7 @@ pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
         P: EstimateCovarianceMatrix<STATES, T>;
 }
 
+/// The observation function for an Extended Kalman Filter.
 pub trait KalmanFilterNonlinearObservationCorrectFilter<
     const STATES: usize,
     const OBSERVATIONS: usize,
@@ -309,7 +314,7 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
 > where
     Y: InnovationVector<OBSERVATIONS, T>,
 {
-    /// Performs the nonlinear measurement update step.
+    /// Performs the nonlinear measurement update step for Extended Kalman Filters.
     ///
     /// ## Arguments
     /// * `x` - The state vector.

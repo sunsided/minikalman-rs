@@ -287,6 +287,7 @@ where
     T: MatrixDataType,
 {
     /// Applies a correction step to the provided state vector and covariance matrix.
+    #[inline]
     #[allow(non_snake_case)]
     pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
@@ -315,6 +316,7 @@ where
     /// * `observation` - The observation function; takes the current state and provides observations.
     ///                   This function uses the innovation vector as a temporary storage, even though
     ///                   the innovation itself will only be calculated afterward.
+    #[inline]
     #[allow(non_snake_case)]
     pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
     where
@@ -489,6 +491,7 @@ where
 {
     type MeasurementVector = Z;
 
+    #[inline(always)]
     fn measurement_vector(&self) -> &Self::MeasurementVector {
         self.measurement_vector()
     }
@@ -515,6 +518,7 @@ where
 {
     type MeasurementVectorMut = Z;
 
+    #[inline(always)]
     fn measurement_vector_mut(&mut self) -> &mut Self::MeasurementVectorMut {
         self.measurement_vector_mut()
     }
@@ -541,6 +545,7 @@ where
 {
     type ObservationTransformationMatrix = H;
 
+    #[inline(always)]
     fn observation_matrix(&self) -> &Self::ObservationTransformationMatrix {
         self.observation_matrix()
     }
@@ -567,6 +572,7 @@ where
 {
     type ObservationTransformationMatrixMut = H;
 
+    #[inline(always)]
     fn observation_matrix_mut(&mut self) -> &mut Self::ObservationTransformationMatrixMut {
         self.observation_matrix_mut()
     }
@@ -593,6 +599,7 @@ where
 {
     type MeasurementNoiseCovarianceMatrix = R;
 
+    #[inline(always)]
     fn measurement_noise_covariance(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
         self.measurement_noise_covariance()
     }
@@ -619,6 +626,7 @@ where
 {
     type MeasurementNoiseCovarianceMatrixMut = R;
 
+    #[inline(always)]
     fn measurement_noise_covariance_mut(
         &mut self,
     ) -> &mut Self::MeasurementNoiseCovarianceMatrixMut {
@@ -655,6 +663,7 @@ where
     TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    #[inline(always)]
     #[allow(non_snake_case)]
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
@@ -694,6 +703,7 @@ where
     TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    #[inline(always)]
     #[allow(non_snake_case)]
     fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
     where
