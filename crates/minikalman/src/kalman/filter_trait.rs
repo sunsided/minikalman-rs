@@ -52,6 +52,7 @@ pub trait ExtendedKalmanFilterObservation<const STATES: usize, const OBSERVATION
     + KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
     + KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
     + KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>
+// TODO: Add KalmanFilterTemporaryObservation<OBSERVATIONS, T> trait bound, aliased to retrieving the InnovationVector
 where
     Y: InnovationVector<OBSERVATIONS, T>,
 {
