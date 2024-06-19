@@ -121,7 +121,7 @@ pub trait KalmanFilterStateVector<const STATES: usize, T> {
 pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
     KalmanFilterStateVector<STATES, T>
 {
-    type StateVectorMut: StateVector<STATES, T>;
+    type StateVectorMut: StateVectorMut<STATES, T>;
 
     /// Gets a reference to the state vector x.
     ///

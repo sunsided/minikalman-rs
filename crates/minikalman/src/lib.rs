@@ -28,6 +28,7 @@
 //!
 //! ```no_run
 //! use minikalman::builder::KalmanFilterBuilder;
+//! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
 //! const NUM_CONTROLS: usize = 2;
@@ -43,13 +44,13 @@
 //! // Filter!
 //! loop {
 //!     // Update your control vector(s).
-//!     control.control_vector_apply(|u| {
+//!     control.control_vector_mut().apply(|u| {
 //!         u[0] = 0.0;
 //!         u[1] = 1.0;
 //!     });
 //!
 //!     // Update your measurement vectors.
-//!     measurement.measurement_vector_apply(|z| {
+//!     measurement.measurement_vector_mut().apply(|z| {
 //!         z[0] = 42.0;
 //!     });
 //!

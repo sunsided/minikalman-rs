@@ -651,39 +651,59 @@ mod tests {
 
         let _vec = measurement.measurement_vector();
         let _vec = measurement.measurement_vector_mut();
-        measurement.measurement_vector().inspect(|_vec| test_fn());
         measurement
             .measurement_vector()
+            .as_matrix()
+            .inspect(|_vec| test_fn());
+        measurement
+            .measurement_vector()
+            .as_matrix()
             .inspect_mut(|_vec| test_fn_mut());
-        measurement.measurement_vector_mut().apply(|_vec| test_fn());
         measurement
             .measurement_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        measurement
+            .measurement_vector_mut()
+            .as_matrix_mut()
             .apply_mut(|_vec| test_fn_mut());
 
         let _mat = measurement.observation_matrix();
         let _mat = measurement.observation_matrix_mut();
-        let _ = measurement.observation_matrix().inspect(|_mat| test_fn());
         let _ = measurement
             .observation_matrix()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = measurement
+            .observation_matrix()
+            .as_matrix()
             .inspect_mut(|_mat| test_fn_mut());
-        measurement.observation_matrix_mut().apply(|_mat| test_fn());
         measurement
             .observation_matrix_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        measurement
+            .observation_matrix_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         let _mat = measurement.measurement_noise_covariance();
         let _mat = measurement.measurement_noise_covariance_mut();
         let _ = measurement
             .measurement_noise_covariance()
+            .as_matrix()
             .inspect(|_mat| test_fn());
         let _ = measurement
             .measurement_noise_covariance()
+            .as_matrix()
             .inspect_mut(|_mat| test_fn_mut());
         measurement
             .measurement_noise_covariance_mut()
+            .as_matrix_mut()
             .apply(|_mat| test_fn());
         measurement
             .measurement_noise_covariance_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         measurement
@@ -707,39 +727,59 @@ mod tests {
 
         let _vec = measurement.measurement_vector();
         let _vec = measurement.measurement_vector_mut();
-        let _ = measurement.measurement_vector().inspect(|_vec| test_fn());
         let _ = measurement
             .measurement_vector()
+            .as_matrix()
+            .inspect(|_vec| test_fn());
+        let _ = measurement
+            .measurement_vector()
+            .as_matrix()
             .inspect_mut(|_vec| test_fn_mut());
-        measurement.measurement_vector_mut().apply(|_vec| test_fn());
         measurement
             .measurement_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        measurement
+            .measurement_vector_mut()
+            .as_matrix_mut()
             .apply_mut(|_vec| test_fn_mut());
 
         let _mat = measurement.observation_matrix();
         let _mat = measurement.observation_matrix_mut();
-        let _ = measurement.observation_matrix().inspect(|_mat| test_fn());
         let _ = measurement
             .observation_matrix()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = measurement
+            .observation_matrix()
+            .as_matrix()
             .inspect_mut(|_mat| test_fn_mut());
-        measurement.observation_matrix_mut().apply(|_mat| test_fn());
         measurement
             .observation_matrix_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        measurement
+            .observation_matrix_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         let _mat = measurement.measurement_noise_covariance();
         let _mat = measurement.measurement_noise_covariance_mut();
         let _ = measurement
             .measurement_noise_covariance()
+            .as_matrix()
             .inspect(|_mat| test_fn());
         let _ = measurement
             .measurement_noise_covariance()
+            .as_matrix()
             .inspect_mut(|_mat| test_fn_mut());
         measurement
             .measurement_noise_covariance_mut()
+            .as_matrix_mut()
             .apply(|_mat| test_fn());
         measurement
             .measurement_noise_covariance_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
     }
 }

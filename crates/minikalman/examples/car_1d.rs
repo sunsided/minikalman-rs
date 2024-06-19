@@ -25,7 +25,7 @@ fn main() {
     const DELTA_T: f32 = 1.0;
 
     // Set up the initial state vector.
-    filter.state_vector_apply(|state| {
+    filter.state_vector_mut().apply(|state| {
         state[0] = -5.0; // the car is at -5 m
         state[1] = 0.0; // with no velocity
         state[2] = 0.3; // and an acceleration of 0.3 m/s²

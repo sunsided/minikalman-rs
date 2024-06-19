@@ -147,54 +147,6 @@ where
     pub fn state_vector_mut(&mut self) -> &mut X {
         &mut self.x
     }
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time. It contains
-    /// all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    pub fn state_vector_apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut X) -> O,
-    {
-        f(&mut self.x)
-    }
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time. It contains
-    /// all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    pub fn state_vector_apply_mut<F, O>(&mut self, mut f: F) -> O
-    where
-        F: FnMut(&mut X) -> O,
-    {
-        f(&mut self.x)
-    }
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time. It contains
-    /// all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    pub fn state_vector_inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&X) -> O,
-    {
-        f(&self.x)
-    }
-
-    /// Applies a function to the state vector x.
-    ///
-    /// The state vector represents the internal state of the system at a given time. It contains
-    /// all the necessary information to describe the system's current situation.
-    #[inline(always)]
-    pub fn state_vector_inspect_mut<F, O>(&self, mut f: F) -> O
-    where
-        F: FnMut(&X) -> O,
-    {
-        f(&self.x)
-    }
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, TempP>
@@ -264,7 +216,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
-    /// # use minikalman::*;
+    /// # use minikalman::prelude::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_OBSERVATIONS: usize = 1;
@@ -359,7 +311,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
-    /// # use minikalman::*;
+    /// # use minikalman::prelude::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_OBSERVATIONS: usize = 1;
@@ -539,7 +491,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
-    /// # use minikalman::*;
+    /// # use minikalman::prelude::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_OBSERVATIONS: usize = 1;
@@ -747,6 +699,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::prelude::MatrixMut;
     use crate::test_dummies::make_dummy_filter;
 
     fn trait_impl<const STATES: usize, T, K>(mut filter: K) -> K
@@ -765,29 +718,56 @@ mod tests {
 
         let _vec = filter.state_vector();
         let _vec = filter.state_vector_mut();
-        let _ = filter.state_vector().inspect(|_vec| test_fn());
-        let _ = filter.state_vector_mut().inspect(|_vec| test_fn_mut());
-        filter.state_vector_mut().apply(|_vec| test_fn());
-        filter.state_vector_mut().apply_mut(|_vec| test_fn_mut());
+        let _ = filter.state_vector().as_matrix().inspect(|_vec| test_fn());
+        let _ = filter
+            .state_vector_mut()
+            .as_matrix()
+            .inspect_mut(|_vec| test_fn_mut());
+        filter
+            .state_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        filter
+            .state_vector_mut()
+            .as_matrix_mut()
+            .apply_mut(|_vec| test_fn_mut());
 
         let _mat = filter.state_transition();
         let _mat = filter.state_transition_mut();
-        let _ = filter.state_transition().inspect(|_mat| test_fn());
-        let _ = filter.state_transition_mut().inspect(|_mat| test_fn_mut());
-        filter.state_transition_mut().apply(|_mat| test_fn());
+        let _ = filter
+            .state_transition()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = filter
+            .state_transition_mut()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
         filter
             .state_transition_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        filter
+            .state_transition_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         let _mat = filter.estimate_covariance();
         let _mat = filter.estimate_covariance_mut();
-        let _ = filter.estimate_covariance().inspect(|_mat| test_fn());
+        let _ = filter
+            .estimate_covariance()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
         let _ = filter
             .estimate_covariance_mut()
-            .inspect(|_mat| test_fn_mut());
-        filter.estimate_covariance_mut().apply(|_mat| test_fn());
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
         filter
             .estimate_covariance_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        filter
+            .estimate_covariance_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         filter.predict();
@@ -812,29 +792,56 @@ mod tests {
 
         let _vec = filter.state_vector();
         let _vec = filter.state_vector_mut();
-        let _ = filter.state_vector().inspect(|_vec| test_fn());
-        let _ = filter.state_vector_mut().inspect(|_vec| test_fn_mut());
-        filter.state_vector_mut().apply(|_vec| test_fn());
-        filter.state_vector_mut().apply_mut(|_vec| test_fn_mut());
+        let _ = filter.state_vector().as_matrix().inspect(|_vec| test_fn());
+        let _ = filter
+            .state_vector_mut()
+            .as_matrix()
+            .inspect_mut(|_vec| test_fn_mut());
+        filter
+            .state_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        filter
+            .state_vector_mut()
+            .as_matrix_mut()
+            .apply_mut(|_vec| test_fn_mut());
 
         let _mat = filter.state_transition();
         let _mat = filter.state_transition_mut();
-        let _ = filter.state_transition().inspect(|_mat| test_fn());
-        let _ = filter.state_transition_mut().inspect(|_mat| test_fn_mut());
-        filter.state_transition_mut().apply(|_mat| test_fn());
+        let _ = filter
+            .state_transition()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = filter
+            .state_transition_mut()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
         filter
             .state_transition_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        filter
+            .state_transition_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         let _mat = filter.estimate_covariance();
         let _mat = filter.estimate_covariance_mut();
-        let _ = filter.estimate_covariance().inspect(|_mat| test_fn());
+        let _ = filter
+            .estimate_covariance()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
         let _ = filter
             .estimate_covariance_mut()
-            .inspect(|_mat| test_fn_mut());
-        filter.estimate_covariance_mut().apply(|_mat| test_fn());
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
         filter
             .estimate_covariance_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        filter
+            .estimate_covariance_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         filter.predict();

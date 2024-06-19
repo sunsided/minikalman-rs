@@ -155,7 +155,7 @@ pub fn predict_gravity() -> I16F16 {
 
         // Measure ...
         let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-        measurement.measurement_vector_apply(|z| z[0] = m);
+        measurement.measurement_vector_mut().apply(|z| z[0] = m);
 
         // Update.
         filter.correct(&mut measurement);

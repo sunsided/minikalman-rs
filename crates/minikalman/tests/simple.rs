@@ -142,7 +142,7 @@ fn simple_filter() {
     example.filter.control(&mut example.control);
 
     // All states are still zero.
-    example.filter.state_vector_inspect(|vec| {
+    example.filter.state_vector().inspect(|vec| {
         assert_eq!(vec.get(0, 0), 0.5, "incorrect position after control input");
         assert_eq!(vec.get(1, 0), 1.0, "incorrect velocity after control input");
         assert_eq!(
@@ -156,7 +156,7 @@ fn simple_filter() {
     example.filter.predict();
 
     // All states are still zero.
-    example.filter.state_vector_inspect(|vec| {
+    example.filter.state_vector().inspect(|vec| {
         assert_eq!(vec.get(0, 0), 2.0, "incorrect position");
         assert_eq!(vec.get(1, 0), 2.0, "incorrect velocity");
         assert_eq!(vec.get(2, 0), 1.0, "incorrect acceleration");

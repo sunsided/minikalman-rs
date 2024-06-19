@@ -117,7 +117,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         bencher.iter(|| {
             for t in 0..REAL_DISTANCE.len() {
                 filter.predict();
-                measurement.measurement_vector_apply(|z| {
+                measurement.measurement_vector_mut().apply(|z| {
                     z[0] = black_box(REAL_DISTANCE[t]) + black_box(OBSERVATION_ERROR[t])
                 });
                 filter.correct(black_box(&mut measurement));
@@ -192,9 +192,9 @@ fn criterion_benchmark(c: &mut Criterion) {
             measurement.measurement_noise_covariance_mut(),
         );
 
-        measurement.measurement_vector_apply(|z| {
-            z[0] = black_box(REAL_DISTANCE[0]) + black_box(OBSERVATION_ERROR[0])
-        });
+        measurement
+            .measurement_vector_mut()
+            .apply(|z| z[0] = black_box(REAL_DISTANCE[0]) + black_box(OBSERVATION_ERROR[0]));
 
         bencher.iter(|| {
             filter.correct(black_box(&mut measurement));

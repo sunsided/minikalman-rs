@@ -477,29 +477,59 @@ mod tests {
 
         let _vec = control.control_vector();
         let _vec = control.control_vector_mut();
-        let _ = control.control_vector().inspect(|_vec| test_fn());
-        let _ = control.control_vector().inspect_mut(|_vec| test_fn_mut());
-        control.control_vector_mut().apply(|_vec| test_fn());
-        control.control_vector_mut().apply_mut(|_vec| test_fn_mut());
+        let _ = control
+            .control_vector()
+            .as_matrix()
+            .inspect(|_vec| test_fn());
+        let _ = control
+            .control_vector()
+            .as_matrix()
+            .inspect_mut(|_vec| test_fn_mut());
+        control
+            .control_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        control
+            .control_vector_mut()
+            .as_matrix_mut()
+            .apply_mut(|_vec| test_fn_mut());
 
         let _mat = control.control_matrix();
         let _mat = control.control_matrix_mut();
-        let _ = control.control_matrix().inspect(|_mat| test_fn());
-        let _ = control.control_matrix().inspect_mut(|_mat| test_fn_mut());
-        control.control_matrix_mut().apply(|_mat| test_fn());
-        control.control_matrix_mut().apply_mut(|_mat| test_fn_mut());
+        let _ = control
+            .control_matrix()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = control
+            .control_matrix()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
+        control
+            .control_matrix_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        control
+            .control_matrix_mut()
+            .as_matrix_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
         let _mat = control.process_noise_covariance();
         let _mat = control.process_noise_covariance_mut();
-        let _ = control.process_noise_covariance().inspect(|_mat| test_fn());
         let _ = control
             .process_noise_covariance()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = control
+            .process_noise_covariance()
+            .as_matrix()
             .inspect_mut(|_mat| test_fn_mut());
         control
             .process_noise_covariance_mut()
+            .as_matrix_mut()
             .apply(|_mat| test_fn());
         control
             .process_noise_covariance_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
 
         control
@@ -523,29 +553,59 @@ mod tests {
 
         let _vec = control.control_vector();
         let _vec = control.control_vector_mut();
-        let _ = control.control_vector().inspect(|_vec| test_fn());
-        let _ = control.control_vector().inspect_mut(|_vec| test_fn_mut());
-        control.control_vector_mut().apply(|_vec| test_fn());
-        control.control_vector_mut().apply_mut(|_vec| test_fn_mut());
+        let _ = control
+            .control_vector()
+            .as_matrix()
+            .inspect(|_vec| test_fn());
+        let _ = control
+            .control_vector()
+            .as_matrix()
+            .inspect_mut(|_vec| test_fn_mut());
+        control
+            .control_vector_mut()
+            .as_matrix_mut()
+            .apply(|_vec| test_fn());
+        control
+            .control_vector_mut()
+            .as_matrix_mut()
+            .apply_mut(|_vec| test_fn_mut());
 
         let _mat = control.control_matrix();
         let _mat = control.control_matrix_mut();
-        let _ = control.control_matrix().inspect(|_mat| test_fn());
-        let _ = control.control_matrix().inspect_mut(|_mat| test_fn_mut());
-        control.control_matrix_mut().apply(|_mat| test_fn());
-        control.control_matrix_mut().apply_mut(|_mat| test_fn_mut());
+        let _ = control
+            .control_matrix()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = control
+            .control_matrix()
+            .as_matrix()
+            .inspect_mut(|_mat| test_fn_mut());
+        control
+            .control_matrix_mut()
+            .as_matrix_mut()
+            .apply(|_mat| test_fn());
+        control
+            .control_matrix_mut()
+            .as_matrix_mut()
+            .apply_mut(|_mat| test_fn_mut());
 
         let _mat = control.process_noise_covariance();
         let _mat = control.process_noise_covariance_mut();
-        let _ = control.process_noise_covariance().inspect(|_mat| test_fn());
         let _ = control
             .process_noise_covariance()
+            .as_matrix()
+            .inspect(|_mat| test_fn());
+        let _ = control
+            .process_noise_covariance()
+            .as_matrix()
             .inspect_mut(|_mat| test_fn_mut());
         control
             .process_noise_covariance_mut()
+            .as_matrix_mut()
             .apply(|_mat| test_fn());
         control
             .process_noise_covariance_mut()
+            .as_matrix_mut()
             .apply_mut(|_mat| test_fn_mut());
     }
 }
