@@ -24,7 +24,7 @@ impl<A, X, P, PX, TempP> KalmanBuilder<A, X, P, PX, TempP> {
     /// Initializes a Kalman filter instance.
     ///
     /// ## Arguments
-    /// * `A` - The state transition matrix (`STATES` × `STATES`).
+    /// * `A` - The state transition matrix (`STATES` × `STATES`), or the Jacobian in an EKF.
     /// * `x` - The state vector (`STATES` × `1`).
     /// * `B` - The control transition matrix (`STATES` × `CONTROLS`).
     /// * `u` - The control vector (`CONTROLS` × `1`).
@@ -92,7 +92,7 @@ pub struct Kalman<const STATES: usize, T, A, X, P, PX, TempP> {
     /// State vector.
     x: X,
 
-    /// System matrix.
+    /// System matrix. In Extended Kalman Filters, the Jacobian of the system matrix.
     ///
     /// See also [`P`].
     A: A,
@@ -158,8 +158,16 @@ where
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
+    ///
+    /// ## Extended Kalman Filters
+    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
+    /// transition matrix, i.e. the derivative of the state transition matrix with respect
+    /// to the state vector.
+    ///
+    /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]
     #[doc(alias = "system_matrix")]
+    #[doc(alias = "system_jacobian_matrix")]
     pub fn state_transition(&self) -> &A {
         &self.A
     }
@@ -174,8 +182,16 @@ where
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
+    ///
+    /// ## Extended Kalman Filters
+    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
+    /// transition matrix, i.e. the derivative of the state transition matrix with respect
+    /// to the state vector.
+    ///
+    /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]
     #[doc(alias = "system_matrix_mut")]
+    #[doc(alias = "system_jacobian_matrix_mut")]
     #[doc(alias = "kalman_get_state_transition")]
     pub fn state_transition_mut(&mut self) -> &mut A {
         &mut self.A
@@ -302,9 +318,17 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// Unlike [`predict`](Self::predict), which uses the known state matrix, this method only uses the provided
     /// state transition function.
     ///
-    ///
     /// See [`predict_nonlinear_mut`](Self::predict_nonlinear_mut) for a
     /// version with an immutable closure.
+    ///
+    /// ## Extended Kalman Filters
+    /// This function can be used to implement the nonlinear state prediction step of the
+    /// Extended Kalman Filter. Since it predicts both the next state and the next
+    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
+    /// the Jacobian of the state transition instead.
+    ///
+    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// access to the state transition matrix) to linearize it around the current state.
     ///
     /// ## Arguments
     /// * `state_transition` - An immutable closure that takes the current state and returns the next state.
@@ -333,6 +357,15 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     /// See [`predict_nonlinear`](Self::predict_nonlinear) for a
     /// version with an immutable closure.
+    ///
+    /// ## Extended Kalman Filters
+    /// This function can be used to implement the nonlinear state prediction step of the
+    /// Extended Kalman Filter. Since it predicts both the next state and the next
+    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
+    /// the Jacobian of the state transition instead.
+    ///
+    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// access to the state transition matrix) to linearize it around the current state.
     ///
     /// ## Arguments
     /// * `state_transition` - A mutable closure that takes the current state and returns the next state.
@@ -454,6 +487,15 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     /// See [`predict_tuned_nonlinear_mut`](Self::predict_tuned_nonlinear_mut) for a
     /// version with a mutable closure.
+    ///
+    /// ## Extended Kalman Filters
+    /// This function can be used to implement the nonlinear state prediction step of the
+    /// Extended Kalman Filter. Since it predicts both the next state and the next
+    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
+    /// the Jacobian of the state transition instead.
+    ///
+    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// access to the state transition matrix) to linearize it around the current state.
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned_nonlinear<F>(&mut self, lambda: T, state_transition: F)
     where
@@ -479,6 +521,15 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     /// See [`predict_tuned_nonlinear`](Self::predict_tuned_nonlinear) for a
     /// version with an immutable closure.
+    ///
+    /// ## Extended Kalman Filters
+    /// This function can be used to implement the nonlinear state prediction step of the
+    /// Extended Kalman Filter. Since it predicts both the next state and the next
+    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
+    /// the Jacobian of the state transition instead.
+    ///
+    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// access to the state transition matrix) to linearize it around the current state.
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned_nonlinear_mut<F>(&mut self, lambda: T, state_transition: F)
     where
