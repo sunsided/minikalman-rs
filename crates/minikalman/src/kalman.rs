@@ -332,6 +332,78 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     /// ## Arguments
     /// * `state_transition` - An immutable closure that takes the current state and returns the next state.
+    ///
+    /// ## Example
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::prelude::*;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_CONTROLS: usize = 0;
+    /// # const NUM_OBSERVATIONS: usize = 1;
+    /// # // System buffers.
+    /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    /// #
+    /// # // Filter temporaries.
+    /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
+    /// #
+    /// # let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+    /// #     gravity_A,
+    /// #     gravity_x,
+    /// #     gravity_P,
+    /// #     gravity_temp_x,
+    /// #     gravity_temp_P,
+    /// #  );
+    /// #
+    /// # // Observation buffers.
+    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
+    /// #
+    /// # // Observation temporaries.
+    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
+    /// #
+    /// # let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+    /// #     gravity_H,
+    /// #     gravity_z,
+    /// #     gravity_R,
+    /// #     gravity_y,
+    /// #     gravity_S,
+    /// #     gravity_K,
+    /// #     gravity_temp_S_inv,
+    /// #     gravity_temp_HP,
+    /// #     gravity_temp_PHt,
+    /// #     gravity_temp_KHP,
+    /// # );
+    /// #
+    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// #
+    /// for t in 0..REAL_DISTANCE.len() {
+    ///     // Prediction.
+    ///     filter.predict_nonlinear(|current, next| {
+    ///         // Any arbitrary state transition.
+    ///         next[0] = current[0] + current[1].cos();
+    ///         next[1] = current[1] + current[1].sin();
+    ///     });
+    ///
+    ///     // Measure ...
+    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
+    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
+    ///     todo!("Implement nonlinear measurement!");
+    ///
+    ///     // Update.
+    ///     filter.correct(&mut measurement);
+    /// }
+    /// ```
     pub fn predict_nonlinear<F>(&mut self, state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
@@ -369,6 +441,9 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     /// ## Arguments
     /// * `state_transition` - A mutable closure that takes the current state and returns the next state.
+    ///
+    /// ## Example
+    /// See [`predict_nonlinear`](Self::predict_nonlinear) for an example.
     pub fn predict_nonlinear_mut<F>(&mut self, state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
@@ -496,6 +571,9 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
     /// access to the state transition matrix) to linearize it around the current state.
+    ///
+    /// ## Example
+    /// See [`predict_tuned`](Self::predict_tuned) and [`predict_nonlinear`](Self::predict_nonlinear) for an example.
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned_nonlinear<F>(&mut self, lambda: T, state_transition: F)
     where
@@ -530,6 +608,9 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
     /// access to the state transition matrix) to linearize it around the current state.
+    ///
+    /// ## Example
+    /// See [`predict_tuned`](Self::predict_tuned) and [`predict_nonlinear`](Self::predict_nonlinear) for an example.
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned_nonlinear_mut<F>(&mut self, lambda: T, state_transition: F)
     where
@@ -1136,5 +1217,74 @@ mod tests {
             assert_f32_near!(mat.get(1, 1), 0.8424177);
             assert_f32_near!(mat.get(2, 2), 0.27818835);
         });
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn test_nonlinear() {
+        use crate::prelude::*;
+        use assert_float_eq::*;
+
+        let mut example = crate::test_filter::create_test_filter(1.0);
+
+        // The estimate covariance still is scalar.
+        assert!(example
+            .filter
+            .estimate_covariance()
+            .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
+
+        // Trivial state progression.
+        for _ in 0..10 {
+            example.filter.predict_nonlinear(|current, next| {
+                current.copy(next);
+            });
+        }
+
+        // All states are zero.
+        assert!(example
+            .filter
+            .state_vector()
+            .as_ref()
+            .iter()
+            .all(|&x| x == 0.0));
+
+        // The estimate covariance has changed.
+        example.filter.estimate_covariance().inspect(|mat| {
+            assert_f32_near!(mat.get(0, 0), 260.1);
+            assert_f32_near!(mat.get(1, 1), 10.1);
+            assert_f32_near!(mat.get(2, 2), 0.1);
+        });
+
+        // The measurement is zero.
+        example.measurement.measurement_vector_mut().set(0, 0, 0.0);
+
+        // Apply a measurement of the unchanged state.
+        example.filter.correct(&mut example.measurement);
+        todo!("Implement nonlinear measurement!");
+
+        // All states are still zero.
+        assert!(example
+            .filter
+            .state_vector()
+            .as_ref()
+            .iter()
+            .all(|&x| x == 0.0));
+
+        // The estimate covariance has improved.
+        example.filter.estimate_covariance().inspect(|mat| {
+            assert_f32_near!(mat.get(0, 0), 0.85736084);
+            assert_f32_near!(mat.get(1, 1), 0.12626839);
+            assert_f32_near!(mat.get(2, 2), 0.0040448904);
+        });
+
+        // Set an input.
+        example.control.control_vector_mut().set(0, 0, 1.0);
+
+        // Predict and apply an input.
+        example.filter.predict_nonlinear(|current, next| {
+            next[0] = current[0] + current[1].cos();
+            next[1] = current[1] + current[1].sin();
+        });
+        example.filter.control(&mut example.control);
     }
 }
