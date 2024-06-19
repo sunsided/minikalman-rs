@@ -992,8 +992,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// Subtracts two matrices in place, using `A = A - B`.
     ///
     /// ## Arguments
-    /// * `self` - The matrix to subtract from
-    /// * `b` - The values to subtract, also the output
+    /// * `self` - The matrix to subtract from, also the output.
+    /// * `b` - The values to subtract.
     #[inline]
     #[doc(alias = "matrix_sub_inplace_b")]
     fn sub_inplace_a<B>(&mut self, b: &B)
