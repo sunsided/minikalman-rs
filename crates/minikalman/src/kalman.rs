@@ -931,7 +931,7 @@ mod tests {
         let _ = filter
             .state_vector_mut()
             .as_matrix()
-            .inspect_mut(|_vec| test_fn_mut());
+            .inspect(|_vec| test_fn_mut());
         filter
             .state_vector_mut()
             .as_matrix_mut()
@@ -939,7 +939,7 @@ mod tests {
         filter
             .state_vector_mut()
             .as_matrix_mut()
-            .apply_mut(|_vec| test_fn_mut());
+            .apply(|_vec| test_fn_mut());
 
         let _mat = filter.state_transition();
         let _mat = filter.state_transition_mut();
@@ -950,7 +950,7 @@ mod tests {
         let _ = filter
             .state_transition_mut()
             .as_matrix()
-            .inspect_mut(|_mat| test_fn_mut());
+            .inspect(|_mat| test_fn_mut());
         filter
             .state_transition_mut()
             .as_matrix_mut()
@@ -958,7 +958,7 @@ mod tests {
         filter
             .state_transition_mut()
             .as_matrix_mut()
-            .apply_mut(|_mat| test_fn_mut());
+            .apply(|_mat| test_fn_mut());
 
         let _mat = filter.estimate_covariance();
         let _mat = filter.estimate_covariance_mut();
@@ -969,7 +969,7 @@ mod tests {
         let _ = filter
             .estimate_covariance_mut()
             .as_matrix()
-            .inspect_mut(|_mat| test_fn_mut());
+            .inspect(|_mat| test_fn_mut());
         filter
             .estimate_covariance_mut()
             .as_matrix_mut()
@@ -977,7 +977,7 @@ mod tests {
         filter
             .estimate_covariance_mut()
             .as_matrix_mut()
-            .apply_mut(|_mat| test_fn_mut());
+            .apply(|_mat| test_fn_mut());
 
         filter.predict();
 
@@ -1013,7 +1013,7 @@ mod tests {
         let _ = filter
             .state_vector_mut()
             .as_matrix()
-            .inspect_mut(|_vec| test_fn_mut());
+            .inspect(|_vec| test_fn_mut());
         filter
             .state_vector_mut()
             .as_matrix_mut()
@@ -1021,7 +1021,7 @@ mod tests {
         filter
             .state_vector_mut()
             .as_matrix_mut()
-            .apply_mut(|_vec| test_fn_mut());
+            .apply(|_vec| test_fn_mut());
 
         let _mat = filter.state_transition();
         let _mat = filter.state_transition_mut();
@@ -1032,7 +1032,7 @@ mod tests {
         let _ = filter
             .state_transition_mut()
             .as_matrix()
-            .inspect_mut(|_mat| test_fn_mut());
+            .inspect(|_mat| test_fn_mut());
         filter
             .state_transition_mut()
             .as_matrix_mut()
@@ -1040,7 +1040,7 @@ mod tests {
         filter
             .state_transition_mut()
             .as_matrix_mut()
-            .apply_mut(|_mat| test_fn_mut());
+            .apply(|_mat| test_fn_mut());
 
         let _mat = filter.estimate_covariance();
         let _mat = filter.estimate_covariance_mut();
@@ -1051,7 +1051,7 @@ mod tests {
         let _ = filter
             .estimate_covariance_mut()
             .as_matrix()
-            .inspect_mut(|_mat| test_fn_mut());
+            .inspect(|_mat| test_fn_mut());
         filter
             .estimate_covariance_mut()
             .as_matrix_mut()
@@ -1059,7 +1059,7 @@ mod tests {
         filter
             .estimate_covariance_mut()
             .as_matrix_mut()
-            .apply_mut(|_mat| test_fn_mut());
+            .apply(|_mat| test_fn_mut());
 
         filter.predict();
     }

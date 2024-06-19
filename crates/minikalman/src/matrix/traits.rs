@@ -57,16 +57,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
     /// Applies a function to this matrix.
     #[inline(always)]
-    fn inspect<F, O>(&self, f: F) -> O
-    where
-        F: Fn(&Self) -> O,
-    {
-        f(self)
-    }
-
-    /// Applies a function to this matrix.
-    #[inline(always)]
-    fn inspect_mut<F, O>(&self, mut f: F) -> O
+    fn inspect<F, O>(&self, mut f: F) -> O
     where
         F: FnMut(&Self) -> O,
     {
@@ -893,16 +884,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 {
     /// Applies a function to this matrix.
     #[inline(always)]
-    fn apply<F, O>(&mut self, f: F) -> O
-    where
-        F: Fn(&mut Self) -> O,
-    {
-        f(self)
-    }
-
-    /// Applies a function to this matrix.
-    #[inline(always)]
-    fn apply_mut<F, O>(&mut self, mut f: F) -> O
+    fn apply<F, O>(&mut self, mut f: F) -> O
     where
         F: FnMut(&mut Self) -> O,
     {
