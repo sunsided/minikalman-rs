@@ -296,9 +296,62 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         //* Predict next covariance using system dynamics and control
         //* P = A*P*Aᵀ
         self.predict_P();
+    }
 
-        // TODO: Add control support
-        //       P = P + B*Q*Bᵀ
+    /// Performs a (potentially nonlinear) state transition only involving the current state.
+    /// Unlike [`predict`], which uses the known state matrix, this method only uses the provided
+    /// state transition function.
+    ///
+    /// ## Arguments
+    /// * `state_transition` - An immutable closure that takes the current state and returns the next state.
+    pub fn predict_nonlinear<F>(&mut self, state_transition: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        A: StateTransitionMatrix<STATES, T>,
+        PX: PredictedStateEstimateVector<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+        F: Fn(
+            &<X as StateVector<STATES, T>>::Target,
+            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
+        ),
+    {
+        //* Predict next state using system dynamics
+        //* x = A*x
+        self.predict_x_nonlinear(state_transition);
+
+        //* Predict next covariance using system dynamics and control
+        //* P = A*P*Aᵀ
+        self.predict_P();
+    }
+
+    /// Performs a (potentially nonlinear) state transition only involving the current state.
+    /// Unlike [`predict`], which uses the known state matrix, this method only uses the provided
+    /// state transition function.
+    ///
+    /// ## Arguments
+    /// * `state_transition` - A mutable closure that takes the current state and returns the next state.
+    pub fn predict_nonlinear_mut<F>(&mut self, state_transition: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        A: StateTransitionMatrix<STATES, T>,
+        PX: PredictedStateEstimateVector<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+        F: FnMut(
+            &<X as StateVector<STATES, T>>::Target,
+            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
+        ),
+    {
+        //* Predict next state using system dynamics
+        //* x = A*x
+        self.predict_x_nonlinear_mut(state_transition);
+
+        //* Predict next covariance using system dynamics and control
+        //* P = A*P*Aᵀ
+        self.predict_P();
     }
 
     /// Performs the time update / prediction step.
@@ -419,6 +472,52 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         // x = A*x
 
         A.mult_rowvector(x, x_predicted);
+        x_predicted.copy(x);
+    }
+
+    /// Performs the potentially non-linear time update / prediction step of only the state vector
+    #[allow(non_snake_case)]
+    fn predict_x_nonlinear<F>(&mut self, state_transition: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        A: StateTransitionMatrix<STATES, T>,
+        PX: PredictedStateEstimateVector<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+        F: Fn(
+            &<X as StateVector<STATES, T>>::Target,
+            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
+        ),
+    {
+        let x = self.x.as_matrix();
+        let x_predicted = self.predicted_x.as_matrix_mut();
+
+        state_transition(x, x_predicted);
+
+        let x = self.x.as_matrix_mut();
+        x_predicted.copy(x);
+    }
+
+    /// Performs the potentially non-linear time update / prediction step of only the state vector
+    #[allow(non_snake_case)]
+    fn predict_x_nonlinear_mut<F>(&mut self, mut state_transition: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        A: StateTransitionMatrix<STATES, T>,
+        PX: PredictedStateEstimateVector<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+        F: FnMut(
+            &<X as StateVector<STATES, T>>::Target,
+            &mut <PX as PredictedStateEstimateVector<STATES, T>>::TargetMut,
+        ),
+    {
+        let x = self.x.as_matrix();
+        let x_predicted = self.predicted_x.as_matrix_mut();
+
+        state_transition(x, x_predicted);
+
+        let x = self.x.as_matrix_mut();
         x_predicted.copy(x);
     }
 
