@@ -1,4 +1,5 @@
 use crate::kalman::*;
+use crate::prelude::AsMatrixMut;
 
 /// A Kalman Filter.
 pub trait KalmanFilter<const STATES: usize, T>:
@@ -45,16 +46,12 @@ pub trait KalmanFilterObservation<const STATES: usize, const OBSERVATIONS: usize
 }
 
 /// An Extended Kalman Filter observation or measurement.
-pub trait ExtendedKalmanFilterObservation<const STATES: usize, const OBSERVATIONS: usize, T, Y>:
+pub trait ExtendedKalmanFilterObservation<const STATES: usize, const OBSERVATIONS: usize, T>:
     KalmanFilterNumStates<STATES>
     + KalmanFilterNumObservations<OBSERVATIONS>
     + KalmanFilterObservationVectorMut<OBSERVATIONS, T>
-    + KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
     + KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
-    + KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>
-// TODO: Add KalmanFilterTemporaryObservation<OBSERVATIONS, T> trait bound, aliased to retrieving the InnovationVector
-where
-    Y: InnovationVector<OBSERVATIONS, T>,
+    + KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
 {
 }
 
@@ -108,16 +105,14 @@ where
 }
 
 /// Auto-implementation of [`ExtendedKalmanFilterObservation`] for types that implement all necessary traits.
-impl<const STATES: usize, const OBSERVATIONS: usize, T, Y, Observation>
-    ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T, Y> for Observation
+impl<const STATES: usize, const OBSERVATIONS: usize, T, Observation>
+    ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T> for Observation
 where
     Observation: KalmanFilterNumStates<STATES>
         + KalmanFilterNumObservations<OBSERVATIONS>
         + KalmanFilterObservationVectorMut<OBSERVATIONS, T>
-        + KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
         + KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
-        + KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-    Y: InnovationVector<OBSERVATIONS, T>,
+        + KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
 {
 }
 
@@ -170,14 +165,16 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
-    fn correct_nonlinear<M, F, Y, const OBSERVATIONS: usize>(
+    fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
     ) where
-        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-        F: FnMut(&<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
-        Y: InnovationVector<OBSERVATIONS, T>;
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(
+            &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
+            &mut M::ObservationVector,
+        ); // TODO: Camouflage Y as a temporary, nonlinear Z?
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {
@@ -399,10 +396,11 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
     const STATES: usize,
     const OBSERVATIONS: usize,
     T,
-    Y,
-> where
-    Y: InnovationVector<OBSERVATIONS, T>,
+>
 {
+    /// The type of observation vector to fill.
+    type ObservationVector: AsMatrixMut<OBSERVATIONS, 1, T>;
+
     /// Performs the nonlinear measurement update step for Extended Kalman Filters.
     ///
     /// ## Arguments
@@ -414,7 +412,7 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut Y); // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Self::ObservationVector);
 }
 
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {

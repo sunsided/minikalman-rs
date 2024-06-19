@@ -1,4 +1,5 @@
-use crate::matrix::{Matrix, MatrixMut};
+use crate::matrix::{AsMatrix, Matrix, MatrixMut};
+use crate::prelude::AsMatrixMut;
 use core::ops::{Index, IndexMut};
 
 /// State vector. Represents the internal state of the system.
@@ -251,13 +252,13 @@ pub trait MeasurementNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
 #[doc(alias = "Innovationsvektor")]
 #[doc(alias = "Messabweichung")]
 pub trait InnovationVector<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    AsRef<[T]>
+    + AsMut<[T]>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+    + AsMatrix<OBSERVATIONS, 1, T>
+    + AsMatrixMut<OBSERVATIONS, 1, T>
 {
-    type Target: Matrix<OBSERVATIONS, 1, T>;
-    type TargetMut: MatrixMut<OBSERVATIONS, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// Residual covariance matrix. Represents the uncertainty in the innovation.

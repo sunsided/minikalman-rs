@@ -9,6 +9,18 @@ macro_rules! idx {
     };
 }
 
+pub trait AsMatrix<const ROWS: usize, const COLS: usize, T> {
+    type Target: Matrix<ROWS, COLS, T>;
+
+    fn as_matrix(&self) -> &Self::Target;
+}
+
+pub trait AsMatrixMut<const ROWS: usize, const COLS: usize, T>: AsMatrix<ROWS, COLS, T> {
+    type TargetMut: MatrixMut<ROWS, COLS, T>;
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
+}
+
 /// A matrix wrapping a data buffer.
 pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     AsRef<[T]> + Index<usize, Output = T>
@@ -877,7 +889,7 @@ impl<const N: usize, T, M> SquareMatrixMut<N, T> for M where M: MatrixMut<N, N, 
 
 /// A mutable matrix wrapping a data buffer.
 pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
-    AsMut<[T]> + Matrix<ROWS, COLS, T> + IndexMut<usize, Output = T>
+    Matrix<ROWS, COLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
 {
     /// Applies a function to this matrix.
     #[inline(always)]

@@ -739,7 +739,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         measurement.correct(&mut self.x, &mut self.P);
     }
 
-    pub fn correct_nonlinear<M, F, Y, const OBSERVATIONS: usize>(
+    pub fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
@@ -747,9 +747,8 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
-        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
-        Y: InnovationVector<OBSERVATIONS, T>,
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
     {
         measurement.correct_nonlinear(&mut self.x, &mut self.P, observation);
     }
@@ -878,14 +877,13 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn correct_nonlinear<M, F, Y, const OBSERVATIONS: usize>(
+    fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
     ) where
-        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
-        Y: InnovationVector<OBSERVATIONS, T>,
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector), // TODO: Camouflage Y as a temporary, nonlinear Z?
     {
         self.correct_nonlinear(measurement, observation)
     }

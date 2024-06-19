@@ -1,3 +1,4 @@
+use crate::impl_mutable_vec;
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -119,21 +120,13 @@ where
 {
 }
 
+impl_mutable_vec!(InnovationVectorBuffer, OBSERVATIONS);
+
 impl<const OBSERVATIONS: usize, T, M> InnovationVector<OBSERVATIONS, T>
     for InnovationVectorBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, 1, T>,
 {
-    type Target = M;
-    type TargetMut = M;
-
-    fn as_matrix(&self) -> &Self::Target {
-        &self.0
-    }
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-        &mut self.0
-    }
 }
 
 impl<const OBSERVATIONS: usize, T, M> Index<usize> for InnovationVectorBuffer<OBSERVATIONS, T, M>
@@ -172,6 +165,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::prelude::{AsMatrix, AsMatrixMut};
 
     #[test]
     fn test_from_array() {

@@ -322,7 +322,7 @@ where
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Y),
     {
         // y = h(x)
         observation(x, &mut self.y);
@@ -688,7 +688,7 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>
+    > KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
     for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
@@ -703,13 +703,15 @@ where
     TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    type ObservationVector = Y;
+
     #[inline(always)]
     #[allow(non_snake_case)]
     fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Self::ObservationVector),
     {
         self.correct_nonlinear(x, P, observation)
     }
@@ -809,12 +811,11 @@ mod tests {
         measurement
     }
 
-    fn trait_impl_nonlinear<const STATES: usize, const OBSERVATIONS: usize, T, M, Y>(
+    fn trait_impl_nonlinear<const STATES: usize, const OBSERVATIONS: usize, T, M>(
         measurement: M,
     ) -> M
     where
-        M: ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T, Y>,
-        Y: InnovationVector<OBSERVATIONS, T>,
+        M: ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T>,
     {
         measurement
     }
