@@ -67,11 +67,8 @@ pub trait EstimateCovarianceMatrix<const STATES: usize, T = f32>:
 #[doc(alias = "InputVector")]
 #[doc(alias = "Steuervektor")]
 pub trait ControlVector<const CONTROLS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<CONTROLS, 1, T>
 {
-    type Target: Matrix<CONTROLS, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
 }
 
 /// Control vector. Represents external inputs to the system that affect its state.
@@ -80,11 +77,8 @@ pub trait ControlVector<const CONTROLS: usize, T = f32>:
 #[doc(alias = "InputVectorMut")]
 #[doc(alias = "Steuervektor")]
 pub trait ControlVectorMut<const CONTROLS: usize, T = f32>:
-    ControlVector<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    ControlVector<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T> + AsMatrixMut<CONTROLS, 1, T>
 {
-    type TargetMut: MatrixMut<CONTROLS, 1, T>;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// Control matrix. Maps the control vector to the state space, influencing the state transition.

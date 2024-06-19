@@ -186,20 +186,8 @@ impl<const STATES: usize, T> TemporaryStateMatrix<STATES, T> for Dummy<T, STATES
     }
 }
 
-impl<const CONTROLS: usize, T> ControlVector<CONTROLS, T> for Dummy<T, CONTROLS, 1> {
-    type Target = DummyMatrix<T, CONTROLS, 1>;
-
-    fn as_matrix(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl<const CONTROLS: usize, T> ControlVectorMut<CONTROLS, T> for Dummy<T, CONTROLS, 1> {
-    type TargetMut = DummyMatrix<T, CONTROLS, 1>;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-        &mut self.0
-    }
-}
+impl<const CONTROLS: usize, T> ControlVector<CONTROLS, T> for Dummy<T, CONTROLS, 1> {}
+impl<const CONTROLS: usize, T> ControlVectorMut<CONTROLS, T> for Dummy<T, CONTROLS, 1> {}
 impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrix<STATES, CONTROLS, T>
     for Dummy<T, STATES, CONTROLS>
 {
