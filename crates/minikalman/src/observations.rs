@@ -688,7 +688,7 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, Y, T>
+    > KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>
     for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
@@ -809,11 +809,23 @@ mod tests {
         measurement
     }
 
+    fn trait_impl_nonlinear<const STATES: usize, const OBSERVATIONS: usize, T, M, Y>(
+        measurement: M,
+    ) -> M
+    where
+        M: ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T, Y>,
+        Y: InnovationVector<OBSERVATIONS, T>,
+    {
+        measurement
+    }
+
     #[test]
     fn builder_simple() {
         let measurement = make_dummy_observation();
 
-        let mut measurement = trait_impl(measurement);
+        let measurement = trait_impl(measurement);
+        let mut measurement = trait_impl_nonlinear(measurement);
+
         assert_eq!(measurement.states(), 3);
         assert_eq!(measurement.observations(), 1);
 

@@ -155,6 +155,7 @@ where
 {
     /// Gets a reference to the state transition matrix A/F.
     ///
+    /// ## (Regular) Kalman Filters
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
@@ -846,7 +847,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
-        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, Y, T>,
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
         F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
         Y: InnovationVector<OBSERVATIONS, T>,
     {
@@ -969,6 +970,27 @@ where
     }
 }
 
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearUpdate<STATES, T, X>
+    for Kalman<STATES, T, A, X, P, PX, TempP>
+where
+    P: EstimateCovarianceMatrix<STATES, T>,
+    X: StateVectorMut<STATES, T>,
+    T: MatrixDataType,
+{
+    #[inline(always)]
+    fn correct_nonlinear<M, F, Y, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) where
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
+        F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        Y: InnovationVector<OBSERVATIONS, T>,
+    {
+        self.correct_nonlinear(measurement, observation)
+    }
+}
+
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterApplyControl<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
@@ -1064,11 +1086,20 @@ mod tests {
         filter
     }
 
+    fn trait_impl_nonlinear<const STATES: usize, T, K, X>(filter: K) -> K
+    where
+        K: ExtendedKalmanFilter<STATES, T, X>,
+        X: StateVectorMut<STATES, T>,
+    {
+        filter
+    }
+
     #[test]
     fn builder_simple() {
         let filter = make_dummy_filter();
 
-        let mut filter = trait_impl(filter);
+        let filter = trait_impl(filter);
+        let mut filter = trait_impl_nonlinear(filter);
         assert_eq!(filter.states(), 3);
 
         let test_fn = || 42;
