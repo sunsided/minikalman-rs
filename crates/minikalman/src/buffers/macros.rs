@@ -34,19 +34,26 @@ macro_rules! impl_mutable_vec {
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
+            /// Constructs a new instance from the specified matrix buffer.
+            #[inline(always)]
             pub const fn new(matrix: M) -> Self {
                 Self(matrix, PhantomData)
             }
 
+            /// Returns the number of rows.
+            #[inline(always)]
             pub const fn len(&self) -> usize {
                 $rows
             }
 
+            /// Returns whether this vector is zero-sized.
+            #[inline(always)]
             pub const fn is_empty(&self) -> bool {
                 $rows == 0
             }
 
             /// Ensures the underlying buffer has enough space for the expected number of values.
+            #[inline(always)]
             pub fn is_valid(&self) -> bool {
                 self.0.is_valid()
             }
@@ -55,6 +62,10 @@ macro_rules! impl_mutable_vec {
         impl<'a, const $rows: usize, T> From<&'a mut [T]>
             for $type<$rows, T, $crate::matrix::MatrixDataMut<'a, $rows, 1, T>>
         {
+            /// Constructs the vector from the specified slice.
+            ///
+            /// ## Caution
+            /// The slice must have space for at least the number of elements of the vector.
             fn from(value: &'a mut [T]) -> Self {
                 #[cfg(not(feature = "no_assert"))]
                 {
@@ -93,6 +104,7 @@ macro_rules! impl_mutable_vec {
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
+            #[inline(always)]
             fn as_ref(&self) -> &[T] {
                 self.0.as_ref()
             }
@@ -123,6 +135,7 @@ macro_rules! impl_mutable_vec {
         {
             type Output = T;
 
+            #[inline(always)]
             fn index(&self, index: usize) -> &Self::Output {
                 self.0.index(index)
             }
@@ -132,6 +145,7 @@ macro_rules! impl_mutable_vec {
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
+            #[inline(always)]
             fn index_mut(&mut self, index: usize) -> &mut Self::Output {
                 self.0.index_mut(index)
             }
@@ -143,6 +157,7 @@ macro_rules! impl_mutable_vec {
         {
             type Target = M::Target;
 
+            #[inline(always)]
             fn into_inner(self) -> Self::Target {
                 self.0.into_inner()
             }
