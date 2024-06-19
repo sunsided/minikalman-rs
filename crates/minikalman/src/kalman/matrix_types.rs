@@ -1,14 +1,14 @@
-use crate::matrix::{Matrix, MatrixMut};
+use crate::matrix::{AsMatrix, Matrix, MatrixMut};
+use crate::prelude::AsMatrixMut;
 use core::ops::{Index, IndexMut};
 
 /// State vector. Represents the internal state of the system.
 ///
 /// Immutable variant. For a mutable variant, see [`StateVectorMut`].
 #[doc(alias = "Zustandsvektor")]
-pub trait StateVector<const STATES: usize, T = f32>: AsRef<[T]> + Index<usize, Output = T> {
-    type Target: Matrix<STATES, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
+pub trait StateVector<const STATES: usize, T = f32>:
+    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<STATES, 1, T>
+{
 }
 
 /// State vector. Represents the internal state of the system.
@@ -16,11 +16,8 @@ pub trait StateVector<const STATES: usize, T = f32>: AsRef<[T]> + Index<usize, O
 /// Mutable variant. For an immutable variant, see [`StateVector`].
 #[doc(alias = "Zustandsvektor")]
 pub trait StateVectorMut<const STATES: usize, T = f32>:
-    StateVector<STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    StateVector<STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T> + AsMatrixMut<STATES, 1, T>
 {
-    type TargetMut: MatrixMut<STATES, 1, T>;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// State transition (system) matrix. Describes how the state evolves from one time step to the
@@ -70,11 +67,8 @@ pub trait EstimateCovarianceMatrix<const STATES: usize, T = f32>:
 #[doc(alias = "InputVector")]
 #[doc(alias = "Steuervektor")]
 pub trait ControlVector<const CONTROLS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<CONTROLS, 1, T>
 {
-    type Target: Matrix<CONTROLS, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
 }
 
 /// Control vector. Represents external inputs to the system that affect its state.
@@ -83,11 +77,8 @@ pub trait ControlVector<const CONTROLS: usize, T = f32>:
 #[doc(alias = "InputVectorMut")]
 #[doc(alias = "Steuervektor")]
 pub trait ControlVectorMut<const CONTROLS: usize, T = f32>:
-    ControlVector<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    ControlVector<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T> + AsMatrixMut<CONTROLS, 1, T>
 {
-    type TargetMut: MatrixMut<CONTROLS, 1, T>;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// Control matrix. Maps the control vector to the state space, influencing the state transition.
@@ -146,13 +137,12 @@ pub trait ProcessNoiseCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
 ///
 /// Always mutable.
 pub trait PredictedStateEstimateVector<const STATES: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    AsRef<[T]>
+    + AsMut<[T]>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+    + AsMatrixMut<STATES, 1, T>
 {
-    type Target: Matrix<STATES, 1, T>;
-    type TargetMut: MatrixMut<STATES, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// P-Sized temporary matrix (number of states × number of states).
@@ -187,11 +177,8 @@ pub trait TemporaryBQMatrix<const STATES: usize, const CONTROLS: usize, T = f32>
 #[doc(alias = "ObservationVector")]
 #[doc(alias = "Messvektor")]
 pub trait MeasurementVector<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<OBSERVATIONS, 1, T>
 {
-    type Target: Matrix<OBSERVATIONS, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
 }
 
 /// Measurement vector. Represents the observed measurements from the system.
@@ -200,11 +187,11 @@ pub trait MeasurementVector<const OBSERVATIONS: usize, T = f32>:
 #[doc(alias = "ObservationVectorMut")]
 #[doc(alias = "Messvektor")]
 pub trait MeasurementVectorMut<const OBSERVATIONS: usize, T = f32>:
-    MeasurementVector<OBSERVATIONS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    MeasurementVector<OBSERVATIONS, T>
+    + AsMut<[T]>
+    + IndexMut<usize, Output = T>
+    + AsMatrixMut<OBSERVATIONS, 1, T>
 {
-    type TargetMut: MatrixMut<OBSERVATIONS, 1, T>;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// Observation matrix. Maps the state vector into the measurement space.
@@ -251,13 +238,13 @@ pub trait MeasurementNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
 #[doc(alias = "Innovationsvektor")]
 #[doc(alias = "Messabweichung")]
 pub trait InnovationVector<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    AsRef<[T]>
+    + AsMut<[T]>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+    + AsMatrix<OBSERVATIONS, 1, T>
+    + AsMatrixMut<OBSERVATIONS, 1, T>
 {
-    type Target: Matrix<OBSERVATIONS, 1, T>;
-    type TargetMut: MatrixMut<OBSERVATIONS, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// Residual covariance matrix. Represents the uncertainty in the innovation.

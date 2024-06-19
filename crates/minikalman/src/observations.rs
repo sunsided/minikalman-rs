@@ -287,8 +287,65 @@ where
     T: MatrixDataType,
 {
     /// Applies a correction step to the provided state vector and covariance matrix.
+    #[inline]
     #[allow(non_snake_case)]
     pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        // matrices and vectors
+        let H = self.H.as_matrix();
+        let y = self.y.as_matrix_mut();
+        let z = self.z.as_matrix();
+
+        // Calculate innovation and residual covariance
+        // y = z - H*x
+        H.mult_rowvector(x.as_matrix(), y);
+        z.sub_inplace_b(y);
+
+        // Perform the remaining update.
+        self.update_with_innovation(x, P);
+    }
+
+    /// Applies a nonlinear correction step to the provided state vector and covariance matrix.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    ///                   This function uses the innovation vector as a temporary storage, even though
+    ///                   the innovation itself will only be calculated afterward.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, mut observation: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+    {
+        // y = h(x)
+        observation(x, &mut self.y);
+
+        let y = self.y.as_matrix_mut();
+        let z = self.z.as_matrix();
+
+        // Calculate innovation:
+        // y = z - h(x)
+        z.sub_inplace_b(y);
+
+        // Perform the remaining update.
+        self.update_with_innovation(x, P);
+    }
+
+    /// Performs the update step. Assumes that the innovation vector is already calculated correctly,
+    /// either by means of [`correct`](Self::correct) or [`correct_nonlinear`](Self::correct_nonlinear).
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    #[allow(non_snake_case)]
+    fn update_with_innovation<X, P>(&mut self, x: &mut X, P: &mut P)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
@@ -302,7 +359,6 @@ where
         let S = self.S.as_matrix_mut();
         let R = self.R.as_matrix_mut();
         let y = self.y.as_matrix_mut();
-        let z = self.z.as_matrix();
 
         // temporaries
         let S_inv = self.temp_S_inv.as_matrix_mut();
@@ -310,13 +366,9 @@ where
         let temp_KHP = self.temp_KHP.as_matrix_mut();
         let temp_PHt = self.temp_PHt.as_matrix_mut();
 
-        //* Calculate innovation and residual covariance
-        //* y = z - H*x
-        //* S = H*P*Hᵀ + R
-
+        // Assumes either of these is already set:
         // y = z - H*x
-        H.mult_rowvector(x, y);
-        z.sub_inplace_b(y);
+        // y = z - h(x)
 
         // S = H*P*H' + R
         H.mult(P, temp_HP); // temp = H*P
@@ -439,6 +491,7 @@ where
 {
     type MeasurementVector = Z;
 
+    #[inline(always)]
     fn measurement_vector(&self) -> &Self::MeasurementVector {
         self.measurement_vector()
     }
@@ -465,6 +518,7 @@ where
 {
     type MeasurementVectorMut = Z;
 
+    #[inline(always)]
     fn measurement_vector_mut(&mut self) -> &mut Self::MeasurementVectorMut {
         self.measurement_vector_mut()
     }
@@ -491,6 +545,7 @@ where
 {
     type ObservationTransformationMatrix = H;
 
+    #[inline(always)]
     fn observation_matrix(&self) -> &Self::ObservationTransformationMatrix {
         self.observation_matrix()
     }
@@ -517,6 +572,7 @@ where
 {
     type ObservationTransformationMatrixMut = H;
 
+    #[inline(always)]
     fn observation_matrix_mut(&mut self) -> &mut Self::ObservationTransformationMatrixMut {
         self.observation_matrix_mut()
     }
@@ -543,6 +599,7 @@ where
 {
     type MeasurementNoiseCovarianceMatrix = R;
 
+    #[inline(always)]
     fn measurement_noise_covariance(&self) -> &Self::MeasurementNoiseCovarianceMatrix {
         self.measurement_noise_covariance()
     }
@@ -569,6 +626,7 @@ where
 {
     type MeasurementNoiseCovarianceMatrixMut = R;
 
+    #[inline(always)]
     fn measurement_noise_covariance_mut(
         &mut self,
     ) -> &mut Self::MeasurementNoiseCovarianceMatrixMut {
@@ -605,6 +663,7 @@ where
     TempKHP: TemporaryKHPMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    #[inline(always)]
     #[allow(non_snake_case)]
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
@@ -615,9 +674,53 @@ where
     }
 }
 
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
+    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    type ObservationVector = Y;
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+    {
+        self.correct_nonlinear(x, P, observation)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::prelude::{AsMatrix, AsMatrixMut};
     use crate::test_dummies::make_dummy_observation;
 
     #[test]
@@ -709,11 +812,22 @@ mod tests {
         measurement
     }
 
+    fn trait_impl_nonlinear<const STATES: usize, const OBSERVATIONS: usize, T, M>(
+        measurement: M,
+    ) -> M
+    where
+        M: ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T>,
+    {
+        measurement
+    }
+
     #[test]
     fn builder_simple() {
         let measurement = make_dummy_observation();
 
-        let mut measurement = trait_impl(measurement);
+        let measurement = trait_impl(measurement);
+        let mut measurement = trait_impl_nonlinear(measurement);
+
         assert_eq!(measurement.states(), 3);
         assert_eq!(measurement.observations(), 1);
 

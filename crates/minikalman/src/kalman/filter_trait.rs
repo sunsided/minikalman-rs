@@ -1,6 +1,7 @@
 use crate::kalman::*;
+use crate::prelude::AsMatrixMut;
 
-/// A Kalman filter.
+/// A Kalman Filter.
 pub trait KalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>
     + KalmanFilterStateVectorMut<STATES, T>
@@ -9,6 +10,17 @@ pub trait KalmanFilter<const STATES: usize, T>:
     + KalmanFilterPredict<STATES, T>
     + KalmanFilterApplyControl<STATES, T>
     + KalmanFilterUpdate<STATES, T>
+{
+}
+
+/// An Extended Kalman Filter.
+pub trait ExtendedKalmanFilter<const STATES: usize, T>:
+    KalmanFilterNumStates<STATES>
+    + KalmanFilterStateVectorMut<STATES, T>
+    + KalmanFilterStateTransition<STATES, T>
+    + KalmanFilterSystemCovarianceMut<STATES, T>
+    + KalmanFilterPredict<STATES, T>
+    + KalmanFilterNonlinearUpdate<STATES, T>
 {
 }
 
@@ -22,13 +34,24 @@ pub trait KalmanFilterControl<const STATES: usize, const CONTROLS: usize, T>:
 {
 }
 
-/// A Kalman filter observation or measurement.
+/// A Kalman Filter observation or measurement.
 pub trait KalmanFilterObservation<const STATES: usize, const OBSERVATIONS: usize, T>:
     KalmanFilterNumStates<STATES>
     + KalmanFilterNumObservations<OBSERVATIONS>
     + KalmanFilterObservationVectorMut<OBSERVATIONS, T>
     + KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
     + KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
+    + KalmanFilterObservationCorrectFilter<STATES, T>
+{
+}
+
+/// An Extended Kalman Filter observation or measurement.
+pub trait ExtendedKalmanFilterObservation<const STATES: usize, const OBSERVATIONS: usize, T>:
+    KalmanFilterNumStates<STATES>
+    + KalmanFilterNumObservations<OBSERVATIONS>
+    + KalmanFilterObservationVectorMut<OBSERVATIONS, T>
+    + KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
+    + KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
 {
 }
 
@@ -41,6 +64,17 @@ impl<const STATES: usize, T, Filter> KalmanFilter<STATES, T> for Filter where
         + KalmanFilterPredict<STATES, T>
         + KalmanFilterApplyControl<STATES, T>
         + KalmanFilterUpdate<STATES, T>
+{
+}
+
+/// Auto-implementation of [`ExtendedKalmanFilter`] for types that implement all necessary traits.
+impl<const STATES: usize, T, Filter> ExtendedKalmanFilter<STATES, T> for Filter where
+    Filter: KalmanFilterNumStates<STATES>
+        + KalmanFilterStateVectorMut<STATES, T>
+        + KalmanFilterStateTransition<STATES, T>
+        + KalmanFilterSystemCovarianceMut<STATES, T>
+        + KalmanFilterPredict<STATES, T>
+        + KalmanFilterNonlinearUpdate<STATES, T>
 {
 }
 
@@ -70,6 +104,18 @@ where
 {
 }
 
+/// Auto-implementation of [`ExtendedKalmanFilterObservation`] for types that implement all necessary traits.
+impl<const STATES: usize, const OBSERVATIONS: usize, T, Observation>
+    ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T> for Observation
+where
+    Observation: KalmanFilterNumStates<STATES>
+        + KalmanFilterNumObservations<OBSERVATIONS>
+        + KalmanFilterObservationVectorMut<OBSERVATIONS, T>
+        + KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
+        + KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+{
+}
+
 pub trait KalmanFilterNumStates<const STATES: usize> {
     /// The number of states.
     const NUM_STATES: usize = STATES;
@@ -91,6 +137,10 @@ pub trait KalmanFilterPredict<const STATES: usize, T> {
 pub trait KalmanFilterApplyControl<const STATES: usize, T> {
     /// Performs the measurement update step.
     ///
+    /// ## Extended Kalman Filters
+    /// In an Extended Kalman Filter, this method is meaningless. Use the
+    /// [`predict_nonlinear`](Self::predict_nonlinear) function set instead.
+    ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
     fn control<I>(&mut self, control: &mut I)
@@ -106,6 +156,25 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     fn correct<M>(&mut self, measurement: &mut M)
     where
         M: KalmanFilterObservationCorrectFilter<STATES, T>;
+}
+
+pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
+    KalmanFilterStateVectorMut<STATES, T>
+{
+    /// Performs the measurement update step.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement to update the state prediction with.
+    fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) where
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(
+            &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
+            &mut M::ObservationVector,
+        ); // TODO: Camouflage Y as a temporary, nonlinear Z?
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {
@@ -131,14 +200,31 @@ pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
     fn state_vector_mut(&mut self) -> &mut Self::StateVectorMut;
 }
 
+/// Provides access to the state transition matrix or its Jacobian.
+///
+/// ## (Regular) Kalman Filters
+/// This matrix describes how the state vector evolves from one time step to the next in the
+/// absence of control inputs. It defines the relationship between the previous state and the
+/// current state, accounting for the inherent dynamics of the system.
+///
+/// ## Extended Kalman Filters
+/// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
+/// transition matrix, i.e. the derivative of the state transition matrix with respect
+/// to the state vector.
 pub trait KalmanFilterStateTransition<const STATES: usize, T> {
     type StateTransitionMatrix: StateTransitionMatrix<STATES, T>;
 
     /// Gets a reference to the state transition matrix A/F.
     ///
+    /// ## (Regular) Kalman Filters
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
+    ///
+    /// ## Extended Kalman Filters
+    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
+    /// transition matrix, i.e. the derivative of the state transition matrix with respect
+    /// to the state vector.
     fn state_transition(&self) -> &Self::StateTransitionMatrix;
 }
 
@@ -288,6 +374,10 @@ pub trait KalmanFilterNumObservations<const OBSERVATIONS: usize> {
     }
 }
 
+/// The observation function for a regular Kalman Filter.
+///
+/// ## Extended Kalman Filters
+/// See [`KalmanFilterNonlinearObservationCorrectFilter`].
 pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
     /// Performs the measurement update step.
     ///
@@ -299,6 +389,30 @@ pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>;
+}
+
+/// The observation function for an Extended Kalman Filter.
+pub trait KalmanFilterNonlinearObservationCorrectFilter<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    T,
+>
+{
+    /// The type of observation vector to fill.
+    type ObservationVector: AsMatrixMut<OBSERVATIONS, 1, T>;
+
+    /// Performs the nonlinear measurement update step for Extended Kalman Filters.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observations` - The nonlinear observation function.
+    #[allow(non_snake_case)]
+    fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector);
 }
 
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
