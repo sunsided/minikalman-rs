@@ -69,6 +69,56 @@
 //! }
 //! ```
 //!
+//! ## Extended Kalman Filters
+//!
+//! The general setup remains the same, however the `predict` and `correct` methods are
+//! replaced with their nonlinear counterparts:
+//!
+//! ```no_run
+//! use minikalman::builder::KalmanFilterBuilder;
+//! use minikalman::prelude::MatrixMut;
+//!
+//! const NUM_STATES: usize = 3;
+//! const NUM_CONTROLS: usize = 2;
+//! const NUM_OBSERVATIONS: usize = 1;
+//!
+//! let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+//! let mut filter = builder.build();
+//! let mut control = builder.controls().build::<NUM_CONTROLS>();
+//! let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+//!
+//! // Set up the system dynamics, control matrices, observation matrices, ...
+//!
+//! // Filter!
+//! loop {
+//!     // Update your control vector(s).
+//!     control.control_vector_mut().apply(|u| {
+//!         u[0] = 0.0;
+//!         u[1] = 1.0;
+//!     });
+//!
+//!     // Update your measurement vectors.
+//!     measurement.measurement_vector_mut().apply(|z| {
+//!         z[0] = 42.0;
+//!     });
+//!
+//!     // Update prediction using nonlinear transfer function.
+//!     filter.predict_nonlinear(|current, next| {
+//!         next[0] = current[0] * current[0];
+//!         next[1] = current[1].sin() * control.control_vector()[0];
+//!     });
+//!
+//!     // Apply any measurements using nonlinear measurements.
+//!     filter.correct_nonlinear(&mut measurement, |state, observation| {
+//!         observation[0] = state[0].cos() + state[1].sin();
+//!     });
+//!
+//!     // Access the state
+//!     let state = filter.state_vector();
+//!     let covariance = filter.estimate_covariance();
+//! }
+//! ```
+//!
 //! ## `no_std` Example
 //!
 //! Systems without the liberty of heap allocation may make use of the provided helper macros

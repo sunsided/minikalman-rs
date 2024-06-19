@@ -741,6 +741,11 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P_temp.multscale_transb(A, lambda, P); // P = temp*A' * 1/(lambda^2)
     }
 
+    /// Applies a control input.
+    ///
+    /// ## Extended Kalman Filters
+    /// In an Extended Kalman Filter, this method is meaningless. Use the
+    /// [`predict_nonlinear`](Self::predict_nonlinear) function set instead.
     #[inline(always)]
     pub fn control<I>(&mut self, control: &mut I)
     where

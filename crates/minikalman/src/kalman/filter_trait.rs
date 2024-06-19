@@ -91,6 +91,10 @@ pub trait KalmanFilterPredict<const STATES: usize, T> {
 pub trait KalmanFilterApplyControl<const STATES: usize, T> {
     /// Performs the measurement update step.
     ///
+    /// ## Extended Kalman Filters
+    /// In an Extended Kalman Filter, this method is meaningless. Use the
+    /// [`predict_nonlinear`](Self::predict_nonlinear) function set instead.
+    ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
     fn control<I>(&mut self, control: &mut I)
