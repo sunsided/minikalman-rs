@@ -1,4 +1,4 @@
-//! # Kalman Filters for Embedded Targets (in Rust)
+//! # Kalman Filters for Embedded Targets
 //!
 //! This is the Rust port of the [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
 //! a microcontroller targeted Kalman filter implementation. Uses [`micromath`](https://docs.rs/micromath)
@@ -84,17 +84,19 @@
 //!
 //! let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
 //! let mut filter = builder.build();
-//! let mut control = builder.controls().build::<NUM_CONTROLS>();
 //! let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 //!
 //! // Set up the system dynamics, control matrices, observation matrices, ...
 //!
 //! // Filter!
 //! loop {
-//!     // Update your control vector(s).
-//!     control.control_vector_mut().apply(|u| {
-//!         u[0] = 0.0;
-//!         u[1] = 1.0;
+//!     // Obtain the control values.
+//!     let control_value = 1.0;
+//!
+//!     // Update prediction using nonlinear transfer function.
+//!     filter.predict_nonlinear(|current, next| {
+//!         next[0] = current[0] * current[0];
+//!         next[1] = current[1].sin() * control_value;
 //!     });
 //!
 //!     // Update your measurement vectors.
@@ -102,13 +104,7 @@
 //!         z[0] = 42.0;
 //!     });
 //!
-//!     // Update prediction using nonlinear transfer function.
-//!     filter.predict_nonlinear(|current, next| {
-//!         next[0] = current[0] * current[0];
-//!         next[1] = current[1].sin() * control.control_vector()[0];
-//!     });
-//!
-//!     // Apply any measurements using nonlinear measurements.
+//!     // Apply any measurements using a nonlinear measurement function.
 //!     filter.correct_nonlinear(&mut measurement, |state, observation| {
 //!         observation[0] = state[0].cos() + state[1].sin();
 //!     });

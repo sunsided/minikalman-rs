@@ -687,7 +687,8 @@ impl<const OBSERVATIONS: usize> MeasurementNoiseCovarianceMatrixBufferBuilder<OB
     }
 }
 
-/// The type of innovation vector buffers.
+/// The type of innovation vector buffers. In Extended Kalman Filters, this buffer
+/// also acts as a temporary target for nonlinear measurement transformations.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub type InnovationVectorBufferOwnedType<const OBSERVATIONS: usize, T> =
     InnovationVectorBuffer<OBSERVATIONS, T, MatrixDataArray<OBSERVATIONS, 1, OBSERVATIONS, T>>;
