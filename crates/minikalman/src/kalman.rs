@@ -908,7 +908,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prelude::MatrixMut;
+    use crate::prelude::{AsMatrix, AsMatrixMut, MatrixMut};
     use crate::test_dummies::make_dummy_filter;
 
     fn trait_impl<const STATES: usize, T, K>(mut filter: K) -> K

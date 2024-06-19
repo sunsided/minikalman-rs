@@ -6,10 +6,9 @@ use core::ops::{Index, IndexMut};
 ///
 /// Immutable variant. For a mutable variant, see [`StateVectorMut`].
 #[doc(alias = "Zustandsvektor")]
-pub trait StateVector<const STATES: usize, T = f32>: AsRef<[T]> + Index<usize, Output = T> {
-    type Target: Matrix<STATES, 1, T>;
-
-    fn as_matrix(&self) -> &Self::Target;
+pub trait StateVector<const STATES: usize, T = f32>:
+    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<STATES, 1, T>
+{
 }
 
 /// State vector. Represents the internal state of the system.
@@ -17,11 +16,8 @@ pub trait StateVector<const STATES: usize, T = f32>: AsRef<[T]> + Index<usize, O
 /// Mutable variant. For an immutable variant, see [`StateVector`].
 #[doc(alias = "Zustandsvektor")]
 pub trait StateVectorMut<const STATES: usize, T = f32>:
-    StateVector<STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    StateVector<STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T> + AsMatrixMut<STATES, 1, T>
 {
-    type TargetMut: MatrixMut<STATES, 1, T>;
-
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
 
 /// State transition (system) matrix. Describes how the state evolves from one time step to the

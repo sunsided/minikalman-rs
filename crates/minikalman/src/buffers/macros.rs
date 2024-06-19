@@ -1,5 +1,16 @@
 #[macro_export]
 macro_rules! impl_mutable_vec {
+    ($type:ident, $trait:ident, $trait_mut:ident, $rows:ident) => {
+        impl<const $rows: usize, T, M> $trait_mut<$rows, T>
+            for $type<$rows, T, M>
+        where
+            M: $crate::matrix::MatrixMut<$rows, 1, T>,
+        {
+        }
+
+        impl_mutable_vec!($type, $trait, $rows);
+    };
+
     ($type:ident, $trait:ident, $rows:ident) => {
         impl<const $rows: usize, T, M> $trait<$rows, T>
             for $type<$rows, T, M>
@@ -106,7 +117,7 @@ macro_rules! impl_mutable_vec {
         {
         }
 
-        impl<const $rows: usize, T, M> core::ops::Index<usize> for InnovationVectorBuffer<$rows, T, M>
+        impl<const $rows: usize, T, M> core::ops::Index<usize> for $type<$rows, T, M>
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
@@ -117,7 +128,7 @@ macro_rules! impl_mutable_vec {
             }
         }
 
-        impl<const $rows: usize, T, M> core::ops::IndexMut<usize> for InnovationVectorBuffer<$rows, T, M>
+        impl<const $rows: usize, T, M> core::ops::IndexMut<usize> for $type<$rows, T, M>
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
@@ -126,7 +137,7 @@ macro_rules! impl_mutable_vec {
             }
         }
 
-        impl<const $rows: usize, T, M> $crate::matrix::IntoInnerData for InnovationVectorBuffer<$rows, T, M>
+        impl<const $rows: usize, T, M> $crate::matrix::IntoInnerData for $type<$rows, T, M>
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T> + $crate::matrix::IntoInnerData,
         {

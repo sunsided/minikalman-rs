@@ -139,19 +139,9 @@ impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T>
 {
 }
 
-impl<const STATES: usize, T> StateVector<STATES, T> for Dummy<T, STATES, 1> {
-    type Target = DummyMatrix<T, STATES, 1>;
-    fn as_matrix(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl<const STATES: usize, T> StateVector<STATES, T> for Dummy<T, STATES, 1> {}
 
-impl<const STATES: usize, T> StateVectorMut<STATES, T> for Dummy<T, STATES, 1> {
-    type TargetMut = DummyMatrix<T, STATES, 1>;
-    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
-        &mut self.0
-    }
-}
+impl<const STATES: usize, T> StateVectorMut<STATES, T> for Dummy<T, STATES, 1> {}
 
 impl<const STATES: usize, T> StateTransitionMatrix<STATES, T> for Dummy<T, STATES, STATES> {
     type Target = DummyMatrix<T, STATES, STATES>;
