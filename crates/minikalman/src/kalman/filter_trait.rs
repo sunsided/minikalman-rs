@@ -177,7 +177,7 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T, X> {
         observation: F,
     ) where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-        F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
         Y: InnovationVector<OBSERVATIONS, T>;
 }
 
@@ -415,7 +415,7 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: Fn(&X, &mut Y); // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Y); // TODO: Camouflage Y as a temporary, nonlinear Z?
 }
 
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {

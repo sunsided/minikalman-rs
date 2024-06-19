@@ -318,11 +318,11 @@ where
     ///                   the innovation itself will only be calculated afterward.
     #[inline]
     #[allow(non_snake_case)]
-    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
+    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, mut observation: F)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
     {
         // y = h(x)
         observation(x, &mut self.y);
@@ -709,7 +709,7 @@ where
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
     {
         self.correct_nonlinear(x, P, observation)
     }

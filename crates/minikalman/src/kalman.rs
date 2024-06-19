@@ -319,9 +319,6 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     /// Unlike [`predict`](Self::predict), which uses the known state matrix, this method only uses the provided
     /// state transition function.
     ///
-    /// See [`predict_nonlinear_mut`](Self::predict_nonlinear_mut) for a
-    /// version with an immutable closure.
-    ///
     /// ## Extended Kalman Filters
     /// This function can be used to implement the nonlinear state prediction step of the
     /// Extended Kalman Filter. Since it predicts both the next state and the next
@@ -417,54 +414,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P: EstimateCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
-        F: Fn(&X, &mut PX),
-    {
-        //* Predict next state using system dynamics
-        //* x = A*x
-        self.predict_x_nonlinear(state_transition);
-
-        //* Predict next covariance using system dynamics and control
-        //* P = A*P*Aᵀ
-        self.predict_P();
-    }
-
-    /// Performs a (potentially nonlinear) state transition only involving the current state.
-    /// Unlike [`predict`](Self::predict), which uses the known state matrix, this method only uses the provided
-    /// state transition function.
-    ///
-    /// See [`predict_nonlinear`](Self::predict_nonlinear) for a
-    /// version with an immutable closure.
-    ///
-    /// ## Extended Kalman Filters
-    /// This function can be used to implement the nonlinear state prediction step of the
-    /// Extended Kalman Filter. Since it predicts both the next state and the next
-    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
-    /// the Jacobian of the state transition instead.
-    ///
-    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
-    /// access to the state transition matrix) to linearize it around the current state.
-    ///
-    /// ## Arguments
-    /// * `state_transition` - A mutable closure that takes the current state and returns the next state.
-    ///
-    /// ## Example
-    /// See [`predict_nonlinear`](Self::predict_nonlinear) for an example.
-    pub fn predict_nonlinear_mut<F>(&mut self, state_transition: F)
-    where
-        X: StateVectorMut<STATES, T>,
-        A: StateTransitionMatrix<STATES, T>,
-        PX: PredictedStateEstimateVector<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-        TempP: TemporaryStateMatrix<STATES, T>,
-        T: MatrixDataType,
         F: FnMut(&X, &mut PX),
     {
-        //* Predict next state using system dynamics
-        //* x = A*x
-        self.predict_x_nonlinear_mut(state_transition);
+        // Predict next state using system dynamics
+        // x = a(x)
+        self.predict_x_nonlinear(state_transition);
 
-        //* Predict next covariance using system dynamics and control
-        //* P = A*P*Aᵀ
+        // Predict next covariance using system dynamics and control
+        // P = A*P*Aᵀ
         self.predict_P();
     }
 
@@ -553,20 +510,16 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
     {
-        //* Predict next state using system dynamics
-        //* x = A*x
+        // Predict next state using system dynamics
+        // x = A*x
         self.predict_x();
 
-        //* Predict next covariance using system dynamics and control
-        //* P = A*P*Aᵀ * 1/lambda^2
+        // Predict next covariance using system dynamics and control
+        // P = A*P*Aᵀ * 1/lambda^2
         self.predict_P_tuned(lambda);
     }
 
-    /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned) with an immutable
-    /// state transition function closure.
-    ///
-    /// See [`predict_tuned_nonlinear_mut`](Self::predict_tuned_nonlinear_mut) for a
-    /// version with a mutable closure.
+    /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned).
     ///
     /// ## Extended Kalman Filters
     /// This function can be used to implement the nonlinear state prediction step of the
@@ -588,51 +541,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         P: EstimateCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
-        F: Fn(&X, &mut PX),
-    {
-        //* Predict next state using system dynamics
-        //* x = A*x
-        self.predict_x_nonlinear(state_transition);
-
-        //* Predict next covariance using system dynamics and control
-        //* P = A*P*Aᵀ * 1/lambda^2
-        self.predict_P_tuned(lambda);
-    }
-
-    /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned) with a mutable
-    /// state transition function closure.
-    ///
-    /// See [`predict_tuned_nonlinear`](Self::predict_tuned_nonlinear) for a
-    /// version with an immutable closure.
-    ///
-    /// ## Extended Kalman Filters
-    /// This function can be used to implement the nonlinear state prediction step of the
-    /// Extended Kalman Filter. Since it predicts both the next state and the next
-    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
-    /// the Jacobian of the state transition instead.
-    ///
-    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
-    /// access to the state transition matrix) to linearize it around the current state.
-    ///
-    /// ## Example
-    /// See [`predict_tuned`](Self::predict_tuned) and [`predict_nonlinear`](Self::predict_nonlinear) for an example.
-    #[doc(alias = "kalman_predict_tuned")]
-    pub fn predict_tuned_nonlinear_mut<F>(&mut self, lambda: T, state_transition: F)
-    where
-        X: StateVectorMut<STATES, T>,
-        A: StateTransitionMatrix<STATES, T>,
-        PX: PredictedStateEstimateVector<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-        TempP: TemporaryStateMatrix<STATES, T>,
-        T: MatrixDataType,
         F: FnMut(&X, &mut PX),
     {
-        //* Predict next state using system dynamics
-        //* x = A*x
-        self.predict_x_nonlinear_mut(state_transition);
+        // Predict next state using system dynamics
+        // x = a(x)
+        self.predict_x_nonlinear(state_transition);
 
-        //* Predict next covariance using system dynamics and control
-        //* P = A*P*Aᵀ * 1/lambda^2
+        // Predict next covariance using system dynamics and control
+        // P = A*P*Aᵀ * 1/lambda^2
         self.predict_P_tuned(lambda);
     }
 
@@ -662,23 +578,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
 
     /// Performs the potentially non-linear time update / prediction step of only the state vector
     #[allow(non_snake_case)]
-    fn predict_x_nonlinear<F>(&mut self, state_transition: F)
-    where
-        X: StateVectorMut<STATES, T>,
-        PX: PredictedStateEstimateVector<STATES, T>,
-        T: MatrixDataType,
-        F: Fn(&X, &mut PX),
-    {
-        state_transition(&self.x, &mut self.predicted_x);
-
-        let x = self.x.as_matrix_mut();
-        let x_predicted = self.predicted_x.as_matrix_mut();
-        x_predicted.copy(x);
-    }
-
-    /// Performs the potentially non-linear time update / prediction step of only the state vector
-    #[allow(non_snake_case)]
-    fn predict_x_nonlinear_mut<F>(&mut self, mut state_transition: F)
+    fn predict_x_nonlinear<F>(&mut self, mut state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
         PX: PredictedStateEstimateVector<STATES, T>,
@@ -848,7 +748,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-        F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
         Y: InnovationVector<OBSERVATIONS, T>,
     {
         measurement.correct_nonlinear(&mut self.x, &mut self.P, observation);
@@ -984,7 +884,7 @@ where
         observation: F,
     ) where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-        F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
         Y: InnovationVector<OBSERVATIONS, T>,
     {
         self.correct_nonlinear(measurement, observation)
@@ -1336,14 +1236,13 @@ mod tests {
             assert_f32_near!(mat.get(2, 2), 0.0040448904);
         });
 
-        // Set an input.
-        example.control.control_vector_mut().set(0, 0, 1.0);
-
         // Predict and apply an input.
-        example.filter.predict_nonlinear(|current, next| {
-            next[0] = current[0] + current[1].cos();
-            next[1] = current[1] + current[1].sin();
-        });
+        example
+            .filter
+            .predict_tuned_nonlinear(0.2, |current, next| {
+                next[0] = current[0] + current[1].cos();
+                next[1] = current[1] + current[1].sin();
+            });
         example.filter.control(&mut example.control);
     }
 }
