@@ -1244,5 +1244,15 @@ mod tests {
                 next[1] = current[1] + current[1].sin();
             });
         example.filter.control(&mut example.control);
+
+        // Apply a measurement through the trait
+        KalmanFilterNonlinearUpdate::correct_nonlinear(
+            &mut example.filter,
+            &mut example.measurement,
+            |state, observation| {
+                observation[0] = state[0].sin();
+                observation[1] = state[0] * state[1];
+            },
+        );
     }
 }
