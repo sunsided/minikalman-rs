@@ -13,15 +13,13 @@ pub trait KalmanFilter<const STATES: usize, T>:
 }
 
 /// An Extended Kalman Filter.
-pub trait ExtendedKalmanFilter<const STATES: usize, T, X>:
+pub trait ExtendedKalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>
     + KalmanFilterStateVectorMut<STATES, T>
     + KalmanFilterStateTransition<STATES, T>
     + KalmanFilterSystemCovarianceMut<STATES, T>
     + KalmanFilterPredict<STATES, T>
-    + KalmanFilterNonlinearUpdate<STATES, T, X>
-where
-    X: StateVectorMut<STATES, T>,
+    + KalmanFilterNonlinearUpdate<STATES, T>
 {
 }
 
@@ -72,15 +70,13 @@ impl<const STATES: usize, T, Filter> KalmanFilter<STATES, T> for Filter where
 }
 
 /// Auto-implementation of [`ExtendedKalmanFilter`] for types that implement all necessary traits.
-impl<const STATES: usize, T, X, Filter> ExtendedKalmanFilter<STATES, T, X> for Filter
-where
+impl<const STATES: usize, T, Filter> ExtendedKalmanFilter<STATES, T> for Filter where
     Filter: KalmanFilterNumStates<STATES>
         + KalmanFilterStateVectorMut<STATES, T>
         + KalmanFilterStateTransition<STATES, T>
         + KalmanFilterSystemCovarianceMut<STATES, T>
         + KalmanFilterPredict<STATES, T>
-        + KalmanFilterNonlinearUpdate<STATES, T, X>,
-    X: StateVectorMut<STATES, T>,
+        + KalmanFilterNonlinearUpdate<STATES, T>
 {
 }
 
@@ -166,7 +162,9 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
         M: KalmanFilterObservationCorrectFilter<STATES, T>;
 }
 
-pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T, X> {
+pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
+    KalmanFilterStateVectorMut<STATES, T>
+{
     /// Performs the measurement update step.
     ///
     /// ## Arguments
@@ -177,7 +175,7 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T, X> {
         observation: F,
     ) where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T, Y>,
-        F: FnMut(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
         Y: InnovationVector<OBSERVATIONS, T>;
 }
 

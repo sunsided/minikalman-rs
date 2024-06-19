@@ -870,7 +870,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearUpdate<STATES, T, X>
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearUpdate<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
@@ -986,10 +986,9 @@ mod tests {
         filter
     }
 
-    fn trait_impl_nonlinear<const STATES: usize, T, K, X>(filter: K) -> K
+    fn trait_impl_nonlinear<const STATES: usize, T, K>(filter: K) -> K
     where
-        K: ExtendedKalmanFilter<STATES, T, X>,
-        X: StateVectorMut<STATES, T>,
+        K: ExtendedKalmanFilter<STATES, T>,
     {
         filter
     }
