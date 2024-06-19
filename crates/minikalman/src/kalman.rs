@@ -397,8 +397,12 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     ///
     ///     // Measure ...
     ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
-    ///     todo!("Implement nonlinear measurement!");
+    ///
+    ///     // Apply a measurement of the unchanged state.
+    ///     filter.correct_nonlinear(&mut measurement, |state, observation| {
+    ///         // Any arbitrary observation.
+    ///         observation[0] = state[0].cos() * state[1];
+    ///     });
     ///
     ///     // Update.
     ///     filter.correct(&mut measurement);
@@ -827,6 +831,21 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
     {
         measurement.correct(&mut self.x, &mut self.P);
+    }
+
+    pub fn correct_nonlinear<M, F, Y, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, Y, T>,
+        F: Fn(&X, &mut Y), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        Y: InnovationVector<OBSERVATIONS, T>,
+    {
+        measurement.correct_nonlinear(&mut self.x, &mut self.P, observation);
     }
 }
 
@@ -1259,8 +1278,12 @@ mod tests {
         example.measurement.measurement_vector_mut().set(0, 0, 0.0);
 
         // Apply a measurement of the unchanged state.
-        example.filter.correct(&mut example.measurement);
-        todo!("Implement nonlinear measurement!");
+        example
+            .filter
+            .correct_nonlinear(&mut example.measurement, |state, observation| {
+                observation[0] = state[0].sin();
+                observation[1] = state[0] * state[1];
+            });
 
         // All states are still zero.
         assert!(example

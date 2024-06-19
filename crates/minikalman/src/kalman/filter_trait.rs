@@ -301,6 +301,28 @@ pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
         P: EstimateCovarianceMatrix<STATES, T>;
 }
 
+pub trait KalmanFilterNonlinearObservationCorrectFilter<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    Y,
+    T,
+> where
+    Y: InnovationVector<OBSERVATIONS, T>,
+{
+    /// Performs the nonlinear measurement update step.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observations` - The nonlinear observation function.
+    #[allow(non_snake_case)]
+    fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: Fn(&X, &mut Y); // TODO: Camouflage Y as a temporary, nonlinear Z?
+}
+
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
     type MeasurementVector: MeasurementVector<OBSERVATIONS, T>;
 
