@@ -299,8 +299,12 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     }
 
     /// Performs a (potentially nonlinear) state transition only involving the current state.
-    /// Unlike [`predict`], which uses the known state matrix, this method only uses the provided
+    /// Unlike [`predict`](Self::predict), which uses the known state matrix, this method only uses the provided
     /// state transition function.
+    ///
+    ///
+    /// See [`predict_nonlinear_mut`](Self::predict_nonlinear_mut) for a
+    /// version with an immutable closure.
     ///
     /// ## Arguments
     /// * `state_transition` - An immutable closure that takes the current state and returns the next state.
@@ -324,8 +328,11 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
     }
 
     /// Performs a (potentially nonlinear) state transition only involving the current state.
-    /// Unlike [`predict`], which uses the known state matrix, this method only uses the provided
+    /// Unlike [`predict`](Self::predict), which uses the known state matrix, this method only uses the provided
     /// state transition function.
+    ///
+    /// See [`predict_nonlinear`](Self::predict_nonlinear) for a
+    /// version with an immutable closure.
     ///
     /// ## Arguments
     /// * `state_transition` - A mutable closure that takes the current state and returns the next state.
@@ -440,9 +447,56 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         //* Predict next covariance using system dynamics and control
         //* P = A*P*Aᵀ * 1/lambda^2
         self.predict_P_tuned(lambda);
+    }
 
-        // TODO: Add control support
-        //       P = P + B*Q*Bᵀ
+    /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned) with an immutable
+    /// state transition function closure.
+    ///
+    /// See [`predict_tuned_nonlinear_mut`](Self::predict_tuned_nonlinear_mut) for a
+    /// version with a mutable closure.
+    #[doc(alias = "kalman_predict_tuned")]
+    pub fn predict_tuned_nonlinear<F>(&mut self, lambda: T, state_transition: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        A: StateTransitionMatrix<STATES, T>,
+        PX: PredictedStateEstimateVector<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+        F: Fn(&X, &mut PX),
+    {
+        //* Predict next state using system dynamics
+        //* x = A*x
+        self.predict_x_nonlinear(state_transition);
+
+        //* Predict next covariance using system dynamics and control
+        //* P = A*P*Aᵀ * 1/lambda^2
+        self.predict_P_tuned(lambda);
+    }
+
+    /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned) with a mutable
+    /// state transition function closure.
+    ///
+    /// See [`predict_tuned_nonlinear`](Self::predict_tuned_nonlinear) for a
+    /// version with an immutable closure.
+    #[doc(alias = "kalman_predict_tuned")]
+    pub fn predict_tuned_nonlinear_mut<F>(&mut self, lambda: T, state_transition: F)
+    where
+        X: StateVectorMut<STATES, T>,
+        A: StateTransitionMatrix<STATES, T>,
+        PX: PredictedStateEstimateVector<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+        F: FnMut(&X, &mut PX),
+    {
+        //* Predict next state using system dynamics
+        //* x = A*x
+        self.predict_x_nonlinear_mut(state_transition);
+
+        //* Predict next covariance using system dynamics and control
+        //* P = A*P*Aᵀ * 1/lambda^2
+        self.predict_P_tuned(lambda);
     }
 
     /// Performs the time update / prediction step of only the state vector
