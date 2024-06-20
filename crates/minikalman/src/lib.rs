@@ -1,8 +1,8 @@
 //! # Kalman Filters for Embedded Targets
 //!
 //! This is the Rust port of the [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
-//! a microcontroller targeted Kalman filter implementation. Uses [`micromath`](https://docs.rs/micromath)
-//! for square root calculations on `no_std`.
+//! a microcontroller targeted Kalman filter implementation. It can use [`micromath`](https://docs.rs/micromath)
+//! for square root and reciprocal calculations on `no_std`; [`libm`](https://docs.rs/libm) is supported as well.
 //!
 //! This implementation uses statically allocated buffers for all matrix operations. Due to lack
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
@@ -17,6 +17,7 @@
 //! * `std` - Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
 //! * `alloc` - Enables allocation support for builder types.
 //! * `libm` - Enables libm support.
+//! * `micromath` - Enables micromath support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!              compiles the crate as `#![forbid(unsafe)]`.

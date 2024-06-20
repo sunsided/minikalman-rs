@@ -49,7 +49,7 @@ impl<T> MatrixDataTypeBase for T where
 {
 }
 
-#[cfg(any(feature = "std", feature = "libm"))]
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 impl MatrixDataType for f32 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
@@ -57,9 +57,13 @@ impl MatrixDataType for f32 {
         {
             self.recip()
         }
-        #[cfg(not(feature = "std"))] // libm
+        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
         {
             1.0 / self
+        }
+        #[cfg(all(feature = "micromath", not(any(feature = "std", feature = "libm"))))]
+        {
+            micromath::F32Ext::recip(self)
         }
     }
 
@@ -69,14 +73,18 @@ impl MatrixDataType for f32 {
         {
             self.sqrt()
         }
-        #[cfg(not(feature = "std"))] // libm
+        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
         {
             libm::sqrtf(self)
+        }
+        #[cfg(all(feature = "micromath", not(any(feature = "std", feature = "libm"))))]
+        {
+            micromath::F32Ext::sqrt(self)
         }
     }
 }
 
-#[cfg(any(feature = "std", feature = "libm"))]
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 impl MatrixDataType for f64 {
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
@@ -84,7 +92,11 @@ impl MatrixDataType for f64 {
         {
             self.recip()
         }
-        #[cfg(not(feature = "std"))] // libm
+        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
+        {
+            1.0 / self
+        }
+        #[cfg(all(feature = "micromath", not(any(feature = "std", feature = "libm"))))]
         {
             1.0 / self
         }
@@ -96,9 +108,13 @@ impl MatrixDataType for f64 {
         {
             self.sqrt()
         }
-        #[cfg(not(feature = "std"))] // libm
+        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
         {
             libm::sqrt(self)
+        }
+        #[cfg(all(feature = "micromath", not(any(feature = "std", feature = "libm"))))]
+        {
+            micromath::F32Ext::sqrt(self as f32) as f64
         }
     }
 }
