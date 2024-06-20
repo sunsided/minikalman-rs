@@ -41,7 +41,12 @@ required-features = ["fixed", "std", "alloc"]
 [[example]]
 name = "car-1d"
 path = "examples/car_1d.rs"
-required-features = ["alloc"]
+required-features = ["std"]
+
+[[example]]
+name = "radar-2d"
+path = "examples/radar_2d.rs"
+required-features = ["std"]
 
 [features]
 default = ["libm", "alloc"]

@@ -100,34 +100,95 @@ fn example() {
     let mut filter = builder.build();
     let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
-    // Set up the system dynamics, control matrices, observation matrices, ...
+    // The time step of our simulation.
+    const DELTA_T: f32 = 0.1;
 
-    // Filter!
-    loop {
-        // Obtain the control values.
-        let control_value = 1.0;
+    // Set up the initial state vector.
+    filter.state_vector_mut().apply(|vec| {
+        vec.set_row(0, 0.0);
+        vec.set_row(1, 0.0);
+        vec.set_row(2, 1.0);
+        vec.set_row(3, 1.0);
+    });
 
-        // Update prediction using nonlinear transfer function.
-        filter.predict_nonlinear(|current, next| {
-            next[0] = current[0] * current[0];
-            next[1] = current[1].sin() * control_value;
+    // Set up the initial estimate covariance as an identity matrix.
+    filter.estimate_covariance_mut().make_identity();
+
+    // Set up the process noise covariance matrix as an identity matrix.
+    measurement
+        .measurement_noise_covariance_mut()
+        .make_scalar(1.0);
+
+    // Set up the measurement noise covariance.
+    measurement.measurement_noise_covariance_mut().apply(|mat| {
+        mat.set_value(1.0); // matrix is 1x1
+    });
+
+    // Simulate
+    for step in 1..=100 {
+        let time = step as f32 * DELTA_T;
+
+        // Update the system transition Jacobian matrix.
+        filter.state_transition_mut().apply(|mat| {
+            mat.make_identity();
+            mat.set(0, 2, DELTA_T);
+            mat.set(1, 3, DELTA_T);
         });
 
-        // Update your measurement vectors.
-        measurement.measurement_vector_mut().apply(|z| {
-            z[0] = 42.0;
+        // Perform a nonlinear prediction step.
+        filter.predict_nonlinear(|state, next| {
+            // Simple constant velocity model.
+            next[0] = state[0] + state[2] * DELTA_T;
+            next[1] = state[1] + state[3] * DELTA_T;
+            next[2] = state[2];
+            next[3] = state[3];
         });
 
-        // Apply any measurements using a nonlinear measurement function.
+        // Prepare a measurement.
+        measurement.measurement_vector_mut().apply(|vec| {
+            // Noise setup.
+            let mut rng = rand::thread_rng();
+            let measurement_noise = Normal::new(0.0, 0.5).unwrap();
+
+            // Perform a noisy measurement of the (simulated) position.
+            let z = (time.powi(2) + time.powi(2)).sqrt();
+            let noise = measurement_noise.sample(&mut rng);
+
+            vec.set_value(z + noise);
+        });
+
+        // Update the observation Jacobian.
+        measurement.observation_matrix_mut().apply(|mat| {
+            let x = filter.state_vector().get_row(0);
+            let y = filter.state_vector().get_row(1);
+
+            let norm = (x.powi(2) + y.powi(2)).sqrt();
+            let dx = x / norm;
+            let dy = y / norm;
+
+            mat.set_col(0, dx);
+            mat.set_col(1, dy);
+            mat.set_col(2, 0.0);
+            mat.set_col(3, 0.0);
+        });
+
+        // Apply nonlinear correction step.
         filter.correct_nonlinear(&mut measurement, |state, observation| {
-            observation[0] = state[0].cos() + state[1].sin();
+            // Transform the state into an observation.
+            let x = state.get_row(0);
+            let y = state.get_row(1);
+            let z = (x.powi(2) + y.powi(2)).sqrt();
+            observation.set_value(z);
         });
-
-        // Access the state
-        let state = filter.state_vector();
-        let covariance = filter.estimate_covariance();
     }
 }
+```
+
+For a slightly more realistic EKF example that simulates radar measurements of a moving object,
+see the [`radar-2d`](crates/minikalman/examples/radar_2d.rs) example.
+
+```shell
+cargo run --example radar-2d --features=std
 ```
 
 ### Embedded Targets

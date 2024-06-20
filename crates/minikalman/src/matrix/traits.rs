@@ -878,6 +878,74 @@ pub trait SquareMatrixMut<const N: usize, T = f32>: AsMut<[T]> + SquareMatrix<N,
 impl<const N: usize, T, M> SquareMatrix<N, T> for M where M: Matrix<N, N, T> {}
 impl<const N: usize, T, M> SquareMatrixMut<N, T> for M where M: MatrixMut<N, N, T> {}
 
+pub trait Scalar<T = f32>: Matrix<1, 1, T> {
+    /// Gets the value of a matrix of size 1×1.
+    #[inline(always)]
+    fn get_value(&self) -> T
+    where
+        T: Copy,
+    {
+        self.get(0, 0)
+    }
+}
+
+pub trait RowVector<const ROWS: usize, T = f32>: Matrix<ROWS, 1, T> {
+    /// Gets the value of the n-th row of a matrix of size N×1.
+    #[inline(always)]
+    fn get_row(&self, row: usize) -> T
+    where
+        T: Copy,
+    {
+        self.get(row, 0)
+    }
+}
+
+pub trait ColumnVector<const COLS: usize, T = f32>: Matrix<1, COLS, T> {
+    /// Gets the value of the n-th column of a matrix of size 1×N.
+    #[inline(always)]
+    fn get_col(&self, column: usize) -> T
+    where
+        T: Copy,
+    {
+        self.get(0, column)
+    }
+}
+
+pub trait ScalarMut<T = f32>: MatrixMut<1, 1, T> {
+    /// Sets the value of a matrix of size 1×1.
+    #[inline(always)]
+    fn set_value(&mut self, value: T) {
+        self.set(0, 0, value)
+    }
+}
+
+pub trait RowVectorMut<const ROWS: usize, T = f32>:
+    MatrixMut<ROWS, 1, T> + RowVector<ROWS, T>
+{
+    /// Sets the value of the n-th row of a matrix of size N×1.
+    #[inline(always)]
+    fn set_row(&mut self, row: usize, value: T) {
+        self.set(row, 0, value)
+    }
+}
+
+pub trait ColumnVectorMut<const COLS: usize, T = f32>:
+    MatrixMut<1, COLS, T> + ColumnVector<COLS, T>
+{
+    /// Sets the value of the n-th column of a matrix of size 1×N.
+    #[inline(always)]
+    fn set_col(&mut self, column: usize, value: T) {
+        self.set(0, column, value)
+    }
+}
+
+impl<T, M> Scalar<T> for M where M: Matrix<1, 1, T> {}
+impl<T, M> ScalarMut<T> for M where M: MatrixMut<1, 1, T> {}
+impl<const N: usize, T, M> RowVector<N, T> for M where M: Matrix<N, 1, T> {}
+impl<const N: usize, T, M> RowVectorMut<N, T> for M where M: MatrixMut<N, 1, T> {}
+impl<const N: usize, T, M> ColumnVector<N, T> for M where M: Matrix<1, N, T> {}
+impl<const N: usize, T, M> ColumnVectorMut<N, T> for M where M: MatrixMut<1, N, T> {}
+
 /// A mutable matrix wrapping a data buffer.
 pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     Matrix<ROWS, COLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>

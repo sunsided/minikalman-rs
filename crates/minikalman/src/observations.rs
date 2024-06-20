@@ -233,6 +233,10 @@ impl<
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
+    ///
+    /// ## Extended Kalman Filters
+    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the observation matrix,
+    /// i.e. the derivative of the measurement function with respect to the state vector.
     #[inline(always)]
     pub fn observation_matrix(&self) -> &H {
         &self.H
@@ -425,6 +429,10 @@ where
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
+    ///
+    /// ## Extended Kalman Filters
+    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the observation matrix,
+    /// i.e. the derivative of the measurement function with respect to the state vector.
     #[inline(always)]
     #[doc(alias = "kalman_get_measurement_transformation")]
     pub fn observation_matrix_mut(&mut self) -> &mut H {

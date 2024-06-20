@@ -119,16 +119,16 @@ fn main() {
         filter.control(&mut control);
 
         if t % 2 != 0 {
-            print_state(t, &filter, State::Prior);
+            print_state(t, &filter, Stage::Prior);
         } else {
-            print_state(t, &filter, State::PriorAboutToUpdate);
+            print_state(t, &filter, Stage::PriorAboutToUpdate);
 
             measurement.measurement_vector_mut().apply(|measurement| {
                 measurement[0] = OBSERVATIONS[t - 10];
             });
 
             filter.correct(&mut measurement);
-            print_state(t, &filter, State::Posterior);
+            print_state(t, &filter, Stage::Posterior);
         }
     }
 
@@ -141,20 +141,20 @@ fn main() {
     }
 }
 
-enum State {
+enum Stage {
     Prior,
     PriorAboutToUpdate,
     Posterior,
 }
 
-fn print_state<T>(time: usize, filter: &T, state: State)
+fn print_state<T>(time: usize, filter: &T, state: Stage)
 where
     T: KalmanFilter<3, f32>,
 {
     let marker = match state {
-        State::Prior => ' ',
-        State::PriorAboutToUpdate => ' ',
-        State::Posterior => '✅',
+        Stage::Prior => ' ',
+        Stage::PriorAboutToUpdate => ' ',
+        Stage::Posterior => '✅',
     };
 
     let state = filter.state_vector();

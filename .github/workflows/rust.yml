@@ -59,7 +59,7 @@ jobs:
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Generate code coverage
-        run: cargo llvm-cov nextest --features=std,fixed,alloc --package minikalman --lcov --output-path lcov.info
+        run: cargo llvm-cov nextest --features=std,fixed,alloc --workspace --exclude stm32 --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
@@ -78,6 +78,8 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - name: Run Example (float)
         run: cargo run --example=gravity --no-default-features --features=std
+      - name: Run EKF example
+        run: cargo run --example=radar-2d --no-default-features --features=std
       - name: Run tests (std)
         run: cargo nextest run --verbose --package minikalman --no-default-features --features=std
       - name: Run tests (libm)

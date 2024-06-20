@@ -153,7 +153,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
 where
     A: StateTransitionMatrix<STATES, T>,
 {
-    /// Gets a reference to the state transition matrix A/F.
+    /// Gets a reference to the state transition matrix A/F, or its Jacobian
     ///
     /// ## (Regular) Kalman Filters
     /// This matrix describes how the state vector evolves from one time step to the next in the
@@ -161,9 +161,9 @@ where
     /// current state, accounting for the inherent dynamics of the system.
     ///
     /// ## Extended Kalman Filters
-    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
-    /// transition matrix, i.e. the derivative of the state transition matrix with respect
-    /// to the state vector.
+    /// When updating using [`correct_nonlinear`](Self::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
     ///
     /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]
@@ -178,16 +178,16 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
 where
     A: StateTransitionMatrixMut<STATES, T>,
 {
-    /// Gets a reference to the state transition matrix A/F.
+    /// Gets a reference to the state transition matrix A/F, or its Jacobian.
     ///
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
     ///
     /// ## Extended Kalman Filters
-    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
-    /// transition matrix, i.e. the derivative of the state transition matrix with respect
-    /// to the state vector.
+    /// When updating using [`correct_nonlinear`](Self::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
     ///
     /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]
@@ -739,6 +739,16 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         measurement.correct(&mut self.x, &mut self.P);
     }
 
+    /// Performs the nonlinear measurement update step.
+    ///
+    /// ## Extended Kalman Filters
+    /// This function expects that the Jacobian of the observation transformation function
+    /// is correctly set up for the measurement. See [`KalmanFilterObservationTransformationMut`](KalmanFilterObservationTransformationMut::observation_matrix_mut)
+    /// for more information.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - The observation function.
     pub fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
@@ -869,6 +879,30 @@ where
     }
 }
 
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearPredict<STATES, T>
+    for Kalman<STATES, T, A, X, P, PX, TempP>
+where
+    X: StateVectorMut<STATES, T>,
+    A: StateTransitionMatrix<STATES, T>,
+    PX: PredictedStateEstimateVector<STATES, T>,
+    P: EstimateCovarianceMatrix<STATES, T>,
+    TempP: TemporaryStateMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    type NextStateVector = PX;
+
+    #[inline(always)]
+    fn predict_nonlinear<F>(&mut self, state_transition: F)
+    where
+        F: FnMut(
+            &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
+            &mut Self::NextStateVector,
+        ),
+    {
+        self.predict_nonlinear(state_transition)
+    }
+}
+
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearUpdate<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
@@ -883,7 +917,7 @@ where
         observation: F,
     ) where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
-        F: FnMut(&X, &mut M::ObservationVector), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut M::ObservationVector),
     {
         self.correct_nonlinear(measurement, observation)
     }
@@ -1186,10 +1220,19 @@ mod tests {
             .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
 
         // Trivial state progression.
-        for _ in 0..10 {
+        for _ in 0..5 {
+            // Direct call.
             example.filter.predict_nonlinear(|current, next| {
                 current.copy(next);
             });
+
+            // Call via trait.
+            KalmanFilterNonlinearPredict::predict_nonlinear(
+                &mut example.filter,
+                |current, next| {
+                    current.copy(next);
+                },
+            );
         }
 
         // All states are zero.
