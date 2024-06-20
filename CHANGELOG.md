@@ -3,7 +3,11 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased - Breaking Changes
+## [0.5.0] - 2024-06-20
+
+[0.5.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.5.0
+
+**Note:** This release contains major breaking changes.
 
 ### Added
 

@@ -4,7 +4,7 @@ members = ["crates/minikalman", "xbuild-tests/stm32"]
 default-members = ["crates/minikalman"]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 description = "A microcontroller targeted Kalman filter implementation"
 authors = ["Markus Mayer"]
 repository = "https://github.com/sunsided/minikalman-rs"
