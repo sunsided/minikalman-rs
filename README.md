@@ -91,7 +91,6 @@ The general setup remains the same, however the `predict` and `correct` methods 
 replaced with their nonlinear counterparts:
 
 ```rust
-
 const NUM_STATES: usize = 3;
 const NUM_OBSERVATIONS: usize = 1;
 
