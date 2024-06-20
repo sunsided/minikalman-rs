@@ -869,6 +869,30 @@ where
     }
 }
 
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearPredict<STATES, T>
+    for Kalman<STATES, T, A, X, P, PX, TempP>
+where
+    X: StateVectorMut<STATES, T>,
+    A: StateTransitionMatrix<STATES, T>,
+    PX: PredictedStateEstimateVector<STATES, T>,
+    P: EstimateCovarianceMatrix<STATES, T>,
+    TempP: TemporaryStateMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    type NextStateVector = PX;
+
+    #[inline(always)]
+    fn predict_nonlinear<F>(&mut self, state_transition: F)
+    where
+        F: FnMut(
+            &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
+            &mut Self::NextStateVector,
+        ),
+    {
+        self.predict_nonlinear(state_transition)
+    }
+}
+
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearUpdate<STATES, T>
     for Kalman<STATES, T, A, X, P, PX, TempP>
 where
@@ -883,7 +907,7 @@ where
         observation: F,
     ) where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
-        F: FnMut(&X, &mut M::ObservationVector), // TODO: Camouflage Y as a temporary, nonlinear Z?
+        F: FnMut(&X, &mut M::ObservationVector),
     {
         self.correct_nonlinear(measurement, observation)
     }

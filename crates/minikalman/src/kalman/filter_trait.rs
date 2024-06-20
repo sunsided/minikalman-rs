@@ -19,7 +19,7 @@ pub trait ExtendedKalmanFilter<const STATES: usize, T>:
     + KalmanFilterStateVectorMut<STATES, T>
     + KalmanFilterStateTransition<STATES, T>
     + KalmanFilterSystemCovarianceMut<STATES, T>
-    + KalmanFilterPredict<STATES, T>
+    + KalmanFilterNonlinearPredict<STATES, T>
     + KalmanFilterNonlinearUpdate<STATES, T>
 {
 }
@@ -73,7 +73,7 @@ impl<const STATES: usize, T, Filter> ExtendedKalmanFilter<STATES, T> for Filter 
         + KalmanFilterStateVectorMut<STATES, T>
         + KalmanFilterStateTransition<STATES, T>
         + KalmanFilterSystemCovarianceMut<STATES, T>
-        + KalmanFilterPredict<STATES, T>
+        + KalmanFilterNonlinearPredict<STATES, T>
         + KalmanFilterNonlinearUpdate<STATES, T>
 {
 }
@@ -134,12 +134,31 @@ pub trait KalmanFilterPredict<const STATES: usize, T> {
     fn predict(&mut self);
 }
 
+pub trait KalmanFilterNonlinearPredict<const STATES: usize, T>:
+    KalmanFilterStateVectorMut<STATES, T>
+{
+    /// The type of observation vector to fill.
+    type NextStateVector: AsMatrixMut<STATES, 1, T>;
+
+    /// Performs the nonlinear time update / prediction step.
+    ///
+    /// ## Extended Kalman Filter
+    /// This function assumes the state transition Jacobian was set up correctly using
+    /// [`state_transition`](KalmanFilterStateTransition::state_transition).
+    fn predict_nonlinear<F>(&mut self, state_transition: F)
+    where
+        F: FnMut(
+            &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
+            &mut Self::NextStateVector,
+        );
+}
+
 pub trait KalmanFilterApplyControl<const STATES: usize, T> {
     /// Performs the measurement update step.
     ///
     /// ## Extended Kalman Filters
     /// In an Extended Kalman Filter, this method is meaningless. Use the
-    /// [`predict_nonlinear`](Self::predict_nonlinear) function set instead.
+    /// [`predict_nonlinear`](KalmanFilterNonlinearPredict::predict_nonlinear) function set instead.
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
@@ -174,7 +193,7 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
         F: FnMut(
             &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
             &mut M::ObservationVector,
-        ); // TODO: Camouflage Y as a temporary, nonlinear Z?
+        );
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {
@@ -222,7 +241,7 @@ pub trait KalmanFilterStateTransition<const STATES: usize, T> {
     /// current state, accounting for the inherent dynamics of the system.
     ///
     /// ## Extended Kalman Filters
-    /// When updating using [`correct_nonlinear`](KalmanFilterNonlinearUpdate::correct_nonlinear),
+    /// When predicting using [`predict_nonlinear`](KalmanFilterNonlinearPredict::predict_nonlinear),
     /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
     /// of the state transition matrix with respect to the state vector.
     fn state_transition(&self) -> &Self::StateTransitionMatrix;
@@ -240,7 +259,7 @@ pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
     /// current state, accounting for the inherent dynamics of the system.
     ///
     /// ## Extended Kalman Filters
-    /// When updating using [`correct_nonlinear`](KalmanFilterNonlinearUpdate::correct_nonlinear),
+    /// When predicting using [`predict_nonlinear`](KalmanFilterNonlinearPredict::predict_nonlinear),
     /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
     /// of the state transition matrix with respect to the state vector.
     #[doc(alias = "kalman_get_state_transition")]
