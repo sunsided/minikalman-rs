@@ -36,6 +36,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - [#8](https://github.com/sunsided/minikalman-rs/pull/8):
   The repository was restructured into a Cargo workspace to allow for easier handling of cross-compilation examples.
+- [#27](https://github.com/sunsided/minikalman-rs/pull/27):
+  Added an EKF example with radar measurements of a moving object.
 
 ## [0.4.0] - 2024-06-07
 

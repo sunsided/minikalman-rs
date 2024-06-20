@@ -1,7 +1,7 @@
-//! Tracking a free-falling object.
+//! EKF example for radar observations of a moving object.
 //!
-//! This example sets up a filter to estimate the acceleration of a free-falling object
-//! under earth conditions (i.e. a ≈ 9.807 m/s²) through position observations only.
+//! The object follows a simple constant velocity model. Only the distance to the object
+//! can be observed through a nonlinear observation function.
 
 #![forbid(unsafe_code)]
 
@@ -39,11 +39,11 @@ fn main() {
     // Set up the process noise covariance matrix as an identity matrix.
     measurement
         .measurement_noise_covariance_mut()
-        .make_scalar(0.1);
+        .make_scalar(1.0);
 
     // Set up the measurement noise covariance.
     measurement.measurement_noise_covariance_mut().apply(|mat| {
-        mat.set_value(0.5); // matrix is 1x1
+        mat.set_value(1.0); // matrix is 1x1
     });
 
     // Simulate
@@ -59,6 +59,7 @@ fn main() {
 
         // Perform a nonlinear prediction step.
         filter.predict_nonlinear(|state, next| {
+            // Simple constant velocity model.
             next[0] = state[0] + state[2] * DELTA_T;
             next[1] = state[1] + state[3] * DELTA_T;
             next[2] = state[2];
@@ -100,7 +101,7 @@ fn main() {
 
             // Apply nonlinear correction step.
             filter.correct_nonlinear(&mut measurement, |state, observation| {
-                // We transform the state into an observation.
+                // Transform the state into an observation.
                 let x = state.get_row(0);
                 let y = state.get_row(1);
                 let z = (x.powi(2) + y.powi(2)).sqrt();
@@ -139,7 +140,7 @@ where
     let std_vy = covariances.get(3, 3).sqrt();
 
     println!(
-        "{} t={:.2} s,  x={:.2} ± {:.2} m\n              x={:.2} ± {:.2} m\n             vx={:2.2} ± {:.2} m/s\n             vy={:2.2} ± {:.2} m/s",
+        "{} t={:.2} s,  x={:.2} ± {:.4} m\n              x={:.2} ± {:.4} m\n             vx={:2.2} ± {:.4} m/s\n             vy={:2.2} ± {:.4} m/s",
         marker, time, state[0], std_x, state[1], std_y, state[2], std_vx, state[3], std_vy
     );
 }

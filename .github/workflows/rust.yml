@@ -78,6 +78,8 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - name: Run Example (float)
         run: cargo run --example=gravity --no-default-features --features=std
+      - name: Run EKF example
+        run: cargo run --example=radar-2d --no-default-features --features=std
       - name: Run tests (std)
         run: cargo nextest run --verbose --package minikalman --no-default-features --features=std
       - name: Run tests (libm)
