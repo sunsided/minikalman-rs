@@ -1220,10 +1220,19 @@ mod tests {
             .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
 
         // Trivial state progression.
-        for _ in 0..10 {
+        for _ in 0..5 {
+            // Direct call.
             example.filter.predict_nonlinear(|current, next| {
                 current.copy(next);
             });
+
+            // Call via trait.
+            KalmanFilterNonlinearPredict::predict_nonlinear(
+                &mut example.filter,
+                |current, next| {
+                    current.copy(next);
+                },
+            );
         }
 
         // All states are zero.
