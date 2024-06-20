@@ -739,6 +739,16 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
         measurement.correct(&mut self.x, &mut self.P);
     }
 
+    /// Performs the nonlinear measurement update step.
+    ///
+    /// ## Extended Kalman Filters
+    /// This function expects that the Jacobian of the observation transformation function
+    /// is correctly set up for the measurement. See [`KalmanFilterObservationTransformationMut`](KalmanFilterObservationTransformationMut::observation_matrix_mut)
+    /// for more information.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - The observation function.
     pub fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
