@@ -3,6 +3,17 @@ resolver = "2"
 members = ["crates/minikalman", "xbuild-tests/stm32"]
 default-members = ["crates/minikalman"]
 
+[workspace.package]
+version = "0.4.0"
+description = "A microcontroller targeted Kalman filter implementation"
+authors = ["Markus Mayer"]
+repository = "https://github.com/sunsided/minikalman-rs"
+homepage = "https://github.com/sunsided/minikalman-rs"
+keywords = ["kalman-filter", "embedded", "fixed-point", "robotics", "slam"]
+categories = ["aerospace", "algorithms", "science::robotics", "no-std", "embedded"]
+edition = "2021"
+license = "MIT"
+
 [profile.dev]      # Needed for the embedded cross-compilation projects
 panic = "abort"
 
