@@ -153,7 +153,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
 where
     A: StateTransitionMatrix<STATES, T>,
 {
-    /// Gets a reference to the state transition matrix A/F.
+    /// Gets a reference to the state transition matrix A/F, or its Jacobian
     ///
     /// ## (Regular) Kalman Filters
     /// This matrix describes how the state vector evolves from one time step to the next in the
@@ -161,9 +161,9 @@ where
     /// current state, accounting for the inherent dynamics of the system.
     ///
     /// ## Extended Kalman Filters
-    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
-    /// transition matrix, i.e. the derivative of the state transition matrix with respect
-    /// to the state vector.
+    /// When updating using [`correct_nonlinear`](Self::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
     ///
     /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]
@@ -178,16 +178,16 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> Kalman<STATES, T, A, X, P, PX, 
 where
     A: StateTransitionMatrixMut<STATES, T>,
 {
-    /// Gets a reference to the state transition matrix A/F.
+    /// Gets a reference to the state transition matrix A/F, or its Jacobian.
     ///
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
     ///
     /// ## Extended Kalman Filters
-    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
-    /// transition matrix, i.e. the derivative of the state transition matrix with respect
-    /// to the state vector.
+    /// When updating using [`correct_nonlinear`](Self::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
     ///
     /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]

@@ -214,7 +214,7 @@ pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
 pub trait KalmanFilterStateTransition<const STATES: usize, T> {
     type StateTransitionMatrix: StateTransitionMatrix<STATES, T>;
 
-    /// Gets a reference to the state transition matrix A/F.
+    /// Gets a reference to the state transition matrix A/F, or its Jacobian.
     ///
     /// ## (Regular) Kalman Filters
     /// This matrix describes how the state vector evolves from one time step to the next in the
@@ -222,9 +222,9 @@ pub trait KalmanFilterStateTransition<const STATES: usize, T> {
     /// current state, accounting for the inherent dynamics of the system.
     ///
     /// ## Extended Kalman Filters
-    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
-    /// transition matrix, i.e. the derivative of the state transition matrix with respect
-    /// to the state vector.
+    /// When updating using [`correct_nonlinear`](KalmanFilterNonlinearUpdate::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
     fn state_transition(&self) -> &Self::StateTransitionMatrix;
 }
 
@@ -233,11 +233,16 @@ pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
 {
     type StateTransitionMatrixMut: StateTransitionMatrixMut<STATES, T>;
 
-    /// Gets a reference to the state transition matrix A/.
+    /// Gets a reference to the state transition matrix A/F, or its Jacobian
     ///
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
+    ///
+    /// ## Extended Kalman Filters
+    /// When updating using [`correct_nonlinear`](KalmanFilterNonlinearUpdate::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
     #[doc(alias = "kalman_get_state_transition")]
     fn state_transition_mut(&mut self) -> &mut Self::StateTransitionMatrixMut;
 }
@@ -403,6 +408,10 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
 
     /// Performs the nonlinear measurement update step for Extended Kalman Filters.
     ///
+    /// ## Extended Kalman Filters
+    /// This function expects the observation transformation Jacobian to be set up correctly
+    /// using e.g. [`observation_matrix_mut`](KalmanFilterObservationTransformationMut::observation_matrix_mut).
+    ///
     /// ## Arguments
     /// * `x` - The state vector.
     /// * `P` - The system covariance matrix.
@@ -441,11 +450,16 @@ pub trait KalmanFilterObservationVectorMut<const OBSERVATIONS: usize, T>:
 pub trait KalmanFilterObservationTransformation<const STATES: usize, const OBSERVATIONS: usize, T> {
     type ObservationTransformationMatrix: ObservationMatrix<OBSERVATIONS, STATES, T>;
 
-    /// Gets a reference to the measurement transformation matrix H.
+    /// Gets a reference to the measurement transformation matrix H, or its Jacobian.
     ///
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
+    ///
+    /// ## Extended Kalman Filters
+    /// When correcting using [`correct_nonlinear`](KalmanFilterNonlinearObservationCorrectFilter::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the observation matrix, i.e. the derivative of
+    /// the measurement function with respect to the state vector.
     fn observation_matrix(&self) -> &Self::ObservationTransformationMatrix;
 }
 
@@ -457,11 +471,16 @@ pub trait KalmanFilterObservationTransformationMut<
 {
     type ObservationTransformationMatrixMut: ObservationMatrixMut<OBSERVATIONS, STATES, T>;
 
-    /// Gets a mutable reference to the measurement transformation matrix H.
+    /// Gets a mutable reference to the measurement transformation matrix H, or its Jacobian.
     ///
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
+    ///
+    /// ## Extended Kalman Filters
+    /// When correcting using [`correct_nonlinear`](KalmanFilterNonlinearObservationCorrectFilter::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the observation matrix, i.e. the derivative of
+    /// the measurement function with respect to the state vector.
     #[doc(alias = "kalman_get_measurement_transformation")]
     #[doc(alias = "measurement_transformation_mut")]
     fn observation_matrix_mut(&mut self) -> &mut Self::ObservationTransformationMatrixMut;

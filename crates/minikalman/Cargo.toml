@@ -43,6 +43,11 @@ name = "car-1d"
 path = "examples/car_1d.rs"
 required-features = ["alloc"]
 
+[[example]]
+name = "radar-2d"
+path = "examples/radar_2d.rs"
+required-features = ["alloc"]
+
 [features]
 default = ["libm", "alloc"]
 std = ["num-traits/std", "alloc"]
