@@ -29,8 +29,8 @@ fn main() {
     filter.state_vector_mut().apply(|vec| {
         vec.set_row(0, 0.0);
         vec.set_row(1, 0.0);
-        vec.set_row(2, 1.0);
-        vec.set_row(3, 1.0);
+        vec.set_row(2, 2.0); // Overestimates the actual velocity (1 m/s)
+        vec.set_row(3, 2.0); // Overestimates the actual velocity (1 m/s)
     });
 
     // Set up the initial estimate covariance as an identity matrix.
