@@ -451,6 +451,9 @@ mod tests {
     use super::*;
     use assert_float_eq::*;
 
+    use crate::prelude::{
+        ColumnVector, ColumnVectorMut, RowVector, RowVectorMut, Scalar, ScalarMut,
+    };
     #[cfg(feature = "unsafe")]
     use core::ptr::addr_of;
 
@@ -646,5 +649,35 @@ mod tests {
         assert_eq!(a.buffer_len(), 6);
         assert!(!a.is_empty());
         assert!(a.is_valid());
+    }
+
+    #[test]
+    fn row_vector() {
+        let mut a_buf = [1.0, 2.0, 3.0];
+        let mut a = MatrixDataMut::<3, 1, f32>::from(a_buf.as_mut());
+        assert_eq!(a.get_row(0), 1.0);
+
+        a.set_row(0, 0.0);
+        assert_eq!(a.get_row(0), 0.0);
+    }
+
+    #[test]
+    fn column_vector() {
+        let mut a_buf = [1.0, 2.0, 3.0];
+        let mut a = MatrixDataMut::<1, 3, f32>::from(a_buf.as_mut());
+        assert_eq!(a.get_col(0), 1.0);
+
+        a.set_col(0, 0.0);
+        assert_eq!(a.get_col(0), 0.0);
+    }
+
+    #[test]
+    fn scalar() {
+        let mut a_buf = [1.0, 2.0, 3.0];
+        let mut a = MatrixDataMut::<1, 1, f32>::from(a_buf.as_mut());
+        assert_eq!(a.get_value(), 1.0);
+
+        a.set_value(0.0);
+        assert_eq!(a.get_value(), 0.0);
     }
 }
