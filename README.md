@@ -6,12 +6,12 @@
 [![docs.rs](https://img.shields.io/docsrs/minikalman)](https://docs.rs/minikalman/)
 [![codecov](https://codecov.io/gh/sunsided/minikalman-rs/graph/badge.svg?token=YJYARXA8EL)](https://codecov.io/gh/sunsided/minikalman-rs)
 
-This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
-a microcontroller targeted Kalman filter implementation, as well as the
-[libfixkalman](https://github.com/sunsided/libfixkalman) C library for Q16.16 fixed-point Kalman filters.
-It uses [`micromath`](https://docs.rs/micromath) for square root calculations on `no_std`. Depending on the
-configuration, this crate may
-require `f32` / FPU support.
+This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) library, a microcontroller targeted
+Kalman filter implementation, as well as the
+[libfixkalman](https://github.com/sunsided/libfixkalman) C library for Q16.16 fixed-point Kalman filters. It optionally
+uses [`micromath`](https://docs.rs/micromath)
+for square root calculations on `no_std`, and can use [`libm`](https://docs.rs/libm) is wished for.
+Depending on the configuration, this crate may require `f32` / FPU support.
 
 This implementation uses statically allocated buffers for all matrix operations. Due to lack
 of `const` generics for array allocations in Rust, this crate also provides helper macros

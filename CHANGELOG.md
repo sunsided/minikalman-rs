@@ -14,6 +14,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Added the functions `make_identity`, `make_scalar`, `make_comatrix` and `set_diagonal_to_scalar` for square matrices.
 - [#25](https://github.com/sunsided/minikalman-rs/pull/25):
   Added support for Extended Kalman Filters.
+- [#28](https://github.com/sunsided/minikalman-rs/pull/28):
+  `micromath` is now an optional dependency again.
 
 ### Changed
 
