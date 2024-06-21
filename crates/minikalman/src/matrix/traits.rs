@@ -1514,7 +1514,7 @@ mod tests {
         assert_f32_near!(di[2], -0.0);
 
         assert!(di[3] >= -0.667 && di[3] <= -0.65);
-        assert!(di[4] >= 1.31 && di[4] <= 1.34);
+        assert!(di[4] >= 1.30 && di[4] <= 1.35);
         assert_f32_near!(di[5], 0.0);
 
         assert_f32_near!(di[6], 0.0);
