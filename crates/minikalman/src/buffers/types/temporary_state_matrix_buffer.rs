@@ -101,10 +101,6 @@ impl<const STATES: usize, T, M> Matrix<STATES, STATES, T>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
-    #[inline(always)]
-    fn buffer_len(&self) -> usize {
-        self.0.buffer_len()
-    }
 }
 
 impl<const STATES: usize, T, M> MatrixMut<STATES, STATES, T>

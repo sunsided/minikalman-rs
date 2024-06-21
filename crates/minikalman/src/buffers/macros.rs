@@ -123,10 +123,6 @@ macro_rules! impl_mutable_vec {
         impl<const $rows: usize, T, M> $crate::matrix::Matrix<$rows, 1, T> for $type<$rows, T, M> where
             M: $crate::matrix::MatrixMut<$rows, 1, T>
         {
-            #[inline(always)]
-            fn buffer_len(&self) -> usize {
-                self.0.buffer_len()
-            }
         }
 
         impl<const $rows: usize, T, M> $crate::matrix::MatrixMut<$rows, 1, T> for $type<$rows, T, M> where

@@ -36,24 +36,6 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         COLS
     }
 
-    /// Gets the number of elements of this matrix.
-    fn len(&self) -> usize {
-        ROWS * COLS
-    }
-
-    /// Gets the number of elements in the underlying buffer.
-    fn buffer_len(&self) -> usize;
-
-    /// Determines if this matrix has zero elements.
-    fn is_empty(&self) -> bool {
-        ROWS * COLS == 0
-    }
-
-    /// Ensures the underlying buffer has enough space for the expected number of values.
-    fn is_valid(&self) -> bool {
-        self.len() <= self.buffer_len()
-    }
-
     /// Applies a function to this matrix.
     #[inline(always)]
     fn inspect<F, O>(&self, mut f: F) -> O

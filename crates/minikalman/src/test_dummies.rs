@@ -135,11 +135,7 @@ impl<T, const R: usize, const C: usize> IndexMut<usize> for DummyMatrix<T, R, C>
     }
 }
 
-impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T> for DummyMatrix<T, ROWS, COLS> {
-    fn buffer_len(&self) -> usize {
-        self.0.len()
-    }
-}
+impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T> for DummyMatrix<T, ROWS, COLS> {}
 
 impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T>
     for DummyMatrix<T, ROWS, COLS>

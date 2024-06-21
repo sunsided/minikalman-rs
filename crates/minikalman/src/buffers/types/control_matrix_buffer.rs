@@ -144,10 +144,6 @@ impl<const STATES: usize, const CONTROLS: usize, T, M> Matrix<STATES, CONTROLS, 
 where
     M: Matrix<STATES, CONTROLS, T>,
 {
-    #[inline(always)]
-    fn buffer_len(&self) -> usize {
-        self.0.buffer_len()
-    }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, M> ControlMatrix<STATES, CONTROLS, T>
@@ -213,10 +209,6 @@ impl<const STATES: usize, const CONTROLS: usize, T, M> Matrix<STATES, CONTROLS, 
 where
     M: MatrixMut<STATES, CONTROLS, T>,
 {
-    #[inline(always)]
-    fn buffer_len(&self) -> usize {
-        self.0.buffer_len()
-    }
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, M> MatrixMut<STATES, CONTROLS, T>

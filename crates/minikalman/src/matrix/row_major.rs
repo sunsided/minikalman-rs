@@ -1,6 +1,30 @@
 /// Data laid out sequentially and in a row-major layout.
 pub trait RowMajorSequentialData<const ROWS: usize, const COLS: usize, T> {
+    /// Gets the data as a slice.
     fn as_slice(&self) -> &[T];
+
+    /// Gets the length of the data.
+    #[inline(always)]
+    fn len(&self) -> usize {
+        ROWS * COLS
+    }
+
+    /// Gets the length of the underlying data buffer.
+    #[inline(always)]
+    fn buffer_len(&self) -> usize {
+        self.as_slice().len()
+    }
+
+    /// Determines if this data is empty.
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        ROWS * COLS == 0
+    }
+
+    /// Ensures the underlying buffer has enough space for the expected number of values.
+    fn is_valid(&self) -> bool {
+        self.len() <= self.buffer_len()
+    }
 
     /// Gets a matrix element
     ///

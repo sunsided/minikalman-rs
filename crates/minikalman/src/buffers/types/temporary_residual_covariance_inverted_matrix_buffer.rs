@@ -113,10 +113,6 @@ impl<const OBSERVATIONS: usize, T, M> Matrix<OBSERVATIONS, OBSERVATIONS, T>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
-    #[inline(always)]
-    fn buffer_len(&self) -> usize {
-        self.0.buffer_len()
-    }
 }
 
 impl<const OBSERVATIONS: usize, T, M> MatrixMut<OBSERVATIONS, OBSERVATIONS, T>

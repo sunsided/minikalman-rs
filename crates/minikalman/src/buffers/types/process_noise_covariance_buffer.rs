@@ -151,10 +151,6 @@ impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
-    #[inline(always)]
-    fn buffer_len(&self) -> usize {
-        self.0.buffer_len()
-    }
 }
 
 impl<const CONTROLS: usize, T, M> ProcessNoiseCovarianceMatrix<CONTROLS, T>
@@ -218,10 +214,6 @@ impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
-    #[inline(always)]
-    fn buffer_len(&self) -> usize {
-        self.0.buffer_len()
-    }
 }
 
 impl<const CONTROLS: usize, T, M> MatrixMut<CONTROLS, CONTROLS, T>
