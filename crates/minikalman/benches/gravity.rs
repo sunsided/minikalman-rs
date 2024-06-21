@@ -51,24 +51,26 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("filter loop", |bencher| {
         let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
-            StateTransitionMatrixMutBuffer::from(gravity_A.as_mut()),
-            StateVectorBuffer::from(gravity_x.as_mut()),
-            EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut()),
-            TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
+            StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
+            StateVectorBuffer::from(gravity_x.as_mut_slice()),
+            EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
+            PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut_slice()),
+            TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
         let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-            ObservationMatrixMutBuffer::from(gravity_H.as_mut()),
-            MeasurementVectorBuffer::from(gravity_z.as_mut()),
-            MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
-            InnovationVectorBuffer::from(gravity_y.as_mut()),
-            InnovationCovarianceMatrixBuffer::from(gravity_S.as_mut()),
-            KalmanGainMatrixBuffer::from(gravity_K.as_mut()),
-            TemporaryResidualCovarianceInvertedMatrixBuffer::from(gravity_temp_S_inv.as_mut()),
-            TemporaryHPMatrixBuffer::from(gravity_temp_HP.as_mut()),
-            TemporaryPHTMatrixBuffer::from(gravity_temp_PHt.as_mut()),
-            TemporaryKHPMatrixBuffer::from(gravity_temp_KHP.as_mut()),
+            ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
+            MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
+            MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
+            InnovationVectorBuffer::from(gravity_y.as_mut_slice()),
+            InnovationCovarianceMatrixBuffer::from(gravity_S.as_mut_slice()),
+            KalmanGainMatrixBuffer::from(gravity_K.as_mut_slice()),
+            TemporaryResidualCovarianceInvertedMatrixBuffer::from(
+                gravity_temp_S_inv.as_mut_slice(),
+            ),
+            TemporaryHPMatrixBuffer::from(gravity_temp_HP.as_mut_slice()),
+            TemporaryPHTMatrixBuffer::from(gravity_temp_PHt.as_mut_slice()),
+            TemporaryKHPMatrixBuffer::from(gravity_temp_KHP.as_mut_slice()),
         );
 
         // Set initial state.
@@ -93,24 +95,26 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("predict", |bencher| {
         let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
-            StateTransitionMatrixMutBuffer::from(gravity_A.as_mut()),
-            StateVectorBuffer::from(gravity_x.as_mut()),
-            EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut()),
-            TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
+            StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
+            StateVectorBuffer::from(gravity_x.as_mut_slice()),
+            EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
+            PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut_slice()),
+            TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
         let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-            ObservationMatrixMutBuffer::from(gravity_H.as_mut()),
-            MeasurementVectorBuffer::from(gravity_z.as_mut()),
-            MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
-            InnovationVectorBuffer::from(gravity_y.as_mut()),
-            InnovationCovarianceMatrixBuffer::from(gravity_S.as_mut()),
-            KalmanGainMatrixBuffer::from(gravity_K.as_mut()),
-            TemporaryResidualCovarianceInvertedMatrixBuffer::from(gravity_temp_S_inv.as_mut()),
-            TemporaryHPMatrixBuffer::from(gravity_temp_HP.as_mut()),
-            TemporaryPHTMatrixBuffer::from(gravity_temp_PHt.as_mut()),
-            TemporaryKHPMatrixBuffer::from(gravity_temp_KHP.as_mut()),
+            ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
+            MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
+            MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
+            InnovationVectorBuffer::from(gravity_y.as_mut_slice()),
+            InnovationCovarianceMatrixBuffer::from(gravity_S.as_mut_slice()),
+            KalmanGainMatrixBuffer::from(gravity_K.as_mut_slice()),
+            TemporaryResidualCovarianceInvertedMatrixBuffer::from(
+                gravity_temp_S_inv.as_mut_slice(),
+            ),
+            TemporaryHPMatrixBuffer::from(gravity_temp_HP.as_mut_slice()),
+            TemporaryPHTMatrixBuffer::from(gravity_temp_PHt.as_mut_slice()),
+            TemporaryKHPMatrixBuffer::from(gravity_temp_KHP.as_mut_slice()),
         );
 
         // Set initial state.
@@ -129,24 +133,26 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("update", |bencher| {
         let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
-            StateTransitionMatrixMutBuffer::from(gravity_A.as_mut()),
-            StateVectorBuffer::from(gravity_x.as_mut()),
-            EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut()),
-            PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut()),
-            TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut()),
+            StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
+            StateVectorBuffer::from(gravity_x.as_mut_slice()),
+            EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
+            PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut_slice()),
+            TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
         let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-            ObservationMatrixMutBuffer::from(gravity_H.as_mut()),
-            MeasurementVectorBuffer::from(gravity_z.as_mut()),
-            MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut()),
-            InnovationVectorBuffer::from(gravity_y.as_mut()),
-            InnovationCovarianceMatrixBuffer::from(gravity_S.as_mut()),
-            KalmanGainMatrixBuffer::from(gravity_K.as_mut()),
-            TemporaryResidualCovarianceInvertedMatrixBuffer::from(gravity_temp_S_inv.as_mut()),
-            TemporaryHPMatrixBuffer::from(gravity_temp_HP.as_mut()),
-            TemporaryPHTMatrixBuffer::from(gravity_temp_PHt.as_mut()),
-            TemporaryKHPMatrixBuffer::from(gravity_temp_KHP.as_mut()),
+            ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
+            MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
+            MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
+            InnovationVectorBuffer::from(gravity_y.as_mut_slice()),
+            InnovationCovarianceMatrixBuffer::from(gravity_S.as_mut_slice()),
+            KalmanGainMatrixBuffer::from(gravity_K.as_mut_slice()),
+            TemporaryResidualCovarianceInvertedMatrixBuffer::from(
+                gravity_temp_S_inv.as_mut_slice(),
+            ),
+            TemporaryHPMatrixBuffer::from(gravity_temp_HP.as_mut_slice()),
+            TemporaryPHTMatrixBuffer::from(gravity_temp_PHt.as_mut_slice()),
+            TemporaryKHPMatrixBuffer::from(gravity_temp_KHP.as_mut_slice()),
         );
 
         // Set initial state.

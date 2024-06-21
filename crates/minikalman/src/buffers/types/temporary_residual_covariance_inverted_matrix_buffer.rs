@@ -18,7 +18,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = TemporaryResidualCovarianceInvertedMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = TemporaryResidualCovarianceInvertedMatrixBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct TemporaryResidualCovarianceInvertedMatrixBuffer<const OBSERVATIONS: usize, T, M>(
     M,
@@ -191,7 +191,7 @@ mod tests {
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
         let value: TemporaryResidualCovarianceInvertedMatrixBuffer<5, f32, _> =
-            data.as_mut().into();
+            data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());

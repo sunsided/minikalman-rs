@@ -38,7 +38,7 @@ where
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = StateTransitionMatrixMutBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = StateTransitionMatrixMutBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct StateTransitionMatrixMutBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
@@ -317,7 +317,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: StateTransitionMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: StateTransitionMatrixBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -342,7 +342,7 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: StateTransitionMatrixMutBuffer<5, f32, _> = data.as_mut().into();
+        let value: StateTransitionMatrixMutBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());

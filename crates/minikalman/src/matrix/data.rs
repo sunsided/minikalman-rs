@@ -274,7 +274,7 @@ mod tests {
         let mut a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
-        let a = MatrixDataRef::<2, 3, f32>::from(a_buf.as_mut());
+        let a = MatrixDataRef::<2, 3, f32>::from(a_buf.as_mut_slice());
 
         assert_f32_near!(a[0], 1.);
         assert_f32_near!(a[1], 2.);
@@ -295,7 +295,7 @@ mod tests {
         let mut a_buf = [
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0];
-        let mut a = MatrixDataMut::<2, 3, f32>::from(a_buf.as_mut());
+        let mut a = MatrixDataMut::<2, 3, f32>::from(a_buf.as_mut_slice());
         a[2] += 10.0;
 
         assert_f32_near!(a[0], 1.);
@@ -314,7 +314,7 @@ mod tests {
     #[test]
     fn row_vector() {
         let mut a_buf = [1.0, 2.0, 3.0];
-        let mut a = MatrixDataMut::<3, 1, f32>::from(a_buf.as_mut());
+        let mut a = MatrixDataMut::<3, 1, f32>::from(a_buf.as_mut_slice());
         assert_eq!(a.get_row(0), 1.0);
         assert_eq!(a.get_row(1), 2.0);
         assert_eq!(a.get_row(2), 3.0);
@@ -326,7 +326,7 @@ mod tests {
     #[test]
     fn column_vector() {
         let mut a_buf = [1.0, 2.0, 3.0];
-        let mut a = MatrixDataMut::<1, 3, f32>::from(a_buf.as_mut());
+        let mut a = MatrixDataMut::<1, 3, f32>::from(a_buf.as_mut_slice());
         assert_eq!(a.get_col(0), 1.0);
         assert_eq!(a.get_col(1), 2.0);
         assert_eq!(a.get_col(2), 3.0);
@@ -338,7 +338,7 @@ mod tests {
     #[test]
     fn scalar() {
         let mut a_buf = [1.0, 2.0, 3.0];
-        let mut a = MatrixDataMut::<1, 1, f32>::from(a_buf.as_mut());
+        let mut a = MatrixDataMut::<1, 1, f32>::from(a_buf.as_mut_slice());
         assert_eq!(a.get_value(), 1.0);
 
         a.set_value(0.0);

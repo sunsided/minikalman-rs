@@ -20,7 +20,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = MeasurementNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = MeasurementNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct MeasurementNoiseCovarianceMatrixBuffer<const OBSERVATION: usize, T, M>(
     M,
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: MeasurementNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());

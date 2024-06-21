@@ -39,7 +39,7 @@ where
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = ProcessNoiseCovarianceMatrixMutBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = ProcessNoiseCovarianceMatrixMutBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 #[doc(alias = "ControlCovarianceMatrixMutBuffer")]
 pub struct ProcessNoiseCovarianceMatrixMutBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: ProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
@@ -357,7 +357,7 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut().into();
+        let value: ProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());

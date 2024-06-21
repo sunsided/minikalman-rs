@@ -117,7 +117,7 @@ impl<T, const R: usize, const C: usize> RowMajorSequentialDataMut<R, C, T>
     for DummyMatrix<T, R, C>
 {
     fn as_mut_slice(&mut self) -> &mut [T] {
-        self.0.as_mut()
+        self.0.as_mut_slice()
     }
 }
 

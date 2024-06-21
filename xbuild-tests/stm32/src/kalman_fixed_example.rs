@@ -117,26 +117,26 @@ pub fn predict_gravity() -> I16F16 {
     impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, I16F16, I16F16::ZERO);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
-        StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
-        StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
-        EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
-        PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
-        TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
+        StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
+        StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
+        EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
+        PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
+        TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
     );
 
     let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
-        ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
-        MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
-        MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
-        InnovationVectorBuffer::from(unsafe { gravity_y.as_mut() }),
-        InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut() }),
-        KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut() }),
+        ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
+        MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
+        MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),
+        InnovationVectorBuffer::from(unsafe { gravity_y.as_mut_slice() }),
+        InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut_slice() }),
+        KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut_slice() }),
         TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
-            gravity_temp_S_inv.as_mut()
+            gravity_temp_S_inv.as_mut_slice()
         }),
-        TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut() }),
-        TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut() }),
-        TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut() }),
+        TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut_slice() }),
+        TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut_slice() }),
+        TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut_slice() }),
     );
 
     // Set initial state.

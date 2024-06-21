@@ -38,7 +38,7 @@ where
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = ControlMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// let buffer = ControlMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct ControlMatrixMutBuffer<const STATES: usize, const CONTROLS: usize, T, M>(
     M,
@@ -327,7 +327,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ControlMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: ControlMatrixBuffer<5, 3, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -352,7 +352,7 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ControlMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: ControlMatrixMutBuffer<5, 3, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());

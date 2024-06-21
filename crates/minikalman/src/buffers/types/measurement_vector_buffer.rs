@@ -20,7 +20,7 @@ use crate::matrix::MatrixMut;
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = MeasurementVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = MeasurementVectorBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct MeasurementVectorBuffer<const OBSERVATIONS: usize, T, M>(M, PhantomData<T>)
 where
@@ -51,7 +51,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 5];
-        let value: MeasurementVectorBuffer<5, f32, _> = data.as_mut().into();
+        let value: MeasurementVectorBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());

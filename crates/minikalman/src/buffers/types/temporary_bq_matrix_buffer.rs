@@ -18,7 +18,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = TemporaryBQMatrixBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// let buffer = TemporaryBQMatrixBuffer::<2, 2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct TemporaryBQMatrixBuffer<const STATES: usize, const CONTROLS: usize, T, M>(
     M,
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: TemporaryBQMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: TemporaryBQMatrixBuffer<5, 3, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());

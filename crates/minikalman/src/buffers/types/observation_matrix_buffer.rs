@@ -41,7 +41,7 @@ where
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = ObservationMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut());
+/// let buffer = ObservationMatrixMutBuffer::<2, 2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct ObservationMatrixMutBuffer<const OBSERVATIONS: usize, const STATES: usize, T, M>(
     M,
@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ObservationMatrixBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: ObservationMatrixBuffer<5, 3, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -385,7 +385,7 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ObservationMatrixMutBuffer<5, 3, f32, _> = data.as_mut().into();
+        let value: ObservationMatrixMutBuffer<5, 3, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 15);
         assert!(!value.is_empty());
         assert!(value.is_valid());

@@ -18,7 +18,7 @@ use core::ops::{Index, IndexMut};
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = InnovationCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = InnovationCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 #[doc(alias = "ResidualCovarianceMatrixBuffer")]
 pub struct InnovationCovarianceMatrixBuffer<const OBSERVATIONS: usize, T, M>(M, PhantomData<T>)
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: InnovationCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: InnovationCovarianceMatrixBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
