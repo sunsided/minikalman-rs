@@ -1,5 +1,6 @@
 use crate::kalman::InnovationCovarianceMatrix;
 use crate::matrix::{IntoInnerData, Matrix, MatrixData, MatrixDataArray, MatrixDataMut, MatrixMut};
+use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -17,7 +18,7 @@ use core::ops::{Index, IndexMut};
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = InnovationCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = InnovationCovarianceMatrixBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 #[doc(alias = "ResidualCovarianceMatrixBuffer")]
 pub struct InnovationCovarianceMatrixBuffer<const OBSERVATIONS: usize, T, M>(M, PhantomData<T>)
@@ -82,23 +83,25 @@ where
     }
 }
 
-impl<const OBSERVATIONS: usize, T, M> AsRef<[T]>
+impl<const OBSERVATIONS: usize, T, M> RowMajorSequentialData<OBSERVATIONS, OBSERVATIONS, T>
     for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
-    fn as_ref(&self) -> &[T] {
-        self.0.as_ref()
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.0.as_slice()
     }
 }
 
-impl<const OBSERVATIONS: usize, T, M> AsMut<[T]>
+impl<const OBSERVATIONS: usize, T, M> RowMajorSequentialDataMut<OBSERVATIONS, OBSERVATIONS, T>
     for InnovationCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
     M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.0.as_mut()
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.0.as_mut_slice()
     }
 }
 
@@ -184,11 +187,11 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: InnovationCovarianceMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: InnovationCovarianceMatrixBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
-        assert!(core::ptr::eq(value.as_ref(), &data));
+        assert!(core::ptr::eq(value.as_slice(), &data));
     }
 
     #[test]
@@ -208,7 +211,7 @@ mod tests {
             let matrix = value.as_matrix_mut();
             for i in 0..matrix.cols() {
                 matrix.set_symmetric(0, i, i as _);
-                matrix.set(i, i, i as _);
+                matrix.set_at(i, i, i as _);
             }
         }
 
@@ -221,8 +224,8 @@ mod tests {
         {
             let matrix = value.as_matrix();
             for i in 0..matrix.rows() {
-                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
-                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(i, 0), 10.0 + i as f32);
             }
         }
 

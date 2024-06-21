@@ -16,11 +16,13 @@
 //!
 //! * `std` - Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
 //! * `alloc` - Enables allocation support for builder types.
-//! * `libm` - Enables libm support.
-//! * `micromath` - Enables micromath support.
+//! * `libm` - Enables [libm](https://crates.io/crates/libm) support.
+//! * `micromath` - Enables [micromath](https://crates.io/crates/micromath) support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!              compiles the crate as `#![forbid(unsafe)]`.
+//! * `nalgebra` - Enables [nalgebra](https://crates.io/crates/nalgebra) support. For major parts,
+//!                must be used in conjunction with `unsafe`.
 //!
 //! ## Example
 //!
@@ -158,26 +160,26 @@
 //! impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 //!
 //! let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
-//!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
-//!     StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
-//!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
-//!     PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
-//!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
+//!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
+//!     StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
+//!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
+//!     PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
+//!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
 //! );
 //!
 //! let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-//!     ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
-//!     MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
-//!     MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
-//!     InnovationVectorBuffer::from(unsafe { gravity_y.as_mut() }),
-//!     InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut() }),
-//!     KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut() }),
+//!     ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
+//!     MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
+//!     MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),
+//!     InnovationVectorBuffer::from(unsafe { gravity_y.as_mut_slice() }),
+//!     InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut_slice() }),
+//!     KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut_slice() }),
 //!     TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
-//!         gravity_temp_S_inv.as_mut()
+//!         gravity_temp_S_inv.as_mut_slice()
 //!     }),
-//!     TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut() }),
-//!     TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut() }),
-//!     TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut() }),
+//!     TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut_slice() }),
+//!     TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut_slice() }),
+//!     TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut_slice() }),
 //! );
 //! ```
 //!

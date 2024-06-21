@@ -1,4 +1,5 @@
 use crate::matrix::MatrixDataType;
+use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use core::ops::{Index, IndexMut};
 use num_traits::{One, Zero};
 
@@ -23,7 +24,7 @@ pub trait AsMatrixMut<const ROWS: usize, const COLS: usize, T>: AsMatrix<ROWS, C
 
 /// A matrix wrapping a data buffer.
 pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    RowMajorSequentialData<ROWS, COLS, T> + Index<usize, Output = T>
 {
     /// Returns the number of rows of this matrix.
     fn rows(&self) -> usize {
@@ -33,26 +34,6 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// Returns the number of columns of this matrix.
     fn cols(&self) -> usize {
         COLS
-    }
-
-    /// Gets the number of elements of this matrix.
-    fn len(&self) -> usize {
-        ROWS * COLS
-    }
-
-    /// Gets the number of elements in the underlying buffer..
-    fn buffer_len(&self) -> usize {
-        self.as_ref().len()
-    }
-
-    /// Determines if this matrix has zero elements.
-    fn is_empty(&self) -> bool {
-        ROWS * COLS == 0
-    }
-
-    /// Ensures the underlying buffer has enough space for the expected number of values.
-    fn is_valid(&self) -> bool {
-        self.len() <= self.buffer_len()
     }
 
     /// Applies a function to this matrix.
@@ -79,19 +60,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     where
         T: Copy,
     {
-        self.as_ref()[idx!(row * self.cols() + column)]
-    }
-
-    /// Gets a pointer to a matrix row
-    ///
-    /// ## Arguments
-    /// * `mat` - The matrix to get from
-    /// * `rows` - The row
-    /// *  `row_data` - A pointer to the given matrix row
-    #[doc(alias = "matrix_get_row_pointer")]
-    fn get_row_pointer<'a>(&'a self, row: usize, row_data: &mut &'a [T]) {
-        let data = self.as_ref();
-        *row_data = &data[idx!(row * self.cols())..idx!((row + 1) * self.cols())];
+        RowMajorSequentialData::get_at(self, row, column)
     }
 
     /// Gets a copy of a matrix column
@@ -112,7 +81,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let stride: isize = self.cols() as _;
         let mut source_index = (target_index) * stride + (column as isize);
 
-        let src = self.as_ref();
+        let src = self.as_slice();
 
         // fetch data
         col_data[idx!(target_index)] = src[idx!(source_index)];
@@ -138,7 +107,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let mut target_index: usize = (self.cols() - 1) as _;
         let mut source_index: usize = (row + 1) * (self.cols() - 1);
 
-        let data = self.as_ref();
+        let data = self.as_slice();
         row_data[idx!(target_index)] = data[idx!(source_index)];
         while target_index != 0 {
             target_index -= 1;
@@ -165,8 +134,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_ref();
-        let bdata = target.as_mut();
+        let adata = self.as_slice();
+        let bdata = target.as_mut_slice();
 
         for index in (0..=(count - 1)).rev() {
             bdata[idx!(index)] = adata[idx![index]];
@@ -240,8 +209,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(baux.len(), brows);
         }
 
-        let adata = self.as_ref();
-        let cdata = c.as_mut();
+        let adata = self.as_slice();
+        let cdata = c.as_mut_slice();
 
         for j in (0..bcols).rev() {
             // create a copy of the column in B to avoid cache issues
@@ -318,9 +287,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(bcols, ccols);
         }
 
-        let adata = self.as_ref();
-        let bdata = b.as_ref();
-        let cdata = c.as_mut();
+        let adata = self.as_slice();
+        let bdata = b.as_slice();
+        let cdata = c.as_mut_slice();
 
         for j in (0..bcols).rev() {
             let mut index_a: usize = 0;
@@ -368,9 +337,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(ccols, 1);
         }
 
-        let adata = self.as_ref();
-        let xdata = x.as_ref();
-        let cdata = c.as_mut();
+        let adata = self.as_slice();
+        let xdata = x.as_slice();
+        let cdata = c.as_mut_slice();
 
         let mut index_a: usize = 0;
         let b0 = xdata[0];
@@ -420,9 +389,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(ccols, 1);
         }
 
-        let adata = self.as_ref();
-        let xdata = x.as_ref();
-        let cdata = c.as_mut();
+        let adata = self.as_slice();
+        let xdata = x.as_slice();
+        let cdata = c.as_mut_slice();
 
         let mut index_a: usize = 0;
         let b0 = xdata[0];
@@ -472,9 +441,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(b.rows(), ccols);
         }
 
-        let adata = self.as_ref();
-        let bdata = b.as_ref();
-        let cdata = c.as_mut();
+        let adata = self.as_slice();
+        let bdata = b.as_slice();
+        let cdata = c.as_mut_slice();
 
         let mut c_index: usize = 0;
         let mut a_index_start: usize = 0;
@@ -532,9 +501,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(brows, ccols);
         }
 
-        let adata = self.as_ref();
-        let bdata = b.as_ref();
-        let cdata = c.as_mut();
+        let adata = self.as_slice();
+        let bdata = b.as_slice();
+        let cdata = c.as_mut_slice();
 
         let mut c_index: usize = 0;
         let mut a_index_start: usize = 0;
@@ -589,9 +558,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(brows, ccols);
         }
 
-        let adata = &self.as_ref();
-        let bdata = &b.as_ref();
-        let cdata = &mut c.as_mut();
+        let adata = &self.as_slice();
+        let bdata = &b.as_slice();
+        let cdata = &mut c.as_mut_slice();
 
         // test dimensions of a and b
         #[cfg(not(feature = "no_assert"))]
@@ -645,9 +614,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_ref();
-        let bdata = b.as_ref();
-        let cdata = c.as_mut();
+        let adata = self.as_slice();
+        let bdata = b.as_slice();
+        let cdata = c.as_mut_slice();
 
         for index in (0..count).rev() {
             cdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
@@ -674,8 +643,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_ref();
-        let bdata = b.as_mut();
+        let adata = self.as_slice();
+        let bdata = b.as_mut_slice();
 
         for index in (0..count).rev() {
             bdata[idx!(index)] += adata[idx!(index)];
@@ -702,8 +671,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_ref();
-        let bdata = b.as_mut();
+        let adata = self.as_slice();
+        let bdata = b.as_mut_slice();
 
         for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
@@ -712,7 +681,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 }
 
 /// A square matrix wrapping a data buffer.
-pub trait SquareMatrix<const N: usize, T = f32>: AsRef<[T]> {
+pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T> {
     /// Inverts a square lower triangular matrix. Meant to be used with
     /// [`MatrixDataMut::cholesky_decompose_lower`](crate::matrix::MatrixDataMut::cholesky_decompose_lower).
     ///
@@ -774,8 +743,8 @@ pub trait SquareMatrix<const N: usize, T = f32>: AsRef<[T]> {
         T: MatrixDataType,
     {
         let n = N;
-        let mat = self.as_ref(); // t
-        let inv = inverse.as_mut(); // a
+        let mat = self.as_slice(); // t
+        let inv = inverse.as_mut_slice(); // a
 
         // Inverts the lower triangular system and saves the result
         // in the upper triangle to minimize cache misses.
@@ -820,7 +789,9 @@ pub trait SquareMatrix<const N: usize, T = f32>: AsRef<[T]> {
 }
 
 /// A square matrix wrapping a data buffer.
-pub trait SquareMatrixMut<const N: usize, T = f32>: AsMut<[T]> + SquareMatrix<N, T> {
+pub trait SquareMatrixMut<const N: usize, T = f32>:
+    RowMajorSequentialDataMut<N, N, T> + SquareMatrix<N, T>
+{
     /// Sets this matrix to the identity matrix, i.e. all off-diagonal entries are set to zero,
     /// diagonal entries are set to 1.0.
     fn make_identity(&mut self)
@@ -850,7 +821,7 @@ pub trait SquareMatrixMut<const N: usize, T = f32>: AsMut<[T]> + SquareMatrix<N,
     where
         T: Copy,
     {
-        let data = self.as_mut();
+        let data = self.as_mut_slice();
         for i in 0..N {
             data[i * N + i] = value;
         }
@@ -866,7 +837,7 @@ pub trait SquareMatrixMut<const N: usize, T = f32>: AsMut<[T]> + SquareMatrix<N,
     where
         T: Copy,
     {
-        let data = self.as_mut();
+        let data = self.as_mut_slice();
         for i in 0..N {
             for j in 0..N {
                 data[i * N + j] = if i == j { diagonal } else { off_diagonal };
@@ -885,7 +856,7 @@ pub trait Scalar<T = f32>: Matrix<1, 1, T> {
     where
         T: Copy,
     {
-        self.get(0, 0)
+        RowMajorSequentialData::get_at(self, 0, 0)
     }
 }
 
@@ -896,7 +867,7 @@ pub trait RowVector<const ROWS: usize, T = f32>: Matrix<ROWS, 1, T> {
     where
         T: Copy,
     {
-        self.get(row, 0)
+        RowMajorSequentialData::get_at(self, row, 0)
     }
 }
 
@@ -907,7 +878,7 @@ pub trait ColumnVector<const COLS: usize, T = f32>: Matrix<1, COLS, T> {
     where
         T: Copy,
     {
-        self.get(0, column)
+        RowMajorSequentialData::get_at(self, 0, column)
     }
 }
 
@@ -915,7 +886,7 @@ pub trait ScalarMut<T = f32>: MatrixMut<1, 1, T> {
     /// Sets the value of a matrix of size 1×1.
     #[inline(always)]
     fn set_value(&mut self, value: T) {
-        self.set(0, 0, value)
+        RowMajorSequentialDataMut::set_at(self, 0, 0, value)
     }
 }
 
@@ -925,7 +896,7 @@ pub trait RowVectorMut<const ROWS: usize, T = f32>:
     /// Sets the value of the n-th row of a matrix of size N×1.
     #[inline(always)]
     fn set_row(&mut self, row: usize, value: T) {
-        self.set(row, 0, value)
+        RowMajorSequentialDataMut::set_at(self, row, 0, value)
     }
 }
 
@@ -935,7 +906,7 @@ pub trait ColumnVectorMut<const COLS: usize, T = f32>:
     /// Sets the value of the n-th column of a matrix of size 1×N.
     #[inline(always)]
     fn set_col(&mut self, column: usize, value: T) {
-        self.set(0, column, value)
+        RowMajorSequentialDataMut::set_at(self, 0, column, value)
     }
 }
 
@@ -948,7 +919,7 @@ impl<const N: usize, T, M> ColumnVectorMut<N, T> for M where M: MatrixMut<1, N, 
 
 /// A mutable matrix wrapping a data buffer.
 pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
-    Matrix<ROWS, COLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    Matrix<ROWS, COLS, T> + RowMajorSequentialDataMut<ROWS, COLS, T> + IndexMut<usize, Output = T>
 {
     /// Applies a function to this matrix.
     #[inline(always)]
@@ -979,7 +950,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     #[doc(alias = "matrix_set")]
     fn set(&mut self, row: usize, column: usize, value: T) {
         let cols = self.cols();
-        self.as_mut()[idx!(row * cols + column)] = value;
+        self.as_mut_slice()[idx!(row * cols + column)] = value;
     }
 
     /// Sets all elements of the matrix to the provided value.
@@ -992,7 +963,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     where
         T: Copy,
     {
-        self.as_mut().fill(value);
+        self.as_mut_slice().fill(value);
     }
 
     /// Sets all elements of the matrix to the provided value.
@@ -1019,8 +990,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     where
         T: Copy,
     {
-        self.set(row, column, value);
-        self.set(column, row, value);
+        RowMajorSequentialDataMut::set_at(self, row, column, value);
+        RowMajorSequentialDataMut::set_at(self, column, row, value);
     }
 
     /// Adds two matrices in place, using `A = A + B`
@@ -1043,8 +1014,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_mut();
-        let bdata = b.as_ref();
+        let adata = self.as_mut_slice();
+        let bdata = b.as_slice();
 
         for index in (0..count).rev() {
             adata[idx!(index)] += bdata[idx![index]];
@@ -1071,8 +1042,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_mut();
-        let bdata = b.as_ref();
+        let adata = self.as_mut_slice();
+        let bdata = b.as_slice();
 
         for index in (0..count).rev() {
             adata[idx!(index)] -= bdata[idx![index]];
@@ -1121,7 +1092,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
         T: MatrixDataType,
     {
         let n = self.rows();
-        let t: &mut [T] = self.as_mut();
+        let t: &mut [T] = self.as_mut_slice();
 
         let mut div_el_ii = T::zero();
 
@@ -1299,10 +1270,10 @@ mod tests {
         let mut c = MatrixData::new_mut::<2, 2, f32>(&mut c_buf);
 
         a.multadd_transb(&b, &mut c);
-        assert_f32_near!(c.get(0, 0), 1000. + 1. * 10. + 2. * 20. + 3. * 30.); // 1140
-        assert_f32_near!(c.get(0, 1), 2000. + 1. * 11. + 2. * 21. + 3. * 31.); // 2146
-        assert_f32_near!(c.get(1, 0), 3000. + 4. * 10. + 5. * 20. + 6. * 30.); // 3320
-        assert_f32_near!(c.get(1, 1), 4000. + 4. * 11. + 5. * 21. + 6. * 31.); // 4335
+        assert_f32_near!(c.get_at(0, 0), 1000. + 1. * 10. + 2. * 20. + 3. * 30.); // 1140
+        assert_f32_near!(c.get_at(0, 1), 2000. + 1. * 11. + 2. * 21. + 3. * 31.); // 2146
+        assert_f32_near!(c.get_at(1, 0), 3000. + 4. * 10. + 5. * 20. + 6. * 30.); // 3320
+        assert_f32_near!(c.get_at(1, 1), 4000. + 4. * 11. + 5. * 21. + 6. * 31.); // 4335
     }
 
     #[test]
@@ -1342,7 +1313,7 @@ mod tests {
         let mut c = MatrixData::new_array::<2, 2, 4, f32>([0f32; 2 * 2]);
         a.multscale_transb(&b, 2.0, &mut c);
 
-        let c_buf = c.as_ref();
+        let c_buf = c.as_slice();
         assert_f32_near!(c_buf[0], 2.0 * (1. * 10. + 2. * 20. + 3. * 30.)); // 280
         assert_f32_near!(c_buf[1], 2.0 * (1. * 11. + 2. * 21. + 3. * 31.)); // 292
         assert_f32_near!(c_buf[2], 2.0 * (4. * 10. + 5. * 20. + 6. * 30.)); // 640
@@ -1389,24 +1360,8 @@ mod tests {
         let mut c = MatrixData::new_mut::<2, 1, f32>(&mut c_buf);
 
         a.multadd_rowvector(&b, &mut c);
-        assert_f32_near!(c.get(0, 0), 1000. + 1. * 10. + 2. * 20. + 3. * 30.); // 1140
-        assert_f32_near!(c.get(1, 0), 2000. + 4. * 10. + 5. * 20. + 6. * 30.); // 2320
-    }
-
-    #[test]
-    #[rustfmt::skip]
-    fn get_row_pointer() {
-        let a_buf = [
-            1.0, 2.0, 3.0,
-            4.0, 5.0, 6.0];
-        let a = MatrixData::new_ref::<2, 3, f32>(&a_buf);
-
-        let mut a_out = [0.0; 3].as_slice();
-        a.get_row_pointer(0, &mut a_out);
-        assert_eq!(a_out, [1.0, 2.0, 3.0]);
-
-        a.get_row_pointer(1, &mut a_out);
-        assert_eq!(a_out, [4.0, 5.0, 6.0]);
+        assert_f32_near!(c.get_at(0, 0), 1000. + 1. * 10. + 2. * 20. + 3. * 30.); // 1140
+        assert_f32_near!(c.get_at(1, 0), 2000. + 4. * 10. + 5. * 20. + 6. * 30.); // 2320
     }
 
     #[test]
@@ -1491,31 +1446,17 @@ mod tests {
 
         // When cross-checking with e.g. Octave keep in mind that
         // this is `chol(d, 'lower')` since we have a longer triangular.
-        if cfg!(not(feature = "micromath")) {
-            assert_f32_near!(d[0], 1.0);
-            assert_f32_near!(d[1], 0.0);
-            assert_f32_near!(d[2], 0.0);
+        assert_f32_near!(d[0], 1.0);
+        assert_f32_near!(d[1], 0.0);
+        assert_f32_near!(d[2], 0.0);
 
-            assert_f32_near!(d[3], 0.5);
-            assert_f32_near!(d[4], 0.866_025_4);
-            assert_f32_near!(d[5], 0.0);
+        assert_f32_near!(d[3], 0.5);
+        assert!(d[4] >= 0.866 && d[4] <= 0.875);
+        assert_f32_near!(d[5], 0.0);
 
-            assert_f32_near!(d[6], 0.0);
-            assert_f32_near!(d[7], 0.0);
-            assert_f32_near!(d[8], 1.0);
-        } else {
-            assert_f32_near!(d[0], 1.0);
-            assert_f32_near!(d[1], 0.0);
-            assert_f32_near!(d[2], 0.0);
-
-            assert_f32_near!(d[3], 0.5);
-            assert_f32_near!(d[4], 0.8749999);
-            assert_f32_near!(d[5], 0.0);
-
-            assert_f32_near!(d[6], 0.0);
-            assert_f32_near!(d[7], 0.0);
-            assert_f32_near!(d[8], 1.0);
-        }
+        assert_f32_near!(d[6], 0.0);
+        assert_f32_near!(d[7], 0.0);
+        assert_f32_near!(d[8], 1.0);
     }
 
     /// Tests matrix inversion using Cholesky decomposition
@@ -1564,36 +1505,21 @@ mod tests {
         //    -0.6667    1.3333         0
         //          0         0    1.0000
 
-        let test = mi.get(1, 1);
+        let test = mi.get_at(1, 1);
         assert!(test.is_finite());
         assert!(test >= 1.3);
 
-        if cfg!(not(feature = "micromath")) {
-            assert_f32_near!(di[0], 1.333_333_3);
-            assert_f32_near!(di[1], -0.666_666_6);
-            assert_f32_near!(di[2], -0.0);
+        assert!(di[0] >= 1.32 && di[0] <= 1.34);
+        assert!(di[1] >= -0.667 && di[1] <= -0.65);
+        assert_f32_near!(di[2], -0.0);
 
-            assert_f32_near!(di[3], -0.666_666_6);
-            assert_f32_near!(di[4], 1.333_333_3);
-            assert_f32_near!(di[5], 0.0);
+        assert!(di[3] >= -0.667 && di[3] <= -0.65);
+        assert!(di[4] >= 1.30 && di[4] <= 1.35);
+        assert_f32_near!(di[5], 0.0);
 
-            assert_f32_near!(di[6], 0.0);
-            assert_f32_near!(di[7], 0.0);
-            assert_f32_near!(di[8], 1.0);
-        }
-        else {
-            assert_f32_near!(di[0], 1.3265326);
-            assert_f32_near!(di[1], -0.6530628);
-            assert_f32_near!(di[2], -0.0);
-
-            assert_f32_near!(di[3], -0.6530628);
-            assert_f32_near!(di[4], 1.3061244);
-            assert_f32_near!(di[5], 0.0);
-
-            assert_f32_near!(di[6], 0.0);
-            assert_f32_near!(di[7], 0.0);
-            assert_f32_near!(di[8], 1.000001);
-        }
+        assert_f32_near!(di[6], 0.0);
+        assert_f32_near!(di[7], 0.0);
+        assert!(di[8] >= 1.0 && di[8] <= 1.00001);
     }
 
     #[test]
@@ -1614,7 +1540,7 @@ mod tests {
         m.set_diagonal_to_scalar(0.0);
 
         assert_eq!(
-            m.as_ref(),
+            m.as_slice(),
             [
                  0.0, 42.0, 42.0, 42.0,
                 42.0,  0.0, 42.0, 42.0,
@@ -1635,7 +1561,7 @@ mod tests {
         m.make_comatrix(42.0, 1.0);
 
         assert_eq!(
-            m.as_ref(),
+            m.as_slice(),
             [
                 42.0,  1.0,  1.0,  1.0,
                  1.0, 42.0,  1.0,  1.0,
@@ -1656,7 +1582,7 @@ mod tests {
         m.make_scalar(10.0);
 
         assert_eq!(
-            m.as_ref(),
+            m.as_slice(),
             [
                 10.0,  0.0,  0.0,  0.0,
                  0.0, 10.0,  0.0,  0.0,
@@ -1677,7 +1603,7 @@ mod tests {
         m.make_identity();
 
         assert_eq!(
-            m.as_ref(),
+            m.as_slice(),
             [
                 1.0, 0.0, 0.0, 0.0,
                 0.0, 1.0, 0.0, 0.0,

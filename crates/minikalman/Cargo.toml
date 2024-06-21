@@ -58,11 +58,18 @@ fixed = ["dep:fixed", "fixed/num-traits"]
 alloc = []
 no_assert = []
 micromath = ["dep:micromath"]
+nalgebra = ["dep:nalgebra"]
+
+# Unstable implementation
+# nalgebra_std = ["std", "nalgebra", "nalgebra/std"]
+# nalgebra_alloc = ["alloc", "nalgebra", "nalgebra/alloc"]
+# nalgebra_libm = ["libm", "nalgebra", "nalgebra/libm"]
 
 [dependencies]
 fixed = { version = "1.23.1", optional = true }
 libm = { version = "0.2.8", optional = true }
 micromath = { version = "2.1.0", optional = true, features = ["num-traits"] }
+nalgebra = { version = "0.32.6", optional = true, default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
 
 [dev-dependencies]

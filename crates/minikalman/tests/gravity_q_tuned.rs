@@ -133,19 +133,19 @@ fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut
         const T: f64 = 1 as _;
 
         // Transition of x to s.
-        a.set(0, 0, 1 as _); // 1
-        a.set(0, 1, T as _); // T
-        a.set(0, 2, 0.5 * T * T); // 0.5 × T²
+        a.set_at(0, 0, 1 as _); // 1
+        a.set_at(0, 1, T as _); // T
+        a.set_at(0, 2, 0.5 * T * T); // 0.5 × T²
 
         // Transition of x to v.
-        a.set(1, 0, 0 as _); // 0
-        a.set(1, 1, 1 as _); // 1
-        a.set(1, 2, T as _); // T
+        a.set_at(1, 0, 0 as _); // 0
+        a.set_at(1, 1, 1 as _); // 1
+        a.set_at(1, 2, T as _); // T
 
         // Transition of b to g.
-        a.set(2, 0, 0 as _); // 0
-        a.set(2, 1, 0 as _); // 0
-        a.set(2, 2, 1 as _); // 1
+        a.set_at(2, 0, 0 as _); // 0
+        a.set_at(2, 1, 0 as _); // 0
+        a.set_at(2, 2, 1 as _); // 1
     });
 }
 
@@ -156,14 +156,14 @@ fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut
 /// are linearly independent.
 fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f64>) {
     filter.as_matrix_mut().apply(|p| {
-        p.set(0, 0, 0.1 as _); // var(s)
-        p.set(0, 1, 0 as _); // cov(s, v)
-        p.set(0, 2, 0 as _); // cov(s, g)
+        p.set_at(0, 0, 0.1 as _); // var(s)
+        p.set_at(0, 1, 0 as _); // cov(s, v)
+        p.set_at(0, 2, 0 as _); // cov(s, g)
 
-        p.set(1, 1, 1 as _); // var(v)
-        p.set(1, 2, 0 as _); // cov(v, g)
+        p.set_at(1, 1, 1 as _); // var(v)
+        p.set_at(1, 2, 0 as _); // cov(v, g)
 
-        p.set(2, 2, 1 as _); // var(g)
+        p.set_at(2, 2, 1 as _); // var(g)
     });
 }
 
@@ -178,9 +178,9 @@ fn initialize_position_measurement_transformation_matrix(
     measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f64>,
 ) {
     measurement.as_matrix_mut().apply(|h| {
-        h.set(0, 0, 1 as _); // z = 1*s
-        h.set(0, 1, 0 as _); //   + 0*v
-        h.set(0, 2, 0 as _); //   + 0*g
+        h.set_at(0, 0, 1 as _); // z = 1*s
+        h.set_at(0, 1, 0 as _); //   + 0*v
+        h.set_at(0, 2, 0 as _); //   + 0*g
     });
 }
 
@@ -193,6 +193,6 @@ fn initialize_position_measurement_process_noise_matrix(
     measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f64>,
 ) {
     measurement.as_matrix_mut().apply(|r| {
-        r.set(0, 0, 0.5 as _); // var(s)
+        r.set_at(0, 0, 0.5 as _); // var(s)
     });
 }

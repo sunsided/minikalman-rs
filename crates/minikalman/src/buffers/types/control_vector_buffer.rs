@@ -20,7 +20,7 @@ use crate::matrix::MatrixMut;
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = ControlVectorBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = ControlVectorBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct ControlVectorBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
 where
@@ -38,7 +38,7 @@ impl_mutable_vec!(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prelude::{AsMatrix, AsMatrixMut, IntoInnerData, Matrix};
+    use crate::prelude::{AsMatrix, AsMatrixMut, IntoInnerData, Matrix, RowMajorSequentialData};
 
     #[test]
     fn test_from_array() {
@@ -51,11 +51,11 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 5];
-        let value: ControlVectorBuffer<5, f32, _> = data.as_mut().into();
+        let value: ControlVectorBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
-        assert!(core::ptr::eq(value.as_ref(), &data));
+        assert!(core::ptr::eq(value.as_slice(), &data));
     }
 
     #[test]

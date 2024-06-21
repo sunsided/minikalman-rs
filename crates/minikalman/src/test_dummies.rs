@@ -3,6 +3,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::kalman::*;
 use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixMut};
+use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use crate::{Control, ControlBuilder, Kalman, KalmanBuilder, Observation, ObservationBuilder};
 
 pub fn make_dummy_filter() -> Kalman<
@@ -80,15 +81,15 @@ impl<T, const R: usize, const C: usize> Dummy<T, R, C> {
     }
 }
 
-impl<T, const R: usize, const C: usize> AsRef<[T]> for Dummy<T, R, C> {
-    fn as_ref(&self) -> &[T] {
-        self.0.as_ref()
+impl<T, const R: usize, const C: usize> RowMajorSequentialData<R, C, T> for Dummy<T, R, C> {
+    fn as_slice(&self) -> &[T] {
+        self.0.as_slice()
     }
 }
 
-impl<T, const R: usize, const C: usize> AsMut<[T]> for Dummy<T, R, C> {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.0.as_mut()
+impl<T, const R: usize, const C: usize> RowMajorSequentialDataMut<R, C, T> for Dummy<T, R, C> {
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.0.as_mut_slice()
     }
 }
 
@@ -106,15 +107,17 @@ impl<T, const R: usize, const C: usize> IndexMut<usize> for Dummy<T, R, C> {
     }
 }
 
-impl<T, const R: usize, const C: usize> AsRef<[T]> for DummyMatrix<T, R, C> {
-    fn as_ref(&self) -> &[T] {
+impl<T, const R: usize, const C: usize> RowMajorSequentialData<R, C, T> for DummyMatrix<T, R, C> {
+    fn as_slice(&self) -> &[T] {
         self.0.as_ref()
     }
 }
 
-impl<T, const R: usize, const C: usize> AsMut<[T]> for DummyMatrix<T, R, C> {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.0.as_mut()
+impl<T, const R: usize, const C: usize> RowMajorSequentialDataMut<R, C, T>
+    for DummyMatrix<T, R, C>
+{
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.0.as_mut_slice()
     }
 }
 

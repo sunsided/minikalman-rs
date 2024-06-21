@@ -57,26 +57,26 @@ pub fn predict_gravity() -> f32 {
     impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 
     let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
-        StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut() }),
-        StateVectorBuffer::from(unsafe { gravity_x.as_mut() }),
-        EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut() }),
-        PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut() }),
-        TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut() }),
+        StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
+        StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
+        EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
+        PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
+        TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
     );
 
     let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-        ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut() }),
-        MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut() }),
-        MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut() }),
-        InnovationVectorBuffer::from(unsafe { gravity_y.as_mut() }),
-        InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut() }),
-        KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut() }),
+        ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
+        MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
+        MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),
+        InnovationVectorBuffer::from(unsafe { gravity_y.as_mut_slice() }),
+        InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut_slice() }),
+        KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut_slice() }),
         TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
-            gravity_temp_S_inv.as_mut()
+            gravity_temp_S_inv.as_mut_slice()
         }),
-        TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut() }),
-        TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut() }),
-        TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut() }),
+        TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut_slice() }),
+        TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut_slice() }),
+        TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut_slice() }),
     );
 
     // Set initial state.
@@ -128,19 +128,19 @@ fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut
         const T: f32 = 1.0;
 
         // Transition of x to s.
-        a.set(0, 0, 1.0); // 1
-        a.set(0, 1, T as _); // T
-        a.set(0, 2, 0.5 * T * T); // 0.5 × T²
+        a.set_at(0, 0, 1.0); // 1
+        a.set_at(0, 1, T as _); // T
+        a.set_at(0, 2, 0.5 * T * T); // 0.5 × T²
 
         // Transition of x to v.
-        a.set(1, 0, 0.0); // 0
-        a.set(1, 1, 1.0); // 1
-        a.set(1, 2, T as _); // T
+        a.set_at(1, 0, 0.0); // 0
+        a.set_at(1, 1, 1.0); // 1
+        a.set_at(1, 2, T as _); // T
 
         // Transition of b to g.
-        a.set(2, 0, 0.0); // 0
-        a.set(2, 1, 0.0); // 0
-        a.set(2, 2, 1.0); // 1
+        a.set_at(2, 0, 0.0); // 0
+        a.set_at(2, 1, 0.0); // 0
+        a.set_at(2, 2, 1.0); // 1
     });
 }
 
@@ -151,14 +151,14 @@ fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut
 /// are linearly independent.
 fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f32>) {
     filter.as_matrix_mut().apply(|p| {
-        p.set(0, 0, 0.1); // var(s)
-        p.set(0, 1, 0.0); // cov(s, v)
-        p.set(0, 2, 0.0); // cov(s, g)
+        p.set_at(0, 0, 0.1); // var(s)
+        p.set_at(0, 1, 0.0); // cov(s, v)
+        p.set_at(0, 2, 0.0); // cov(s, g)
 
-        p.set(1, 1, 1.0); // var(v)
-        p.set(1, 2, 0.0); // cov(v, g)
+        p.set_at(1, 1, 1.0); // var(v)
+        p.set_at(1, 2, 0.0); // cov(v, g)
 
-        p.set(2, 2, 1.0); // var(g)
+        p.set_at(2, 2, 1.0); // var(g)
     });
 }
 
@@ -173,9 +173,9 @@ fn initialize_position_measurement_transformation_matrix(
     measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
 ) {
     measurement.as_matrix_mut().apply(|h| {
-        h.set(0, 0, 1.0); // z = 1*s
-        h.set(0, 1, 0.0); //   + 0*v
-        h.set(0, 2, 0.0); //   + 0*g
+        h.set_at(0, 0, 1.0); // z = 1*s
+        h.set_at(0, 1, 0.0); //   + 0*v
+        h.set_at(0, 2, 0.0); //   + 0*g
     });
 }
 
@@ -188,6 +188,6 @@ fn initialize_position_measurement_process_noise_matrix(
     measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
     measurement.as_matrix_mut().apply(|r| {
-        r.set(0, 0, 0.5); // var(s)
+        r.set_at(0, 0, 0.5); // var(s)
     });
 }

@@ -28,17 +28,17 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
 
     // Simple model of linear motion.
     filter.state_transition_mut().apply(|mat| {
-        mat.set(0, 0, 1.0);
-        mat.set(0, 1, delta_t);
-        mat.set(0, 2, 0.5 * delta_t * delta_t);
+        mat.set_at(0, 0, 1.0);
+        mat.set_at(0, 1, delta_t);
+        mat.set_at(0, 2, 0.5 * delta_t * delta_t);
 
-        mat.set(1, 0, 0.0);
-        mat.set(1, 1, 1.0);
-        mat.set(1, 2, delta_t);
+        mat.set_at(1, 0, 0.0);
+        mat.set_at(1, 1, 1.0);
+        mat.set_at(1, 2, delta_t);
 
-        mat.set(2, 0, 0.0);
-        mat.set(2, 1, 0.0);
-        mat.set(2, 2, 1.0);
+        mat.set_at(2, 0, 0.0);
+        mat.set_at(2, 1, 0.0);
+        mat.set_at(2, 2, 1.0);
     });
 
     // No state estimate so far.
@@ -50,9 +50,9 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     // Control input directly affects the acceleration and, over the time step,
     // the velocity and position.
     control.control_matrix_mut().apply(|mat| {
-        mat.set(0, 0, 0.5 * delta_t * delta_t);
-        mat.set(1, 0, delta_t);
-        mat.set(2, 0, 1.0);
+        mat.set_at(0, 0, 0.5 * delta_t * delta_t);
+        mat.set_at(1, 0, delta_t);
+        mat.set_at(2, 0, 1.0);
     });
 
     // No control inputs now.
@@ -66,9 +66,9 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     // The measurement is both directly observing position and an average of the states.
     measurement.observation_matrix_mut().set_all(1.0 / 3.0);
     measurement.observation_matrix_mut().apply(|mat| {
-        mat.set(0, 0, 1.0); // measure position directly
-        mat.set(0, 1, 0.0);
-        mat.set(0, 2, 0.0);
+        mat.set_at(0, 0, 1.0); // measure position directly
+        mat.set_at(0, 1, 0.0);
+        mat.set_at(0, 2, 0.0);
     });
 
     // Measurement noise covariance is identity.
@@ -91,7 +91,7 @@ fn simple_filter() {
     assert!(example
         .filter
         .estimate_covariance()
-        .inspect(|mat| (0..3).into_iter().all(|i| { mat.get(i, i) == 0.1 })));
+        .inspect(|mat| (0..3).into_iter().all(|i| { mat.get_at(i, i) == 0.1 })));
 
     // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
     for _ in 0..10 {
@@ -108,13 +108,16 @@ fn simple_filter() {
 
     // The estimate covariance has changed.
     example.filter.estimate_covariance().inspect(|mat| {
-        assert_f32_near!(mat.get(0, 0), 260.1);
-        assert_f32_near!(mat.get(1, 1), 10.1);
-        assert_f32_near!(mat.get(2, 2), 0.1);
+        assert_f32_near!(mat.get_at(0, 0), 260.1);
+        assert_f32_near!(mat.get_at(1, 1), 10.1);
+        assert_f32_near!(mat.get_at(2, 2), 0.1);
     });
 
     // The measurement is zero.
-    example.measurement.measurement_vector_mut().set(0, 0, 0.0);
+    example
+        .measurement
+        .measurement_vector_mut()
+        .set_at(0, 0, 0.0);
 
     // Apply a measurement of the unchanged state.
     example.filter.correct(&mut example.measurement);
@@ -129,13 +132,13 @@ fn simple_filter() {
 
     // The estimate covariance has improved.
     example.filter.estimate_covariance().inspect(|mat| {
-        assert!(mat.get(0, 0) < 1.0);
-        assert!(mat.get(1, 1) < 0.2);
-        assert!(mat.get(2, 2) < 0.01);
+        assert!(mat.get_at(0, 0) < 1.0);
+        assert!(mat.get_at(1, 1) < 0.2);
+        assert!(mat.get_at(2, 2) < 0.01);
     });
 
     // Set an input.
-    example.control.control_vector_mut().set(0, 0, 1.0);
+    example.control.control_vector_mut().set_at(0, 0, 1.0);
 
     // Predict and apply an input.
     example.filter.predict();
@@ -143,10 +146,18 @@ fn simple_filter() {
 
     // All states are still zero.
     example.filter.state_vector().inspect(|vec| {
-        assert_eq!(vec.get(0, 0), 0.5, "incorrect position after control input");
-        assert_eq!(vec.get(1, 0), 1.0, "incorrect velocity after control input");
         assert_eq!(
-            vec.get(2, 0),
+            vec.get_at(0, 0),
+            0.5,
+            "incorrect position after control input"
+        );
+        assert_eq!(
+            vec.get_at(1, 0),
+            1.0,
+            "incorrect velocity after control input"
+        );
+        assert_eq!(
+            vec.get_at(2, 0),
             1.0,
             "incorrect acceleration after control input"
         );
@@ -157,22 +168,22 @@ fn simple_filter() {
 
     // All states are still zero.
     example.filter.state_vector().inspect(|vec| {
-        assert_eq!(vec.get(0, 0), 2.0, "incorrect position");
-        assert_eq!(vec.get(1, 0), 2.0, "incorrect velocity");
-        assert_eq!(vec.get(2, 0), 1.0, "incorrect acceleration");
+        assert_eq!(vec.get_at(0, 0), 2.0, "incorrect position");
+        assert_eq!(vec.get_at(1, 0), 2.0, "incorrect velocity");
+        assert_eq!(vec.get_at(2, 0), 1.0, "incorrect acceleration");
     });
 
     // The estimate covariance has worsened.
     example.filter.estimate_covariance().inspect(|mat| {
-        assert!(mat.get(0, 0) > 6.2);
-        assert!(mat.get(1, 1) > 4.2);
-        assert!(mat.get(2, 2) > 1.0);
+        assert!(mat.get_at(0, 0) > 6.2);
+        assert!(mat.get_at(1, 1) > 4.2);
+        assert!(mat.get_at(2, 2) > 1.0);
     });
 
     // Set a new measurement
     example.measurement.measurement_vector_mut().apply(|vec| {
-        vec.set(0, 0, 2.0);
-        vec.set(1, 0, (2.0 + 2.0 + 1.0) / 3.0);
+        vec.set_at(0, 0, 2.0);
+        vec.set_at(1, 0, (2.0 + 2.0 + 1.0) / 3.0);
     });
 
     // Apply a measurement of the state.
@@ -180,8 +191,8 @@ fn simple_filter() {
 
     // The estimate covariance has improved.
     example.filter.estimate_covariance().inspect(|mat| {
-        assert!(mat.get(0, 0) < 1.0);
-        assert!(mat.get(1, 1) < 1.0);
-        assert!(mat.get(2, 2) < 0.4);
+        assert!(mat.get_at(0, 0) < 1.0);
+        assert!(mat.get_at(1, 1) < 1.0);
+        assert!(mat.get_at(2, 2) < 0.4);
     });
 }

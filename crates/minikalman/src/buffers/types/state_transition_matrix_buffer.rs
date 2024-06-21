@@ -4,6 +4,7 @@ use core::ops::{Index, IndexMut};
 use crate::kalman::{StateTransitionMatrix, StateTransitionMatrixMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
+use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Immutable buffer for the system matrix (`num_states` × `num_states`), typically denoted "A" or "F".
 ///
@@ -37,7 +38,7 @@ where
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = StateTransitionMatrixMutBuffer::<2, f32, _>::from(data.as_mut());
+/// let buffer = StateTransitionMatrixMutBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 pub struct StateTransitionMatrixMutBuffer<const STATES: usize, T, M>(M, PhantomData<T>)
 where
@@ -129,12 +130,14 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsRef<[T]> for StateTransitionMatrixBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> RowMajorSequentialData<STATES, STATES, T>
+    for StateTransitionMatrixBuffer<STATES, T, M>
 where
     M: Matrix<STATES, STATES, T>,
 {
-    fn as_ref(&self) -> &[T] {
-        self.0.as_ref()
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.0.as_slice()
     }
 }
 
@@ -174,21 +177,25 @@ where
     }
 }
 
-impl<const STATES: usize, T, M> AsRef<[T]> for StateTransitionMatrixMutBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> RowMajorSequentialData<STATES, STATES, T>
+    for StateTransitionMatrixMutBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
-    fn as_ref(&self) -> &[T] {
-        self.0.as_ref()
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.0.as_slice()
     }
 }
 
-impl<const STATES: usize, T, M> AsMut<[T]> for StateTransitionMatrixMutBuffer<STATES, T, M>
+impl<const STATES: usize, T, M> RowMajorSequentialDataMut<STATES, STATES, T>
+    for StateTransitionMatrixMutBuffer<STATES, T, M>
 where
     M: MatrixMut<STATES, STATES, T>,
 {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.0.as_mut()
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.0.as_mut_slice()
     }
 }
 
@@ -304,17 +311,17 @@ mod tests {
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
-        assert!(core::ptr::eq(value.as_ref(), &data));
+        assert!(core::ptr::eq(value.as_slice(), &data));
     }
 
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: StateTransitionMatrixBuffer<5, f32, _> = data.as_mut().into();
+        let value: StateTransitionMatrixBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
-        assert!(core::ptr::eq(value.as_ref(), &data));
+        assert!(core::ptr::eq(value.as_slice(), &data));
     }
 
     #[test]
@@ -335,11 +342,11 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: StateTransitionMatrixMutBuffer<5, f32, _> = data.as_mut().into();
+        let value: StateTransitionMatrixMutBuffer<5, f32, _> = data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
-        assert!(core::ptr::eq(value.as_ref(), &data));
+        assert!(core::ptr::eq(value.as_slice(), &data));
     }
 
     #[test]
@@ -371,8 +378,8 @@ mod tests {
         {
             let matrix = value.as_matrix();
             for i in 0..matrix.rows() {
-                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
-                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(i, 0), 10.0 + i as f32);
             }
         }
 
@@ -396,7 +403,7 @@ mod tests {
             let matrix = value.as_matrix_mut();
             for i in 0..matrix.cols() {
                 matrix.set_symmetric(0, i, i as _);
-                matrix.set(i, i, i as _);
+                matrix.set_at(i, i, i as _);
             }
         }
 
@@ -409,8 +416,8 @@ mod tests {
         {
             let matrix = value.as_matrix();
             for i in 0..matrix.rows() {
-                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
-                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(i, 0), 10.0 + i as f32);
             }
         }
 

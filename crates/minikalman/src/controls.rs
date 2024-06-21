@@ -415,9 +415,9 @@ mod tests {
 
         // Define some test control vector.
         control.control_vector_mut().apply(|vec| {
-            vec.set(0, 0, 0.1);
-            vec.set(1, 0, 1.0);
-            vec.set(2, 0, 10.0);
+            vec.set_at(0, 0, 0.1);
+            vec.set_at(1, 0, 1.0);
+            vec.set_at(2, 0, 10.0);
         });
 
         // Sanity checks.

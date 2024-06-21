@@ -34,19 +34,19 @@ fn main() {
     // Set up the state transition matrix.
     filter.state_transition_mut().apply(|mat| {
         // p = p + v×∆t + a×0.5×∆t²
-        mat.set(0, 0, 1.0);
-        mat.set(0, 1, DELTA_T);
-        mat.set(0, 2, 0.5 * DELTA_T * DELTA_T);
+        mat.set_at(0, 0, 1.0);
+        mat.set_at(0, 1, DELTA_T);
+        mat.set_at(0, 2, 0.5 * DELTA_T * DELTA_T);
 
         // v = v + a×∆t
-        mat.set(1, 0, 0.0);
-        mat.set(1, 1, 1.0);
-        mat.set(1, 2, DELTA_T);
+        mat.set_at(1, 0, 0.0);
+        mat.set_at(1, 1, 1.0);
+        mat.set_at(1, 2, DELTA_T);
 
         // a = a
-        mat.set(2, 0, 0.0);
-        mat.set(2, 1, 0.0);
-        mat.set(2, 2, 1.0);
+        mat.set_at(2, 0, 0.0);
+        mat.set_at(2, 1, 0.0);
+        mat.set_at(2, 2, 1.0);
     });
 
     // Set up the initial estimate covariance as an identity matrix.
@@ -56,9 +56,9 @@ fn main() {
 
     // Set up the control matrix.
     control.control_matrix_mut().apply(|mat| {
-        mat.set(0, 0, 0.0);
-        mat.set(1, 0, 0.0);
-        mat.set(2, 0, DELTA_T); // affect acceleration directly
+        mat.set_at(0, 0, 0.0);
+        mat.set_at(1, 0, 0.0);
+        mat.set_at(2, 0, DELTA_T); // affect acceleration directly
     });
 
     // Control vector is empty.
@@ -69,7 +69,7 @@ fn main() {
 
     // Set up the observation matrix.
     measurement.observation_matrix_mut().apply(|mat| {
-        mat.set(0, 0, 1.0); // only the first element is set.
+        mat.set_at(0, 0, 1.0); // only the first element is set.
     });
 
     // Set up the process noise covariance matrix as an identity matrix.
@@ -79,7 +79,7 @@ fn main() {
 
     // Set up the measurement noise covariance.
     measurement.measurement_noise_covariance_mut().apply(|mat| {
-        mat.set(0, 0, 1.0); // matrix is 1x1
+        mat.set_at(0, 0, 1.0); // matrix is 1x1
     });
 
     println!("Simulate without inputs and observations.");
@@ -113,7 +113,7 @@ fn main() {
     for t in 10..20 {
         control
             .control_vector_mut()
-            .apply(|vec| vec.set(0, 0, ACCELERATION));
+            .apply(|vec| vec.set_at(0, 0, ACCELERATION));
 
         filter.predict();
         filter.control(&mut control);
@@ -162,9 +162,9 @@ where
     let covariances = filter.estimate_covariance();
     let covariances = covariances.as_matrix();
 
-    let std_p = covariances.get(0, 0).sqrt();
-    let std_v = covariances.get(1, 1).sqrt();
-    let std_a = covariances.get(2, 2).sqrt();
+    let std_p = covariances.get_at(0, 0).sqrt();
+    let std_v = covariances.get_at(1, 1).sqrt();
+    let std_a = covariances.get_at(2, 2).sqrt();
 
     println!(
         "{}  t={:3} s, p={:.2} ± {:.2} m\n            v={:2.2} ± {:.2} m/s\n            a={:2.2} ± {:.2} m/s²",

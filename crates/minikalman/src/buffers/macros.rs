@@ -100,22 +100,23 @@ macro_rules! impl_mutable_vec {
             }
         }
 
-        impl<const $rows: usize, T, M> core::convert::AsRef<[T]> for $type<$rows, T, M>
+        impl<const $rows: usize, T, M> $crate::matrix::RowMajorSequentialData<$rows, 1, T> for $type<$rows, T, M>
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
             #[inline(always)]
-            fn as_ref(&self) -> &[T] {
-                self.0.as_ref()
+            fn as_slice(&self) -> &[T] {
+                self.0.as_slice()
             }
         }
 
-        impl<const $rows: usize, T, M> core::convert::AsMut<[T]> for $type<$rows, T, M>
+        impl<const $rows: usize, T, M> $crate::matrix::RowMajorSequentialDataMut<$rows, 1, T> for $type<$rows, T, M>
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
-            fn as_mut(&mut self) -> &mut [T] {
-                self.0.as_mut()
+            #[inline(always)]
+            fn as_mut_slice(&mut self) -> &mut [T] {
+                self.0.as_mut_slice()
             }
         }
 
@@ -127,6 +128,26 @@ macro_rules! impl_mutable_vec {
         impl<const $rows: usize, T, M> $crate::matrix::MatrixMut<$rows, 1, T> for $type<$rows, T, M> where
             M: $crate::matrix::MatrixMut<$rows, 1, T>
         {
+        }
+
+        impl<const $rows: usize, T, M> core::convert::AsRef<[T]> for $type<$rows, T, M>
+        where
+            M: $crate::matrix::MatrixMut<$rows, 1, T>,
+        {
+            #[inline(always)]
+            fn as_ref(&self) -> &[T] {
+                self.0.as_slice()
+            }
+        }
+
+        impl<const $rows: usize, T, M> core::convert::AsMut<[T]> for $type<$rows, T, M>
+        where
+            M: $crate::matrix::MatrixMut<$rows, 1, T>,
+        {
+            #[inline(always)]
+            fn as_mut(&mut self) -> &mut [T] {
+                self.0.as_mut_slice()
+            }
         }
 
         impl<const $rows: usize, T, M> core::ops::Index<usize> for $type<$rows, T, M>
