@@ -14,6 +14,7 @@ pub use matrix_data_ref::*;
 pub use matrix_data_row_major::*;
 pub use matrix_data_row_major_mut::*;
 
+use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(any(feature = "alloc", feature = "std"))]
 pub use matrix_data_boxed::*;
@@ -28,6 +29,30 @@ impl MatrixData {
         T: Default,
     {
         MatrixDataArray::<0, 0, 0, T>::default()
+    }
+
+    /// Creates a new matrix buffer from a given storage.
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new_from<const ROWS: usize, const COLS: usize, T, S>(
+        storage: S,
+    ) -> MatrixDataRowMajor<ROWS, COLS, S, T>
+    where
+        T: Copy,
+        S: RowMajorSequentialData<ROWS, COLS, T>,
+    {
+        MatrixDataRowMajor::from(storage)
+    }
+
+    /// Creates a new mutable matrix buffer from a given storage.
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new_mut_from<const ROWS: usize, const COLS: usize, T, S>(
+        storage: S,
+    ) -> MatrixDataRowMajorMut<ROWS, COLS, S, T>
+    where
+        T: Copy,
+        S: RowMajorSequentialDataMut<ROWS, COLS, T>,
+    {
+        MatrixDataRowMajorMut::from(storage)
     }
 
     /// Creates a new matrix buffer that owns the data.
@@ -313,5 +338,26 @@ mod tests {
 
         a.set_value(0.0);
         assert_eq!(a.get_value(), 0.0);
+    }
+
+    #[test]
+    #[cfg(feature = "nalgebra_alloc")]
+    fn test_nalgebra_array() {
+        use nalgebra::*;
+        let mat = Matrix::from_data(ArrayStorage::<f32, 3, 2>([
+            [0.0, 10.0, 20.0],
+            [1.0, 11.0, 21.0],
+        ]));
+
+        let a = MatrixData::new_from(mat);
+
+        assert_eq!(a.get_at(0, 0), 0.0);
+        assert_eq!(a.get_at(0, 1), 1.0);
+
+        assert_eq!(a.get_at(1, 0), 10.0);
+        assert_eq!(a.get_at(1, 1), 11.0);
+
+        assert_eq!(a.get_at(2, 0), 20.0);
+        assert_eq!(a.get_at(2, 1), 21.0);
     }
 }

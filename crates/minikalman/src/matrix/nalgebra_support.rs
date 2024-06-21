@@ -1,5 +1,5 @@
 use crate::matrix::row_major::{RowMajorSequentialData, RowMajorSequentialDataMut};
-use nalgebra::{ArrayStorage, Const, IsContiguous, Matrix, RawStorage, VecStorage};
+use nalgebra::{ArrayStorage, Const, IsContiguous, Matrix, RawStorage};
 
 #[cfg_attr(docsrs, doc(cfg(all(feature = "nalgebra", feature = "unsafe"))))]
 #[cfg(all(feature = "nalgebra", feature = "unsafe"))]
@@ -43,6 +43,16 @@ impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS,
     fn as_slice(&self) -> &[T] {
         self.as_slice()
     }
+
+    #[inline(always)]
+    fn get_at(&self, row: usize, column: usize) -> T
+    where
+        T: Copy,
+    {
+        let idx = self.data.linear_index(row, column);
+        let mat = self.data.as_slice();
+        mat[idx]
+    }
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
@@ -54,40 +64,12 @@ impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, CO
     fn as_mut_slice(&mut self) -> &mut [T] {
         self.as_mut_slice()
     }
-}
-
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-#[cfg(feature = "nalgebra")]
-impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
-    for Matrix<T, Const<ROWS>, Const<COLS>, VecStorage<T, Const<ROWS>, Const<COLS>>>
-{
-    #[inline(always)]
-    fn as_slice(&self) -> &[T] {
-        self.data.as_slice()
-    }
-
-    #[inline(always)]
-    fn get_at(&self, row: usize, column: usize) -> T
-    where
-        T: Copy,
-    {
-        self.data.as_slice()[row * COLS + column]
-    }
-}
-
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-#[cfg(feature = "nalgebra")]
-impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
-    for Matrix<T, Const<ROWS>, Const<COLS>, VecStorage<T, Const<ROWS>, Const<COLS>>>
-{
-    #[inline(always)]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        self.data.as_mut_slice()
-    }
 
     #[inline(always)]
     fn set_at(&mut self, row: usize, column: usize, value: T) {
-        self.data.as_mut_slice()[row * COLS + column] = value
+        let idx = self.data.linear_index(row, column);
+        let mat = self.data.as_mut_slice();
+        mat[idx] = value
     }
 }
 
