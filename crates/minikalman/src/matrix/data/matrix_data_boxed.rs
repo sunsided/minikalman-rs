@@ -1,7 +1,13 @@
 use crate::matrix::{
     IntoInnerData, Matrix, MatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut,
 };
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::boxed::Box;
+
+#[cfg(all(feature = "std", not(feature = "alloc")))]
+use std::boxed::Box;
+
 use core::ops::{Index, IndexMut};
 
 /// Owned boxed data.

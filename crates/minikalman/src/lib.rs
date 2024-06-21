@@ -16,7 +16,6 @@
 //!
 //! * `std` - Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
 //! * `alloc` - Enables allocation support for builder types.
-//! * `nalgebra` - Enables [nalgebra](https://crates.io/crates/nalgebra) support.
 //! * `libm` - Enables [libm](https://crates.io/crates/libm) support.
 //! * `micromath` - Enables [micromath](https://crates.io/crates/micromath) support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.

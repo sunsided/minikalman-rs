@@ -41,8 +41,8 @@ unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
     RawStorage<T, Const<ROWS>, Const<COLS>>
     for crate::matrix::MatrixDataArray<ROWS, COLS, TOTAL, T>
 {
-    type RStride = Const<1>;
-    type CStride = Const<ROWS>;
+    type RStride = Const<COLS>;
+    type CStride = Const<1>;
 
     #[inline]
     fn ptr(&self) -> *const T {

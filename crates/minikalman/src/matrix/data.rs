@@ -1,12 +1,17 @@
 mod matrix_data_array;
+#[cfg_attr(docsrs, doc(cfg(any(feature = "alloc", feature = "std"))))]
+#[cfg(any(feature = "alloc", feature = "std"))]
 mod matrix_data_boxed;
 mod matrix_data_mut;
 mod matrix_data_ref;
 mod matrix_data_row_major;
 mod matrix_data_row_major_mut;
 
-#[cfg(any(feature = "alloc", feature = "std"))]
+#[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::boxed::Box;
+
+#[cfg(all(feature = "std", not(feature = "alloc")))]
+use std::boxed::Box;
 
 pub use matrix_data_array::*;
 pub use matrix_data_mut::*;
@@ -15,7 +20,7 @@ pub use matrix_data_row_major::*;
 pub use matrix_data_row_major_mut::*;
 
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "alloc", feature = "std"))))]
 #[cfg(any(feature = "alloc", feature = "std"))]
 pub use matrix_data_boxed::*;
 
@@ -57,8 +62,8 @@ impl MatrixData {
 
     /// Creates a new matrix buffer that owns the data.
     #[allow(clippy::new_ret_no_self)]
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "alloc", feature = "std"))))]
+    #[cfg(any(feature = "alloc", feature = "std"))]
     pub fn new<const ROWS: usize, const COLS: usize, T>(init: T) -> MatrixDataBoxed<ROWS, COLS, T>
     where
         T: Copy,
