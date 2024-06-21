@@ -1,7 +1,8 @@
 use crate::matrix::{
     IntoInnerData, Matrix, MatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut,
 };
-use std::ops::{Index, IndexMut};
+use alloc::boxed::Box;
+use core::ops::{Index, IndexMut};
 
 /// Owned boxed data.
 ///
@@ -9,8 +10,6 @@ use std::ops::{Index, IndexMut};
 /// * `ROWS` - The number of matrix rows.
 /// * `COLS` - The number of matrix columns.
 /// * `T` - The data type.
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 #[derive(Debug, Clone)]
 pub struct MatrixDataBoxed<const ROWS: usize, const COLS: usize, T = f32>(Box<[T]>);
 
@@ -36,8 +35,6 @@ impl<const ROWS: usize, const COLS: usize, T> MatrixDataBoxed<ROWS, COLS, T> {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> IntoInnerData for MatrixDataBoxed<ROWS, COLS, T> {
     type Target = Box<[T]>;
 
@@ -47,8 +44,6 @@ impl<const ROWS: usize, const COLS: usize, T> IntoInnerData for MatrixDataBoxed<
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T, B> From<B> for MatrixDataBoxed<ROWS, COLS, T>
 where
     B: Into<Box<[T]>>,
@@ -59,22 +54,16 @@ where
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
     for MatrixDataBoxed<ROWS, COLS, T>
 {
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T>
     for MatrixDataBoxed<ROWS, COLS, T>
 {
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
     for MatrixDataBoxed<ROWS, COLS, T>
 {
@@ -84,8 +73,6 @@ impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS,
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
     for MatrixDataBoxed<ROWS, COLS, T>
 {
@@ -95,8 +82,6 @@ impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, CO
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> Index<usize> for MatrixDataBoxed<ROWS, COLS, T> {
     type Output = T;
 
@@ -106,8 +91,6 @@ impl<const ROWS: usize, const COLS: usize, T> Index<usize> for MatrixDataBoxed<R
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
 impl<const ROWS: usize, const COLS: usize, T> IndexMut<usize> for MatrixDataBoxed<ROWS, COLS, T> {
     #[inline(always)]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {

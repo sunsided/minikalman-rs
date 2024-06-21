@@ -1,7 +1,7 @@
 use crate::matrix::{
     Matrix, MatrixDataArray, MatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut,
 };
-use std::ops::{Index, IndexMut};
+use core::ops::{Index, IndexMut};
 
 /// A mutable reference to data.
 ///

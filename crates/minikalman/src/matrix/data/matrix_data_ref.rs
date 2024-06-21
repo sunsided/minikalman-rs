@@ -1,5 +1,5 @@
 use crate::matrix::{IntoInnerData, Matrix, RowMajorSequentialData};
-use std::ops::Index;
+use core::ops::Index;
 
 /// An immutable reference to data.
 ///

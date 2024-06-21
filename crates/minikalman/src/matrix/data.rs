@@ -9,11 +9,14 @@ mod matrix_data_row_major_mut;
 use alloc::boxed::Box;
 
 pub use matrix_data_array::*;
-pub use matrix_data_boxed::*;
 pub use matrix_data_mut::*;
 pub use matrix_data_ref::*;
 pub use matrix_data_row_major::*;
 pub use matrix_data_row_major_mut::*;
+
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+#[cfg(any(feature = "alloc", feature = "std"))]
+pub use matrix_data_boxed::*;
 
 /// A builder for a Kalman filter measurements.
 pub struct MatrixData;

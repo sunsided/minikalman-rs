@@ -1,5 +1,5 @@
 use crate::matrix::{Matrix, MatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut};
-use std::ops::{Index, IndexMut};
+use core::ops::{Index, IndexMut};
 
 /// Owned data.
 ///
