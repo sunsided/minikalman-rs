@@ -70,32 +70,6 @@ unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
     }
 }
 
-/*
-#[cfg_attr(docsrs, doc(cfg(all(feature = "nalgebra", feature = "unsafe"))))]
-#[cfg(all(feature = "nalgebra", feature = "unsafe"))]
-unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
-    Storage<T, Const<ROWS>, Const<COLS>> for crate::matrix::MatrixDataArray<ROWS, COLS, TOTAL, T>
-{
-}
-*/
-
-/*
-impl<const ROWS: usize, const COLS: usize, T, S> crate::matrix::Matrix<ROWS, COLS, T> for S where
-    S: RawStorage<T, Const<ROWS>, Const<COLS>>
-{
-}
-*/
-
-/*
-impl<const ROWS: usize, const COLS: usize, T, S> crate::matrix::Matrix<ROWS, COLS, T>
-    for Matrix<T, Const<ROWS>, Const<COLS>, S>
-where
-    T: Scalar,
-    S: IsContiguous,
-{
-}
-*/
-
 #[cfg(all(test, feature = "nalgebra", feature = "unsafe"))]
 mod tests {
     use crate::matrix::MatrixData;
@@ -109,4 +83,15 @@ mod tests {
         assert_eq!(mat.nrows(), 2);
         assert_eq!(mat.ncols(), 3);
     }
+
+    /* TODO: Add implementations for all buffer types.
+    #[test]
+    fn test_state_matrix() {
+        let a_buf = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let buffer = ControlMatrixMutBuffer::<3, 5, f32, _>::from(a_buf);
+        let mat = Matrix::from_data(buffer.as_matrix());
+        assert_eq!(mat.nrows(), 2);
+        assert_eq!(mat.ncols(), 5);
+    }
+    */
 }
