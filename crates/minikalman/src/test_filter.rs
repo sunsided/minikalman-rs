@@ -20,17 +20,17 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
 
     // Simple model of linear motion.
     filter.state_transition_mut().apply(|mat| {
-        mat.set(0, 0, 1.0);
-        mat.set(0, 1, delta_t);
-        mat.set(0, 2, 0.5 * delta_t * delta_t);
+        mat.set_at(0, 0, 1.0);
+        mat.set_at(0, 1, delta_t);
+        mat.set_at(0, 2, 0.5 * delta_t * delta_t);
 
-        mat.set(1, 0, 0.0);
-        mat.set(1, 1, 1.0);
-        mat.set(1, 2, delta_t);
+        mat.set_at(1, 0, 0.0);
+        mat.set_at(1, 1, 1.0);
+        mat.set_at(1, 2, delta_t);
 
-        mat.set(2, 0, 0.0);
-        mat.set(2, 1, 0.0);
-        mat.set(2, 2, 1.0);
+        mat.set_at(2, 0, 0.0);
+        mat.set_at(2, 1, 0.0);
+        mat.set_at(2, 2, 1.0);
     });
 
     // No state estimate so far.
@@ -42,9 +42,9 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     // Control input directly affects the acceleration and, over the time step,
     // the velocity and position.
     control.control_matrix_mut().apply(|mat| {
-        mat.set(0, 0, 0.5 * delta_t * delta_t);
-        mat.set(1, 0, delta_t);
-        mat.set(2, 0, 1.0);
+        mat.set_at(0, 0, 0.5 * delta_t * delta_t);
+        mat.set_at(1, 0, delta_t);
+        mat.set_at(2, 0, 1.0);
     });
 
     // No control inputs now.
@@ -58,9 +58,9 @@ pub fn create_test_filter(delta_t: f32) -> TestFilter {
     // The measurement is both directly observing position and an average of the states.
     measurement.observation_matrix_mut().set_all(1.0 / 3.0);
     measurement.observation_matrix_mut().apply(|mat| {
-        mat.set(0, 0, 1.0); // measure position directly
-        mat.set(0, 1, 0.0);
-        mat.set(0, 2, 0.0);
+        mat.set_at(0, 0, 1.0); // measure position directly
+        mat.set_at(0, 1, 0.0);
+        mat.set_at(0, 2, 0.0);
     });
 
     // Measurement noise covariance is identity.

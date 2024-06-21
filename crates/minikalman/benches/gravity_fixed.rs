@@ -227,19 +227,19 @@ fn initialize_state_transition_matrix(
         const T: I16F16 = I16F16::ONE;
 
         // Transition of x to s.
-        a.set(0, 0, I16F16::ONE); // 1
-        a.set(0, 1, T as _); // T
-        a.set(0, 2, I16F16::from_num(0.5) * T * T); // 0.5 × T²
+        a.set_at(0, 0, I16F16::ONE); // 1
+        a.set_at(0, 1, T as _); // T
+        a.set_at(0, 2, I16F16::from_num(0.5) * T * T); // 0.5 × T²
 
         // Transition of x to v.
-        a.set(1, 0, I16F16::ZERO); // 0
-        a.set(1, 1, I16F16::ONE); // 1
-        a.set(1, 2, T as _); // T
+        a.set_at(1, 0, I16F16::ZERO); // 0
+        a.set_at(1, 1, I16F16::ONE); // 1
+        a.set_at(1, 2, T as _); // T
 
         // Transition of b to g.
-        a.set(2, 0, I16F16::ZERO); // 0
-        a.set(2, 1, I16F16::ZERO); // 0
-        a.set(2, 2, I16F16::ONE); // 1
+        a.set_at(2, 0, I16F16::ZERO); // 0
+        a.set_at(2, 1, I16F16::ZERO); // 0
+        a.set_at(2, 2, I16F16::ONE); // 1
     });
 }
 
@@ -252,14 +252,14 @@ fn initialize_state_covariance_matrix(
     filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, I16F16>,
 ) {
     filter.as_matrix_mut().apply(|p| {
-        p.set(0, 0, I16F16::from_num(0.1)); // var(s)
-        p.set(0, 1, I16F16::ZERO); // cov(s, v)
-        p.set(0, 2, I16F16::ZERO); // cov(s, g)
+        p.set_at(0, 0, I16F16::from_num(0.1)); // var(s)
+        p.set_at(0, 1, I16F16::ZERO); // cov(s, v)
+        p.set_at(0, 2, I16F16::ZERO); // cov(s, g)
 
-        p.set(1, 1, I16F16::ONE); // var(v)
-        p.set(1, 2, I16F16::ZERO); // cov(v, g)
+        p.set_at(1, 1, I16F16::ONE); // var(v)
+        p.set_at(1, 2, I16F16::ZERO); // cov(v, g)
 
-        p.set(2, 2, I16F16::ONE); // var(g)
+        p.set_at(2, 2, I16F16::ONE); // var(g)
     });
 }
 
@@ -274,9 +274,9 @@ fn initialize_position_measurement_transformation_matrix(
     measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, I16F16>,
 ) {
     measurement.as_matrix_mut().apply(|h| {
-        h.set(0, 0, I16F16::ONE); // z = 1*s
-        h.set(0, 1, I16F16::ZERO); //   + 0*v
-        h.set(0, 2, I16F16::ZERO); //   + 0*g
+        h.set_at(0, 0, I16F16::ONE); // z = 1*s
+        h.set_at(0, 1, I16F16::ZERO); //   + 0*v
+        h.set_at(0, 2, I16F16::ZERO); //   + 0*g
     });
 }
 
@@ -289,7 +289,7 @@ fn initialize_position_measurement_process_noise_matrix(
     measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, I16F16>,
 ) {
     measurement.as_matrix_mut().apply(|r| {
-        r.set(0, 0, I16F16::from_num(0.5)); // var(s)
+        r.set_at(0, 0, I16F16::from_num(0.5)); // var(s)
     });
 }
 

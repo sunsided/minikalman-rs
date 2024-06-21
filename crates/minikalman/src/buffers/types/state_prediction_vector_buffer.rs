@@ -35,7 +35,7 @@ impl_mutable_vec!(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prelude::{AsMatrix, AsMatrixMut, IntoInnerData, Matrix};
+    use crate::prelude::{AsMatrix, AsMatrixMut, IntoInnerData, Matrix, RowMajorSequentialData};
 
     #[test]
     fn test_from_array() {
@@ -52,7 +52,7 @@ mod tests {
         assert_eq!(value.len(), 5);
         assert!(!value.is_empty());
         assert!(value.is_valid());
-        assert!(core::ptr::eq(value.as_ref(), &data));
+        assert!(core::ptr::eq(value.as_slice(), &data));
     }
 
     #[test]

@@ -100,13 +100,47 @@ macro_rules! impl_mutable_vec {
             }
         }
 
+        impl<const $rows: usize, T, M> $crate::matrix::RowMajorSequentialData<$rows, 1, T> for $type<$rows, T, M>
+        where
+            M: $crate::matrix::MatrixMut<$rows, 1, T>,
+        {
+            #[inline(always)]
+            fn as_slice(&self) -> &[T] {
+                self.0.as_slice()
+            }
+        }
+
+        impl<const $rows: usize, T, M> $crate::matrix::RowMajorSequentialDataMut<$rows, 1, T> for $type<$rows, T, M>
+        where
+            M: $crate::matrix::MatrixMut<$rows, 1, T>,
+        {
+            #[inline(always)]
+            fn as_mut_slice(&mut self) -> &mut [T] {
+                self.0.as_mut_slice()
+            }
+        }
+
+        impl<const $rows: usize, T, M> $crate::matrix::Matrix<$rows, 1, T> for $type<$rows, T, M> where
+            M: $crate::matrix::MatrixMut<$rows, 1, T>
+        {
+            #[inline(always)]
+            fn buffer_len(&self) -> usize {
+                self.0.buffer_len()
+            }
+        }
+
+        impl<const $rows: usize, T, M> $crate::matrix::MatrixMut<$rows, 1, T> for $type<$rows, T, M> where
+            M: $crate::matrix::MatrixMut<$rows, 1, T>
+        {
+        }
+
         impl<const $rows: usize, T, M> core::convert::AsRef<[T]> for $type<$rows, T, M>
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
             #[inline(always)]
             fn as_ref(&self) -> &[T] {
-                self.0.as_ref()
+                self.0.as_slice()
             }
         }
 
@@ -114,19 +148,10 @@ macro_rules! impl_mutable_vec {
         where
             M: $crate::matrix::MatrixMut<$rows, 1, T>,
         {
+            #[inline(always)]
             fn as_mut(&mut self) -> &mut [T] {
-                self.0.as_mut()
+                self.0.as_mut_slice()
             }
-        }
-
-        impl<const $rows: usize, T, M> $crate::matrix::Matrix<$rows, 1, T> for $type<$rows, T, M> where
-            M: $crate::matrix::MatrixMut<$rows, 1, T>
-        {
-        }
-
-        impl<const $rows: usize, T, M> $crate::matrix::MatrixMut<$rows, 1, T> for $type<$rows, T, M> where
-            M: $crate::matrix::MatrixMut<$rows, 1, T>
-        {
         }
 
         impl<const $rows: usize, T, M> core::ops::Index<usize> for $type<$rows, T, M>

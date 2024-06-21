@@ -1,5 +1,5 @@
 use crate::matrix::{AsMatrix, Matrix, MatrixMut};
-use crate::prelude::AsMatrixMut;
+use crate::prelude::{AsMatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut};
 use core::ops::{Index, IndexMut};
 
 /// State vector. Represents the internal state of the system.
@@ -7,7 +7,7 @@ use core::ops::{Index, IndexMut};
 /// Immutable variant. For a mutable variant, see [`StateVectorMut`].
 #[doc(alias = "Zustandsvektor")]
 pub trait StateVector<const STATES: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<STATES, 1, T>
+    RowMajorSequentialData<STATES, 1, T> + Index<usize, Output = T> + AsMatrix<STATES, 1, T>
 {
 }
 
@@ -16,7 +16,10 @@ pub trait StateVector<const STATES: usize, T = f32>:
 /// Mutable variant. For an immutable variant, see [`StateVector`].
 #[doc(alias = "Zustandsvektor")]
 pub trait StateVectorMut<const STATES: usize, T = f32>:
-    StateVector<STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T> + AsMatrixMut<STATES, 1, T>
+    StateVector<STATES, T>
+    + RowMajorSequentialDataMut<STATES, 1, T>
+    + IndexMut<usize, Output = T>
+    + AsMatrixMut<STATES, 1, T>
 {
 }
 
@@ -26,7 +29,7 @@ pub trait StateVectorMut<const STATES: usize, T = f32>:
 /// Immutable variant. For a mutable variant, see [`StateTransitionMatrixMut`].
 #[doc(alias = "Übergangsmatrix")]
 pub trait StateTransitionMatrix<const STATES: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    RowMajorSequentialData<STATES, STATES, T> + Index<usize, Output = T>
 {
     type Target: Matrix<STATES, STATES, T>;
 
@@ -39,7 +42,9 @@ pub trait StateTransitionMatrix<const STATES: usize, T = f32>:
 /// Mutable variant. For an immutable variant, see [`StateTransitionMatrix`].
 #[doc(alias = "Übergangsmatrix")]
 pub trait StateTransitionMatrixMut<const STATES: usize, T = f32>:
-    StateTransitionMatrix<STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    StateTransitionMatrix<STATES, T>
+    + RowMajorSequentialDataMut<STATES, STATES, T>
+    + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<STATES, STATES, T>;
 
@@ -52,7 +57,10 @@ pub trait StateTransitionMatrixMut<const STATES: usize, T = f32>:
 #[doc(alias = "SystemCovarianceMatrix")]
 #[doc(alias = "Schätzkovarianzmatrix")]
 pub trait EstimateCovarianceMatrix<const STATES: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<STATES, STATES, T>
+    + RowMajorSequentialDataMut<STATES, STATES, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<STATES, STATES, T>;
     type TargetMut: MatrixMut<STATES, STATES, T>;
@@ -67,7 +75,7 @@ pub trait EstimateCovarianceMatrix<const STATES: usize, T = f32>:
 #[doc(alias = "InputVector")]
 #[doc(alias = "Steuervektor")]
 pub trait ControlVector<const CONTROLS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<CONTROLS, 1, T>
+    RowMajorSequentialData<CONTROLS, 1, T> + Index<usize, Output = T> + AsMatrix<CONTROLS, 1, T>
 {
 }
 
@@ -77,7 +85,10 @@ pub trait ControlVector<const CONTROLS: usize, T = f32>:
 #[doc(alias = "InputVectorMut")]
 #[doc(alias = "Steuervektor")]
 pub trait ControlVectorMut<const CONTROLS: usize, T = f32>:
-    ControlVector<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T> + AsMatrixMut<CONTROLS, 1, T>
+    ControlVector<CONTROLS, T>
+    + RowMajorSequentialDataMut<CONTROLS, 1, T>
+    + IndexMut<usize, Output = T>
+    + AsMatrixMut<CONTROLS, 1, T>
 {
 }
 
@@ -87,7 +98,7 @@ pub trait ControlVectorMut<const CONTROLS: usize, T = f32>:
 #[doc(alias = "InputTransitionMatrix")]
 #[doc(alias = "Steuermatrix")]
 pub trait ControlMatrix<const STATES: usize, const CONTROLS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    RowMajorSequentialData<STATES, CONTROLS, T> + Index<usize, Output = T>
 {
     type Target: Matrix<STATES, CONTROLS, T>;
 
@@ -100,7 +111,9 @@ pub trait ControlMatrix<const STATES: usize, const CONTROLS: usize, T = f32>:
 #[doc(alias = "InputTransitionMatrix")]
 #[doc(alias = "Steuermatrix")]
 pub trait ControlMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
-    ControlMatrix<STATES, CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    ControlMatrix<STATES, CONTROLS, T>
+    + RowMajorSequentialDataMut<STATES, CONTROLS, T>
+    + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<STATES, CONTROLS, T>;
 
@@ -113,7 +126,7 @@ pub trait ControlMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
 #[doc(alias = "ControlCovarianceMatrix")]
 #[doc(alias = "Prozessrauschkovarianzmatrix")]
 pub trait ProcessNoiseCovarianceMatrix<const CONTROLS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    RowMajorSequentialData<CONTROLS, CONTROLS, T> + Index<usize, Output = T>
 {
     type Target: Matrix<CONTROLS, CONTROLS, T>;
 
@@ -126,7 +139,9 @@ pub trait ProcessNoiseCovarianceMatrix<const CONTROLS: usize, T = f32>:
 #[doc(alias = "ControlCovarianceMatrixMut")]
 #[doc(alias = "Prozessrauschkovarianzmatrix")]
 pub trait ProcessNoiseCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
-    ProcessNoiseCovarianceMatrix<CONTROLS, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    ProcessNoiseCovarianceMatrix<CONTROLS, T>
+    + RowMajorSequentialDataMut<CONTROLS, CONTROLS, T>
+    + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<CONTROLS, CONTROLS, T>;
 
@@ -137,8 +152,8 @@ pub trait ProcessNoiseCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
 ///
 /// Always mutable.
 pub trait PredictedStateEstimateVector<const STATES: usize, T = f32>:
-    AsRef<[T]>
-    + AsMut<[T]>
+    RowMajorSequentialData<STATES, 1, T>
+    + RowMajorSequentialDataMut<STATES, 1, T>
     + Index<usize, Output = T>
     + IndexMut<usize, Output = T>
     + AsMatrixMut<STATES, 1, T>
@@ -149,7 +164,10 @@ pub trait PredictedStateEstimateVector<const STATES: usize, T = f32>:
 ///
 /// Always mutable.
 pub trait TemporaryStateMatrix<const STATES: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<STATES, STATES, T>
+    + RowMajorSequentialDataMut<STATES, STATES, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<STATES, STATES, T>;
     type TargetMut: MatrixMut<STATES, STATES, T>;
@@ -162,7 +180,10 @@ pub trait TemporaryStateMatrix<const STATES: usize, T = f32>:
 ///
 /// Always mutable.
 pub trait TemporaryBQMatrix<const STATES: usize, const CONTROLS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<STATES, CONTROLS, T>
+    + RowMajorSequentialDataMut<STATES, CONTROLS, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<STATES, CONTROLS, T>;
     type TargetMut: MatrixMut<STATES, CONTROLS, T>;
@@ -177,7 +198,7 @@ pub trait TemporaryBQMatrix<const STATES: usize, const CONTROLS: usize, T = f32>
 #[doc(alias = "ObservationVector")]
 #[doc(alias = "Messvektor")]
 pub trait MeasurementVector<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T> + AsMatrix<OBSERVATIONS, 1, T>
+    RowMajorSequentialData<OBSERVATIONS, 1, T> + Index<usize, Output = T> + AsMatrix<OBSERVATIONS, 1, T>
 {
 }
 
@@ -188,7 +209,7 @@ pub trait MeasurementVector<const OBSERVATIONS: usize, T = f32>:
 #[doc(alias = "Messvektor")]
 pub trait MeasurementVectorMut<const OBSERVATIONS: usize, T = f32>:
     MeasurementVector<OBSERVATIONS, T>
-    + AsMut<[T]>
+    + RowMajorSequentialDataMut<OBSERVATIONS, 1, T>
     + IndexMut<usize, Output = T>
     + AsMatrixMut<OBSERVATIONS, 1, T>
 {
@@ -199,7 +220,7 @@ pub trait MeasurementVectorMut<const OBSERVATIONS: usize, T = f32>:
 /// Immutable variant. For a mutable variant, see [`ObservationMatrixMut`].
 #[doc(alias = "Beobachtungsmatrix")]
 pub trait ObservationMatrix<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
-    AsRef<[T]> + Index<usize, Output = T>
+    RowMajorSequentialData<OBSERVATIONS, STATES, T> + Index<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, STATES, T>;
 
@@ -211,7 +232,9 @@ pub trait ObservationMatrix<const OBSERVATIONS: usize, const STATES: usize, T = 
 /// Mutable variant. For an immutable variant, see [`ObservationMatrix`].
 #[doc(alias = "Beobachtungsmatrix")]
 pub trait ObservationMatrixMut<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
-    ObservationMatrix<OBSERVATIONS, STATES, T> + AsMut<[T]> + IndexMut<usize, Output = T>
+    ObservationMatrix<OBSERVATIONS, STATES, T>
+    + RowMajorSequentialDataMut<OBSERVATIONS, STATES, T>
+    + IndexMut<usize, Output = T>
 {
     type TargetMut: MatrixMut<OBSERVATIONS, STATES, T>;
 
@@ -223,7 +246,10 @@ pub trait ObservationMatrixMut<const OBSERVATIONS: usize, const STATES: usize, T
 /// Always mutable.
 #[doc(alias = "Messrauschkovarianzmatrix")]
 pub trait MeasurementNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<OBSERVATIONS, OBSERVATIONS, T>
+    + RowMajorSequentialDataMut<OBSERVATIONS, OBSERVATIONS, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, OBSERVATIONS, T>;
     type TargetMut: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>;
@@ -238,8 +264,8 @@ pub trait MeasurementNoiseCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
 #[doc(alias = "Innovationsvektor")]
 #[doc(alias = "Messabweichung")]
 pub trait InnovationVector<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]>
-    + AsMut<[T]>
+    RowMajorSequentialData<OBSERVATIONS, 1, T>
+    + RowMajorSequentialDataMut<OBSERVATIONS, 1, T>
     + Index<usize, Output = T>
     + IndexMut<usize, Output = T>
     + AsMatrix<OBSERVATIONS, 1, T>
@@ -254,7 +280,10 @@ pub trait InnovationVector<const OBSERVATIONS: usize, T = f32>:
 #[doc(alias = "Innovationskovarianz")]
 #[doc(alias = "Residualkovarianz")]
 pub trait InnovationCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<OBSERVATIONS, OBSERVATIONS, T>
+    + RowMajorSequentialDataMut<OBSERVATIONS, OBSERVATIONS, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, OBSERVATIONS, T>;
     type TargetMut: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>;
@@ -267,7 +296,10 @@ pub trait InnovationCovarianceMatrix<const OBSERVATIONS: usize, T = f32>:
 ///
 /// Always mutable.
 pub trait KalmanGainMatrix<const STATES: usize, const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<STATES, OBSERVATIONS, T>
+    + RowMajorSequentialDataMut<STATES, OBSERVATIONS, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<STATES, OBSERVATIONS, T>;
     type TargetMut: MatrixMut<STATES, OBSERVATIONS, T>;
@@ -280,7 +312,10 @@ pub trait KalmanGainMatrix<const STATES: usize, const OBSERVATIONS: usize, T = f
 ///
 /// Always mutable.
 pub trait TemporaryResidualCovarianceInvertedMatrix<const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<OBSERVATIONS, OBSERVATIONS, T>
+    + RowMajorSequentialDataMut<OBSERVATIONS, OBSERVATIONS, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, OBSERVATIONS, T>;
     type TargetMut: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>;
@@ -293,7 +328,10 @@ pub trait TemporaryResidualCovarianceInvertedMatrix<const OBSERVATIONS: usize, T
 ///
 /// Always mutable.
 pub trait TemporaryHPMatrix<const OBSERVATIONS: usize, const STATES: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<OBSERVATIONS, STATES, T>
+    + RowMajorSequentialDataMut<OBSERVATIONS, STATES, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<OBSERVATIONS, STATES, T>;
     type TargetMut: MatrixMut<OBSERVATIONS, STATES, T>;
@@ -306,7 +344,10 @@ pub trait TemporaryHPMatrix<const OBSERVATIONS: usize, const STATES: usize, T = 
 ///
 /// Always mutable.
 pub trait TemporaryKHPMatrix<const STATES: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<STATES, STATES, T>
+    + RowMajorSequentialDataMut<STATES, STATES, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<STATES, STATES, T>;
     type TargetMut: MatrixMut<STATES, STATES, T>;
@@ -319,7 +360,10 @@ pub trait TemporaryKHPMatrix<const STATES: usize, T = f32>:
 ///
 /// Always mutable.
 pub trait TemporaryPHTMatrix<const STATES: usize, const OBSERVATIONS: usize, T = f32>:
-    AsRef<[T]> + AsMut<[T]> + Index<usize, Output = T> + IndexMut<usize, Output = T>
+    RowMajorSequentialData<STATES, OBSERVATIONS, T>
+    + RowMajorSequentialDataMut<STATES, OBSERVATIONS, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
 {
     type Target: Matrix<STATES, OBSERVATIONS, T>;
     type TargetMut: MatrixMut<STATES, OBSERVATIONS, T>;

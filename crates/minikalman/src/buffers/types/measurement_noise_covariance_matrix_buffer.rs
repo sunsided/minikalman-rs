@@ -4,6 +4,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
+use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the measurement noise covariance matrix (`num_measurements` × `num_measurements`), typically denoted "R".
 ///
@@ -86,23 +87,25 @@ where
     }
 }
 
-impl<const OBSERVATION: usize, T, M> AsRef<[T]>
-    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+impl<const OBSERVATIONS: usize, T, M> RowMajorSequentialData<OBSERVATIONS, OBSERVATIONS, T>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
-    fn as_ref(&self) -> &[T] {
-        self.0.as_ref()
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.0.as_slice()
     }
 }
 
-impl<const OBSERVATION: usize, T, M> AsMut<[T]>
-    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATION, T, M>
+impl<const OBSERVATIONS: usize, T, M> RowMajorSequentialDataMut<OBSERVATIONS, OBSERVATIONS, T>
+    for MeasurementNoiseCovarianceMatrixBuffer<OBSERVATIONS, T, M>
 where
-    M: MatrixMut<OBSERVATION, OBSERVATION, T>,
+    M: MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
 {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.0.as_mut()
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.0.as_mut_slice()
     }
 }
 
@@ -111,6 +114,10 @@ impl<const OBSERVATION: usize, T, M> Matrix<OBSERVATION, OBSERVATION, T>
 where
     M: MatrixMut<OBSERVATION, OBSERVATION, T>,
 {
+    #[inline(always)]
+    fn buffer_len(&self) -> usize {
+        self.0.buffer_len()
+    }
 }
 
 impl<const OBSERVATION: usize, T, M> MatrixMut<OBSERVATION, OBSERVATION, T>
@@ -192,7 +199,7 @@ mod tests {
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
-        assert!(core::ptr::eq(value.as_ref(), &data));
+        assert!(core::ptr::eq(value.as_slice(), &data));
     }
 
     #[test]
@@ -212,7 +219,7 @@ mod tests {
             let matrix = value.as_matrix_mut();
             for i in 0..matrix.cols() {
                 matrix.set_symmetric(0, i, i as _);
-                matrix.set(i, i, i as _);
+                matrix.set_at(i, i, i as _);
             }
         }
 
@@ -225,8 +232,8 @@ mod tests {
         {
             let matrix = value.as_matrix();
             for i in 0..matrix.rows() {
-                assert_eq!(matrix.get(0, i), 10.0 + i as f32);
-                assert_eq!(matrix.get(i, 0), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(0, i), 10.0 + i as f32);
+                assert_eq!(matrix.get_at(i, 0), 10.0 + i as f32);
             }
         }
 

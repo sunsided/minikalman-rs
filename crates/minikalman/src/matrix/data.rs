@@ -265,6 +265,10 @@ impl<'a, const ROWS: usize, const COLS: usize, T> From<&'a mut [T]>
 impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> Matrix<ROWS, COLS, T>
     for MatrixDataArray<ROWS, COLS, TOTAL, T>
 {
+    #[inline(always)]
+    fn buffer_len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> MatrixMut<ROWS, COLS, T>
@@ -272,18 +276,18 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> MatrixMut<ROWS
 {
 }
 
-impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> AsRef<[T]>
-    for MatrixDataArray<ROWS, COLS, TOTAL, T>
+impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
+    RowMajorSequentialData<ROWS, COLS, T> for MatrixDataArray<ROWS, COLS, TOTAL, T>
 {
-    fn as_ref(&self) -> &[T] {
+    fn as_slice(&self) -> &[T] {
         &self.0
     }
 }
 
-impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> AsMut<[T]>
-    for MatrixDataArray<ROWS, COLS, TOTAL, T>
+impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
+    RowMajorSequentialDataMut<ROWS, COLS, T> for MatrixDataArray<ROWS, COLS, TOTAL, T>
 {
-    fn as_mut(&mut self) -> &mut [T] {
+    fn as_mut_slice(&mut self) -> &mut [T] {
         &mut self.0
     }
 }
@@ -293,6 +297,10 @@ impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T> AsMut<[T]>
 impl<const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
     for MatrixDataBoxed<ROWS, COLS, T>
 {
+    #[inline(always)]
+    fn buffer_len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -304,16 +312,20 @@ impl<const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T>
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
-impl<const ROWS: usize, const COLS: usize, T> AsRef<[T]> for MatrixDataBoxed<ROWS, COLS, T> {
-    fn as_ref(&self) -> &[T] {
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for MatrixDataBoxed<ROWS, COLS, T>
+{
+    fn as_slice(&self) -> &[T] {
         &self.0
     }
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
-impl<const ROWS: usize, const COLS: usize, T> AsMut<[T]> for MatrixDataBoxed<ROWS, COLS, T> {
-    fn as_mut(&mut self) -> &mut [T] {
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
+    for MatrixDataBoxed<ROWS, COLS, T>
+{
+    fn as_mut_slice(&mut self) -> &mut [T] {
         &mut self.0
     }
 }
@@ -321,10 +333,16 @@ impl<const ROWS: usize, const COLS: usize, T> AsMut<[T]> for MatrixDataBoxed<ROW
 impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
     for MatrixDataRef<'a, ROWS, COLS, T>
 {
+    #[inline(always)]
+    fn buffer_len(&self) -> usize {
+        self.0.len()
+    }
 }
 
-impl<'a, const ROWS: usize, const COLS: usize, T> AsRef<[T]> for MatrixDataRef<'a, ROWS, COLS, T> {
-    fn as_ref(&self) -> &[T] {
+impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for MatrixDataRef<'a, ROWS, COLS, T>
+{
+    fn as_slice(&self) -> &[T] {
         self.0
     }
 }
@@ -332,10 +350,16 @@ impl<'a, const ROWS: usize, const COLS: usize, T> AsRef<[T]> for MatrixDataRef<'
 impl<'a, const ROWS: usize, const COLS: usize, T> Matrix<ROWS, COLS, T>
     for MatrixDataMut<'a, ROWS, COLS, T>
 {
+    #[inline(always)]
+    fn buffer_len(&self) -> usize {
+        self.0.len()
+    }
 }
 
-impl<'a, const ROWS: usize, const COLS: usize, T> AsRef<[T]> for MatrixDataMut<'a, ROWS, COLS, T> {
-    fn as_ref(&self) -> &[T] {
+impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for MatrixDataMut<'a, ROWS, COLS, T>
+{
+    fn as_slice(&self) -> &[T] {
         self.0
     }
 }
@@ -345,8 +369,10 @@ impl<'a, const ROWS: usize, const COLS: usize, T> MatrixMut<ROWS, COLS, T>
 {
 }
 
-impl<'a, const ROWS: usize, const COLS: usize, T> AsMut<[T]> for MatrixDataMut<'a, ROWS, COLS, T> {
-    fn as_mut(&mut self) -> &mut [T] {
+impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
+    for MatrixDataMut<'a, ROWS, COLS, T>
+{
+    fn as_mut_slice(&mut self) -> &mut [T] {
         self.0
     }
 }
@@ -444,69 +470,6 @@ impl<'a, const ROWS: usize, const COLS: usize, T> From<MatrixDataMut<'a, ROWS, C
 {
     fn from(value: MatrixDataMut<'a, ROWS, COLS, T>) -> Self {
         value.0
-    }
-}
-
-impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
-    RowMajorSequentialData<ROWS, COLS, T> for MatrixDataArray<ROWS, COLS, TOTAL, T>
-{
-    #[inline(always)]
-    fn as_slice(&self) -> &[T] {
-        self.as_ref()
-    }
-}
-
-impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
-    RowMajorSequentialDataMut<ROWS, COLS, T> for MatrixDataArray<ROWS, COLS, TOTAL, T>
-{
-    #[inline(always)]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        self.as_mut()
-    }
-}
-
-impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
-    for MatrixDataBoxed<ROWS, COLS, T>
-{
-    #[inline(always)]
-    fn as_slice(&self) -> &[T] {
-        self.as_ref()
-    }
-}
-
-impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
-    for MatrixDataBoxed<ROWS, COLS, T>
-{
-    #[inline(always)]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        self.as_mut()
-    }
-}
-
-impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
-    for MatrixDataRef<'a, ROWS, COLS, T>
-{
-    #[inline(always)]
-    fn as_slice(&self) -> &[T] {
-        self.as_ref()
-    }
-}
-
-impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
-    for MatrixDataMut<'a, ROWS, COLS, T>
-{
-    #[inline(always)]
-    fn as_slice(&self) -> &[T] {
-        self.as_ref()
-    }
-}
-
-impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
-    for MatrixDataMut<'a, ROWS, COLS, T>
-{
-    #[inline(always)]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        self.as_mut()
     }
 }
 

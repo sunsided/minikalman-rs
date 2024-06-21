@@ -53,8 +53,8 @@ fn main() {
         // Update the system transition Jacobian matrix.
         filter.state_transition_mut().apply(|mat| {
             mat.make_identity();
-            mat.set(0, 2, DELTA_T);
-            mat.set(1, 3, DELTA_T);
+            mat.set_at(0, 2, DELTA_T);
+            mat.set_at(1, 3, DELTA_T);
         });
 
         // Perform a nonlinear prediction step.
@@ -134,10 +134,10 @@ where
     let covariances = filter.estimate_covariance();
     let covariances = covariances.as_matrix();
 
-    let std_x = covariances.get(0, 0).sqrt();
-    let std_y = covariances.get(1, 1).sqrt();
-    let std_vx = covariances.get(2, 2).sqrt();
-    let std_vy = covariances.get(3, 3).sqrt();
+    let std_x = covariances.get_at(0, 0).sqrt();
+    let std_y = covariances.get_at(1, 1).sqrt();
+    let std_vx = covariances.get_at(2, 2).sqrt();
+    let std_vy = covariances.get_at(3, 3).sqrt();
 
     println!(
         "{} t={:.2} s,  x={:.2} ± {:.4} m\n              x={:.2} ± {:.4} m\n             vx={:2.2} ± {:.4} m/s\n             vy={:2.2} ± {:.4} m/s",

@@ -65,6 +65,14 @@ impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS,
     fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
+
+    #[inline(always)]
+    fn get_at(&self, row: usize, column: usize) -> T
+    where
+        T: Copy,
+    {
+        self.data.as_slice()[row * COLS + column]
+    }
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
@@ -75,6 +83,11 @@ impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, CO
     #[inline(always)]
     fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
+    }
+
+    #[inline(always)]
+    fn set_at(&mut self, row: usize, column: usize, value: T) {
+        self.data.as_mut_slice()[row * COLS + column] = value
     }
 }
 
@@ -91,7 +104,7 @@ unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
 
     #[inline]
     fn ptr(&self) -> *const T {
-        self.as_ref().as_ptr()
+        self.as_slice().as_ptr()
     }
 
     #[inline]
