@@ -11,7 +11,7 @@ use minikalman::builder::KalmanFilterBuilder;
 use minikalman::prelude::*;
 
 const NUM_STATES: usize = 4; // position (x, y), velocity (x, y)
-const NUM_OBSERVATIONS: usize = 1; // distance to object
+const NUM_OBSERVATIONS: usize = 2; // distance and angle to object
 
 #[allow(non_snake_case)]
 fn main() {
@@ -25,12 +25,16 @@ fn main() {
     // Update the filter every N steps.
     const OBSERVE_EVERY: usize = 10;
 
+    // Define the radar position in the global frame.
+    let rx = 2.0;
+    let ry = 1.0;
+
     // Set up the initial state vector.
     filter.state_vector_mut().apply(|vec| {
         vec.set_row(0, 0.0);
         vec.set_row(1, 0.0);
-        vec.set_row(2, 2.0); // Overestimates the actual velocity (1 m/s)
-        vec.set_row(3, 2.0); // Overestimates the actual velocity (1 m/s)
+        vec.set_row(2, 0.5); // Underestimate the actual velocity (1 m/s)
+        vec.set_row(3, 2.0); // Overestimate the actual velocity (1 m/s)
     });
 
     // Set up the initial estimate covariance as an identity matrix.
@@ -39,12 +43,12 @@ fn main() {
     // Set up the process noise covariance matrix as an identity matrix.
     measurement
         .measurement_noise_covariance_mut()
-        .make_scalar(1.0);
+        .make_identity();
 
     // Set up the measurement noise covariance.
-    measurement.measurement_noise_covariance_mut().apply(|mat| {
-        mat.set_value(1.0); // matrix is 1x1
-    });
+    measurement
+        .measurement_noise_covariance_mut()
+        .make_identity();
 
     // Simulate
     for step in 1..=100 {
@@ -75,13 +79,19 @@ fn main() {
             measurement.measurement_vector_mut().apply(|vec| {
                 // Noise setup.
                 let mut rng = rand::thread_rng();
-                let measurement_noise = Normal::new(0.0, 0.5).unwrap();
+                let measurement_noise_pos = Normal::new(0.0, 0.5).unwrap();
+                let measurement_noise_angle = Normal::new(0.0, 0.1).unwrap();
 
                 // Perform a noisy measurement of the (simulated) position.
-                let z = (time.powi(2) + time.powi(2)).sqrt();
-                let noise = measurement_noise.sample(&mut rng);
+                let z = ((time - rx).powi(2) + (time - ry).powi(2)).sqrt();
+                let noise_pos = measurement_noise_pos.sample(&mut rng);
 
-                vec.set_value(z + noise);
+                // Perform a noisy measurement of the (simulated) angle.
+                let theta = (time - ry).atan2(time - rx);
+                let noise_theta = measurement_noise_angle.sample(&mut rng);
+
+                vec.set_row(0, z + noise_pos);
+                vec.set_row(1, theta + noise_theta);
             });
 
             // Update the observation Jacobian.
@@ -89,14 +99,20 @@ fn main() {
                 let x = filter.state_vector().get_row(0);
                 let y = filter.state_vector().get_row(1);
 
-                let norm = (x.powi(2) + y.powi(2)).sqrt();
+                let norm_sq = (x - rx).powi(2) + (y - ry).powi(2);
+                let norm = norm_sq.sqrt();
                 let dx = x / norm;
                 let dy = y / norm;
 
-                mat.set_col(0, dx);
-                mat.set_col(1, dy);
-                mat.set_col(2, 0.0);
-                mat.set_col(3, 0.0);
+                mat.set_at(0, 0, dx);
+                mat.set_at(0, 1, dy);
+                mat.set_at(0, 2, 0.0);
+                mat.set_at(0, 3, 0.0);
+
+                mat.set_at(1, 0, -(y - ry) / norm_sq);
+                mat.set_at(1, 1, (x - rx) / norm_sq);
+                mat.set_at(1, 2, 0.0);
+                mat.set_at(1, 3, 0.0);
             });
 
             // Apply nonlinear correction step.
@@ -104,8 +120,10 @@ fn main() {
                 // Transform the state into an observation.
                 let x = state.get_row(0);
                 let y = state.get_row(1);
-                let z = (x.powi(2) + y.powi(2)).sqrt();
-                observation.set_value(z);
+                let z = ((x - rx).powi(2) + (y - ry).powi(2)).sqrt();
+                let theta = (y - ry).atan2(x - rx);
+                observation.set_row(0, z);
+                observation.set_row(1, theta);
             });
 
             print_state(time, &filter, Stage::Posterior);
@@ -140,7 +158,7 @@ where
     let std_vy = covariances.get_at(3, 3).sqrt();
 
     println!(
-        "{} t={:.2} s,  x={:.2} ± {:.4} m\n              x={:.2} ± {:.4} m\n             vx={:2.2} ± {:.4} m/s\n             vy={:2.2} ± {:.4} m/s",
+        "{} t={:.2} s,  x={:.2} ± {:.4} m\n              y={:.2} ± {:.4} m\n             vx={:2.2} ± {:.4} m/s\n             vy={:2.2} ± {:.4} m/s",
         marker, time, state[0], std_x, state[1], std_y, state[2], std_vx, state[3], std_vy
     );
 }
