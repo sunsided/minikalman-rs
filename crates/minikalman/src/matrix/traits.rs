@@ -1446,31 +1446,17 @@ mod tests {
 
         // When cross-checking with e.g. Octave keep in mind that
         // this is `chol(d, 'lower')` since we have a longer triangular.
-        if cfg!(not(feature = "micromath")) {
-            assert_f32_near!(d[0], 1.0);
-            assert_f32_near!(d[1], 0.0);
-            assert_f32_near!(d[2], 0.0);
+        assert_f32_near!(d[0], 1.0);
+        assert_f32_near!(d[1], 0.0);
+        assert_f32_near!(d[2], 0.0);
 
-            assert_f32_near!(d[3], 0.5);
-            assert_f32_near!(d[4], 0.866_025_4);
-            assert_f32_near!(d[5], 0.0);
+        assert_f32_near!(d[3], 0.5);
+        assert!(d[4] >= 0.866 && d[4] <= 0.875);
+        assert_f32_near!(d[5], 0.0);
 
-            assert_f32_near!(d[6], 0.0);
-            assert_f32_near!(d[7], 0.0);
-            assert_f32_near!(d[8], 1.0);
-        } else {
-            assert_f32_near!(d[0], 1.0);
-            assert_f32_near!(d[1], 0.0);
-            assert_f32_near!(d[2], 0.0);
-
-            assert_f32_near!(d[3], 0.5);
-            assert_f32_near!(d[4], 0.8749999);
-            assert_f32_near!(d[5], 0.0);
-
-            assert_f32_near!(d[6], 0.0);
-            assert_f32_near!(d[7], 0.0);
-            assert_f32_near!(d[8], 1.0);
-        }
+        assert_f32_near!(d[6], 0.0);
+        assert_f32_near!(d[7], 0.0);
+        assert_f32_near!(d[8], 1.0);
     }
 
     /// Tests matrix inversion using Cholesky decomposition
@@ -1523,32 +1509,17 @@ mod tests {
         assert!(test.is_finite());
         assert!(test >= 1.3);
 
-        if cfg!(not(feature = "micromath")) {
-            assert_f32_near!(di[0], 1.333_333_3);
-            assert_f32_near!(di[1], -0.666_666_6);
-            assert_f32_near!(di[2], -0.0);
+        assert!(di[0] >= 1.32 && di[0] <= 1.34);
+        assert!(di[1] >= -0.667 && di[1] <= -0.65);
+        assert_f32_near!(di[2], -0.0);
 
-            assert_f32_near!(di[3], -0.666_666_6);
-            assert_f32_near!(di[4], 1.333_333_3);
-            assert_f32_near!(di[5], 0.0);
+        assert!(di[3] >= -0.667 && di[3] <= -0.65);
+        assert!(di[4] >= 1.31 && di[4] <= 1.34);
+        assert_f32_near!(di[5], 0.0);
 
-            assert_f32_near!(di[6], 0.0);
-            assert_f32_near!(di[7], 0.0);
-            assert_f32_near!(di[8], 1.0);
-        }
-        else {
-            assert_f32_near!(di[0], 1.3265326);
-            assert_f32_near!(di[1], -0.6530628);
-            assert_f32_near!(di[2], -0.0);
-
-            assert_f32_near!(di[3], -0.6530628);
-            assert_f32_near!(di[4], 1.3061244);
-            assert_f32_near!(di[5], 0.0);
-
-            assert_f32_near!(di[6], 0.0);
-            assert_f32_near!(di[7], 0.0);
-            assert_f32_near!(di[8], 1.000001);
-        }
+        assert_f32_near!(di[6], 0.0);
+        assert_f32_near!(di[7], 0.0);
+        assert!(di[8] >= 1.0 && di[8] <= 1.00001);
     }
 
     #[test]

@@ -58,9 +58,9 @@ fixed = ["dep:fixed", "fixed/num-traits"]
 alloc = []
 no_assert = []
 micromath = ["dep:micromath"]
+nalgebra = ["dep:nalgebra"]
 
 # Unstable implementation
-# nalgebra = ["dep:nalgebra"]
 # nalgebra_std = ["std", "nalgebra", "nalgebra/std"]
 # nalgebra_alloc = ["alloc", "nalgebra", "nalgebra/alloc"]
 # nalgebra_libm = ["libm", "nalgebra", "nalgebra/libm"]

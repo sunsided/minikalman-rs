@@ -95,3 +95,18 @@ where
 {
 }
 */
+
+#[cfg(all(test, feature = "nalgebra", feature = "unsafe"))]
+mod tests {
+    use crate::matrix::MatrixData;
+    use nalgebra::*;
+
+    #[test]
+    fn test_matrix() {
+        let a_buf = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let a = MatrixData::new_array::<2, 3, 6, f32>(a_buf);
+        let mat = Matrix::from_data(a);
+        assert_eq!(mat.nrows(), 2);
+        assert_eq!(mat.ncols(), 3);
+    }
+}
