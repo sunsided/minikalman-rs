@@ -1,6 +1,9 @@
 /// Data laid out sequentially and in a row-major layout.
 pub trait RowMajorSequentialData<const ROWS: usize, const COLS: usize, T> {
     /// Gets the data as a slice.
+    ///
+    /// The data is expected to be in row-major format, i.e. neighboring column values are next
+    /// to each other in memory.
     fn as_slice(&self) -> &[T];
 
     /// Gets the length of the data.

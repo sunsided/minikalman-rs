@@ -339,25 +339,4 @@ mod tests {
         a.set_value(0.0);
         assert_eq!(a.get_value(), 0.0);
     }
-
-    #[test]
-    #[cfg(feature = "nalgebra_alloc")]
-    fn test_nalgebra_array() {
-        use nalgebra::*;
-        let mat = Matrix::from_data(ArrayStorage::<f32, 3, 2>([
-            [0.0, 10.0, 20.0],
-            [1.0, 11.0, 21.0],
-        ]));
-
-        let a = MatrixData::new_from(mat);
-
-        assert_eq!(a.get_at(0, 0), 0.0);
-        assert_eq!(a.get_at(0, 1), 1.0);
-
-        assert_eq!(a.get_at(1, 0), 10.0);
-        assert_eq!(a.get_at(1, 1), 11.0);
-
-        assert_eq!(a.get_at(2, 0), 20.0);
-        assert_eq!(a.get_at(2, 1), 21.0);
-    }
 }

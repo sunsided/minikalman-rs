@@ -1,5 +1,6 @@
-use crate::matrix::row_major::{RowMajorSequentialData, RowMajorSequentialDataMut};
-use nalgebra::{ArrayStorage, Const, IsContiguous, Matrix, RawStorage};
+use nalgebra::{Const, IsContiguous, RawStorage};
+
+use crate::matrix::row_major::RowMajorSequentialData;
 
 #[cfg_attr(docsrs, doc(cfg(all(feature = "nalgebra", feature = "unsafe"))))]
 #[cfg(all(feature = "nalgebra", feature = "unsafe"))]
@@ -30,47 +31,6 @@ unsafe impl<'a, const ROWS: usize, const COLS: usize, T> IsContiguous
 unsafe impl<'a, const ROWS: usize, const COLS: usize, T> IsContiguous
     for crate::matrix::MatrixDataMut<'a, ROWS, COLS, T>
 {
-}
-
-// ---------
-
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-#[cfg(feature = "nalgebra")]
-impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
-    for Matrix<T, Const<ROWS>, Const<COLS>, ArrayStorage<T, ROWS, COLS>>
-{
-    #[inline(always)]
-    fn as_slice(&self) -> &[T] {
-        self.as_slice()
-    }
-
-    #[inline(always)]
-    fn get_at(&self, row: usize, column: usize) -> T
-    where
-        T: Copy,
-    {
-        let idx = self.data.linear_index(row, column);
-        let mat = self.data.as_slice();
-        mat[idx]
-    }
-}
-
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-#[cfg(feature = "nalgebra")]
-impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
-    for Matrix<T, Const<ROWS>, Const<COLS>, ArrayStorage<T, ROWS, COLS>>
-{
-    #[inline(always)]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-
-    #[inline(always)]
-    fn set_at(&mut self, row: usize, column: usize, value: T) {
-        let idx = self.data.linear_index(row, column);
-        let mat = self.data.as_mut_slice();
-        mat[idx] = value
-    }
 }
 
 // ---------
