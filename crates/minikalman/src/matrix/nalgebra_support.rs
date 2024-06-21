@@ -1,5 +1,5 @@
-use nalgebra::allocator::Allocator;
-use nalgebra::{Const, DefaultAllocator, IsContiguous, Owned, RawStorage, Scalar, Storage};
+use crate::matrix::row_major::{RowMajorSequentialData, RowMajorSequentialDataMut};
+use nalgebra::{ArrayStorage, Const, IsContiguous, Matrix, RawStorage, VecStorage};
 
 #[cfg_attr(docsrs, doc(cfg(all(feature = "nalgebra", feature = "unsafe"))))]
 #[cfg(all(feature = "nalgebra", feature = "unsafe"))]
@@ -30,6 +30,52 @@ unsafe impl<'a, const ROWS: usize, const COLS: usize, T> IsContiguous
 unsafe impl<'a, const ROWS: usize, const COLS: usize, T> IsContiguous
     for crate::matrix::MatrixDataMut<'a, ROWS, COLS, T>
 {
+}
+
+// ---------
+
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+#[cfg(feature = "nalgebra")]
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for Matrix<T, Const<ROWS>, Const<COLS>, ArrayStorage<T, ROWS, COLS>>
+{
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+#[cfg(feature = "nalgebra")]
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
+    for Matrix<T, Const<ROWS>, Const<COLS>, ArrayStorage<T, ROWS, COLS>>
+{
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+#[cfg(feature = "nalgebra")]
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for Matrix<T, Const<ROWS>, Const<COLS>, VecStorage<T, Const<ROWS>, Const<COLS>>>
+{
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.data.as_slice()
+    }
+}
+
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+#[cfg(feature = "nalgebra")]
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
+    for Matrix<T, Const<ROWS>, Const<COLS>, VecStorage<T, Const<ROWS>, Const<COLS>>>
+{
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.data.as_mut_slice()
+    }
 }
 
 // ---------

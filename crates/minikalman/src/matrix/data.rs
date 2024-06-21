@@ -1,5 +1,6 @@
 use core::ops::{Index, IndexMut};
 
+use crate::matrix::row_major::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use crate::matrix::traits::{Matrix, MatrixMut};
 #[cfg(any(feature = "alloc", feature = "std"))]
 use alloc::boxed::Box;
@@ -443,6 +444,69 @@ impl<'a, const ROWS: usize, const COLS: usize, T> From<MatrixDataMut<'a, ROWS, C
 {
     fn from(value: MatrixDataMut<'a, ROWS, COLS, T>) -> Self {
         value.0
+    }
+}
+
+impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
+    RowMajorSequentialData<ROWS, COLS, T> for MatrixDataArray<ROWS, COLS, TOTAL, T>
+{
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.as_ref()
+    }
+}
+
+impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
+    RowMajorSequentialDataMut<ROWS, COLS, T> for MatrixDataArray<ROWS, COLS, TOTAL, T>
+{
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.as_mut()
+    }
+}
+
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for MatrixDataBoxed<ROWS, COLS, T>
+{
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.as_ref()
+    }
+}
+
+impl<const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
+    for MatrixDataBoxed<ROWS, COLS, T>
+{
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.as_mut()
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for MatrixDataRef<'a, ROWS, COLS, T>
+{
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.as_ref()
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialData<ROWS, COLS, T>
+    for MatrixDataMut<'a, ROWS, COLS, T>
+{
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        self.as_ref()
+    }
+}
+
+impl<'a, const ROWS: usize, const COLS: usize, T> RowMajorSequentialDataMut<ROWS, COLS, T>
+    for MatrixDataMut<'a, ROWS, COLS, T>
+{
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        self.as_mut()
     }
 }
 
