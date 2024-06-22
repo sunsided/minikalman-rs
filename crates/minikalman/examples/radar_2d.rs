@@ -7,7 +7,7 @@
 
 use rand_distr::{Distribution, Normal};
 
-use minikalman::builder::regular::KalmanFilterBuilder;
+use minikalman::builder::extended::KalmanFilterBuilder;
 use minikalman::prelude::*;
 
 const NUM_STATES: usize = 4; // position (x, y), velocity (x, y)
@@ -139,7 +139,7 @@ enum Stage {
 
 fn print_state<T>(time: f32, filter: &T, state: Stage)
 where
-    T: KalmanFilter<4, f32>,
+    T: ExtendedKalmanFilter<4, f32>,
 {
     let marker = match state {
         Stage::Prior => ' ',

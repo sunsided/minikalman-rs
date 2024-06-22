@@ -116,7 +116,7 @@ pub fn predict_gravity() -> I16F16 {
     );
     impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, I16F16, I16F16::ZERO);
 
-    let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
+    let mut filter = RegularKalmanBuilder::new::<NUM_STATES, I16F16>(
         StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
         StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
         EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),

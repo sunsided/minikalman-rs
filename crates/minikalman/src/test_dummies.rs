@@ -4,9 +4,11 @@ use core::ops::{Index, IndexMut};
 use crate::kalman::*;
 use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixMut};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
-use crate::{Control, ControlBuilder, Kalman, KalmanBuilder, Observation, ObservationBuilder};
+use crate::{
+    Control, ControlBuilder, Observation, ObservationBuilder, RegularKalman, RegularKalmanBuilder,
+};
 
-pub fn make_dummy_filter() -> Kalman<
+pub fn make_dummy_filter() -> RegularKalman<
     3,
     f32,
     Dummy<f32, 3, 3>,
@@ -15,7 +17,7 @@ pub fn make_dummy_filter() -> Kalman<
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
 > {
-    KalmanBuilder::new::<3, f32>(
+    RegularKalmanBuilder::new::<3, f32>(
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),

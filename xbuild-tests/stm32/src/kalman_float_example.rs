@@ -56,7 +56,7 @@ pub fn predict_gravity() -> f32 {
     impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 
-    let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+    let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
         StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
         StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
         EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),

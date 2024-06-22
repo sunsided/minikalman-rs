@@ -9,7 +9,7 @@
 //! to create the required arrays (see e.g. [`impl_buffer_A`]).
 //!
 //! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](builder::regular::KalmanFilterBuilder) can be
-//! used to quickly create a [`Kalman`] filter instance with all necessary buffers, alongside
+//! used to quickly create a [`RegularKalman`] filter instance with all necessary buffers, alongside
 //! [`Control`] and [`Observation`] instances.
 //!
 //! ## Crate Features
@@ -159,7 +159,7 @@
 //! impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
 //! impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 //!
-//! let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+//! let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
 //!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
 //!     StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
 //!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
@@ -220,7 +220,7 @@ mod test_filter;
 #[cfg(feature = "alloc")]
 pub use crate::buffers::builder::BufferBuilder;
 pub use crate::controls::{Control, ControlBuilder};
-pub use crate::kalman::regular::{Kalman, KalmanBuilder};
+pub use crate::kalman::regular::{RegularKalman, RegularKalmanBuilder};
 pub use crate::observations::{Observation, ObservationBuilder};
 
 /// Re-export `num_traits`.
@@ -229,8 +229,14 @@ pub use num_traits;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub mod builder {
+    /// Regular Kalman Filters
     pub mod regular {
         pub use crate::kalman_builder::regular::*;
+    }
+
+    /// Extended Kalman Filters (EKF)
+    pub mod extended {
+        pub use crate::kalman_builder::extended::*;
     }
 }
 
@@ -241,7 +247,7 @@ pub mod prelude {
     pub use crate::buffers::builder::*;
 
     pub use crate::controls::{Control, ControlBuilder};
-    pub use crate::kalman::regular::{Kalman, KalmanBuilder};
+    pub use crate::kalman::regular::{RegularKalman, RegularKalmanBuilder};
     pub use crate::observations::{Observation, ObservationBuilder};
 
     pub use crate::kalman::*;

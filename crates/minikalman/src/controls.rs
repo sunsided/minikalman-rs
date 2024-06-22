@@ -354,7 +354,7 @@ mod tests {
         use crate::matrix::MatrixMut;
         use assert_float_eq::*;
 
-        use crate::prelude::{BufferBuilder, KalmanBuilder};
+        use crate::prelude::{BufferBuilder, RegularKalmanBuilder};
 
         const NUM_STATES: usize = 4;
         const NUM_CONTROLS: usize = 3;
@@ -376,7 +376,7 @@ mod tests {
         // Control temporaries
         let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new();
 
-        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
         let mut control = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
 
         // State transition is identity.

@@ -84,7 +84,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new();
 
     c.bench_function("filter loop (fixed-point)", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, I16F16>(
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
@@ -128,7 +128,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("predict (fixed-point)", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, I16F16>(
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
@@ -166,7 +166,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("update (fixed-point)", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, I16F16>(
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, I16F16>(
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),

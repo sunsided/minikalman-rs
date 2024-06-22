@@ -1,13 +1,13 @@
-//! # Regular Kalman Filter
+//! # Extended Kalman Filter
 
 use crate::kalman::*;
 use crate::matrix::MatrixDataType;
 use crate::prelude::Matrix;
 use core::marker::PhantomData;
 
-/// A builder for a [`RegularKalman`] filter instances.
+/// A builder for a [`ExtendedKalman`] filter instances.
 #[allow(clippy::type_complexity)]
-pub struct RegularKalmanBuilder<A, X, P, PX, TempP> {
+pub struct ExtendedKalmanBuilder<A, X, P, PX, TempP> {
     _phantom: (
         PhantomData<A>,
         PhantomData<X>,
@@ -17,7 +17,7 @@ pub struct RegularKalmanBuilder<A, X, P, PX, TempP> {
     ),
 }
 
-impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
+impl<A, X, P, PX, TempP> ExtendedKalmanBuilder<A, X, P, PX, TempP> {
     /// Initializes a Kalman filter instance.
     ///
     /// ## Arguments
@@ -63,7 +63,7 @@ impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
         P: P,
         predicted_x: PX,
         temp_P: TempP,
-    ) -> RegularKalman<STATES, T, A, X, P, PX, TempP>
+    ) -> ExtendedKalman<STATES, T, A, X, P, PX, TempP>
     where
         T: MatrixDataType,
         A: StateTransitionMatrix<STATES, T>,
@@ -72,7 +72,7 @@ impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
         PX: PredictedStateEstimateVector<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
     {
-        RegularKalman::<STATES, T, _, _, _, _, _> {
+        ExtendedKalman::<STATES, T, _, _, _, _, _> {
             x,
             A,
             P,
@@ -83,9 +83,9 @@ impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
     }
 }
 
-/// Kalman Filter structure.  See [`RegularKalmanBuilder`] for construction.
+/// Kalman Filter structure.  See [`ExtendedKalmanBuilder`] for construction.
 #[allow(non_snake_case, unused)]
-pub struct RegularKalman<const STATES: usize, T, A, X, P, PX, TempP> {
+pub struct ExtendedKalman<const STATES: usize, T, A, X, P, PX, TempP> {
     /// State vector.
     x: X,
 
@@ -110,14 +110,14 @@ pub struct RegularKalman<const STATES: usize, T, A, X, P, PX, TempP> {
     _phantom: PhantomData<T>,
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP> {
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP> {
     /// Returns the number of states.
     pub const fn states(&self) -> usize {
         STATES
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     X: StateVector<STATES, T>,
 {
@@ -131,7 +131,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     X: StateVectorMut<STATES, T>,
 {
@@ -146,16 +146,18 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     A: StateTransitionMatrix<STATES, T>,
 {
     /// Gets a reference to the state transition matrix A/F, or its Jacobian
     ///
-    /// ## (Regular) Kalman Filters
-    /// This matrix describes how the state vector evolves from one time step to the next in the
-    /// absence of control inputs. It defines the relationship between the previous state and the
-    /// current state, accounting for the inherent dynamics of the system.
+    /// ## Extended Kalman Filters
+    /// When updating using [`correct_nonlinear`](Self::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
+    ///
+    /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]
     #[doc(alias = "system_matrix")]
     #[doc(alias = "system_jacobian_matrix")]
@@ -164,7 +166,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     A: StateTransitionMatrixMut<STATES, T>,
 {
@@ -173,6 +175,13 @@ where
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
+    ///
+    /// ## Extended Kalman Filters
+    /// When updating using [`correct_nonlinear`](Self::correct_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
+    ///
+    /// See e.g. [`predict_nonlinear`](Self::predict_nonlinear) for use.
     #[inline(always)]
     #[doc(alias = "system_matrix_mut")]
     #[doc(alias = "system_jacobian_matrix_mut")]
@@ -182,7 +191,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
 {
@@ -208,10 +217,22 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP> {
-    /// Performs the time update / prediction step.
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP> {
+    /// Performs a (potentially nonlinear) state transition only involving the current state.
+    /// Unlike [`predict`](Self::predict), which uses the known state matrix, this method only uses the provided
+    /// state transition function.
     ///
-    /// This call assumes that the control covariance and variables are already set in the filter structure.
+    /// ## Extended Kalman Filters
+    /// This function can be used to implement the nonlinear state prediction step of the
+    /// Extended Kalman Filter. Since it predicts both the next state and the next
+    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
+    /// the Jacobian of the state transition instead.
+    ///
+    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// access to the state transition matrix) to linearize it around the current state.
+    ///
+    /// ## Arguments
+    /// * `state_transition` - An immutable closure that takes the current state and returns the next state.
     ///
     /// ## Example
     /// ```
@@ -269,18 +290,26 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, 
     /// #
     /// for t in 0..REAL_DISTANCE.len() {
     ///     // Prediction.
-    ///     filter.predict();
+    ///     filter.predict_nonlinear(|current, next| {
+    ///         // Any arbitrary state transition.
+    ///         next[0] = current[0] + current[1].cos();
+    ///         next[1] = current[1] + current[1].sin();
+    ///     });
     ///
     ///     // Measure ...
     ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
+    ///
+    ///     // Apply a measurement of the unchanged state.
+    ///     filter.correct_nonlinear(&mut measurement, |state, observation| {
+    ///         // Any arbitrary observation.
+    ///         observation[0] = state[0].cos() * state[1];
+    ///     });
     ///
     ///     // Update.
     ///     filter.correct(&mut measurement);
     /// }
     /// ```
-    #[doc(alias = "kalman_predict")]
-    pub fn predict(&mut self)
+    pub fn predict_nonlinear<F>(&mut self, state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
         A: StateTransitionMatrix<STATES, T>,
@@ -288,93 +317,32 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, 
         P: EstimateCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
+        F: FnMut(&X, &mut PX),
     {
-        //* Predict next state using system dynamics
-        //* x = A*x
-        self.predict_x();
+        // Predict next state using system dynamics
+        // x = a(x)
+        self.predict_x_nonlinear(state_transition);
 
-        //* Predict next covariance using system dynamics and control
-        //* P = A*P*Aᵀ
+        // Predict next covariance using system dynamics and control
+        // P = A*P*Aᵀ
         self.predict_P();
     }
 
-    /// Performs the time update / prediction step.
+    /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned).
     ///
-    /// This call assumes that the control covariance and variables are already set in the filter structure.
+    /// ## Extended Kalman Filters
+    /// This function can be used to implement the nonlinear state prediction step of the
+    /// Extended Kalman Filter. Since it predicts both the next state and the next
+    /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
+    /// the Jacobian of the state transition instead.
     ///
-    /// ## Arguments
-    /// * `lambda` - Lambda factor (0 < `lambda` <= 1) to forcibly reduce prediction certainty. Smaller values mean larger uncertainty.
+    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// access to the state transition matrix) to linearize it around the current state.
     ///
     /// ## Example
-    /// ```
-    /// # #![allow(non_snake_case)]
-    /// # use minikalman::prelude::*;
-    /// # const NUM_STATES: usize = 3;
-    /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_OBSERVATIONS: usize = 1;
-    /// # // System buffers.
-    /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
-    /// #
-    /// # // Filter temporaries.
-    /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// #
-    /// # let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
-    /// #     gravity_A,
-    /// #     gravity_x,
-    /// #     gravity_P,
-    /// #     gravity_temp_x,
-    /// #     gravity_temp_P,
-    /// #  );
-    /// #
-    /// # // Observation buffers.
-    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-    /// #
-    /// # // Observation temporaries.
-    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
-    /// #
-    /// # let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-    /// #     gravity_H,
-    /// #     gravity_z,
-    /// #     gravity_R,
-    /// #     gravity_y,
-    /// #     gravity_S,
-    /// #     gravity_K,
-    /// #     gravity_temp_S_inv,
-    /// #     gravity_temp_HP,
-    /// #     gravity_temp_PHt,
-    /// #     gravity_temp_KHP,
-    /// # );
-    /// #
-    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
-    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
-    /// #
-    /// const LAMBDA: f32 = 0.97;
-    ///
-    /// for t in 0..REAL_DISTANCE.len() {
-    ///     // Prediction.
-    ///     filter.predict_tuned(LAMBDA);
-    ///
-    ///     // Measure ...
-    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
-    ///
-    ///     // Update.
-    ///     filter.correct(&mut measurement);
-    /// }
-    /// ```
+    /// See [`predict_tuned`](Self::predict_tuned) and [`predict_nonlinear`](Self::predict_nonlinear) for an example.
     #[doc(alias = "kalman_predict_tuned")]
-    pub fn predict_tuned(&mut self, lambda: T)
+    pub fn predict_tuned_nonlinear<F>(&mut self, lambda: T, state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
         A: StateTransitionMatrix<STATES, T>,
@@ -382,37 +350,30 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, 
         P: EstimateCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
+        F: FnMut(&X, &mut PX),
     {
         // Predict next state using system dynamics
-        // x = A*x
-        self.predict_x();
+        // x = a(x)
+        self.predict_x_nonlinear(state_transition);
 
         // Predict next covariance using system dynamics and control
         // P = A*P*Aᵀ * 1/lambda^2
         self.predict_P_tuned(lambda);
     }
 
-    /// Performs the time update / prediction step of only the state vector
+    /// Performs the potentially non-linear time update / prediction step of only the state vector
     #[allow(non_snake_case)]
-    #[doc(alias = "kalman_predict_x")]
-    fn predict_x(&mut self)
+    fn predict_x_nonlinear<F>(&mut self, mut state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
-        A: StateTransitionMatrix<STATES, T>,
         PX: PredictedStateEstimateVector<STATES, T>,
         T: MatrixDataType,
+        F: FnMut(&X, &mut PX),
     {
-        // matrices and vectors
-        let A = self.A.as_matrix();
+        state_transition(&self.x, &mut self.predicted_x);
+
         let x = self.x.as_matrix_mut();
-
-        // temporaries
         let x_predicted = self.predicted_x.as_matrix_mut();
-
-        // Predict next state using system dynamics
-        // x = A*x
-
-        A.mult_rowvector(x, x_predicted);
         x_predicted.copy(x);
     }
 
@@ -466,111 +427,38 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, 
         P_temp.multscale_transb(A, lambda, P); // P = temp*A' * 1/(lambda^2)
     }
 
-    /// Applies a control input.
+    /// Performs the nonlinear measurement update step.
     ///
     /// ## Extended Kalman Filters
-    /// In an Extended Kalman Filter, this method is meaningless. Use the
-    /// [`predict_nonlinear`](Self::predict_nonlinear) function set instead.
-    #[inline(always)]
-    pub fn control<I>(&mut self, control: &mut I)
-    where
-        P: EstimateCovarianceMatrix<STATES, T>,
-        X: StateVectorMut<STATES, T>,
-        T: MatrixDataType,
-        I: KalmanFilterControlApplyToFilter<STATES, T>,
-    {
-        control.apply_to(&mut self.x, &mut self.P)
-    }
-
-    /// Performs the measurement update step.
+    /// This function expects that the Jacobian of the observation transformation function
+    /// is correctly set up for the measurement. See [`KalmanFilterObservationTransformationMut`](KalmanFilterObservationTransformationMut::observation_matrix_mut)
+    /// for more information.
     ///
     /// ## Arguments
     /// * `measurement` - The measurement.
-    ///
-    /// ## Example
-    /// ```
-    /// # #![allow(non_snake_case)]
-    /// # use minikalman::prelude::*;
-    /// # const NUM_STATES: usize = 3;
-    /// # const NUM_CONTROLS: usize = 0;
-    /// # const NUM_OBSERVATIONS: usize = 1;
-    /// # // System buffers.
-    /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
-    /// #
-    /// # // Filter temporaries.
-    /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
-    /// #
-    /// # let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
-    /// #     gravity_A,
-    /// #     gravity_x,
-    /// #     gravity_P,
-    /// #     gravity_temp_x,
-    /// #     gravity_temp_P,
-    /// #  );
-    /// #
-    /// # // Observation buffers.
-    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-    /// #
-    /// # // Observation temporaries.
-    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-    /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
-    /// #
-    /// # let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-    /// #     gravity_H,
-    /// #     gravity_z,
-    /// #     gravity_R,
-    /// #     gravity_y,
-    /// #     gravity_S,
-    /// #     gravity_K,
-    /// #     gravity_temp_S_inv,
-    /// #     gravity_temp_HP,
-    /// #     gravity_temp_PHt,
-    /// #     gravity_temp_KHP,
-    /// # );
-    /// #
-    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
-    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
-    /// #
-    /// for t in 0..REAL_DISTANCE.len() {
-    ///     // Prediction.
-    ///     filter.predict();
-    ///
-    ///     // Measure ...
-    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
-    ///
-    ///     // Update.
-    ///     filter.correct(&mut measurement);
-    /// }
-    /// ```
-    pub fn correct<M>(&mut self, measurement: &mut M)
-    where
+    /// * `observation` - The observation function.
+    pub fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) where
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
-        M: KalmanFilterObservationCorrectFilter<STATES, T>,
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
     {
-        measurement.correct(&mut self.x, &mut self.P);
+        measurement.correct_nonlinear(&mut self.x, &mut self.P, observation);
     }
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNumStates<STATES>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 {
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateVector<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     X: StateVector<STATES, T>,
 {
@@ -583,7 +471,7 @@ where
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateVectorMut<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     X: StateVectorMut<STATES, T>,
 {
@@ -596,7 +484,7 @@ where
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateTransition<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     A: StateTransitionMatrix<STATES, T>,
 {
@@ -609,7 +497,7 @@ where
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateTransitionMut<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     A: StateTransitionMatrixMut<STATES, T>,
 {
@@ -622,7 +510,7 @@ where
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterSystemCovariance<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
 {
@@ -635,7 +523,7 @@ where
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterSystemCovarianceMut<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
 {
@@ -647,8 +535,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterPredict<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearPredict<STATES, T>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     X: StateVectorMut<STATES, T>,
     A: StateTransitionMatrix<STATES, T>,
@@ -657,41 +545,34 @@ where
     TempP: TemporaryStateMatrix<STATES, T>,
     T: MatrixDataType,
 {
+    type NextStateVector = PX;
+
     #[inline(always)]
-    fn predict(&mut self) {
-        self.predict()
+    fn predict_nonlinear<F>(&mut self, state_transition: F)
+    where
+        F: FnMut(&X, &mut Self::NextStateVector),
+    {
+        self.predict_nonlinear(state_transition)
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterUpdate<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNonlinearUpdate<STATES, T>
+    for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
     X: StateVectorMut<STATES, T>,
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn correct<M>(&mut self, measurement: &mut M)
-    where
-        M: KalmanFilterObservationCorrectFilter<STATES, T>,
+    fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) where
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
     {
-        self.correct(measurement)
-    }
-}
-
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterApplyControl<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
-where
-    P: EstimateCovarianceMatrix<STATES, T>,
-    X: StateVectorMut<STATES, T>,
-    T: MatrixDataType,
-{
-    #[inline(always)]
-    fn control<I>(&mut self, control: &mut I)
-    where
-        I: KalmanFilterControlApplyToFilter<STATES, T>,
-    {
-        self.control(control)
+        self.correct_nonlinear(measurement, observation)
     }
 }
 
@@ -703,7 +584,7 @@ mod tests {
 
     fn trait_impl<const STATES: usize, T, K>(mut filter: K) -> K
     where
-        K: KalmanFilter<STATES, T> + KalmanFilterStateTransitionMut<STATES, T>,
+        K: ExtendedKalmanFilter<STATES, T> + KalmanFilterStateTransitionMut<STATES, T>,
     {
         assert_eq!(filter.states(), STATES);
 
@@ -778,7 +659,7 @@ mod tests {
     fn builder_simple() {
         let filter = make_dummy_filter();
 
-        let mut filter = trait_impl(filter);
+        let filter = trait_impl(filter);
         assert_eq!(filter.states(), 3);
 
         let test_fn = || 42;
@@ -848,7 +729,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "alloc")]
-    fn it_works() {
+    fn test_nonlinear() {
         use crate::prelude::*;
         use assert_float_eq::*;
 
@@ -860,9 +741,20 @@ mod tests {
             .estimate_covariance()
             .inspect(|mat| (0..3).into_iter().all(|i| { mat.get_at(i, i) == 0.1 })));
 
-        // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
-        for _ in 0..10 {
-            example.filter.predict();
+        // Trivial state progression.
+        for _ in 0..5 {
+            // Direct call.
+            example.filter.predict_nonlinear(|current, next| {
+                current.copy(next);
+            });
+
+            // Call via trait.
+            KalmanFilterNonlinearPredict::predict_nonlinear(
+                &mut example.filter,
+                |current, next| {
+                    current.copy(next);
+                },
+            );
         }
 
         // All states are zero.
@@ -887,7 +779,12 @@ mod tests {
             .set_at(0, 0, 0.0);
 
         // Apply a measurement of the unchanged state.
-        example.filter.correct(&mut example.measurement);
+        example
+            .filter
+            .correct_nonlinear(&mut example.measurement, |state, observation| {
+                observation[0] = state[0].sin();
+                observation[1] = state[0] * state[1];
+            });
 
         // All states are still zero.
         assert!(example
@@ -904,63 +801,23 @@ mod tests {
             assert!(mat.get_at(2, 2) < 0.01);
         });
 
-        // Set an input.
-        example.control.control_vector_mut().set_at(0, 0, 1.0);
-
         // Predict and apply an input.
-        example.filter.predict();
+        example
+            .filter
+            .predict_tuned_nonlinear(0.2, |current, next| {
+                next[0] = current[0] + current[1].cos();
+                next[1] = current[1] + current[1].sin();
+            });
         example.filter.control(&mut example.control);
 
-        // All states are still zero.
-        example.filter.state_vector().inspect(|vec| {
-            assert_eq!(
-                vec.get_at(0, 0),
-                0.5,
-                "incorrect position after control input"
-            );
-            assert_eq!(
-                vec.get_at(1, 0),
-                1.0,
-                "incorrect velocity after control input"
-            );
-            assert_eq!(
-                vec.get_at(2, 0),
-                1.0,
-                "incorrect acceleration after control input"
-            );
-        });
-
-        // Predict without input.
-        example.filter.predict();
-
-        // All states are still zero.
-        example.filter.state_vector().inspect(|vec| {
-            assert_eq!(vec.get_at(0, 0), 2.0, "incorrect position");
-            assert_eq!(vec.get_at(1, 0), 2.0, "incorrect velocity");
-            assert_eq!(vec.get_at(2, 0), 1.0, "incorrect acceleration");
-        });
-
-        // The estimate covariance has worsened.
-        example.filter.estimate_covariance().inspect(|mat| {
-            assert!(mat.get_at(0, 0) > 6.2);
-            assert!(mat.get_at(1, 1) > 4.2);
-            assert!(mat.get_at(2, 2) > 1.0);
-        });
-
-        // Set a new measurement
-        example.measurement.measurement_vector_mut().apply(|vec| {
-            vec.set_at(0, 0, 2.0);
-            vec.set_at(1, 0, (2.0 + 2.0 + 1.0) / 3.0);
-        });
-
-        // Apply a measurement of the state.
-        example.filter.correct(&mut example.measurement);
-
-        // The estimate covariance has improved.
-        example.filter.estimate_covariance().inspect(|mat| {
-            assert!(mat.get_at(0, 0) < 1.0);
-            assert!(mat.get_at(1, 1) < 1.0);
-            assert!(mat.get_at(2, 2) < 0.4);
-        });
+        // Apply a measurement through the trait
+        KalmanFilterNonlinearUpdate::correct_nonlinear(
+            &mut example.filter,
+            &mut example.measurement,
+            |state, observation| {
+                observation[0] = state[0].sin();
+                observation[1] = state[0] * state[1];
+            },
+        );
     }
 }
