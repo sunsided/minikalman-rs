@@ -55,7 +55,7 @@ fn main() {
         let time = step as f32 * DELTA_T;
 
         // Update the system transition Jacobian matrix.
-        filter.state_transition_mut().apply(|mat| {
+        filter.state_transition_jacobian_mut().apply(|mat| {
             mat.make_identity();
             mat.set_at(0, 2, DELTA_T);
             mat.set_at(1, 3, DELTA_T);

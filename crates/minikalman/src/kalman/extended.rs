@@ -161,7 +161,7 @@ where
     #[inline(always)]
     #[doc(alias = "system_matrix")]
     #[doc(alias = "system_jacobian_matrix")]
-    pub fn state_transition(&self) -> &A {
+    pub fn state_transition_jacobian(&self) -> &A {
         &self.A
     }
 }
@@ -186,7 +186,7 @@ where
     #[doc(alias = "system_matrix_mut")]
     #[doc(alias = "system_jacobian_matrix_mut")]
     #[doc(alias = "kalman_get_state_transition")]
-    pub fn state_transition_mut(&mut self) -> &mut A {
+    pub fn state_transition_jacobian_mut(&mut self) -> &mut A {
         &mut self.A
     }
 }
@@ -238,6 +238,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     /// ```
     /// # #![allow(non_snake_case)]
     /// # use minikalman::prelude::*;
+    /// # use minikalman::prelude::extended::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_OBSERVATIONS: usize = 1;
@@ -250,7 +251,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
     /// #
-    /// # let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
+    /// # let mut filter = ExtendedKalmanBuilder::new::<NUM_STATES, f32>(
     /// #     gravity_A,
     /// #     gravity_x,
     /// #     gravity_P,
@@ -289,6 +290,9 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
     /// #
     /// for t in 0..REAL_DISTANCE.len() {
+    ///
+    ///     // TODO: update the state Jacobian
+    ///
     ///     // Prediction.
     ///     filter.predict_nonlinear(|current, next| {
     ///         // Any arbitrary state transition.
@@ -299,14 +303,13 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     ///     // Measure ...
     ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
     ///
+    ///     // TODO: update the measurement Jacobian
+    ///
     ///     // Apply a measurement of the unchanged state.
     ///     filter.correct_nonlinear(&mut measurement, |state, observation| {
     ///         // Any arbitrary observation.
     ///         observation[0] = state[0].cos() * state[1];
     ///     });
-    ///
-    ///     // Update.
-    ///     filter.correct(&mut measurement);
     /// }
     /// ```
     pub fn predict_nonlinear<F>(&mut self, state_transition: F)
@@ -483,7 +486,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateTransition<STATES, T>
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalmanFilterStateTransition<STATES, T>
     for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     A: StateTransitionMatrix<STATES, T>,
@@ -491,12 +494,12 @@ where
     type StateTransitionMatrix = A;
 
     #[inline(always)]
-    fn state_transition(&self) -> &Self::StateTransitionMatrix {
-        self.state_transition()
+    fn state_transition_jacobian(&self) -> &Self::StateTransitionMatrix {
+        self.state_transition_jacobian()
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateTransitionMut<STATES, T>
+impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalmanFilterStateTransitionMut<STATES, T>
     for ExtendedKalman<STATES, T, A, X, P, PX, TempP>
 where
     A: StateTransitionMatrixMut<STATES, T>,
@@ -504,8 +507,8 @@ where
     type StateTransitionMatrixMut = A;
 
     #[inline(always)]
-    fn state_transition_mut(&mut self) -> &mut Self::StateTransitionMatrixMut {
-        self.state_transition_mut()
+    fn state_transition_jacobian_mut(&mut self) -> &mut Self::StateTransitionMatrixMut {
+        self.state_transition_jacobian_mut()
     }
 }
 
@@ -580,11 +583,12 @@ where
 mod tests {
     use super::*;
     use crate::prelude::{AsMatrix, AsMatrixMut, MatrixMut};
-    use crate::test_dummies::make_dummy_filter;
+    use crate::test_dummies::make_dummy_filter_ekf;
 
     fn trait_impl<const STATES: usize, T, K>(mut filter: K) -> K
     where
-        K: ExtendedKalmanFilter<STATES, T> + KalmanFilterStateTransitionMut<STATES, T>,
+        K: ExtendedKalmanFilter<STATES, T> + ExtendedKalmanFilterStateTransitionMut<STATES, T>,
+        T: Copy,
     {
         assert_eq!(filter.states(), STATES);
 
@@ -612,22 +616,22 @@ mod tests {
             .as_matrix_mut()
             .apply(|_vec| test_fn_mut());
 
-        let _mat = filter.state_transition();
-        let _mat = filter.state_transition_mut();
+        let _mat = filter.state_transition_jacobian();
+        let _mat = filter.state_transition_jacobian_mut();
         let _ = filter
-            .state_transition()
+            .state_transition_jacobian()
             .as_matrix()
             .inspect(|_mat| test_fn());
         let _ = filter
-            .state_transition_mut()
+            .state_transition_jacobian_mut()
             .as_matrix()
             .inspect(|_mat| test_fn_mut());
         filter
-            .state_transition_mut()
+            .state_transition_jacobian_mut()
             .as_matrix_mut()
             .apply(|_mat| test_fn());
         filter
-            .state_transition_mut()
+            .state_transition_jacobian_mut()
             .as_matrix_mut()
             .apply(|_mat| test_fn_mut());
 
@@ -650,16 +654,16 @@ mod tests {
             .as_matrix_mut()
             .apply(|_mat| test_fn_mut());
 
-        filter.predict();
+        filter.predict_nonlinear(|state, next| state.as_matrix().copy(next.as_matrix_mut()));
 
         filter
     }
 
     #[test]
     fn builder_simple() {
-        let filter = make_dummy_filter();
+        let filter = make_dummy_filter_ekf();
 
-        let filter = trait_impl(filter);
+        let mut filter = trait_impl(filter);
         assert_eq!(filter.states(), 3);
 
         let test_fn = || 42;
@@ -686,22 +690,22 @@ mod tests {
             .as_matrix_mut()
             .apply(|_vec| test_fn_mut());
 
-        let _mat = filter.state_transition();
-        let _mat = filter.state_transition_mut();
+        let _mat = filter.state_transition_jacobian();
+        let _mat = filter.state_transition_jacobian_mut();
         let _ = filter
-            .state_transition()
+            .state_transition_jacobian()
             .as_matrix()
             .inspect(|_mat| test_fn());
         let _ = filter
-            .state_transition_mut()
+            .state_transition_jacobian_mut()
             .as_matrix()
             .inspect(|_mat| test_fn_mut());
         filter
-            .state_transition_mut()
+            .state_transition_jacobian_mut()
             .as_matrix_mut()
             .apply(|_mat| test_fn());
         filter
-            .state_transition_mut()
+            .state_transition_jacobian_mut()
             .as_matrix_mut()
             .apply(|_mat| test_fn_mut());
 
@@ -724,7 +728,7 @@ mod tests {
             .as_matrix_mut()
             .apply(|_mat| test_fn_mut());
 
-        filter.predict();
+        filter.predict_nonlinear(|state, next| state.as_matrix().copy(next.as_matrix_mut()));
     }
 
     #[test]
@@ -733,7 +737,7 @@ mod tests {
         use crate::prelude::*;
         use assert_float_eq::*;
 
-        let mut example = crate::test_filter::create_test_filter(1.0);
+        let mut example = crate::test_filter::create_test_filter_ekf(1.0);
 
         // The estimate covariance still is scalar.
         assert!(example
@@ -801,14 +805,13 @@ mod tests {
             assert!(mat.get_at(2, 2) < 0.01);
         });
 
-        // Predict and apply an input.
+        // Predict again.
         example
             .filter
             .predict_tuned_nonlinear(0.2, |current, next| {
                 next[0] = current[0] + current[1].cos();
                 next[1] = current[1] + current[1].sin();
             });
-        example.filter.control(&mut example.control);
 
         // Apply a measurement through the trait
         KalmanFilterNonlinearUpdate::correct_nonlinear(

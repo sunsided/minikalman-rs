@@ -78,7 +78,7 @@
 //! replaced with their nonlinear counterparts:
 //!
 //! ```no_run
-//! use minikalman::builder::regular::KalmanFilterBuilder;
+//! use minikalman::builder::extended::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;

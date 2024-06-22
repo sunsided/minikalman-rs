@@ -17,7 +17,7 @@ pub trait KalmanFilter<const STATES: usize, T>:
 pub trait ExtendedKalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>
     + KalmanFilterStateVectorMut<STATES, T>
-    + KalmanFilterStateTransition<STATES, T>
+    + ExtendedKalmanFilterStateTransition<STATES, T>
     + KalmanFilterSystemCovarianceMut<STATES, T>
     + KalmanFilterNonlinearPredict<STATES, T>
     + KalmanFilterNonlinearUpdate<STATES, T>
@@ -71,7 +71,7 @@ impl<const STATES: usize, T, Filter> KalmanFilter<STATES, T> for Filter where
 impl<const STATES: usize, T, Filter> ExtendedKalmanFilter<STATES, T> for Filter where
     Filter: KalmanFilterNumStates<STATES>
         + KalmanFilterStateVectorMut<STATES, T>
-        + KalmanFilterStateTransition<STATES, T>
+        + ExtendedKalmanFilterStateTransition<STATES, T>
         + KalmanFilterSystemCovarianceMut<STATES, T>
         + KalmanFilterNonlinearPredict<STATES, T>
         + KalmanFilterNonlinearUpdate<STATES, T>
@@ -219,31 +219,21 @@ pub trait KalmanFilterStateVectorMut<const STATES: usize, T>:
     fn state_vector_mut(&mut self) -> &mut Self::StateVectorMut;
 }
 
-/// Provides access to the state transition matrix or its Jacobian.
+/// Provides access to the state transition matrix.
 ///
 /// ## (Regular) Kalman Filters
 /// This matrix describes how the state vector evolves from one time step to the next in the
 /// absence of control inputs. It defines the relationship between the previous state and the
 /// current state, accounting for the inherent dynamics of the system.
-///
-/// ## Extended Kalman Filters
-/// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
-/// transition matrix, i.e. the derivative of the state transition matrix with respect
-/// to the state vector.
 pub trait KalmanFilterStateTransition<const STATES: usize, T> {
     type StateTransitionMatrix: StateTransitionMatrix<STATES, T>;
 
-    /// Gets a reference to the state transition matrix A/F, or its Jacobian.
+    /// Gets a reference to the state transition matrix A/F.
     ///
     /// ## (Regular) Kalman Filters
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
     /// current state, accounting for the inherent dynamics of the system.
-    ///
-    /// ## Extended Kalman Filters
-    /// When predicting using [`predict_nonlinear`](KalmanFilterNonlinearPredict::predict_nonlinear),
-    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
-    /// of the state transition matrix with respect to the state vector.
     fn state_transition(&self) -> &Self::StateTransitionMatrix;
 }
 
@@ -252,7 +242,39 @@ pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
 {
     type StateTransitionMatrixMut: StateTransitionMatrixMut<STATES, T>;
 
-    /// Gets a reference to the state transition matrix A/F, or its Jacobian
+    /// Gets a reference to the state transition matrix A/Fn
+    ///
+    /// This matrix describes how the state vector evolves from one time step to the next in the
+    /// absence of control inputs. It defines the relationship between the previous state and the
+    /// current state, accounting for the inherent dynamics of the system.
+    #[doc(alias = "kalman_get_state_transition")]
+    fn state_transition_mut(&mut self) -> &mut Self::StateTransitionMatrixMut;
+}
+
+/// Provides access to the Jacobian of the state transition matrix.
+///
+/// ## Extended Kalman Filters
+/// In Extended Kalman Filters, this matrix is treated as the Jacobian of the state
+/// transition matrix, i.e. the derivative of the state transition matrix with respect
+/// to the state vector.
+pub trait ExtendedKalmanFilterStateTransition<const STATES: usize, T> {
+    type StateTransitionMatrix: StateTransitionMatrix<STATES, T>;
+
+    /// Gets a reference to the Jacobian of the state transition matrix A/F.
+    ///
+    /// ## Extended Kalman Filters
+    /// When predicting using [`predict_nonlinear`](KalmanFilterNonlinearPredict::predict_nonlinear),
+    /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
+    /// of the state transition matrix with respect to the state vector.
+    fn state_transition_jacobian(&self) -> &Self::StateTransitionMatrix;
+}
+
+pub trait ExtendedKalmanFilterStateTransitionMut<const STATES: usize, T>:
+    ExtendedKalmanFilterStateTransition<STATES, T>
+{
+    type StateTransitionMatrixMut: StateTransitionMatrixMut<STATES, T>;
+
+    /// Gets a reference to the Jacobian of the state transition matrix A/F.
     ///
     /// This matrix describes how the state vector evolves from one time step to the next in the
     /// absence of control inputs. It defines the relationship between the previous state and the
@@ -262,8 +284,7 @@ pub trait KalmanFilterStateTransitionMut<const STATES: usize, T>:
     /// When predicting using [`predict_nonlinear`](KalmanFilterNonlinearPredict::predict_nonlinear),
     /// this matrix is treated as the Jacobian of the state transition matrix, i.e. the derivative
     /// of the state transition matrix with respect to the state vector.
-    #[doc(alias = "kalman_get_state_transition")]
-    fn state_transition_mut(&mut self) -> &mut Self::StateTransitionMatrixMut;
+    fn state_transition_jacobian_mut(&mut self) -> &mut Self::StateTransitionMatrixMut;
 }
 
 pub trait KalmanFilterSystemCovariance<const STATES: usize, T> {

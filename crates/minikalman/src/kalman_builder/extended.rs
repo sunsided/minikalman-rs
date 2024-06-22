@@ -176,9 +176,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kalman::{
-        ExtendedKalmanFilter, KalmanFilter, KalmanFilterControl, KalmanFilterObservation,
-    };
+    use crate::kalman::{ExtendedKalmanFilter, KalmanFilterObservation};
 
     const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
     const NUM_OBSERVATIONS: usize = 1; // position

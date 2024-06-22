@@ -1,6 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
+use crate::kalman::extended::{ExtendedKalman, ExtendedKalmanBuilder};
 use crate::kalman::*;
 use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixMut};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
@@ -18,6 +19,24 @@ pub fn make_dummy_filter() -> RegularKalman<
     Dummy<f32, 3, 3>,
 > {
     RegularKalmanBuilder::new::<3, f32>(
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+    )
+}
+
+pub fn make_dummy_filter_ekf() -> ExtendedKalman<
+    3,
+    f32,
+    Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 3>,
+> {
+    ExtendedKalmanBuilder::new::<3, f32>(
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),
