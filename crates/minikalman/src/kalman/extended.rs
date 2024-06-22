@@ -328,7 +328,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
 
         // Predict next covariance using system dynamics and control
         // P = A*P*Aᵀ
-        self.predict_P();
+        self.predict_P(); // TODO: Add some process noise Q
     }
 
     /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned).

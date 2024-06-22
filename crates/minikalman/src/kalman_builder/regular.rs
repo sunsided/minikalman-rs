@@ -3,8 +3,9 @@ use core::marker::PhantomData;
 use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
-use crate::controls::{Control, ControlBuilder};
-use crate::{BufferBuilder, Observation, ObservationBuilder, RegularKalman, RegularKalmanBuilder};
+use crate::regular::{
+    Control, ControlBuilder, Observation, ObservationBuilder, RegularKalman, RegularKalmanBuilder,
+};
 
 /// A simple builder for [`RegularKalman`] instances.
 #[derive(Copy, Clone)]

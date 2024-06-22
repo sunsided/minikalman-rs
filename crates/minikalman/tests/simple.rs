@@ -7,8 +7,8 @@
 
 use assert_float_eq::*;
 
-use minikalman::builder::regular::*;
 use minikalman::prelude::*;
+use minikalman::regular::builder::*;
 
 pub struct TestFilter {
     pub filter: KalmanFilterType<3, f32>,

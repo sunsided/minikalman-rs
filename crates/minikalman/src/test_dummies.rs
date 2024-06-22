@@ -5,7 +5,7 @@ use crate::kalman::extended::{ExtendedKalman, ExtendedKalmanBuilder};
 use crate::kalman::*;
 use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixMut};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
-use crate::{
+use crate::regular::{
     Control, ControlBuilder, Observation, ObservationBuilder, RegularKalman, RegularKalmanBuilder,
 };
 

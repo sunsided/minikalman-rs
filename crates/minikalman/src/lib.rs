@@ -219,25 +219,29 @@ mod test_filter;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub use crate::buffers::builder::BufferBuilder;
-pub use crate::controls::{Control, ControlBuilder};
-pub use crate::kalman::regular::{RegularKalman, RegularKalmanBuilder};
-pub use crate::observations::{Observation, ObservationBuilder};
 
 /// Re-export `num_traits`.
 pub use num_traits;
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
-pub mod builder {
-    /// Regular Kalman Filters
-    pub mod regular {
-        pub use crate::kalman_builder::regular::*;
-    }
+/// Regular Kalman Filters
+pub mod regular {
+    pub use crate::controls::*;
+    pub use crate::kalman::regular::*;
+    pub use crate::observations::regular::*;
 
-    /// Extended Kalman Filters (EKF)
-    pub mod extended {
-        pub use crate::kalman_builder::extended::*;
-    }
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub use crate::kalman_builder::regular as builder;
+}
+
+/// Extended Kalman Filters (EKF)
+pub mod extended {
+    pub use crate::kalman::extended::*;
+    pub use crate::observations::extended::*;
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub use crate::kalman_builder::extended as builder;
 }
 
 /// Exports all macros and common types.
@@ -246,16 +250,8 @@ pub mod prelude {
     #[cfg(feature = "alloc")]
     pub use crate::buffers::builder::*;
 
-    pub use crate::controls::{Control, ControlBuilder};
-    pub use crate::kalman::regular::{RegularKalman, RegularKalmanBuilder};
-    pub use crate::observations::{Observation, ObservationBuilder};
-
     pub use crate::kalman::*;
     pub use crate::matrix::*;
-
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-    #[cfg(feature = "alloc")]
-    pub use crate::builder;
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,

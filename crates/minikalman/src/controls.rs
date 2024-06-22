@@ -337,7 +337,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test_mut_apply() {
-        use crate::builder::regular::KalmanFilterBuilder;
+        use crate::regular::builder::KalmanFilterBuilder;
 
         let builder = KalmanFilterBuilder::<3, f32>::default();
         let mut filter = builder.build();
@@ -354,7 +354,7 @@ mod tests {
         use crate::matrix::MatrixMut;
         use assert_float_eq::*;
 
-        use crate::prelude::{BufferBuilder, RegularKalmanBuilder};
+        use crate::prelude::{regular::RegularKalmanBuilder, BufferBuilder};
 
         const NUM_STATES: usize = 4;
         const NUM_CONTROLS: usize = 3;

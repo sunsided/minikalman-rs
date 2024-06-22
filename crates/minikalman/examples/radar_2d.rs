@@ -7,7 +7,7 @@
 
 use rand_distr::{Distribution, Normal};
 
-use minikalman::builder::extended::KalmanFilterBuilder;
+use minikalman::extended::builder::KalmanFilterBuilder;
 use minikalman::prelude::*;
 
 const NUM_STATES: usize = 4; // position (x, y), velocity (x, y)

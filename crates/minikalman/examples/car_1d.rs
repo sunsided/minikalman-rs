@@ -7,8 +7,8 @@
 
 use assert_float_eq::*;
 
-use minikalman::builder::regular::KalmanFilterBuilder;
 use minikalman::prelude::*;
+use minikalman::regular::builder::KalmanFilterBuilder;
 
 const NUM_STATES: usize = 3; // position, velocity, acceleration
 const NUM_CONTROLS: usize = 1; // acceleration

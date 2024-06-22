@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 use minikalman::prelude::*;
+use minikalman::regular::{ObservationBuilder, RegularKalmanBuilder};
 
 /// Observations.
 ///

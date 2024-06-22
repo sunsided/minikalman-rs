@@ -9,7 +9,7 @@
 #[allow(unused)]
 use colored::Colorize;
 
-use minikalman::builder::regular::KalmanFilterBuilder;
+use minikalman::regular::builder::KalmanFilterBuilder;
 use rand_distr::{Distribution, Normal};
 
 use minikalman::prelude::*;

@@ -1,6 +1,6 @@
-use crate::builder::extended;
-use crate::builder::regular;
+use crate::extended::builder as extended;
 use crate::prelude::*;
+use crate::regular::builder as regular;
 
 pub struct TestFilter {
     pub filter: regular::KalmanFilterType<3, f32>,
