@@ -531,10 +531,10 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// `C = A * B' * scale`.
     ///
     /// ## Arguments
-    /// * `a` - Matrix A
+    /// * `self` - Matrix A
     /// * `b` - Matrix B
     /// * `scale` - Scaling factor
-    /// * `c` - Resulting matrix C(will be overwritten)
+    /// * `c` - Resulting matrix C (will be overwritten)
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
     #[doc(alias = "matrix_multscale_transb")]
@@ -626,8 +626,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// Adds two matrices in place, using `B = A + B`
     ///
     /// ## Arguments
-    /// * `self` - The matrix to add to
-    /// * `b` - The values to add, also the output
+    /// * `self` - The matrix to add (Matrix A)
+    /// * `b` - The matrix to add to, i.e. the output (Matrix B)
     #[inline]
     #[doc(alias = "matrix_add_inplace_b")]
     fn add_inplace_b<B>(&self, b: &mut B)
@@ -654,8 +654,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// Subtracts two matrices in place, using `B = A - B`.
     ///
     /// ## Arguments
-    /// * `self` - The matrix to subtract from
-    /// * `b` - The values to subtract, also the output
+    /// * `self` - The matrix to subtract from (Matrix A)
+    /// * `b` - The values to subtract, also the output (Matrix B)
     #[inline]
     #[doc(alias = "matrix_sub_inplace_b")]
     fn sub_inplace_b<B>(&self, b: &mut B)
