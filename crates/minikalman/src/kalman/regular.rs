@@ -238,6 +238,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_Q_direct!(mut gravity_Q, NUM_STATES, f32, 0.0);
     /// #
     /// # // Filter temporaries.
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
@@ -247,6 +248,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// #     gravity_A,
     /// #     gravity_x,
     /// #     gravity_P,
+    /// #     gravity_Q,
     /// #     gravity_temp_x,
     /// #     gravity_temp_P,
     /// #  );
@@ -338,6 +340,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_Q_direct!(mut gravity_Q, NUM_STATES, f32, 0.0);
     /// #
     /// # // Filter temporaries.
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
@@ -347,6 +350,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// #     gravity_A,
     /// #     gravity_x,
     /// #     gravity_P,
+    /// #     gravity_Q,
     /// #     gravity_temp_x,
     /// #     gravity_temp_P,
     /// #  );
@@ -517,6 +521,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_Q_direct!(mut gravity_Q, NUM_STATES, f32, 0.0);
     /// #
     /// # // Filter temporaries.
     /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
@@ -526,6 +531,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// #     gravity_A,
     /// #     gravity_x,
     /// #     gravity_P,
+    /// #     gravity_Q,
     /// #     gravity_temp_x,
     /// #     gravity_temp_P,
     /// #  );

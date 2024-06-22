@@ -266,8 +266,9 @@ pub mod prelude {
     };
 
     pub use crate::{
-        size_buffer_A, size_buffer_B, size_buffer_H, size_buffer_K, size_buffer_P, size_buffer_Q,
-        size_buffer_R, size_buffer_S, size_buffer_u, size_buffer_x, size_buffer_y, size_buffer_z,
+        size_buffer_A, size_buffer_B, size_buffer_H, size_buffer_K, size_buffer_P,
+        size_buffer_Q_control, size_buffer_Q_direct, size_buffer_R, size_buffer_S, size_buffer_u,
+        size_buffer_x, size_buffer_y, size_buffer_z,
     };
     pub use crate::{
         size_buffer_temp_BQ, size_buffer_temp_HP, size_buffer_temp_KHP, size_buffer_temp_P,
@@ -339,6 +340,26 @@ macro_rules! size_buffer_x {
     }};
 }
 
+/// Sizes a buffer fitting the direct process noise matrix (`num_states` × `num_states`).
+///
+/// ## Arguments
+/// * `num_states` - The number of states describing the system.
+///
+/// ## Example
+/// ```
+/// # use minikalman::*;
+/// const NUM_STATES: usize = 3;
+/// assert_eq!(size_buffer_Q_direct!(NUM_STATES), 9);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! size_buffer_Q_direct {
+    ( $num_states:expr ) => {{
+        const NUM_STATES_: usize = ($num_states) as usize;
+        (NUM_STATES_ * NUM_STATES_) as usize
+    }};
+}
+
 /// Sizes a buffer fitting the control vector (`num_controls` × `1`).
 ///
 /// ## Arguments
@@ -382,20 +403,20 @@ macro_rules! size_buffer_B {
     }};
 }
 
-/// Sizes a buffer fitting the control covariance matrix (`num_controls` × `num_controls`).
+/// Sizes a buffer fitting the control process noise matrix (`num_controls` × `num_controls`).
 ///
 /// ## Arguments
-/// * `num_controls` - The number of states describing the system.
+/// * `num_controls` - The number of control inputs to the system.
 ///
 /// ## Example
 /// ```
 /// # use minikalman::*;
 /// const NUM_CONTROLS: usize = 1;
-/// assert_eq!(size_buffer_Q!(NUM_CONTROLS), 1);
+/// assert_eq!(size_buffer_Q_control!(NUM_CONTROLS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! size_buffer_Q {
+macro_rules! size_buffer_Q_control {
     ( $num_controls:expr ) => {{
         const NUM_CONTROLS_: usize = ($num_controls) as usize;
         (NUM_CONTROLS_ * NUM_CONTROLS_) as usize
