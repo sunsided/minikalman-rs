@@ -49,7 +49,7 @@ const NUM_CONTROLS: usize = 2;
 const NUM_OBSERVATIONS: usize = 1;
 
 fn example() {
-    let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    let builder = regular::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
     let mut control = builder.controls().build::<NUM_CONTROLS>();
     let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
@@ -95,7 +95,7 @@ const NUM_STATES: usize = 3;
 const NUM_OBSERVATIONS: usize = 1;
 
 fn example() {
-    let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    let builder = extended::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
     let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
