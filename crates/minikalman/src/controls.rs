@@ -1,3 +1,5 @@
+//! # Control inputs for Regular Kalman Filters.
+
 use crate::kalman::*;
 use crate::matrix::*;
 use core::marker::PhantomData;
