@@ -8,7 +8,12 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the Kalman Gain matrix (`num_states` × `num_measurements`), typically denoted "K".
 ///
-/// Determines how much the predictions should be corrected based on the measurements.
+/// This matrix represents the Kalman gain. It determines how much the state estimate should
+/// be adjusted based on the difference between the predicted measurements and the actual measurements.
+/// The matrix \( K \) balances the uncertainty in the state estimate with the uncertainty in the
+/// measurements, providing an optimal weight for incorporating new measurement information into the
+/// state estimate. By minimizing the estimation error covariance, the Kalman gain ensures that the
+/// updated state estimate is as accurate as possible given the available data.
 ///
 /// ## Example
 /// ```

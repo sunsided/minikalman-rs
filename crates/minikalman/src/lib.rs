@@ -140,9 +140,10 @@
 //! impl_buffer_x!(static mut gravity_x, NUM_STATES, f32, 0.0);
 //! impl_buffer_A!(static mut gravity_A, NUM_STATES, f32, 0.0);
 //! impl_buffer_P!(static mut gravity_P, NUM_STATES, f32, 0.0);
+//! impl_buffer_Q_direct!(static mut gravity_Q, NUM_STATES, f32, 0.0);
 //!
 //! // Observation buffers.
-//! impl_buffer_Q!(static mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+//! impl_buffer_z!(static mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
 //! impl_buffer_H!(static mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
 //! impl_buffer_R!(static mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
 //! impl_buffer_y!(static mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
@@ -165,6 +166,7 @@
 //!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
 //!     StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
 //!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
+//!     DirectProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_Q.as_mut_slice() }),
 //!     PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
 //!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
 //! );
@@ -256,15 +258,17 @@ pub mod prelude {
     pub use crate::matrix::*;
 
     pub use crate::{
-        impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,
-        impl_buffer_R, impl_buffer_S, impl_buffer_temp_BQ, impl_buffer_temp_HP,
-        impl_buffer_temp_KHP, impl_buffer_temp_P, impl_buffer_temp_PHt, impl_buffer_temp_S_inv,
-        impl_buffer_temp_x, impl_buffer_u, impl_buffer_x, impl_buffer_y, impl_buffer_z,
+        impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P,
+        impl_buffer_Q_control, impl_buffer_Q_direct, impl_buffer_R, impl_buffer_S,
+        impl_buffer_temp_BQ, impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P,
+        impl_buffer_temp_PHt, impl_buffer_temp_S_inv, impl_buffer_temp_x, impl_buffer_u,
+        impl_buffer_x, impl_buffer_y, impl_buffer_z,
     };
 
     pub use crate::{
-        size_buffer_A, size_buffer_B, size_buffer_H, size_buffer_K, size_buffer_P, size_buffer_Q,
-        size_buffer_R, size_buffer_S, size_buffer_u, size_buffer_x, size_buffer_y, size_buffer_z,
+        size_buffer_A, size_buffer_B, size_buffer_H, size_buffer_K, size_buffer_P,
+        size_buffer_Q_control, size_buffer_Q_direct, size_buffer_R, size_buffer_S, size_buffer_u,
+        size_buffer_x, size_buffer_y, size_buffer_z,
     };
     pub use crate::{
         size_buffer_temp_BQ, size_buffer_temp_HP, size_buffer_temp_KHP, size_buffer_temp_P,
@@ -336,6 +340,26 @@ macro_rules! size_buffer_x {
     }};
 }
 
+/// Sizes a buffer fitting the direct process noise matrix (`num_states` × `num_states`).
+///
+/// ## Arguments
+/// * `num_states` - The number of states describing the system.
+///
+/// ## Example
+/// ```
+/// # use minikalman::*;
+/// const NUM_STATES: usize = 3;
+/// assert_eq!(size_buffer_Q_direct!(NUM_STATES), 9);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! size_buffer_Q_direct {
+    ( $num_states:expr ) => {{
+        const NUM_STATES_: usize = ($num_states) as usize;
+        (NUM_STATES_ * NUM_STATES_) as usize
+    }};
+}
+
 /// Sizes a buffer fitting the control vector (`num_controls` × `1`).
 ///
 /// ## Arguments
@@ -379,20 +403,20 @@ macro_rules! size_buffer_B {
     }};
 }
 
-/// Sizes a buffer fitting the control covariance matrix (`num_controls` × `num_controls`).
+/// Sizes a buffer fitting the control process noise matrix (`num_controls` × `num_controls`).
 ///
 /// ## Arguments
-/// * `num_controls` - The number of states describing the system.
+/// * `num_controls` - The number of control inputs to the system.
 ///
 /// ## Example
 /// ```
 /// # use minikalman::*;
 /// const NUM_CONTROLS: usize = 1;
-/// assert_eq!(size_buffer_Q!(NUM_CONTROLS), 1);
+/// assert_eq!(size_buffer_Q_control!(NUM_CONTROLS), 1);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! size_buffer_Q {
+macro_rules! size_buffer_Q_control {
     ( $num_controls:expr ) => {{
         const NUM_CONTROLS_: usize = ($num_controls) as usize;
         (NUM_CONTROLS_ * NUM_CONTROLS_) as usize

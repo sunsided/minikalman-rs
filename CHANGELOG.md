@@ -5,9 +5,16 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased - Breaking Changes
 
+### Fixed
+
+- [#32](https://github.com/sunsided/minikalman-rs/pull/32):
+  Process noise is now separated into direct process noise, acting directly on the
+  state transition, and control process noise, acting only on control inputs through the
+  control matrix.
+
 ### Internal
 
-- [#1](https://github.com/sunsided/minikalman-rs/pull/31):
+- [#31](https://github.com/sunsided/minikalman-rs/pull/31):
   The Regular and Extended Kalman Filter types were split, renamed and moved into separate modules.
   `RegularKalman` and `ExtendedKalman` now only provide their respective functionalities.
 

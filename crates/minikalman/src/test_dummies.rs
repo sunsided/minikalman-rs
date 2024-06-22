@@ -17,10 +17,12 @@ pub fn make_dummy_filter() -> RegularKalman<
     Dummy<f32, 3, 3>,
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 3>,
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
 > {
     RegularKalmanBuilder::new::<3, f32>(
+        Dummy::default(),
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),
@@ -35,10 +37,12 @@ pub fn make_dummy_filter_ekf() -> ExtendedKalman<
     Dummy<f32, 3, 3>,
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 3>,
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
 > {
     ExtendedKalmanBuilder::new::<3, f32>(
+        Dummy::default(),
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),
@@ -263,7 +267,27 @@ impl<const STATES: usize, const CONTROLS: usize, T> ControlMatrixMut<STATES, CON
     }
 }
 
-impl<const CONTROLS: usize, T> ProcessNoiseCovarianceMatrix<CONTROLS, T>
+impl<const STATES: usize, T> DirectProcessNoiseCovarianceMatrix<STATES, T>
+    for Dummy<T, STATES, STATES>
+{
+    type Target = DummyMatrix<T, STATES, STATES>;
+
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const STATES: usize, T> DirectProcessNoiseCovarianceMatrixMut<STATES, T>
+    for Dummy<T, STATES, STATES>
+{
+    type TargetMut = DummyMatrix<T, STATES, STATES>;
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const CONTROLS: usize, T> ControlProcessNoiseCovarianceMatrix<CONTROLS, T>
     for Dummy<T, CONTROLS, CONTROLS>
 {
     type Target = DummyMatrix<T, CONTROLS, CONTROLS>;
@@ -273,7 +297,7 @@ impl<const CONTROLS: usize, T> ProcessNoiseCovarianceMatrix<CONTROLS, T>
     }
 }
 
-impl<const CONTROLS: usize, T> ProcessNoiseCovarianceMatrixMut<CONTROLS, T>
+impl<const CONTROLS: usize, T> ControlProcessNoiseCovarianceMatrixMut<CONTROLS, T>
     for Dummy<T, CONTROLS, CONTROLS>
 {
     type TargetMut = DummyMatrix<T, CONTROLS, CONTROLS>;

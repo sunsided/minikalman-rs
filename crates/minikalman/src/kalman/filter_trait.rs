@@ -385,7 +385,7 @@ pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: 
 
 #[doc(alias = "KalmanFilterControlCovariance")]
 pub trait KalmanFilterProcessNoiseCovariance<const CONTROLS: usize, T> {
-    type ProcessNoiseCovarianceMatrix: ProcessNoiseCovarianceMatrix<CONTROLS, T>;
+    type ProcessNoiseCovarianceMatrix: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>;
 
     /// Gets a reference to the control covariance matrix Q.
     ///
@@ -399,7 +399,7 @@ pub trait KalmanFilterProcessNoiseCovariance<const CONTROLS: usize, T> {
 pub trait KalmanFilterControlCovarianceMut<const CONTROLS: usize, T>:
     KalmanFilterProcessNoiseCovariance<CONTROLS, T>
 {
-    type ProcessNoiseCovarianceMatrixMut: ProcessNoiseCovarianceMatrixMut<CONTROLS, T>;
+    type ProcessNoiseCovarianceMatrixMut: ControlProcessNoiseCovarianceMatrixMut<CONTROLS, T>;
 
     /// Gets a mutable reference to the control covariance matrix Q.
     ///

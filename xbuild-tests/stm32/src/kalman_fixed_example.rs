@@ -67,9 +67,10 @@ pub fn predict_gravity() -> I16F16 {
     impl_buffer_x!(static mut gravity_x, NUM_STATES, I16F16, I16F16::ZERO);
     impl_buffer_A!(static mut gravity_A, NUM_STATES, I16F16, I16F16::ZERO);
     impl_buffer_P!(static mut gravity_P, NUM_STATES, I16F16, I16F16::ZERO);
+    impl_buffer_Q_direct!(static mut gravity_Q, NUM_STATES, I16F16, I16F16::ZERO);
 
     // Observation buffers.
-    impl_buffer_Q!(static mut gravity_z, NUM_OBSERVATIONS, I16F16, I16F16::ZERO);
+    impl_buffer_Q_control!(static mut gravity_z, NUM_OBSERVATIONS, I16F16, I16F16::ZERO);
     impl_buffer_H!(
         static mut gravity_H,
         NUM_OBSERVATIONS,
@@ -121,6 +122,7 @@ pub fn predict_gravity() -> I16F16 {
         StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
         StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
         EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
+        DirectProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_Q.as_mut_slice() }),
         PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
         TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
     );

@@ -181,7 +181,7 @@ fn initialize_control_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_
 
 /// Initializes the control covariance.
 fn initialize_control_covariance_matrix(
-    filter: &mut impl ProcessNoiseCovarianceMatrixMut<NUM_CONTROLS, f32>,
+    filter: &mut impl ControlProcessNoiseCovarianceMatrixMut<NUM_CONTROLS, f32>,
 ) {
     filter.as_matrix_mut().apply(|mat| {
         mat[0] = 1.0; // :)
