@@ -3,6 +3,12 @@
 /// This will create a [`StateVectorBuffer`](crate::buffers::types::StateVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
+/// This vector represents the state estimate. It contains the predicted values of the system's
+/// state variables at a given time step. The state vector \( x \) is updated at each time step
+/// based on the system dynamics, control inputs, and measurements. It provides the best estimate
+/// of the current state of the system, combining prior knowledge with new information from
+/// observations to minimize the estimation error.
+///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
 /// * `t` - The data type.
@@ -74,6 +80,20 @@ macro_rules! impl_buffer_x {
 /// This will create a [`SystemMatrixMutBuffer`](crate::buffers::types::StateTransitionMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
+/// ## Regular Kalman Filters
+/// This matrix represents the state transition model. It defines how the state
+/// evolves from one time step to the next in the absence of process noise and control inputs.
+/// The matrix \( A \) is used to predict the next state based on the current state,
+/// encapsulating the system dynamics and their influence on state progression.
+///
+/// ## Extended Kalman Filters
+/// This matrix represents the state transition model in the context of the Extended Kalman Filter (EKF).
+/// It defines how the state evolves from one time step to the next in the absence of process noise and control inputs.
+/// In the EKF, the matrix \( A \) is the Jacobian of the state transition function with respect to the state,
+/// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear state transition
+/// function around the current estimate, allowing the EKF to predict the next state based on the current state
+/// while accounting for the non-linear dynamics of the system.
+///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
 /// * `t` - The data type.
@@ -141,8 +161,13 @@ macro_rules! impl_buffer_A {
 
 /// Creates a static buffer fitting the square estimate covariance matrix P (`num_states` × `num_states`).
 ///
-/// This will create a [`SystemCovarianceMatrixBuffer`](crate::buffers::types::EstimateCovarianceMatrixBuffer)
+/// This will create a [`EstimateCovarianceMatrixBuffer`](crate::buffers::types::EstimateCovarianceMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the estimate covariance. It quantifies the uncertainty in
+/// the state estimate, providing a measure of how much the state estimate is expected
+/// to vary. This matrix offers a measure of confidence in the estimate by indicating
+/// the degree of variability and uncertainty associated with the predicted state.
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -198,10 +223,80 @@ macro_rules! impl_buffer_P {
     };
 }
 
+/// Creates a static buffer fitting the square direct process noise covariance matrix Q (`num_states` × `num_states`).
+///
+/// This will create a [`DirectProcessNoiseCovarianceMatrixMutBuffer`](crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer)
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the direct process noise covariance. It quantifies the
+/// uncertainty introduced by inherent system dynamics and external disturbances,
+/// providing a measure of how much the true state is expected to deviate from the
+/// predicted state due to these process variations.
+///
+/// ## Arguments
+/// * `num_controls` - The number of controls to the system.
+/// * `t` - The data type.
+/// * `init` - The default value to initialize the buffer with.
+///
+/// ## Example
+/// You can generate a `static mut` binding:
+///
+/// ```
+/// # use minikalman::prelude::*;
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_Q_direct!(static mut Q, NUM_CONTROLS, f32, 0.0);
+///
+/// unsafe {
+///     assert_eq!(Q.len(), 4);
+///     assert_eq!(Q[0], 0.0_f32);
+/// }
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! impl_buffer_Q_direct {
+    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer<
+            $num_states,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        > = $crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer::<
+            $num_states,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { $num_states * $num_states }],
+        ));
+    };
+}
+
 /// Sizes a static buffer fitting the control vector u (`num_controls` × `1`).
 ///
 /// This will create a [`ControlVectorBuffer`](crate::buffers::types::ControlVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This vector represents the control input. It contains the values of the external inputs
+/// applied to the system at a given time step. The control vector \( u \) influences the state
+/// transition, allowing the Kalman Filter to account for known control actions when predicting
+/// the next state. By incorporating the effects of these control inputs, the filter provides
+/// a more accurate and realistic estimate of the system's state.
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -260,6 +355,11 @@ macro_rules! impl_buffer_u {
 ///
 /// This will create a [`ControlMatrixMutBuffer`](crate::buffers::types::ControlMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the control input model. It defines how the control inputs
+/// influence the state evolution from one time step to the next. The matrix \( B \)
+/// is used to incorporate the effect of control inputs into the state transition,
+/// allowing the model to account for external controls applied to the system.
 ///
 /// ## Arguments
 /// * `num_states` - The number of states describing the system.
@@ -324,6 +424,12 @@ macro_rules! impl_buffer_B {
 /// This will create a [`ProcessNoiseCovarianceMatrixMutBuffer`](crate::buffers::types::ControlProcessNoiseCovarianceMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
+/// This matrix represents the control process noise covariance. It quantifies the
+/// uncertainty introduced by the control inputs, reflecting how much the true state
+/// is expected to deviate from the predicted state due to noise and variations
+/// in the control process. The matrix is calculated as B×Q×Bᵀ, where B
+/// represents the control input model, and Q is the process noise covariance (this matrix).
+///
 /// ## Arguments
 /// * `num_controls` - The number of controls to the system.
 /// * `t` - The data type.
@@ -374,65 +480,6 @@ macro_rules! impl_buffer_Q_control {
             $crate::matrix::MatrixDataArray<$num_controls, $num_controls, { $num_controls * $num_controls }, $t>,
         >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_controls * $num_controls }],
-        ));
-    };
-}
-
-/// Creates a static buffer fitting the square direct process noise covariance matrix Q (`num_states` × `num_states`).
-///
-/// This will create a [`DirectProcessNoiseCovarianceMatrixMutBuffer`](crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer)
-/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
-///
-/// ## Arguments
-/// * `num_controls` - The number of controls to the system.
-/// * `t` - The data type.
-/// * `init` - The default value to initialize the buffer with.
-///
-/// ## Example
-/// You can generate a `static mut` binding:
-///
-/// ```
-/// # use minikalman::prelude::*;
-/// const NUM_CONTROLS: usize = 2;
-/// impl_buffer_Q_direct!(static mut Q, NUM_CONTROLS, f32, 0.0);
-///
-/// unsafe {
-///     assert_eq!(Q.len(), 4);
-///     assert_eq!(Q[0], 0.0_f32);
-/// }
-/// ```
-#[macro_export]
-#[allow(non_snake_case)]
-macro_rules! impl_buffer_Q_direct {
-    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let mut)
-    };
-    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let)
-    };
-    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let mut)
-    };
-    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let)
-    };
-    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, static mut)
-    };
-    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, static)
-    };
-    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer<
-            $num_states,
-            $t,
-            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        > = $crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer::<
-            $num_states,
-            $t,
-            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
-        >::new($crate::matrix::MatrixDataArray::new_unchecked(
-            [$init; { $num_states * $num_states }],
         ));
     };
 }
@@ -497,8 +544,22 @@ macro_rules! impl_buffer_z {
 
 /// Creates a static buffer fitting the observation matrix H (`num_measurements` × `num_states`).
 ///
-/// This will create a [`ObservationTransformationMatrixMutBuffer`](crate::buffers::types::ObservationMatrixMutBuffer)
+/// This will create a [`ObservationMatrixMutBuffer`](crate::buffers::types::ObservationMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// ## Regular Kalman Filters
+/// This matrix represents the observation model. It defines the relationship between
+/// the state and the measurements obtained from the system. The matrix \( H \) is used
+/// to map the predicted state into the measurement space, allowing the Kalman filter
+/// to compare the predicted measurements with the actual measurements for updating the state estimate.
+///
+/// ## Extended Kalman Filters
+/// This matrix represents the observation model in the context of the Extended Kalman Filter (EKF).
+/// It defines the relationship between the state and the measurements obtained from the system.
+/// In the EKF, the matrix \( H \) is the Jacobian of the measurement function with respect to the state,
+/// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear measurement
+/// function around the current estimate, allowing the EKF to map the predicted state into the measurement
+/// space for comparison with the actual measurements during the update step.
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -573,6 +634,13 @@ macro_rules! impl_buffer_H {
 /// This will create a [`MeasurementNoiseCovarianceMatrixBuffer`](crate::buffers::types::MeasurementNoiseCovarianceMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
+/// This matrix represents the measurement noise covariance. It quantifies the uncertainty
+/// associated with the measurements obtained from the system. The matrix \( R \) provides
+/// a measure of the expected variability in the measurement noise, reflecting the accuracy
+/// and reliability of the sensor or measurement device. This matrix is used in the Kalman
+/// filter to weigh the influence of the actual measurements during the update step,
+/// balancing it against the predicted state estimate.
+///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
 /// * `t` - The data type.
@@ -642,6 +710,16 @@ macro_rules! impl_buffer_R {
 /// This will create a [`InnovationVectorBuffer`](crate::buffers::types::InnovationVectorBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
+/// This vector represents the innovation (or residual). It is the difference between the actual
+/// measurement and the predicted measurement based on the current state estimate. The innovation
+/// vector \( y \) quantifies the discrepancy between observed data and the filter's predictions,
+/// providing a measure of the new information gained from the measurements. This vector is used
+/// to update the state estimate, ensuring that the Kalman Filter corrects for any deviations
+/// between the predicted and actual observations, thus refining the state estimation.
+///
+/// Some implementations may choose to use it as a temporary observation buffer, e.g. during
+/// Extended Kalman Filter measurement updates.
+///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
 /// * `t` - The data type.
@@ -699,6 +777,12 @@ macro_rules! impl_buffer_y {
 ///
 /// This will create a [`InnovationResidualCovarianceMatrixBuffer`](crate::buffers::types::InnovationCovarianceMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the innovation (residual) covariance. It quantifies the
+/// uncertainty in the difference between the predicted measurement and the actual measurement.
+/// The innovation covariance matrix provides a measure of how much the innovation (residual)
+/// is expected to vary, reflecting the combined effects of measurement noise and
+/// the uncertainty in the state estimate.
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -768,6 +852,13 @@ macro_rules! impl_buffer_S {
 ///
 /// This will create a [`KalmanGainMatrixBuffer`](crate::buffers::types::KalmanGainMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the Kalman gain. It determines how much the state estimate should
+/// be adjusted based on the difference between the predicted measurements and the actual measurements.
+/// The matrix \( K \) balances the uncertainty in the state estimate with the uncertainty in the
+/// measurements, providing an optimal weight for incorporating new measurement information into the
+/// state estimate. By minimizing the estimation error covariance, the Kalman gain ensures that the
+/// updated state estimate is as accurate as possible given the available data.
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -959,6 +1050,13 @@ macro_rules! impl_buffer_temp_P {
 /// This will create a [`TemporaryBQMatrixBuffer`](crate::buffers::types::TemporaryBQMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
+/// This matrix represents the product of the control input model and the process noise covariance, \( B \cdot Q \).
+/// It quantifies the influence of the process noise on the state evolution when control inputs are applied.
+/// The resulting matrix captures the combined effect of control input dynamics and inherent system noise,
+/// providing an intermediate step in calculating the control process noise contribution to the state
+/// covariance update. This product helps to incorporate the uncertainty due to control actions into the
+/// overall state estimation process.
+///
 /// ## Arguments
 /// * `num_states` - The number of states.
 /// * `num_controls` - The number of controls to the system.
@@ -1021,6 +1119,14 @@ macro_rules! impl_buffer_temp_BQ {
 ///
 /// This will create a [`TemporaryResidualCovarianceInvertedMatrixBuffer`](crate::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the inverse of the innovation (residual) covariance matrix, \( S^{-1} \).
+/// It quantifies the weight given to the innovation (residual) in the update step of the Kalman Filter.
+/// By inverting the innovation covariance matrix, \( S^{-1} \) provides a measure of the certainty
+/// of the innovation, allowing the Kalman gain to optimally adjust the state estimate based on
+/// the difference between the predicted and actual measurements. This inverse matrix ensures that
+/// the filter accurately balances the contributions of the state prediction and the measurement
+/// update in minimizing the overall estimation error.
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.
@@ -1090,6 +1196,14 @@ macro_rules! impl_buffer_temp_S_inv {
 ///
 /// This will create a [`TemporaryHPMatrixBuffer`](crate::buffers::types::TemporaryHPMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the product of the observation model and the estimate covariance, \( H×P \).
+/// It quantifies how the uncertainty in the state estimate propagates into the measurement space.
+/// The resulting matrix captures the influence of the current state uncertainty on the predicted
+/// measurements, providing an intermediate step in calculating the innovation (residual) covariance matrix.
+/// This product helps to incorporate the effects of state estimation uncertainty into the measurement
+/// update process, ensuring that the Kalman Filter accurately adjusts the state estimate based on the
+/// observed data.
 ///
 /// ## Arguments
 /// * `num_measurements` - The number of measurements.
@@ -1164,6 +1278,14 @@ macro_rules! impl_buffer_temp_HP {
 /// This will create a [`TemporaryPHTMatrixBuffer`](crate::buffers::types::TemporaryPHTMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
+/// This matrix represents the product of the estimate covariance and the transpose of the observation model, \( P×Hᵀ \).
+/// It quantifies how the uncertainty in the state estimate influences the relationship between the state and the measurements.
+/// The resulting matrix captures the effect of the current state uncertainty on the measurement update,
+/// providing an intermediate step in calculating the Kalman gain. This product helps to incorporate the
+/// variability of the state estimate into the measurement update process, ensuring that the Kalman Filter
+/// accurately balances the contributions of the state prediction and the actual measurements in the state
+/// estimation.
+///
 /// ## Arguments
 /// * `num_states` - The number of states.
 /// * `num_measurements` - The number of measurements.
@@ -1236,6 +1358,13 @@ macro_rules! impl_buffer_temp_PHt {
 ///
 /// This will create a [`TemporaryKHPMatrixBuffer`](crate::buffers::types::TemporaryKHPMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// This matrix represents the product of the Kalman gain and the product of the observation model and the estimate covariance, \( K×(H×P) \).
+/// It quantifies the adjustment applied to the state estimate covariance during the measurement update step.
+/// The resulting matrix captures the influence of the Kalman gain on the uncertainty of the state estimate,
+/// providing an intermediate step in updating the estimate covariance matrix. This product helps to incorporate
+/// the reduction in state estimation uncertainty achieved through the measurement update, ensuring that the Kalman Filter
+/// accurately reflects the improved confidence in the state estimate after incorporating the observed measurements.
 ///
 /// ## Arguments
 /// * `num_states` - The number of states.

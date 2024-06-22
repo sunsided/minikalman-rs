@@ -8,6 +8,13 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the temporary B×Q matrix (`num_states` × `num_controls`).
 ///
+/// This matrix represents the product of the control input model and the process noise covariance, \( B \cdot Q \).
+/// It quantifies the influence of the process noise on the state evolution when control inputs are applied.
+/// The resulting matrix captures the combined effect of control input dynamics and inherent system noise,
+/// providing an intermediate step in calculating the control process noise contribution to the state
+/// covariance update. This product helps to incorporate the uncertainty due to control actions into the
+/// overall state estimation process.
+///
 /// ## Example
 /// ```
 /// use minikalman::buffers::types::TemporaryBQMatrixBuffer;

@@ -6,7 +6,11 @@ use crate::prelude::MatrixMut;
 
 /// Mutable buffer for the state vector (`num_states` × `1`), typically denoted "x".
 ///
-/// Represents the internal state of the system.
+/// This vector represents the state estimate. It contains the predicted values of the system's
+/// state variables at a given time step. The state vector \( x \) is updated at each time step
+/// based on the system dynamics, control inputs, and measurements. It provides the best estimate
+/// of the current state of the system, combining prior knowledge with new information from
+/// observations to minimize the estimation error.
 ///
 /// ## Example
 /// ```

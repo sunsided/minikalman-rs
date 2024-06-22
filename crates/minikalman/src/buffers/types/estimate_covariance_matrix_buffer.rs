@@ -8,7 +8,10 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the system covariance matrix (`num_states` × `num_states`), typically denoted "P".
 ///
-/// Represents the uncertainty in the state estimate.
+/// This matrix represents the estimate covariance. It quantifies the uncertainty in
+/// the state estimate, providing a measure of how much the state estimate is expected
+/// to vary. This matrix offers a measure of confidence in the estimate by indicating
+/// the degree of variability and uncertainty associated with the predicted state.
 ///
 /// ## Example
 /// ```

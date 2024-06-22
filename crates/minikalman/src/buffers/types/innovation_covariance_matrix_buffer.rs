@@ -6,7 +6,11 @@ use core::ops::{Index, IndexMut};
 
 /// Buffer for the square innovation (residual) covariance matrix (`num_measurements` × `num_measurements`).
 ///
-/// Represents the uncertainty in the innovation.
+/// This matrix represents the innovation (residual) covariance. It quantifies the
+/// uncertainty in the difference between the predicted measurement and the actual measurement.
+/// The innovation covariance matrix provides a measure of how much the innovation (residual)
+/// is expected to vary, reflecting the combined effects of measurement noise and
+/// the uncertainty in the state estimate.
 ///
 /// ## Example
 /// ```
