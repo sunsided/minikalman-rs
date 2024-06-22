@@ -628,7 +628,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterSystemCovariance<STATES, T>
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterEstimateCovariance<STATES, T>
     for RegularKalman<STATES, T, A, X, P, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
@@ -641,7 +641,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterSystemCovarianceMut<STATES, T>
+impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterEstimateCovarianceMut<STATES, T>
     for RegularKalman<STATES, T, A, X, P, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,

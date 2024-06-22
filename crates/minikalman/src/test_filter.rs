@@ -112,8 +112,10 @@ pub fn create_test_filter_ekf(delta_t: f32) -> ExtendedTestFilter {
     filter.estimate_covariance_mut().make_scalar(0.1);
 
     // The measurement is both directly observing position and an average of the states.
-    measurement.observation_matrix_mut().set_all(1.0 / 3.0);
-    measurement.observation_matrix_mut().apply(|mat| {
+    measurement
+        .observation_jacobian_matrix_mut()
+        .set_all(1.0 / 3.0);
+    measurement.observation_jacobian_matrix_mut().apply(|mat| {
         // TODO: Add meaningful Jacobian.
         mat.set_at(0, 0, 1.0); // measure position directly
         mat.set_at(0, 1, 0.0);

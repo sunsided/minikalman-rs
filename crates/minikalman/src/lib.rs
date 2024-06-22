@@ -10,7 +10,7 @@
 //!
 //! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](regular::builder::KalmanFilterBuilder) can be
 //! used to quickly create a [`RegularKalman`](regular::RegularKalman) filter instance with all necessary buffers, alongside
-//! [`Control`](regular::Control) and [`Observation`](regular::Observation) instances.
+//! [`Control`](regular::Control) and [`Observation`](regular::RegularObservation) instances.
 //! Similar types exist for Extended Kalman Filters.
 //!
 //! ## Crate Features

@@ -95,7 +95,7 @@ fn main() {
             });
 
             // Update the observation Jacobian.
-            measurement.observation_matrix_mut().apply(|mat| {
+            measurement.observation_jacobian_matrix_mut().apply(|mat| {
                 let x = filter.state_vector().get_row(0);
                 let y = filter.state_vector().get_row(1);
 

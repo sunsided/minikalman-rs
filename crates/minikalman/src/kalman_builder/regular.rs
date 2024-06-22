@@ -5,7 +5,7 @@ use crate::matrix::MatrixDataType;
 use crate::buffers::builder::*;
 
 use crate::regular::{
-    Control, ControlBuilder, Observation, RegularKalman, RegularKalmanBuilder,
+    Control, ControlBuilder, RegularKalman, RegularKalmanBuilder, RegularObservation,
     RegularObservationBuilder,
 };
 
@@ -17,7 +17,7 @@ pub struct KalmanFilterBuilder<const STATES: usize, T>(PhantomData<T>);
 #[derive(Copy, Clone)]
 pub struct KalmanFilterControlBuilder<const STATES: usize, T>(PhantomData<T>);
 
-/// A simple builder for [`Observation`] instances.
+/// A simple builder for [`RegularObservation`] instances.
 #[derive(Copy, Clone)]
 pub struct KalmanFilterObservationBuilder<const STATES: usize, T>(PhantomData<T>);
 
@@ -167,7 +167,7 @@ impl<const STATES: usize, T> Default for KalmanFilterObservationBuilder<STATES, 
 ///
 /// See also the [`KalmanFilterObservation`](crate::kalman::KalmanFilterObservation) trait.
 pub type KalmanFilterObservationType<const STATES: usize, const OBSERVATIONS: usize, T> =
-    Observation<
+    RegularObservation<
         STATES,
         OBSERVATIONS,
         T,

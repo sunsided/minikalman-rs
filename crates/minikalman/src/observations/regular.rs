@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
-/// A builder for a Kalman filter [`Observation`] instances.
+/// A builder for a Kalman filter [`RegularObservation`] instances.
 #[allow(clippy::type_complexity)]
 pub struct RegularObservationBuilder<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP> {
     _phantom: (
@@ -90,7 +90,21 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
         temp_HP: TempHP,
         temp_PHt: TempPHt,
         temp_KHP: TempKHP,
-    ) -> Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    ) -> RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
     where
         T: MatrixDataType,
         Z: MeasurementVector<OBSERVATIONS, T>,
@@ -104,7 +118,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
         TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
         TempKHP: TemporaryKHPMatrix<STATES, T>,
     {
-        Observation::<STATES, OBSERVATIONS, T, _, _, _, _, _, _, _, _, _, _> {
+        RegularObservation::<STATES, OBSERVATIONS, T, _, _, _, _, _, _, _, _, _, _> {
             z,
             H,
             R,
@@ -122,7 +136,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 
 /// Kalman Filter measurement structure. See [`RegularObservationBuilder`] for construction.
 #[allow(non_snake_case, unused)]
-pub struct Observation<
+pub struct RegularObservation<
     const STATES: usize,
     const OBSERVATIONS: usize,
     T,
@@ -204,7 +218,22 @@ impl<
         TempHP,
         TempKHP,
         TempPHt,
-    > Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    >
+    RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 {
     /// Returns then number of measurements.
     #[inline(always)]
@@ -236,10 +265,6 @@ impl<
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
-    ///
-    /// ## Extended Kalman Filters
-    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the observation matrix,
-    /// i.e. the derivative of the measurement function with respect to the state vector.
     #[inline(always)]
     pub fn observation_matrix(&self) -> &H {
         &self.H
@@ -279,7 +304,22 @@ impl<
         TempHP,
         TempKHP,
         TempPHt,
-    > Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    >
+    RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
     K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
@@ -309,36 +349,6 @@ where
         // Calculate innovation and residual covariance
         // y = z - H*x
         H.mult_rowvector(x.as_matrix(), y);
-        z.sub_inplace_b(y);
-
-        // Perform the remaining update.
-        self.update_with_innovation(x, P);
-    }
-
-    /// Applies a nonlinear correction step to the provided state vector and covariance matrix.
-    ///
-    /// ## Arguments
-    /// * `x` - The current state vector.
-    /// * `P` - The current state estimate covariance matrix.
-    /// * `observation` - The observation function; takes the current state and provides observations.
-    ///                   This function uses the innovation vector as a temporary storage, even though
-    ///                   the innovation itself will only be calculated afterward.
-    #[inline]
-    #[allow(non_snake_case)]
-    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, mut observation: F)
-    where
-        X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut Y),
-    {
-        // y = h(x)
-        observation(x, &mut self.y);
-
-        let y = self.y.as_matrix_mut();
-        let z = self.z.as_matrix();
-
-        // Calculate innovation:
-        // y = z - h(x)
         z.sub_inplace_b(y);
 
         // Perform the remaining update.
@@ -423,7 +433,22 @@ impl<
         TempHP,
         TempPHt,
         TempKHP,
-    > Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    >
+    RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     H: ObservationMatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -432,10 +457,6 @@ where
     /// This matrix maps the state vector into the measurement space, relating the state of the
     /// system to the observations or measurements. It defines how each state component contributes
     /// to the measurement.
-    ///
-    /// ## Extended Kalman Filters
-    /// In Extended Kalman Filters, this matrix is treated as the Jacobian of the observation matrix,
-    /// i.e. the derivative of the measurement function with respect to the state vector.
     #[inline(always)]
     #[doc(alias = "kalman_get_measurement_transformation")]
     pub fn observation_matrix_mut(&mut self) -> &mut H {
@@ -458,7 +479,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterNumStates<STATES>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 {
 }
 
@@ -477,7 +512,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterNumObservations<OBSERVATIONS>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 {
 }
 
@@ -496,7 +545,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterMeasurementVector<OBSERVATIONS, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     Z: MeasurementVector<OBSERVATIONS, T>,
 {
@@ -523,7 +586,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterObservationVectorMut<OBSERVATIONS, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     Z: MeasurementVectorMut<OBSERVATIONS, T>,
 {
@@ -550,7 +627,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
 {
@@ -577,7 +668,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterObservationTransformationMut<STATES, OBSERVATIONS, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     H: ObservationMatrixMut<OBSERVATIONS, STATES, T>,
 {
@@ -604,7 +709,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterMeasurementNoiseCovariance<OBSERVATIONS, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
 {
@@ -631,7 +750,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
 {
@@ -660,7 +793,21 @@ impl<
         TempPHt,
         TempKHP,
     > KalmanFilterObservationCorrectFilter<STATES, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
     K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
@@ -682,49 +829,6 @@ where
         P: EstimateCovarianceMatrix<STATES, T>,
     {
         self.correct(x, P)
-    }
-}
-
-impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        T,
-        Z,
-        H,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempHP,
-        TempPHt,
-        TempKHP,
-    > KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
-    for Observation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
-where
-    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
-    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
-    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
-    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
-    Y: InnovationVector<OBSERVATIONS, T>,
-    Z: MeasurementVector<OBSERVATIONS, T>,
-    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
-    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
-    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
-    TempKHP: TemporaryKHPMatrix<STATES, T>,
-    T: MatrixDataType,
-{
-    type ObservationVector = Y;
-
-    #[inline(always)]
-    #[allow(non_snake_case)]
-    fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
-    where
-        X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut Self::ObservationVector),
-    {
-        self.correct_nonlinear(x, P, observation)
     }
 }
 
@@ -823,21 +927,11 @@ mod tests {
         measurement
     }
 
-    fn trait_impl_nonlinear<const STATES: usize, const OBSERVATIONS: usize, T, M>(
-        measurement: M,
-    ) -> M
-    where
-        M: ExtendedKalmanFilterObservation<STATES, OBSERVATIONS, T>,
-    {
-        measurement
-    }
-
     #[test]
     fn builder_simple() {
         let measurement = make_dummy_observation();
 
-        let measurement = trait_impl(measurement);
-        let mut measurement = trait_impl_nonlinear(measurement);
+        let mut measurement = trait_impl(measurement);
 
         assert_eq!(measurement.states(), 3);
         assert_eq!(measurement.observations(), 1);

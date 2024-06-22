@@ -4,14 +4,14 @@ use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
 use crate::extended::{
-    ExtendedKalman, ExtendedKalmanBuilder, ExtendedObservationBuilder, Observation,
+    ExtendedKalman, ExtendedKalmanBuilder, ExtendedObservation, ExtendedObservationBuilder,
 };
 
 /// A simple builder for [`ExtendedKalman`] instances.
 #[derive(Copy, Clone)]
 pub struct KalmanFilterBuilder<const STATES: usize, T>(PhantomData<T>);
 
-/// A simple builder for [`Observation`] instances.
+/// A simple builder for [`ExtendedObservation`] instances.
 #[derive(Copy, Clone)]
 pub struct KalmanFilterObservationBuilder<const STATES: usize, T>(PhantomData<T>);
 
@@ -94,7 +94,7 @@ impl<const STATES: usize, T> Default for KalmanFilterObservationBuilder<STATES, 
 ///
 /// See also the [`KalmanFilterObservation`](crate::kalman::KalmanFilterObservation) trait.
 pub type KalmanFilterObservationType<const STATES: usize, const OBSERVATIONS: usize, T> =
-    Observation<
+    ExtendedObservation<
         STATES,
         OBSERVATIONS,
         T,
@@ -172,7 +172,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kalman::{ExtendedKalmanFilter, KalmanFilterObservation};
+    use crate::kalman::{ExtendedKalmanFilter, ExtendedKalmanFilterObservation};
 
     const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
     const NUM_OBSERVATIONS: usize = 1; // position
@@ -185,7 +185,7 @@ mod tests {
 
     fn accept_observation<M, T>(_measurement: M)
     where
-        M: KalmanFilterObservation<NUM_STATES, NUM_OBSERVATIONS, T>,
+        M: ExtendedKalmanFilterObservation<NUM_STATES, NUM_OBSERVATIONS, T>,
     {
     }
 

@@ -1,3 +1,4 @@
+use crate::extended::{ExtendedObservation, ExtendedObservationBuilder};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -6,7 +7,7 @@ use crate::kalman::*;
 use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixMut};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use crate::regular::{
-    Control, ControlBuilder, Observation, RegularKalman, RegularKalmanBuilder,
+    Control, ControlBuilder, RegularKalman, RegularKalmanBuilder, RegularObservation,
     RegularObservationBuilder,
 };
 
@@ -56,7 +57,7 @@ pub fn make_dummy_control(
     )
 }
 
-pub fn make_dummy_observation() -> Observation<
+pub fn make_dummy_observation() -> RegularObservation<
     3,
     1,
     f32,
@@ -72,6 +73,35 @@ pub fn make_dummy_observation() -> Observation<
     Dummy<f32, 3, 3>,
 > {
     RegularObservationBuilder::new::<3, 1, f32>(
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+    )
+}
+
+pub fn make_dummy_observation_ekf() -> ExtendedObservation<
+    3,
+    1,
+    f32,
+    Dummy<f32, 1, 3>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 3>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 3>,
+> {
+    ExtendedObservationBuilder::new::<3, 1, f32>(
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),
