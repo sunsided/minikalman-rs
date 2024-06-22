@@ -3,6 +3,7 @@ use core::marker::PhantomData;
 use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
+
 use crate::regular::{
     Control, ControlBuilder, Observation, ObservationBuilder, RegularKalman, RegularKalmanBuilder,
 };
@@ -48,7 +49,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
-    /// use minikalman::builder::regular::KalmanFilterBuilder;
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
     /// const NUM_CONTROLS: usize = 2;
@@ -123,7 +124,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
-    /// use minikalman::builder::regular::KalmanFilterBuilder;
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
     /// const NUM_CONTROLS: usize = 2;
@@ -191,7 +192,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
-    /// use minikalman::builder::regular::KalmanFilterBuilder;
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
     /// const NUM_OBSERVATIONS: usize = 5;

@@ -218,9 +218,7 @@ where
 }
 
 impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X, P, PX, TempP> {
-    /// Performs a (potentially nonlinear) state transition only involving the current state.
-    /// Unlike [`predict`](Self::predict), which uses the known state matrix, this method only uses the provided
-    /// state transition function.
+    /// Performs a nonlinear state transition only involving the current state.
     ///
     /// ## Extended Kalman Filters
     /// This function can be used to implement the nonlinear state prediction step of the
@@ -228,7 +226,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
     /// the Jacobian of the state transition instead.
     ///
-    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// Callers need to use the [`state_transition_jacobian_mut`](Self::state_transition_jacobian_mut) (or external
     /// access to the state transition matrix) to linearize it around the current state.
     ///
     /// ## Arguments
@@ -331,7 +329,18 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
         self.predict_P(); // TODO: Add some process noise Q
     }
 
-    /// Nonlinear state transformation counterpart to [`predict_tuned`](Self::predict_tuned).
+    /// Nonlinear state transformation with a state estimation covariance tuning factor.
+    ///
+    /// ## Arguments
+    /// * `lambda` - The estimation covariance scaling factor, in range 0 < `lambda` <= 1.
+    /// * `state_transition` - The nonlinear state transition function.
+    ///
+    /// ## Tuning Factor (lambda)
+    /// In general, a process noise component is factored into the filter's state estimation
+    /// covariance matrix update. Since it can be difficult to create a correct process noise
+    /// matrix, this function incorporates a scaling factor of 1/λ² into the update process,
+    /// where a value of 1.0 resembles no change.
+    /// Smaller values correspond to a higher uncertainty increase.
     ///
     /// ## Extended Kalman Filters
     /// This function can be used to implement the nonlinear state prediction step of the
@@ -339,11 +348,11 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
     /// the Jacobian of the state transition instead.
     ///
-    /// Callers need to use the [`state_transition_mut`](Self::state_transition_mut) (or external
+    /// Callers need to use the [`state_transition_jacobian_mut`](Self::state_transition_jacobian_mut) (or external
     /// access to the state transition matrix) to linearize it around the current state.
     ///
     /// ## Example
-    /// See [`predict_tuned`](Self::predict_tuned) and [`predict_nonlinear`](Self::predict_nonlinear) for an example.
+    /// See [`predict_nonlinear`](Self::predict_nonlinear) for an example.
     #[doc(alias = "kalman_predict_tuned")]
     pub fn predict_tuned_nonlinear<F>(&mut self, lambda: T, state_transition: F)
     where

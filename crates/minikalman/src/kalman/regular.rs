@@ -303,7 +303,14 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, 
     /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
     /// ## Arguments
-    /// * `lambda` - Lambda factor (0 < `lambda` <= 1) to forcibly reduce prediction certainty. Smaller values mean larger uncertainty.
+    /// * `lambda` - The estimation covariance scaling factor (0 < `lambda` <= 1) to forcibly reduce prediction certainty. Smaller values mean larger uncertainty.
+    ///
+    /// ## Tuning Factor (lambda)
+    /// In general, a process noise component is factored into the filter's state estimation
+    /// covariance matrix update. Since it can be difficult to create a correct process noise
+    /// matrix, this function incorporates a scaling factor of 1/λ² into the update process,
+    /// where a value of 1.0 resembles no change.
+    /// Smaller values correspond to a higher uncertainty increase.
     ///
     /// ## Example
     /// ```
@@ -467,10 +474,6 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, 
     }
 
     /// Applies a control input.
-    ///
-    /// ## Extended Kalman Filters
-    /// In an Extended Kalman Filter, this method is meaningless. Use the
-    /// [`predict_nonlinear`](Self::predict_nonlinear) function set instead.
     #[inline(always)]
     pub fn control<I>(&mut self, control: &mut I)
     where

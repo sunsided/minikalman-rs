@@ -5,13 +5,9 @@ use crate::matrix::MatrixDataType;
 use crate::buffers::builder::*;
 use crate::extended::{ExtendedKalman, ExtendedKalmanBuilder, Observation, ObservationBuilder};
 
-/// A simple builder for [`RegularKalman`] instances.
+/// A simple builder for [`ExtendedKalman`] instances.
 #[derive(Copy, Clone)]
 pub struct KalmanFilterBuilder<const STATES: usize, T>(PhantomData<T>);
-
-/// A simple builder for [`Control`] instances.
-#[derive(Copy, Clone)]
-pub struct KalmanFilterControlBuilder<const STATES: usize, T>(PhantomData<T>);
 
 /// A simple builder for [`Observation`] instances.
 #[derive(Copy, Clone)]
@@ -46,7 +42,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
-    /// use minikalman::builder::regular::KalmanFilterBuilder;
+    /// use minikalman::extended::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
     /// const NUM_CONTROLS: usize = 2;
@@ -54,11 +50,10 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// let mut filter = builder.build();
-    /// let mut control = builder.controls().build::<NUM_CONTROLS>();
     /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
     /// ```
     ///
-    /// See also [`KalmanFilterControlBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
+    /// See also [`KalmanFilterObservationBuilder`] for further information.
     pub fn build(&self) -> KalmanFilterType<STATES, T>
     where
         T: MatrixDataType + Default,
@@ -123,7 +118,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
-    /// use minikalman::builder::regular::KalmanFilterBuilder;
+    /// use minikalman::extended::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
     /// const NUM_OBSERVATIONS: usize = 5;
@@ -133,7 +128,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
     /// ```
     ///
-    /// See also [`KalmanFilterBuilder`] and [`KalmanFilterControlBuilder`] for further information.
+    /// See also [`KalmanFilterBuilder`] for further information.
     pub fn build<const OBSERVATIONS: usize>(
         &self,
     ) -> KalmanFilterObservationType<STATES, OBSERVATIONS, T>

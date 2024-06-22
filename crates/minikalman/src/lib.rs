@@ -8,9 +8,10 @@
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
 //! to create the required arrays (see e.g. [`impl_buffer_A`]).
 //!
-//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](builder::regular::KalmanFilterBuilder) can be
-//! used to quickly create a [`RegularKalman`] filter instance with all necessary buffers, alongside
-//! [`Control`] and [`Observation`] instances.
+//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](regular::builder::KalmanFilterBuilder) can be
+//! used to quickly create a [`RegularKalman`](regular::RegularKalman) filter instance with all necessary buffers, alongside
+//! [`Control`](regular::Control) and [`Observation`](regular::Observation) instances.
+//! Similar types exist for Extended Kalman Filters.
 //!
 //! ## Crate Features
 //!
@@ -26,11 +27,11 @@
 //!
 //! ## Example
 //!
-//! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](builder::regular::KalmanFilterBuilder) is enabled. An overly simplified example
+//! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](regular::builder::KalmanFilterBuilder) is enabled. An overly simplified example
 //! for setting up and operating the Kalman Filter could look like this:
 //!
 //! ```no_run
-//! use minikalman::builder::regular::KalmanFilterBuilder;
+//! use minikalman::regular::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
