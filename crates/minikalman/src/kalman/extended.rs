@@ -363,6 +363,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         A: StateTransitionMatrix<STATES, T>,
         PX: PredictedStateEstimateVector<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
         F: FnMut(&X, &mut PX),
@@ -407,6 +408,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         A: StateTransitionMatrix<STATES, T>,
         PX: PredictedStateEstimateVector<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
         F: FnMut(&X, &mut PX),
@@ -442,21 +444,24 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     where
         A: StateTransitionMatrix<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
     {
         // matrices and vectors
         let A = self.A.as_matrix();
         let P = self.P.as_matrix_mut();
+        let Q = self.Q.as_matrix();
 
         // temporaries
         let P_temp = self.temp_P.as_matrix_mut();
 
         // Predict next covariance using system dynamics (without control)
 
-        // P = A*P*Aᵀ
+        // P = A*P*Aᵀ + Q
         A.mult(P, P_temp); // temp = A*P
         P_temp.mult_transb(A, P); // P = temp*Aᵀ
+        Q.add_inplace_b(P); // P = P + Q
     }
 
     #[allow(non_snake_case)]
@@ -465,12 +470,14 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     where
         A: StateTransitionMatrix<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
     {
         // matrices and vectors
         let A = self.A.as_matrix();
         let P = self.P.as_matrix_mut();
+        let Q = self.Q.as_matrix();
 
         // temporaries
         let P_temp = self.temp_P.as_matrix_mut();
@@ -479,11 +486,12 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         // P = A*P*Aᵀ * 1/lambda^2
 
         // lambda = 1/lambda^2
-        let lambda = lambda.mul(lambda).recip(); // TODO: This should be precalculated, e.g. using set_lambda(...);
+        let factor = lambda.mul(lambda).recip(); // TODO: This should be precalculated, e.g. using set_lambda(...);
 
-        // P = A*P*A'
+        // P = A*P*A' * 1/(lambda^2) + Q
         A.mult(P, P_temp); // temp = A*P
-        P_temp.multscale_transb(A, lambda, P); // P = temp*A' * 1/(lambda^2)
+        P_temp.multscale_transb(A, factor, P); // P = temp*A' * 1/(lambda^2)
+        Q.add_inplace_b(P); // P = P + Q
     }
 
     /// Performs the nonlinear measurement update step.
@@ -602,6 +610,7 @@ where
     A: StateTransitionMatrix<STATES, T>,
     PX: PredictedStateEstimateVector<STATES, T>,
     P: EstimateCovarianceMatrix<STATES, T>,
+    Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
     TempP: TemporaryStateMatrix<STATES, T>,
     T: MatrixDataType,
 {
