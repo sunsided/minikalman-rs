@@ -1,5 +1,6 @@
 use minikalman::buffers::types::*;
 use minikalman::prelude::*;
+use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
 
 /// Observations.
 const NUM_STATES: usize = 3;
@@ -56,7 +57,7 @@ pub fn predict_gravity() -> f32 {
     impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 
-    let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+    let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
         StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
         StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
         EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
@@ -64,7 +65,7 @@ pub fn predict_gravity() -> f32 {
         TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
     );
 
-    let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+    let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
         ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
         MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
         MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),

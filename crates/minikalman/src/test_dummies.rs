@@ -1,12 +1,17 @@
+use crate::extended::{ExtendedObservation, ExtendedObservationBuilder};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
+use crate::kalman::extended::{ExtendedKalman, ExtendedKalmanBuilder};
 use crate::kalman::*;
 use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixMut};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
-use crate::{Control, ControlBuilder, Kalman, KalmanBuilder, Observation, ObservationBuilder};
+use crate::regular::{
+    Control, ControlBuilder, RegularKalman, RegularKalmanBuilder, RegularObservation,
+    RegularObservationBuilder,
+};
 
-pub fn make_dummy_filter() -> Kalman<
+pub fn make_dummy_filter() -> RegularKalman<
     3,
     f32,
     Dummy<f32, 3, 3>,
@@ -15,7 +20,25 @@ pub fn make_dummy_filter() -> Kalman<
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
 > {
-    KalmanBuilder::new::<3, f32>(
+    RegularKalmanBuilder::new::<3, f32>(
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+    )
+}
+
+pub fn make_dummy_filter_ekf() -> ExtendedKalman<
+    3,
+    f32,
+    Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 3>,
+> {
+    ExtendedKalmanBuilder::new::<3, f32>(
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),
@@ -34,7 +57,7 @@ pub fn make_dummy_control(
     )
 }
 
-pub fn make_dummy_observation() -> Observation<
+pub fn make_dummy_observation() -> RegularObservation<
     3,
     1,
     f32,
@@ -49,7 +72,36 @@ pub fn make_dummy_observation() -> Observation<
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
 > {
-    ObservationBuilder::new::<3, 1, f32>(
+    RegularObservationBuilder::new::<3, 1, f32>(
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+    )
+}
+
+pub fn make_dummy_observation_ekf() -> ExtendedObservation<
+    3,
+    1,
+    f32,
+    Dummy<f32, 1, 3>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 1, 1>,
+    Dummy<f32, 1, 3>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 3>,
+> {
+    ExtendedObservationBuilder::new::<3, 1, f32>(
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),

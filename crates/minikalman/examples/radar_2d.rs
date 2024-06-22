@@ -7,7 +7,7 @@
 
 use rand_distr::{Distribution, Normal};
 
-use minikalman::builder::KalmanFilterBuilder;
+use minikalman::extended::builder::KalmanFilterBuilder;
 use minikalman::prelude::*;
 
 const NUM_STATES: usize = 4; // position (x, y), velocity (x, y)
@@ -55,7 +55,7 @@ fn main() {
         let time = step as f32 * DELTA_T;
 
         // Update the system transition Jacobian matrix.
-        filter.state_transition_mut().apply(|mat| {
+        filter.state_transition_jacobian_mut().apply(|mat| {
             mat.make_identity();
             mat.set_at(0, 2, DELTA_T);
             mat.set_at(1, 3, DELTA_T);
@@ -95,7 +95,7 @@ fn main() {
             });
 
             // Update the observation Jacobian.
-            measurement.observation_matrix_mut().apply(|mat| {
+            measurement.observation_jacobian_matrix_mut().apply(|mat| {
                 let x = filter.state_vector().get_row(0);
                 let y = filter.state_vector().get_row(1);
 
@@ -139,7 +139,7 @@ enum Stage {
 
 fn print_state<T>(time: f32, filter: &T, state: Stage)
 where
-    T: KalmanFilter<4, f32>,
+    T: ExtendedKalmanFilter<4, f32>,
 {
     let marker = match state {
         Stage::Prior => ' ',

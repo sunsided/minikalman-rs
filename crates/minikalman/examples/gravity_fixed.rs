@@ -9,7 +9,7 @@
 #[allow(unused)]
 use colored::Colorize;
 use lazy_static::lazy_static;
-use minikalman::builder::KalmanFilterBuilder;
+use minikalman::regular::builder::KalmanFilterBuilder;
 
 use minikalman::prelude::*;
 

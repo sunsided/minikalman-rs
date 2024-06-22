@@ -1,3 +1,5 @@
+//! # Control inputs for Regular Kalman Filters.
+
 use crate::kalman::*;
 use crate::matrix::*;
 use core::marker::PhantomData;
@@ -337,7 +339,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test_mut_apply() {
-        use crate::builder::KalmanFilterBuilder;
+        use crate::regular::builder::KalmanFilterBuilder;
 
         let builder = KalmanFilterBuilder::<3, f32>::default();
         let mut filter = builder.build();
@@ -354,7 +356,7 @@ mod tests {
         use crate::matrix::MatrixMut;
         use assert_float_eq::*;
 
-        use crate::prelude::{BufferBuilder, KalmanBuilder};
+        use crate::prelude::{regular::RegularKalmanBuilder, BufferBuilder};
 
         const NUM_STATES: usize = 4;
         const NUM_CONTROLS: usize = 3;
@@ -376,7 +378,7 @@ mod tests {
         // Control temporaries
         let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new();
 
-        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
         let mut control = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
 
         // State transition is identity.

@@ -1,6 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use minikalman::buffers::types::*;
-use minikalman::{BufferBuilder, KalmanBuilder, ObservationBuilder};
+use minikalman::{
+    regular::RegularKalmanBuilder, regular::RegularObservationBuilder, BufferBuilder,
+};
 
 use minikalman::prelude::*;
 
@@ -50,7 +52,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_temp_KHP = BufferBuilder::temp_KHP::<NUM_STATES>().new();
 
     c.bench_function("filter loop", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
@@ -58,7 +60,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
@@ -94,7 +96,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("predict", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
@@ -102,7 +104,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
@@ -132,7 +134,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("update", |bencher| {
-        let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
@@ -140,7 +142,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),

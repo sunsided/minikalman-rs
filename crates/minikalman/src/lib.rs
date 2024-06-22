@@ -8,9 +8,10 @@
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
 //! to create the required arrays (see e.g. [`impl_buffer_A`]).
 //!
-//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](builder::KalmanFilterBuilder) can be
-//! used to quickly create a [`Kalman`] filter instance with all necessary buffers, alongside
-//! [`Control`] and [`Observation`] instances.
+//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](regular::builder::KalmanFilterBuilder) can be
+//! used to quickly create a [`RegularKalman`](regular::RegularKalman) filter instance with all necessary buffers, alongside
+//! [`Control`](regular::Control) and [`Observation`](regular::RegularObservation) instances.
+//! Similar types exist for Extended Kalman Filters.
 //!
 //! ## Crate Features
 //!
@@ -26,11 +27,11 @@
 //!
 //! ## Example
 //!
-//! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](builder::KalmanFilterBuilder) is enabled. An overly simplified example
+//! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](regular::builder::KalmanFilterBuilder) is enabled. An overly simplified example
 //! for setting up and operating the Kalman Filter could look like this:
 //!
 //! ```no_run
-//! use minikalman::builder::KalmanFilterBuilder;
+//! use minikalman::regular::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
@@ -78,7 +79,7 @@
 //! replaced with their nonlinear counterparts:
 //!
 //! ```no_run
-//! use minikalman::builder::KalmanFilterBuilder;
+//! use minikalman::extended::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
@@ -130,6 +131,7 @@
 //! # #![allow(non_upper_case_globals)]
 //! use minikalman::buffers::types::*;
 //! use minikalman::prelude::*;
+//! use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
 //!
 //! const NUM_STATES: usize = 3;
 //! const NUM_OBSERVATIONS: usize = 1;
@@ -159,7 +161,7 @@
 //! impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
 //! impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 //!
-//! let mut filter = KalmanBuilder::new::<NUM_STATES, f32>(
+//! let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
 //!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
 //!     StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
 //!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
@@ -167,7 +169,7 @@
 //!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
 //! );
 //!
-//! let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+//! let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
 //!     ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
 //!     MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
 //!     MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),
@@ -219,19 +221,29 @@ mod test_filter;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub use crate::buffers::builder::BufferBuilder;
-pub use crate::controls::{Control, ControlBuilder};
-pub use crate::kalman::{Kalman, KalmanBuilder};
-pub use crate::observations::{Observation, ObservationBuilder};
 
 /// Re-export `num_traits`.
 pub use num_traits;
 
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-#[cfg(feature = "alloc")]
-pub mod builder {
-    pub use crate::kalman_builder::{
-        KalmanFilterBuilder, KalmanFilterControlBuilder, KalmanFilterObservationBuilder,
-    };
+/// Regular Kalman Filters
+pub mod regular {
+    pub use crate::controls::*;
+    pub use crate::kalman::regular::*;
+    pub use crate::observations::regular::*;
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub use crate::kalman_builder::regular as builder;
+}
+
+/// Extended Kalman Filters (EKF)
+pub mod extended {
+    pub use crate::kalman::extended::*;
+    pub use crate::observations::extended::*;
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub use crate::kalman_builder::extended as builder;
 }
 
 /// Exports all macros and common types.
@@ -240,18 +252,8 @@ pub mod prelude {
     #[cfg(feature = "alloc")]
     pub use crate::buffers::builder::*;
 
-    pub use crate::controls::{Control, ControlBuilder};
-    pub use crate::kalman::{Kalman, KalmanBuilder};
-    pub use crate::observations::{Observation, ObservationBuilder};
-
     pub use crate::kalman::*;
     pub use crate::matrix::*;
-
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-    #[cfg(feature = "alloc")]
-    pub use crate::kalman_builder::{
-        KalmanFilterControlType, KalmanFilterObservationType, KalmanFilterType,
-    };
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,
