@@ -74,7 +74,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// );
     /// ```
     ///
-    /// See also [`KalmanBuilder::new`](KalmanBuilder::new) for setting up the Kalman filter itself.
+    /// See also [`KalmanBuilder::new`](regular::KalmanBuilder::new) for setting up the Kalman filter itself.
     #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, const OBSERVATIONS: usize, T>(
         H: H,

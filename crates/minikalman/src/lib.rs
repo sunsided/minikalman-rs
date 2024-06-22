@@ -8,7 +8,7 @@
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
 //! to create the required arrays (see e.g. [`impl_buffer_A`]).
 //!
-//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](builder::KalmanFilterBuilder) can be
+//! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](builder::regular::KalmanFilterBuilder) can be
 //! used to quickly create a [`Kalman`] filter instance with all necessary buffers, alongside
 //! [`Control`] and [`Observation`] instances.
 //!
@@ -26,7 +26,7 @@
 //!
 //! ## Example
 //!
-//! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](builder::KalmanFilterBuilder) is enabled. An overly simplified example
+//! On `std` or `alloc` crates, the [`KalmanFilterBuilder`](builder::regular::KalmanFilterBuilder) is enabled. An overly simplified example
 //! for setting up and operating the Kalman Filter could look like this:
 //!
 //! ```no_run
@@ -220,7 +220,7 @@ mod test_filter;
 #[cfg(feature = "alloc")]
 pub use crate::buffers::builder::BufferBuilder;
 pub use crate::controls::{Control, ControlBuilder};
-pub use crate::kalman::{Kalman, KalmanBuilder};
+pub use crate::kalman::regular::{Kalman, KalmanBuilder};
 pub use crate::observations::{Observation, ObservationBuilder};
 
 /// Re-export `num_traits`.
@@ -241,7 +241,7 @@ pub mod prelude {
     pub use crate::buffers::builder::*;
 
     pub use crate::controls::{Control, ControlBuilder};
-    pub use crate::kalman::{Kalman, KalmanBuilder};
+    pub use crate::kalman::regular::{Kalman, KalmanBuilder};
     pub use crate::observations::{Observation, ObservationBuilder};
 
     pub use crate::kalman::*;
