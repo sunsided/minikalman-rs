@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 use minikalman::prelude::*;
-use minikalman::regular::{ObservationBuilder, RegularKalmanBuilder};
+use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
 
 /// Observations.
 ///
@@ -68,7 +68,7 @@ fn test_gravity_estimation() {
         gravity_temp_P,
     );
 
-    let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+    let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
         gravity_H,
         gravity_z,
         gravity_R,

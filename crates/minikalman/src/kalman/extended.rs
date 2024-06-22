@@ -36,6 +36,7 @@ impl<A, X, P, PX, TempP> ExtendedKalmanBuilder<A, X, P, PX, TempP> {
     /// ```
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
+    /// use minikalman::regular::RegularKalmanBuilder;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_OBSERVATIONS: usize = 1;
@@ -235,8 +236,8 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
-    /// # use minikalman::prelude::*;
-    /// # use minikalman::prelude::extended::*;
+    /// use minikalman::prelude::*;
+    /// use minikalman::extended::*;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_OBSERVATIONS: usize = 1;
@@ -271,7 +272,7 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> ExtendedKalman<STATES, T, A, X,
     /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     /// #
-    /// # let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+    /// # let mut measurement = ExtendedObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     /// #     gravity_H,
     /// #     gravity_z,
     /// #     gravity_R,

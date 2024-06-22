@@ -79,7 +79,7 @@
 //! replaced with their nonlinear counterparts:
 //!
 //! ```no_run
-//! use minikalman::builder::extended::KalmanFilterBuilder;
+//! use minikalman::extended::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
@@ -131,6 +131,7 @@
 //! # #![allow(non_upper_case_globals)]
 //! use minikalman::buffers::types::*;
 //! use minikalman::prelude::*;
+//! use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
 //!
 //! const NUM_STATES: usize = 3;
 //! const NUM_OBSERVATIONS: usize = 1;
@@ -168,7 +169,7 @@
 //!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
 //! );
 //!
-//! let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+//! let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
 //!     ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
 //!     MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
 //!     MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),

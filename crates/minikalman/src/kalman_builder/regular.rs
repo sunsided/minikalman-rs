@@ -5,7 +5,8 @@ use crate::matrix::MatrixDataType;
 use crate::buffers::builder::*;
 
 use crate::regular::{
-    Control, ControlBuilder, Observation, ObservationBuilder, RegularKalman, RegularKalmanBuilder,
+    Control, ControlBuilder, Observation, RegularKalman, RegularKalmanBuilder,
+    RegularObservationBuilder,
 };
 
 /// A simple builder for [`RegularKalman`] instances.
@@ -226,7 +227,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
         let temp_pht = BufferBuilder::temp_PHt::<STATES, OBSERVATIONS>().new();
         let temp_khp = BufferBuilder::temp_KHP::<STATES>().new();
 
-        ObservationBuilder::new::<STATES, OBSERVATIONS, T>(
+        RegularObservationBuilder::new::<STATES, OBSERVATIONS, T>(
             observation_matrix,
             measurement_vector,
             observation_covariance,

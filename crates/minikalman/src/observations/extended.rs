@@ -7,7 +7,7 @@ use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 /// A builder for a Kalman filter [`Observation`] instances.
 #[allow(clippy::type_complexity)]
-pub struct ObservationBuilder<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP> {
+pub struct ExtendedObservationBuilder<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP> {
     _phantom: (
         PhantomData<Z>,
         PhantomData<H>,
@@ -23,7 +23,7 @@ pub struct ObservationBuilder<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempK
 }
 
 impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
-    ObservationBuilder<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    ExtendedObservationBuilder<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 {
     /// Initializes a measurement.
     ///
@@ -45,6 +45,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// ```
     /// # #![allow(non_snake_case)]
     /// # use minikalman::*;
+    /// use minikalman::extended::ExtendedObservationBuilder;
     /// # const NUM_STATES: usize = 3;
     /// # const NUM_CONTROLS: usize = 0;
     /// # const NUM_OBSERVATIONS: usize = 1;
@@ -62,7 +63,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
     /// impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
     ///
-    /// let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+    /// let mut measurement = ExtendedObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     ///     gravity_H,
     ///     gravity_z,
     ///     gravity_R,
@@ -119,7 +120,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     }
 }
 
-/// Kalman Filter measurement structure. See [`ObservationBuilder`] for construction.
+/// Kalman Filter measurement structure. See [`ExtendedObservationBuilder`] for construction.
 #[allow(non_snake_case, unused)]
 pub struct Observation<
     const STATES: usize,

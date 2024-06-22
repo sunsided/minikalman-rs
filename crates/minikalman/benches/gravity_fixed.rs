@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 
 use minikalman::buffers::types::*;
 use minikalman::prelude::{I16F16, *};
+use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
 
 lazy_static! {
     /// Observations.
@@ -92,7 +93,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
@@ -136,7 +137,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
@@ -174,7 +175,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),

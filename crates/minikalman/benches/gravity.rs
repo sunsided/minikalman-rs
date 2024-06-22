@@ -1,6 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use minikalman::buffers::types::*;
-use minikalman::{BufferBuilder, ObservationBuilder, RegularKalmanBuilder};
+use minikalman::{
+    regular::RegularKalmanBuilder, regular::RegularObservationBuilder, BufferBuilder,
+};
 
 use minikalman::prelude::*;
 
@@ -58,7 +60,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
@@ -102,7 +104,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),
@@ -140,7 +142,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
 
-        let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+        let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
             ObservationMatrixMutBuffer::from(gravity_H.as_mut_slice()),
             MeasurementVectorBuffer::from(gravity_z.as_mut_slice()),
             MeasurementNoiseCovarianceMatrixBuffer::from(gravity_R.as_mut_slice()),

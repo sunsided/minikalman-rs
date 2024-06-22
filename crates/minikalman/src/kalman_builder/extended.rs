@@ -3,7 +3,9 @@ use core::marker::PhantomData;
 use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
-use crate::extended::{ExtendedKalman, ExtendedKalmanBuilder, Observation, ObservationBuilder};
+use crate::extended::{
+    ExtendedKalman, ExtendedKalmanBuilder, ExtendedObservationBuilder, Observation,
+};
 
 /// A simple builder for [`ExtendedKalman`] instances.
 #[derive(Copy, Clone)]
@@ -152,7 +154,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
         let temp_pht = BufferBuilder::temp_PHt::<STATES, OBSERVATIONS>().new();
         let temp_khp = BufferBuilder::temp_KHP::<STATES>().new();
 
-        ObservationBuilder::new::<STATES, OBSERVATIONS, T>(
+        ExtendedObservationBuilder::new::<STATES, OBSERVATIONS, T>(
             observation_matrix,
             measurement_vector,
             observation_covariance,

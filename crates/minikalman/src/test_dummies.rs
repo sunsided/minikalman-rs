@@ -6,7 +6,8 @@ use crate::kalman::*;
 use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixMut};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use crate::regular::{
-    Control, ControlBuilder, Observation, ObservationBuilder, RegularKalman, RegularKalmanBuilder,
+    Control, ControlBuilder, Observation, RegularKalman, RegularKalmanBuilder,
+    RegularObservationBuilder,
 };
 
 pub fn make_dummy_filter() -> RegularKalman<
@@ -70,7 +71,7 @@ pub fn make_dummy_observation() -> Observation<
     Dummy<f32, 3, 1>,
     Dummy<f32, 3, 3>,
 > {
-    ObservationBuilder::new::<3, 1, f32>(
+    RegularObservationBuilder::new::<3, 1, f32>(
         Dummy::default(),
         Dummy::default(),
         Dummy::default(),

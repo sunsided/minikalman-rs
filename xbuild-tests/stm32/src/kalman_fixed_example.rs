@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use minikalman::buffers::types::*;
 use minikalman::prelude::*;
+use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
 
 /// Observations.
 const NUM_STATES: usize = 3;
@@ -124,7 +125,7 @@ pub fn predict_gravity() -> I16F16 {
         TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
     );
 
-    let mut measurement = ObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
+    let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, I16F16>(
         ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
         MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
         MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),
