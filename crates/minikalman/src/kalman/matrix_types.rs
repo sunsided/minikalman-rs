@@ -122,10 +122,54 @@ pub trait ControlMatrixMut<const STATES: usize, const CONTROLS: usize, T = f32>:
 
 /// Process noise covariance matrix. Represents the uncertainty in the state transition process.
 ///
-/// Immutable variant. For a mutable variant, see [`ProcessNoiseCovarianceMatrixMut`].
+/// This matrix represents the direct process noise covariance. It quantifies the
+/// uncertainty introduced by inherent system dynamics and external disturbances,
+/// providing a measure of how much the true state is expected to deviate from the
+/// predicted state due to these process variations.
+///
+/// Immutable variant. For a mutable variant, see [`DirectProcessNoiseCovarianceMatrixMut`].
 #[doc(alias = "ControlCovarianceMatrix")]
 #[doc(alias = "Prozessrauschkovarianzmatrix")]
-pub trait ProcessNoiseCovarianceMatrix<const CONTROLS: usize, T = f32>:
+pub trait DirectProcessNoiseCovarianceMatrix<const STATES: usize, T = f32>:
+    RowMajorSequentialData<STATES, STATES, T> + Index<usize, Output = T>
+{
+    type Target: Matrix<STATES, STATES, T>;
+
+    fn as_matrix(&self) -> &Self::Target;
+}
+
+/// Process noise covariance matrix. Represents the uncertainty in the state transition process.
+///
+/// This matrix represents the direct process noise covariance. It quantifies the
+/// uncertainty introduced by inherent system dynamics and external disturbances,
+/// providing a measure of how much the true state is expected to deviate from the
+/// predicted state due to these process variations.
+///
+/// Mutable variant. For an immutable variant, see [`DirectProcessNoiseCovarianceMatrix`].
+#[doc(alias = "ControlCovarianceMatrixMut")]
+#[doc(alias = "Prozessrauschkovarianzmatrix")]
+pub trait DirectProcessNoiseCovarianceMatrixMut<const STATES: usize, T = f32>:
+    DirectProcessNoiseCovarianceMatrix<STATES, T>
+    + RowMajorSequentialDataMut<STATES, STATES, T>
+    + IndexMut<usize, Output = T>
+{
+    type TargetMut: MatrixMut<STATES, STATES, T>;
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
+}
+
+/// Process noise covariance matrix. Represents the uncertainty in the state transition process.
+///
+/// This matrix represents the control process noise covariance. It quantifies the
+/// uncertainty introduced by the control inputs, reflecting how much the true state
+/// is expected to deviate from the predicted state due to noise and variations
+/// in the control process. The matrix is calculated as B×Q×Bᵀ, where B
+/// represents the control input model, and Q is the process noise covariance (this matrix).
+///
+/// Immutable variant. For a mutable variant, see [`ControlProcessNoiseCovarianceMatrixMut`].
+#[doc(alias = "ControlCovarianceMatrix")]
+#[doc(alias = "Prozessrauschkovarianzmatrix")]
+pub trait ControlProcessNoiseCovarianceMatrix<const CONTROLS: usize, T = f32>:
     RowMajorSequentialData<CONTROLS, CONTROLS, T> + Index<usize, Output = T>
 {
     type Target: Matrix<CONTROLS, CONTROLS, T>;
@@ -135,11 +179,17 @@ pub trait ProcessNoiseCovarianceMatrix<const CONTROLS: usize, T = f32>:
 
 /// Process noise covariance matrix. Represents the uncertainty in the state transition process.
 ///
-/// Mutable variant. For an immutable variant, see [`ProcessNoiseCovarianceMatrix`].
+/// This matrix represents the control process noise covariance. It quantifies the
+/// uncertainty introduced by the control inputs, reflecting how much the true state
+/// is expected to deviate from the predicted state due to noise and variations
+/// in the control process. The matrix is calculated as B×Q×Bᵀ, where B
+/// represents the control input model, and Q is the process noise covariance (this matrix).
+///
+/// Mutable variant. For an immutable variant, see [`ControlProcessNoiseCovarianceMatrix`].
 #[doc(alias = "ControlCovarianceMatrixMut")]
 #[doc(alias = "Prozessrauschkovarianzmatrix")]
-pub trait ProcessNoiseCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
-    ProcessNoiseCovarianceMatrix<CONTROLS, T>
+pub trait ControlProcessNoiseCovarianceMatrixMut<const CONTROLS: usize, T = f32>:
+    ControlProcessNoiseCovarianceMatrix<CONTROLS, T>
     + RowMajorSequentialDataMut<CONTROLS, CONTROLS, T>
     + IndexMut<usize, Output = T>
 {

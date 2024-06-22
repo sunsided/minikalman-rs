@@ -41,6 +41,7 @@ fn test_gravity_estimation() {
     impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    impl_buffer_Q_direct!(mut gravity_Q, NUM_STATES, f32, 0.0);
 
     // Observation buffers.
     impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
@@ -64,6 +65,7 @@ fn test_gravity_estimation() {
         gravity_A,
         gravity_x,
         gravity_P,
+        gravity_Q,
         gravity_temp_x,
         gravity_temp_P,
     );

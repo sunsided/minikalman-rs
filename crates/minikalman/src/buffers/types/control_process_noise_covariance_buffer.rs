@@ -1,55 +1,71 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::{ProcessNoiseCovarianceMatrix, ProcessNoiseCovarianceMatrixMut};
+use crate::kalman::{ControlProcessNoiseCovarianceMatrix, ControlProcessNoiseCovarianceMatrixMut};
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut, MatrixDataRef};
 use crate::matrix::{Matrix, MatrixMut};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
-/// Immutable buffer for the control / process noise covariance matrix (`num_controls` × `num_controls`).
+/// Immutable buffer for the control process noise covariance matrix (`num_controls` × `num_controls`).
 ///
-/// Represents the uncertainty in the state transition process.
+/// This matrix represents the control process noise covariance. It quantifies the
+/// uncertainty introduced by the control inputs, reflecting how much the true state
+/// is expected to deviate from the predicted state due to noise and variations
+/// in the control process. The matrix is calculated as B×Q×Bᵀ, where B
+/// represents the control input model, and Q is the process noise covariance (this matrix).
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::ProcessNoiseCovarianceMatrixBuffer;
+/// use minikalman::buffers::types::ControlProcessNoiseCovarianceMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = ProcessNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = ControlProcessNoiseCovarianceMatrixBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let data = [0.0; 4];
-/// let buffer = ProcessNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_ref());
+/// let buffer = ControlProcessNoiseCovarianceMatrixBuffer::<2, f32, _>::from(data.as_ref());
 /// ```
 #[doc(alias = "ControlCovarianceMatrixBuffer")]
-pub struct ProcessNoiseCovarianceMatrixBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
+pub struct ControlProcessNoiseCovarianceMatrixBuffer<const CONTROLS: usize, T, M>(
+    M,
+    PhantomData<T>,
+)
 where
     M: Matrix<CONTROLS, CONTROLS, T>;
 
-/// Mutable buffer for the control / process noise covariance matrix (`num_controls` × `num_controls`).
+/// Mutable buffer for the control process noise covariance matrix (`num_controls` × `num_controls`).
+///
+/// This matrix represents the control process noise covariance. It quantifies the
+/// uncertainty introduced by the control inputs, reflecting how much the true state
+/// is expected to deviate from the predicted state due to noise and variations
+/// in the control process. The matrix is calculated as B×Q×Bᵀ, where B
+/// represents the control input model, and Q is the process noise covariance (this matrix).
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer;
+/// use minikalman::buffers::types::ControlProcessNoiseCovarianceMatrixMutBuffer;
 /// use minikalman::prelude::*;
 ///
 /// // From owned data
-/// let buffer = ProcessNoiseCovarianceMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
+/// let buffer = ControlProcessNoiseCovarianceMatrixMutBuffer::new(MatrixData::new_array::<2, 2, 4, f32>([0.0; 4]));
 ///
 /// // From a reference
 /// let mut data = [0.0; 4];
-/// let buffer = ProcessNoiseCovarianceMatrixMutBuffer::<2, f32, _>::from(data.as_mut_slice());
+/// let buffer = ControlProcessNoiseCovarianceMatrixMutBuffer::<2, f32, _>::from(data.as_mut_slice());
 /// ```
 #[doc(alias = "ControlCovarianceMatrixMutBuffer")]
-pub struct ProcessNoiseCovarianceMatrixMutBuffer<const CONTROLS: usize, T, M>(M, PhantomData<T>)
+pub struct ControlProcessNoiseCovarianceMatrixMutBuffer<const CONTROLS: usize, T, M>(
+    M,
+    PhantomData<T>,
+)
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>;
 
 // -----------------------------------------------------------
 
 impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for ProcessNoiseCovarianceMatrixBuffer<
+    for ControlProcessNoiseCovarianceMatrixBuffer<
         CONTROLS,
         T,
         MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>,
@@ -65,7 +81,11 @@ impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 }
 
 impl<'a, const CONTROLS: usize, T> From<&'a [T]>
-    for ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
+    for ControlProcessNoiseCovarianceMatrixBuffer<
+        CONTROLS,
+        T,
+        MatrixDataRef<'a, CONTROLS, CONTROLS, T>,
+    >
 {
     fn from(value: &'a [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -77,7 +97,11 @@ impl<'a, const CONTROLS: usize, T> From<&'a [T]>
 }
 
 impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
-    for ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, MatrixDataRef<'a, CONTROLS, CONTROLS, T>>
+    for ControlProcessNoiseCovarianceMatrixBuffer<
+        CONTROLS,
+        T,
+        MatrixDataRef<'a, CONTROLS, CONTROLS, T>,
+    >
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -89,7 +113,11 @@ impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
 }
 
 impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataMut<'a, CONTROLS, CONTROLS, T>>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<
+        CONTROLS,
+        T,
+        MatrixDataMut<'a, CONTROLS, CONTROLS, T>,
+    >
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -101,7 +129,7 @@ impl<'a, const CONTROLS: usize, T> From<&'a mut [T]>
 }
 
 impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for ProcessNoiseCovarianceMatrixMutBuffer<
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<
         CONTROLS,
         T,
         MatrixDataArray<CONTROLS, CONTROLS, TOTAL, T>,
@@ -118,7 +146,7 @@ impl<const CONTROLS: usize, const TOTAL: usize, T> From<[T; TOTAL]>
 
 // -----------------------------------------------------------
 
-impl<const CONTROLS: usize, T, M> ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -136,7 +164,7 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> RowMajorSequentialData<CONTROLS, CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -147,14 +175,14 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
 }
 
-impl<const CONTROLS: usize, T, M> ProcessNoiseCovarianceMatrix<CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlProcessNoiseCovarianceMatrix<CONTROLS, T>
+    for ControlProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -165,7 +193,7 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -188,7 +216,7 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> RowMajorSequentialData<CONTROLS, CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -199,7 +227,7 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> RowMajorSequentialDataMut<CONTROLS, CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -210,21 +238,21 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> Matrix<CONTROLS, CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
 }
 
 impl<const CONTROLS: usize, T, M> MatrixMut<CONTROLS, CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
 }
 
-impl<const CONTROLS: usize, T, M> ProcessNoiseCovarianceMatrix<CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlProcessNoiseCovarianceMatrix<CONTROLS, T>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -235,8 +263,8 @@ where
     }
 }
 
-impl<const CONTROLS: usize, T, M> ProcessNoiseCovarianceMatrixMut<CONTROLS, T>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+impl<const CONTROLS: usize, T, M> ControlProcessNoiseCovarianceMatrixMut<CONTROLS, T>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -248,7 +276,7 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> Index<usize>
-    for ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: Matrix<CONTROLS, CONTROLS, T>,
 {
@@ -260,7 +288,7 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> Index<usize>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -272,7 +300,7 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> IndexMut<usize>
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T>,
 {
@@ -284,7 +312,7 @@ where
 // -----------------------------------------------------------
 
 impl<const CONTROLS: usize, T, M> IntoInnerData
-    for ProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T> + IntoInnerData,
 {
@@ -296,7 +324,7 @@ where
 }
 
 impl<const CONTROLS: usize, T, M> IntoInnerData
-    for ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
+    for ControlProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, M>
 where
     M: MatrixMut<CONTROLS, CONTROLS, T> + IntoInnerData,
 {
@@ -313,7 +341,7 @@ mod tests {
 
     #[test]
     fn test_from_array() {
-        let value: ProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
+        let value: ControlProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -322,7 +350,7 @@ mod tests {
     #[test]
     fn test_from_ref() {
         let data = [0.0_f32; 100];
-        let value: ProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_ref().into();
+        let value: ControlProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_ref().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
@@ -332,7 +360,8 @@ mod tests {
     #[test]
     fn test_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ProcessNoiseCovarianceMatrixBuffer<5, f32, _> = data.as_mut_slice().into();
+        let value: ControlProcessNoiseCovarianceMatrixBuffer<5, f32, _> =
+            data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(value.is_valid());
         assert!(!value.is_empty());
@@ -342,13 +371,13 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_from_array_invalid_size() {
-        let value: ProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
+        let value: ControlProcessNoiseCovarianceMatrixBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 
     #[test]
     fn test_mut_from_array() {
-        let value: ProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 100].into();
+        let value: ControlProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 100].into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -357,7 +386,8 @@ mod tests {
     #[test]
     fn test_mut_from_mut() {
         let mut data = [0.0_f32; 100];
-        let value: ProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = data.as_mut_slice().into();
+        let value: ControlProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> =
+            data.as_mut_slice().into();
         assert_eq!(value.len(), 25);
         assert!(!value.is_empty());
         assert!(value.is_valid());
@@ -367,14 +397,14 @@ mod tests {
     #[test]
     #[cfg(feature = "no_assert")]
     fn test_mut_from_array_invalid_size() {
-        let value: ProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 1].into();
+        let value: ControlProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 1].into();
         assert!(!value.is_valid());
     }
 
     #[test]
     #[rustfmt::skip]
     fn test_access() {
-        let mut value: ProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 25].into();
+        let mut value: ControlProcessNoiseCovarianceMatrixMutBuffer<5, f32, _> = [0.0; 25].into();
 
         // Set values.
         {

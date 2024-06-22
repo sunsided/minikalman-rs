@@ -26,6 +26,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut gravity_x = BufferBuilder::state_vector_x::<NUM_STATES>().new();
     let mut gravity_A = BufferBuilder::system_matrix_A::<NUM_STATES>().new();
     let mut gravity_P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new();
+    let mut gravity_Q = BufferBuilder::direct_process_noise_covariance_Q::<NUM_STATES>().new();
 
     // Control buffers.
     // let mut gravity_u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new();
@@ -56,6 +57,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
+            DirectProcessNoiseCovarianceMatrixBuffer::from(gravity_Q.as_mut_slice()),
             PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut_slice()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
@@ -100,6 +102,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
+            DirectProcessNoiseCovarianceMatrixBuffer::from(gravity_Q.as_mut_slice()),
             PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut_slice()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );
@@ -138,6 +141,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             StateTransitionMatrixMutBuffer::from(gravity_A.as_mut_slice()),
             StateVectorBuffer::from(gravity_x.as_mut_slice()),
             EstimateCovarianceMatrixBuffer::from(gravity_P.as_mut_slice()),
+            DirectProcessNoiseCovarianceMatrixBuffer::from(gravity_Q.as_mut_slice()),
             PredictedStateEstimateVectorBuffer::from(gravity_temp_x.as_mut_slice()),
             TemporaryStateMatrixBuffer::from(gravity_temp_P.as_mut_slice()),
         );

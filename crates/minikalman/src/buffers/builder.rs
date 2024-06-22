@@ -24,6 +24,13 @@ impl BufferBuilder {
         EstimateCovarianceMatrixBufferBuilder
     }
 
+    #[allow(non_snake_case)]
+    #[doc(alias = "process_noise_covariance_Q")]
+    pub fn direct_process_noise_covariance_Q<const STATES: usize>(
+    ) -> DirectProcessNoiseCovarianceMatrixBufferBuilder<STATES> {
+        DirectProcessNoiseCovarianceMatrixBufferBuilder
+    }
+
     pub fn control_vector_u<const CONTROLS: usize>() -> ControlVectorBufferBuilder<CONTROLS> {
         ControlVectorBufferBuilder
     }
@@ -36,9 +43,9 @@ impl BufferBuilder {
 
     #[allow(non_snake_case)]
     #[doc(alias = "control_covariance_Q")]
-    pub fn process_noise_covariance_Q<const CONTROLS: usize>(
-    ) -> ProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> {
-        ProcessNoiseCovarianceMatrixBufferBuilder
+    pub fn control_process_noise_covariance_Q<const CONTROLS: usize>(
+    ) -> ControlProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> {
+        ControlProcessNoiseCovarianceMatrixBufferBuilder
     }
 
     #[doc(alias = "observation_vector_z")]
@@ -128,15 +135,18 @@ pub struct StateTransitionMatrixBufferBuilder<const STATES: usize>;
 #[doc(alias = "SystemCovarianceMatrixBufferBuilder")]
 pub struct EstimateCovarianceMatrixBufferBuilder<const STATES: usize>;
 
+/// A builder for direct process noise covariance matrices (`num_states` × `num_states`).
+pub struct DirectProcessNoiseCovarianceMatrixBufferBuilder<const STATES: usize>;
+
 /// A builder for control vectors (`num_controls` × `1`).
 pub struct ControlVectorBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for control transition matrices (`num_states` × `num_controls`).
 pub struct ControlTransitionMatrixBufferBuilder<const STATES: usize, const CONTROLS: usize>;
 
-/// A builder for control covariance matrices (`num_controls` × `num_controls`).
+/// A builder for control process noise covariance matrices (`num_controls` × `num_controls`).
 #[doc(alias = "ControlCovarianceMatrixBufferBuilder")]
-pub struct ProcessNoiseCovarianceMatrixBufferBuilder<const CONTROLS: usize>;
+pub struct ControlProcessNoiseCovarianceMatrixBufferBuilder<const CONTROLS: usize>;
 
 /// A builder for measurement vectors (`num_measurements` × `1`).
 pub struct ObservationVectorBufferBuilder<const OBSERVATIONS: usize>;
@@ -455,22 +465,96 @@ impl<const STATES: usize, const CONTROLS: usize>
     }
 }
 
-/// The type of owned control matrix buffers.
+/// The type of owned direct process noise matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type ControlCovarianceMatrixBufferOwnedType<const CONTROLS: usize, T> =
-    ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>;
+pub type DirectProcessNoiseCovarianceMatrixBufferOwnedType<const STATES: usize, T> =
+    DirectProcessNoiseCovarianceMatrixMutBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
 
-impl<const CONTROLS: usize> ProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> {
-    /// Builds a new [`ProcessNoiseCovarianceMatrixMutBuffer`] that owns its data.
+impl<const CONTROLS: usize> DirectProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> {
+    /// Builds a new [`DirectProcessNoiseCovarianceMatrixMutBuffer`] that owns its data.
     ///
     /// ## Example
     /// ```
-    /// use minikalman::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer;
+    /// use minikalman::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::process_noise_covariance_Q::<2>().new();
+    /// let buffer  = BufferBuilder::direct_process_noise_covariance_Q::<3>().new();
     ///
-    /// let buffer: ProcessNoiseCovarianceMatrixMutBuffer<2, f32, _> = buffer;
+    /// let buffer: DirectProcessNoiseCovarianceMatrixMutBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 9);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new<T>(
+        &self,
+    ) -> DirectProcessNoiseCovarianceMatrixMutBuffer<
+        CONTROLS,
+        T,
+        MatrixDataBoxed<CONTROLS, CONTROLS, T>,
+    >
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    /// Builds a new [`DirectProcessNoiseCovarianceMatrixMutBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer  = BufferBuilder::direct_process_noise_covariance_Q::<3>().new_with(0.0);
+    ///
+    /// let buffer: DirectProcessNoiseCovarianceMatrixMutBuffer<3, f32, _> = buffer;
+    /// assert_eq!(buffer.len(), 9);
+    /// ```
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(
+        &self,
+        init: T,
+    ) -> DirectProcessNoiseCovarianceMatrixMutBuffer<
+        CONTROLS,
+        T,
+        MatrixDataBoxed<CONTROLS, CONTROLS, T>,
+    >
+    where
+        T: Copy,
+    {
+        DirectProcessNoiseCovarianceMatrixMutBuffer::<
+            CONTROLS,
+            T,
+            MatrixDataBoxed<CONTROLS, CONTROLS, T>,
+        >::new(MatrixData::new_boxed::<CONTROLS, CONTROLS, T, _>(
+            alloc::vec![init; CONTROLS * CONTROLS],
+        ))
+    }
+}
+
+/// The type of owned control process noise matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type ControlProcessNoiseCovarianceMatrixBufferOwnedType<const CONTROLS: usize, T> =
+    ControlProcessNoiseCovarianceMatrixMutBuffer<
+        CONTROLS,
+        T,
+        MatrixDataBoxed<CONTROLS, CONTROLS, T>,
+    >;
+
+impl<const CONTROLS: usize> ControlProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> {
+    /// Builds a new [`ControlProcessNoiseCovarianceMatrixMutBuffer`] that owns its data.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::buffers::types::ControlProcessNoiseCovarianceMatrixMutBuffer;
+    /// use minikalman::prelude::*;
+    ///
+    /// let buffer  = BufferBuilder::control_process_noise_covariance_Q::<2>().new();
+    ///
+    /// let buffer: ControlProcessNoiseCovarianceMatrixMutBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 4);
     /// ```
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
@@ -478,23 +562,27 @@ impl<const CONTROLS: usize> ProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> 
     #[cfg(feature = "alloc")]
     pub fn new<T>(
         &self,
-    ) -> ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>
+    ) -> ControlProcessNoiseCovarianceMatrixMutBuffer<
+        CONTROLS,
+        T,
+        MatrixDataBoxed<CONTROLS, CONTROLS, T>,
+    >
     where
         T: Copy + Default,
     {
         self.new_with(T::default())
     }
 
-    /// Builds a new [`ProcessNoiseCovarianceMatrixMutBuffer`] that owns its data.
+    /// Builds a new [`ControlProcessNoiseCovarianceMatrixMutBuffer`] that owns its data.
     ///
     /// ## Example
     /// ```
-    /// use minikalman::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer;
+    /// use minikalman::buffers::types::ControlProcessNoiseCovarianceMatrixMutBuffer;
     /// use minikalman::prelude::*;
     ///
-    /// let buffer  = BufferBuilder::process_noise_covariance_Q::<2>().new_with(0.0);
+    /// let buffer  = BufferBuilder::control_process_noise_covariance_Q::<2>().new_with(0.0);
     ///
-    /// let buffer: ProcessNoiseCovarianceMatrixMutBuffer<2, f32, _> = buffer;
+    /// let buffer: ControlProcessNoiseCovarianceMatrixMutBuffer<2, f32, _> = buffer;
     /// assert_eq!(buffer.len(), 4);
     /// ```
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
@@ -503,13 +591,21 @@ impl<const CONTROLS: usize> ProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> 
     pub fn new_with<T>(
         &self,
         init: T,
-    ) -> ProcessNoiseCovarianceMatrixMutBuffer<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>
+    ) -> ControlProcessNoiseCovarianceMatrixMutBuffer<
+        CONTROLS,
+        T,
+        MatrixDataBoxed<CONTROLS, CONTROLS, T>,
+    >
     where
         T: Copy,
     {
-        ProcessNoiseCovarianceMatrixMutBuffer::<CONTROLS, T, MatrixDataBoxed<CONTROLS, CONTROLS, T>>::new(
-            MatrixData::new_boxed::<CONTROLS, CONTROLS, T, _>(alloc::vec![init; CONTROLS * CONTROLS]),
-        )
+        ControlProcessNoiseCovarianceMatrixMutBuffer::<
+            CONTROLS,
+            T,
+            MatrixDataBoxed<CONTROLS, CONTROLS, T>,
+        >::new(MatrixData::new_boxed::<CONTROLS, CONTROLS, T, _>(
+            alloc::vec![init; CONTROLS * CONTROLS],
+        ))
     }
 }
 

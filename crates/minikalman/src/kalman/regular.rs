@@ -7,29 +7,27 @@ use core::marker::PhantomData;
 
 /// A builder for a [`RegularKalman`] filter instances.
 #[allow(clippy::type_complexity)]
-pub struct RegularKalmanBuilder<A, X, P, PX, TempP> {
+pub struct RegularKalmanBuilder<A, X, P, Q, PX, TempP> {
     _phantom: (
         PhantomData<A>,
         PhantomData<X>,
         PhantomData<P>,
+        PhantomData<Q>,
         PhantomData<PX>,
         PhantomData<TempP>,
     ),
 }
 
-impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
+impl<A, X, P, Q, PX, TempP> RegularKalmanBuilder<A, X, P, Q, PX, TempP> {
     /// Initializes a Kalman filter instance.
     ///
     /// ## Arguments
-    /// * `A` - The state transition matrix (`STATES` × `STATES`), or the Jacobian in an EKF.
+    /// * `A` - The state transition matrix (`STATES` × `STATES`).
     /// * `x` - The state vector (`STATES` × `1`).
-    /// * `B` - The control transition matrix (`STATES` × `CONTROLS`).
-    /// * `u` - The control vector (`CONTROLS` × `1`).
     /// * `P` - The state covariance matrix (`STATES` × `STATES`).
-    /// * `Q` - The control covariance matrix (`CONTROLS` × `CONTROLS`).
+    /// * `Q` - The direct process noise matrix (`STATES` × `STATES`).
     /// * `predictedX` - The temporary vector for predicted states (`STATES` × `1`).
     /// * `temp_P` - The temporary vector for P calculation (`STATES` × `STATES`).
-    /// * `temp_BQ` - The temporary vector for B×Q calculation (`STATES` × `CONTROLS`).
     ///
     /// ## Example
     ///
@@ -44,6 +42,7 @@ impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
     /// impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
     /// impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
     /// impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    /// impl_buffer_Q_direct!(mut gravity_Q, NUM_STATES, f32, 0.0);
     ///
     /// // Filter temporaries.
     /// impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
@@ -53,6 +52,7 @@ impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
     ///     gravity_A,
     ///     gravity_x,
     ///     gravity_P,
+    ///     gravity_Q,
     ///     gravity_temp_x,
     ///     gravity_temp_P,
     ///  );
@@ -62,21 +62,24 @@ impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
         A: A,
         x: X,
         P: P,
+        Q: Q,
         predicted_x: PX,
         temp_P: TempP,
-    ) -> RegularKalman<STATES, T, A, X, P, PX, TempP>
+    ) -> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
     where
         T: MatrixDataType,
         A: StateTransitionMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
         PX: PredictedStateEstimateVector<STATES, T>,
         TempP: TemporaryStateMatrix<STATES, T>,
     {
-        RegularKalman::<STATES, T, _, _, _, _, _> {
+        RegularKalman::<STATES, T, _, _, _, _, _, _> {
             x,
             A,
             P,
+            Q,
             predicted_x,
             temp_P,
             _phantom: Default::default(),
@@ -86,7 +89,7 @@ impl<A, X, P, PX, TempP> RegularKalmanBuilder<A, X, P, PX, TempP> {
 
 /// Kalman Filter structure.  See [`RegularKalmanBuilder`] for construction.
 #[allow(non_snake_case, unused)]
-pub struct RegularKalman<const STATES: usize, T, A, X, P, PX, TempP> {
+pub struct RegularKalman<const STATES: usize, T, A, X, P, Q, PX, TempP> {
     /// State vector.
     x: X,
 
@@ -95,10 +98,15 @@ pub struct RegularKalman<const STATES: usize, T, A, X, P, PX, TempP> {
     /// See also [`P`].
     A: A,
 
-    /// System covariance matrix.
+    /// Estimation covariance matrix.
     ///
     /// See also [`A`].
     P: P,
+
+    /// Direct process noise matrix.
+    ///
+    /// See also [`P`].
+    Q: Q,
 
     /// x-sized temporary vector.
     predicted_x: PX,
@@ -111,14 +119,16 @@ pub struct RegularKalman<const STATES: usize, T, A, X, P, PX, TempP> {
     _phantom: PhantomData<T>,
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP> {
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
+    RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
+{
     /// Returns the number of states.
     pub const fn states(&self) -> usize {
         STATES
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     X: StateVector<STATES, T>,
 {
@@ -132,7 +142,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     X: StateVectorMut<STATES, T>,
 {
@@ -147,7 +157,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     A: StateTransitionMatrix<STATES, T>,
 {
@@ -165,7 +175,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     A: StateTransitionMatrixMut<STATES, T>,
 {
@@ -183,7 +193,7 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
 {
@@ -209,7 +219,9 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, P, PX, TempP> {
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
+    RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
+{
     /// Performs the time update / prediction step.
     ///
     /// This call assumes that the control covariance and variables are already set in the filter structure.
@@ -571,13 +583,13 @@ impl<const STATES: usize, T, A, X, P, PX, TempP> RegularKalman<STATES, T, A, X, 
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterNumStates<STATES>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 {
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateVector<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterStateVector<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     X: StateVector<STATES, T>,
 {
@@ -589,8 +601,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateVectorMut<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterStateVectorMut<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     X: StateVectorMut<STATES, T>,
 {
@@ -602,8 +614,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateTransition<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterStateTransition<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     A: StateTransitionMatrix<STATES, T>,
 {
@@ -615,8 +627,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterStateTransitionMut<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterStateTransitionMut<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     A: StateTransitionMatrixMut<STATES, T>,
 {
@@ -628,8 +640,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterEstimateCovariance<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterEstimateCovariance<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
 {
@@ -641,8 +653,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterEstimateCovarianceMut<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterEstimateCovarianceMut<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
 {
@@ -654,8 +666,40 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterPredict<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
+where
+    P: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+{
+    /// Gets a reference to the direct process noise matrix Q.
+    ///
+    /// This matrix represents the process noise covariance. It quantifies the uncertainty
+    /// introduced by the model dynamics and process variations, providing a measure of
+    /// how much the true state is expected to deviate from the predicted state due to
+    /// inherent system noise and external influences.
+    #[inline(always)]
+    pub fn direct_process_noise(&self) -> &Q {
+        &self.Q
+    }
+}
+
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
+where
+    P: DirectProcessNoiseCovarianceMatrixMut<STATES, T>,
+{
+    /// Gets a mutable reference to the direct process noise matrix Q.
+    ///
+    /// This matrix represents the process noise covariance. It quantifies the uncertainty
+    /// introduced by the model dynamics and process variations, providing a measure of
+    /// how much the true state is expected to deviate from the predicted state due to
+    /// inherent system noise and external influences.
+    #[inline(always)]
+    pub fn direct_process_noise_mut(&mut self) -> &mut Q {
+        &mut self.Q
+    }
+}
+
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterPredict<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     X: StateVectorMut<STATES, T>,
     A: StateTransitionMatrix<STATES, T>,
@@ -670,8 +714,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterUpdate<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterUpdate<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
     X: StateVectorMut<STATES, T>,
@@ -686,8 +730,8 @@ where
     }
 }
 
-impl<const STATES: usize, T, A, X, P, PX, TempP> KalmanFilterApplyControl<STATES, T>
-    for RegularKalman<STATES, T, A, X, P, PX, TempP>
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterApplyControl<STATES, T>
+    for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
     P: EstimateCovarianceMatrix<STATES, T>,
     X: StateVectorMut<STATES, T>,

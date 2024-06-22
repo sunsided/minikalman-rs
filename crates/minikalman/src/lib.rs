@@ -140,9 +140,10 @@
 //! impl_buffer_x!(static mut gravity_x, NUM_STATES, f32, 0.0);
 //! impl_buffer_A!(static mut gravity_A, NUM_STATES, f32, 0.0);
 //! impl_buffer_P!(static mut gravity_P, NUM_STATES, f32, 0.0);
+//! impl_buffer_Q_direct!(static mut gravity_Q, NUM_STATES, f32, 0.0);
 //!
 //! // Observation buffers.
-//! impl_buffer_Q!(static mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+//! impl_buffer_z!(static mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
 //! impl_buffer_H!(static mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
 //! impl_buffer_R!(static mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
 //! impl_buffer_y!(static mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
@@ -165,6 +166,7 @@
 //!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
 //!     StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
 //!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
+//!     DirectProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_Q.as_mut_slice() }),
 //!     PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
 //!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
 //! );
@@ -256,10 +258,11 @@ pub mod prelude {
     pub use crate::matrix::*;
 
     pub use crate::{
-        impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,
-        impl_buffer_R, impl_buffer_S, impl_buffer_temp_BQ, impl_buffer_temp_HP,
-        impl_buffer_temp_KHP, impl_buffer_temp_P, impl_buffer_temp_PHt, impl_buffer_temp_S_inv,
-        impl_buffer_temp_x, impl_buffer_u, impl_buffer_x, impl_buffer_y, impl_buffer_z,
+        impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P,
+        impl_buffer_Q_control, impl_buffer_Q_direct, impl_buffer_R, impl_buffer_S,
+        impl_buffer_temp_BQ, impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P,
+        impl_buffer_temp_PHt, impl_buffer_temp_S_inv, impl_buffer_temp_x, impl_buffer_u,
+        impl_buffer_x, impl_buffer_y, impl_buffer_z,
     };
 
     pub use crate::{

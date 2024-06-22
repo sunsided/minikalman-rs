@@ -319,9 +319,9 @@ macro_rules! impl_buffer_B {
     };
 }
 
-/// Creates a static buffer fitting the square process noise covariance matrix Q (`num_controls` × `num_controls`).
+/// Creates a static buffer fitting the square control process noise covariance matrix Q (`num_controls` × `num_controls`).
 ///
-/// This will create a [`ProcessNoiseCovarianceMatrixMutBuffer`](crate::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer)
+/// This will create a [`ProcessNoiseCovarianceMatrixMutBuffer`](crate::buffers::types::ControlProcessNoiseCovarianceMatrixMutBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// ## Arguments
@@ -335,7 +335,7 @@ macro_rules! impl_buffer_B {
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_CONTROLS: usize = 2;
-/// impl_buffer_Q!(static mut Q, NUM_CONTROLS, f32, 0.0);
+/// impl_buffer_Q_control!(static mut Q, NUM_CONTROLS, f32, 0.0);
 ///
 /// unsafe {
 ///     assert_eq!(Q.len(), 4);
@@ -344,36 +344,95 @@ macro_rules! impl_buffer_B {
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
-macro_rules! impl_buffer_Q {
+macro_rules! impl_buffer_Q_control {
     (mut $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let mut)
+        $crate::impl_buffer_Q_control!($mat_name, $num_controls, $t, $init, let mut)
     };
     ($mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let)
+        $crate::impl_buffer_Q_control!($mat_name, $num_controls, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let mut)
+        $crate::impl_buffer_Q_control!($mat_name, $num_controls, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, let)
+        $crate::impl_buffer_Q_control!($mat_name, $num_controls, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, static mut)
+        $crate::impl_buffer_Q_control!($mat_name, $num_controls, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_controls:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_Q!($mat_name, $num_controls, $t, $init, static)
+        $crate::impl_buffer_Q_control!($mat_name, $num_controls, $t, $init, static)
     };
     ($mat_name:ident, $num_controls:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::ControlProcessNoiseCovarianceMatrixMutBuffer<
             $num_controls,
             $t,
             $crate::matrix::MatrixDataArray<$num_controls, $num_controls, { $num_controls * $num_controls }, $t>,
-        > = $crate::buffers::types::ProcessNoiseCovarianceMatrixMutBuffer::<
+        > = $crate::buffers::types::ControlProcessNoiseCovarianceMatrixMutBuffer::<
             $num_controls,
             $t,
             $crate::matrix::MatrixDataArray<$num_controls, $num_controls, { $num_controls * $num_controls }, $t>,
         >::new($crate::matrix::MatrixDataArray::new_unchecked(
             [$init; { $num_controls * $num_controls }],
+        ));
+    };
+}
+
+/// Creates a static buffer fitting the square direct process noise covariance matrix Q (`num_states` × `num_states`).
+///
+/// This will create a [`DirectProcessNoiseCovarianceMatrixMutBuffer`](crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer)
+/// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// ## Arguments
+/// * `num_controls` - The number of controls to the system.
+/// * `t` - The data type.
+/// * `init` - The default value to initialize the buffer with.
+///
+/// ## Example
+/// You can generate a `static mut` binding:
+///
+/// ```
+/// # use minikalman::prelude::*;
+/// const NUM_CONTROLS: usize = 2;
+/// impl_buffer_Q_direct!(static mut Q, NUM_CONTROLS, f32, 0.0);
+///
+/// unsafe {
+///     assert_eq!(Q.len(), 4);
+///     assert_eq!(Q[0], 0.0_f32);
+/// }
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! impl_buffer_Q_direct {
+    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_Q_direct!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer<
+            $num_states,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        > = $crate::buffers::types::DirectProcessNoiseCovarianceMatrixMutBuffer::<
+            $num_states,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { $num_states * $num_states }],
         ));
     };
 }

@@ -30,6 +30,7 @@ pub type KalmanFilterType<const STATES: usize, T> = ExtendedKalman<
     SystemMatrixMutBufferOwnedType<STATES, T>,
     StateVectorBufferOwnedType<STATES, T>,
     EstimateCovarianceMatrixBufferOwnedType<STATES, T>,
+    DirectProcessNoiseCovarianceMatrixBufferOwnedType<STATES, T>,
     TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
     TemporaryStateMatrixBufferOwnedType<STATES, T>,
 >;
@@ -64,6 +65,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
         let state_vector = BufferBuilder::state_vector_x::<STATES>().new();
         let system_matrix = BufferBuilder::system_matrix_A::<STATES>().new();
         let system_covariance = BufferBuilder::estimate_covariance_P::<STATES>().new();
+        let process_noise = BufferBuilder::direct_process_noise_covariance_Q::<STATES>().new();
 
         // Filter temporaries.
         let temp_x = BufferBuilder::state_prediction_temp_x::<STATES>().new();
@@ -73,6 +75,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
             system_matrix,
             state_vector,
             system_covariance,
+            process_noise,
             temp_x,
             temp_p,
         )

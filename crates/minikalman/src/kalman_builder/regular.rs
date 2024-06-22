@@ -36,6 +36,7 @@ pub type KalmanFilterType<const STATES: usize, T> = RegularKalman<
     SystemMatrixMutBufferOwnedType<STATES, T>,
     StateVectorBufferOwnedType<STATES, T>,
     EstimateCovarianceMatrixBufferOwnedType<STATES, T>,
+    DirectProcessNoiseCovarianceMatrixBufferOwnedType<STATES, T>,
     TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
     TemporaryStateMatrixBufferOwnedType<STATES, T>,
 >;
@@ -71,6 +72,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
         let state_vector = BufferBuilder::state_vector_x::<STATES>().new();
         let system_matrix = BufferBuilder::system_matrix_A::<STATES>().new();
         let system_covariance = BufferBuilder::estimate_covariance_P::<STATES>().new();
+        let process_noise = BufferBuilder::direct_process_noise_covariance_Q::<STATES>().new();
 
         // Filter temporaries.
         let temp_x = BufferBuilder::state_prediction_temp_x::<STATES>().new();
@@ -80,6 +82,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
             system_matrix,
             state_vector,
             system_covariance,
+            process_noise,
             temp_x,
             temp_p,
         )
@@ -111,7 +114,7 @@ pub type KalmanFilterControlType<const STATES: usize, const CONTROLS: usize, T> 
     T,
     ControlMatrixBufferOwnedType<STATES, CONTROLS, T>,
     ControlVectorBufferOwnedType<CONTROLS, T>,
-    ControlCovarianceMatrixBufferOwnedType<CONTROLS, T>,
+    ControlProcessNoiseCovarianceMatrixBufferOwnedType<CONTROLS, T>,
     TemporaryBQMatrixBufferOwnedType<STATES, CONTROLS, T>,
 >;
 
@@ -143,7 +146,8 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
         // Control buffers.
         let control_vector = BufferBuilder::control_vector_u::<CONTROLS>().new();
         let control_matrix = BufferBuilder::control_matrix_B::<STATES, CONTROLS>().new();
-        let control_covariance = BufferBuilder::process_noise_covariance_Q::<CONTROLS>().new();
+        let control_covariance =
+            BufferBuilder::control_process_noise_covariance_Q::<CONTROLS>().new();
 
         // Control temporaries.
         let temp_bq = BufferBuilder::temp_BQ::<STATES, CONTROLS>().new();

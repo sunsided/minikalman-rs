@@ -34,7 +34,7 @@ impl<B, U, Q, TempBQ> ControlBuilder<B, U, Q, TempBQ> {
         T: MatrixDataType,
         B: ControlMatrix<STATES, CONTROLS, T>,
         U: ControlVector<CONTROLS, T>,
-        Q: ProcessNoiseCovarianceMatrix<CONTROLS, T>,
+        Q: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>,
         TempBQ: TemporaryBQMatrix<STATES, CONTROLS, T>,
     {
         Control::<STATES, CONTROLS, T, _, _, _, _> {
@@ -153,7 +153,7 @@ where
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
     Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: ProcessNoiseCovarianceMatrix<CONTROLS, T>,
+    Q: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>,
 {
     /// Gets a reference to the control covariance matrix Q.
     ///
@@ -170,7 +170,7 @@ where
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
     Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: ProcessNoiseCovarianceMatrixMut<CONTROLS, T>,
+    Q: ControlProcessNoiseCovarianceMatrixMut<CONTROLS, T>,
 {
     /// Gets a mutable reference to the control covariance matrix Q.
     ///
@@ -190,7 +190,7 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     U: ControlVector<CONTROLS, T>,
     B: ControlMatrix<STATES, CONTROLS, T>,
-    Q: ProcessNoiseCovarianceMatrix<CONTROLS, T>,
+    Q: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>,
     TempBQ: TemporaryBQMatrix<STATES, CONTROLS, T>,
     T: MatrixDataType,
 {
@@ -291,7 +291,7 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
     KalmanFilterProcessNoiseCovariance<CONTROLS, T>
     for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: ProcessNoiseCovarianceMatrix<CONTROLS, T>,
+    Q: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>,
 {
     type ProcessNoiseCovarianceMatrix = Q;
 
@@ -303,7 +303,7 @@ where
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
     KalmanFilterControlCovarianceMut<CONTROLS, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
-    Q: ProcessNoiseCovarianceMatrixMut<CONTROLS, T>,
+    Q: ControlProcessNoiseCovarianceMatrixMut<CONTROLS, T>,
 {
     type ProcessNoiseCovarianceMatrixMut = Q;
 
@@ -317,7 +317,7 @@ impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
 where
     U: ControlVector<CONTROLS, T>,
     B: ControlMatrix<STATES, CONTROLS, T>,
-    Q: ProcessNoiseCovarianceMatrix<CONTROLS, T>,
+    Q: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>,
     TempBQ: TemporaryBQMatrix<STATES, CONTROLS, T>,
     T: MatrixDataType,
 {
@@ -365,11 +365,12 @@ mod tests {
         let x = BufferBuilder::state_vector_x::<NUM_STATES>().new();
         let A = BufferBuilder::system_matrix_A::<NUM_STATES>().new();
         let P = BufferBuilder::estimate_covariance_P::<NUM_STATES>().new();
+        let Q_direct = BufferBuilder::direct_process_noise_covariance_Q::<NUM_STATES>().new();
 
         // Control buffers.
         let u = BufferBuilder::control_vector_u::<NUM_CONTROLS>().new();
         let B = BufferBuilder::control_matrix_B::<NUM_STATES, NUM_CONTROLS>().new();
-        let Q = BufferBuilder::process_noise_covariance_Q::<NUM_CONTROLS>().new();
+        let Q_control = BufferBuilder::control_process_noise_covariance_Q::<NUM_CONTROLS>().new();
 
         // Filter temporaries.
         let temp_x = BufferBuilder::state_prediction_temp_x::<NUM_STATES>().new();
@@ -378,8 +379,10 @@ mod tests {
         // Control temporaries
         let temp_BQ = BufferBuilder::temp_BQ::<NUM_STATES, NUM_CONTROLS>().new();
 
-        let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(A, x, P, temp_x, temp_P);
-        let mut control = ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q, temp_BQ);
+        let mut filter =
+            RegularKalmanBuilder::new::<NUM_STATES, f32>(A, x, P, Q_direct, temp_x, temp_P);
+        let mut control =
+            ControlBuilder::new::<NUM_STATES, NUM_CONTROLS, f32>(B, u, Q_control, temp_BQ);
 
         // State transition is identity.
         filter.state_transition_mut().apply(|mat| {
