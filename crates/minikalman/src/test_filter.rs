@@ -1,4 +1,4 @@
-use crate::builder::KalmanFilterBuilder;
+use crate::builder::regular::*;
 use crate::prelude::*;
 
 pub struct TestFilter {

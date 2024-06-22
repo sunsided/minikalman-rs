@@ -337,7 +337,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test_mut_apply() {
-        use crate::builder::KalmanFilterBuilder;
+        use crate::builder::regular::KalmanFilterBuilder;
 
         let builder = KalmanFilterBuilder::<3, f32>::default();
         let mut filter = builder.build();

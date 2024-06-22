@@ -30,7 +30,7 @@
 //! for setting up and operating the Kalman Filter could look like this:
 //!
 //! ```no_run
-//! use minikalman::builder::KalmanFilterBuilder;
+//! use minikalman::builder::regular::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
@@ -78,7 +78,7 @@
 //! replaced with their nonlinear counterparts:
 //!
 //! ```no_run
-//! use minikalman::builder::KalmanFilterBuilder;
+//! use minikalman::builder::regular::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
 //! const NUM_STATES: usize = 3;
@@ -229,9 +229,9 @@ pub use num_traits;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub mod builder {
-    pub use crate::kalman_builder::{
-        KalmanFilterBuilder, KalmanFilterControlBuilder, KalmanFilterObservationBuilder,
-    };
+    pub mod regular {
+        pub use crate::kalman_builder::regular::*;
+    }
 }
 
 /// Exports all macros and common types.
@@ -249,9 +249,7 @@ pub mod prelude {
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub use crate::kalman_builder::{
-        KalmanFilterControlType, KalmanFilterObservationType, KalmanFilterType,
-    };
+    pub use crate::builder;
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P, impl_buffer_Q,
