@@ -230,7 +230,7 @@ where
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> ExtendedKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
-    P: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+    Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
 {
     /// Gets a reference to the direct process noise matrix Q.
     ///
@@ -246,7 +246,7 @@ where
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> ExtendedKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
-    P: DirectProcessNoiseCovarianceMatrixMut<STATES, T>,
+    Q: DirectProcessNoiseCovarianceMatrixMut<STATES, T>,
 {
     /// Gets a mutable reference to the direct process noise matrix Q.
     ///
@@ -600,6 +600,33 @@ where
     #[inline(always)]
     fn estimate_covariance_mut(&mut self) -> &mut Self::EstimateCovarianceMatrixMut {
         self.estimate_covariance_mut()
+    }
+}
+
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
+    KalmanFilterDirectProcessNoiseCovariance<STATES, T>
+    for ExtendedKalman<STATES, T, A, X, P, Q, PX, TempP>
+where
+    Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+{
+    type ProcessNoiseCovarianceMatrix = Q;
+
+    #[inline(always)]
+    fn direct_process_noise(&self) -> &Self::ProcessNoiseCovarianceMatrix {
+        self.direct_process_noise()
+    }
+}
+
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterDirectProcessNoiseMut<STATES, T>
+    for ExtendedKalman<STATES, T, A, X, P, Q, PX, TempP>
+where
+    Q: DirectProcessNoiseCovarianceMatrixMut<STATES, T>,
+{
+    type ProcessNoiseCovarianceMatrixMut = Q;
+
+    #[inline(always)]
+    fn direct_process_noise_mut(&mut self) -> &mut Self::ProcessNoiseCovarianceMatrixMut {
+        self.direct_process_noise_mut()
     }
 }
 

@@ -288,7 +288,7 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterProcessNoiseCovariance<CONTROLS, T>
+    KalmanFilterControlProcessNoiseCovariance<CONTROLS, T>
     for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
     Q: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>,
@@ -301,7 +301,8 @@ where
 }
 
 impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
-    KalmanFilterControlCovarianceMut<CONTROLS, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
+    KalmanFilterControlProcessNoiseMut<CONTROLS, T>
+    for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
 where
     Q: ControlProcessNoiseCovarianceMatrixMut<CONTROLS, T>,
 {

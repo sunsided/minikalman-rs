@@ -30,7 +30,7 @@ pub trait KalmanFilterControl<const STATES: usize, const CONTROLS: usize, T>:
     + KalmanFilterNumControls<CONTROLS>
     + KalmanFilterControlVectorMut<CONTROLS, T>
     + KalmanFilterControlTransition<STATES, CONTROLS, T>
-    + KalmanFilterControlCovarianceMut<CONTROLS, T>
+    + KalmanFilterControlProcessNoiseMut<CONTROLS, T>
 {
 }
 
@@ -87,7 +87,7 @@ where
         + KalmanFilterNumControls<CONTROLS>
         + KalmanFilterControlVectorMut<CONTROLS, T>
         + KalmanFilterControlTransition<STATES, CONTROLS, T>
-        + KalmanFilterControlCovarianceMut<CONTROLS, T>
+        + KalmanFilterControlProcessNoiseMut<CONTROLS, T>
         + KalmanFilterControlApplyToFilter<STATES, T>,
 {
 }
@@ -294,8 +294,10 @@ pub trait KalmanFilterEstimateCovariance<const STATES: usize, T> {
 
     /// Gets a reference to the estimate covariance matrix P.
     ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
+    /// This matrix represents the estimate covariance. It quantifies the uncertainty in
+    /// the state estimate, providing a measure of how much the state estimate is expected
+    /// to vary. This matrix offers a measure of confidence in the estimate by indicating
+    /// the degree of variability and uncertainty associated with the predicted state.
     #[doc(alias = "system_covariance")]
     fn estimate_covariance(&self) -> &Self::EstimateCovarianceMatrix;
 }
@@ -307,11 +309,39 @@ pub trait KalmanFilterEstimateCovarianceMut<const STATES: usize, T>:
 
     /// Gets a mutable reference to the estimate covariance matrix P.
     ///
-    /// This matrix represents the uncertainty in the state estimate. It quantifies how much the
-    /// state estimate is expected to vary, providing a measure of confidence in the estimate.
+    /// This matrix represents the estimate covariance. It quantifies the uncertainty in
+    /// the state estimate, providing a measure of how much the state estimate is expected
+    /// to vary. This matrix offers a measure of confidence in the estimate by indicating
+    /// the degree of variability and uncertainty associated with the predicted state.
     #[doc(alias = "kalman_get_system_covariance")]
     #[doc(alias = "system_covariance_mut")]
     fn estimate_covariance_mut(&mut self) -> &mut Self::EstimateCovarianceMatrixMut;
+}
+
+pub trait KalmanFilterDirectProcessNoiseCovariance<const CONTROLS: usize, T> {
+    type ProcessNoiseCovarianceMatrix: DirectProcessNoiseCovarianceMatrix<CONTROLS, T>;
+
+    /// Gets a reference to the direct process noise matrix Q.
+    ///
+    /// This matrix represents the direct process noise covariance. It quantifies the
+    /// uncertainty introduced by inherent system dynamics and external disturbances,
+    /// providing a measure of how much the true state is expected to deviate from the
+    /// predicted state due to these process variations.
+    fn direct_process_noise(&self) -> &Self::ProcessNoiseCovarianceMatrix;
+}
+
+pub trait KalmanFilterDirectProcessNoiseMut<const CONTROLS: usize, T>:
+    KalmanFilterDirectProcessNoiseCovariance<CONTROLS, T>
+{
+    type ProcessNoiseCovarianceMatrixMut: DirectProcessNoiseCovarianceMatrixMut<CONTROLS, T>;
+
+    /// Gets a mutable reference to the direct process noise matrix Q.
+    ///
+    /// This matrix represents the direct process noise covariance. It quantifies the
+    /// uncertainty introduced by inherent system dynamics and external disturbances,
+    /// providing a measure of how much the true state is expected to deviate from the
+    /// predicted state due to these process variations.
+    fn direct_process_noise_mut(&mut self) -> &mut Self::ProcessNoiseCovarianceMatrixMut;
 }
 
 pub trait KalmanFilterNumControls<const CONTROLS: usize> {
@@ -365,8 +395,10 @@ pub trait KalmanFilterControlTransition<const STATES: usize, const CONTROLS: usi
 
     /// Gets a reference to the control transition matrix B.
     ///
-    /// This matrix maps the control inputs to the state space, allowing the control vector to
-    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    /// This matrix represents the control input model. It defines how the control inputs
+    /// influence the state evolution from one time step to the next. The matrix \( B \)
+    /// is used to incorporate the effect of control inputs into the state transition,
+    /// allowing the model to account for external controls applied to the system.
     fn control_matrix(&self) -> &Self::ControlTransitionMatrix;
 }
 
@@ -377,35 +409,41 @@ pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: 
 
     /// Gets a mutable reference to the control transition matrix B.
     ///
-    /// This matrix maps the control inputs to the state space, allowing the control vector to
-    /// influence the state transition. It quantifies how the control inputs affect the state change.
+    /// This matrix represents the control input model. It defines how the control inputs
+    /// influence the state evolution from one time step to the next. The matrix \( B \)
+    /// is used to incorporate the effect of control inputs into the state transition,
+    /// allowing the model to account for external controls applied to the system.
     #[doc(alias = "kalman_get_control_matrix")]
     fn control_matrix_mut(&mut self) -> &mut Self::ControlTransitionMatrixMut;
 }
 
 #[doc(alias = "KalmanFilterControlCovariance")]
-pub trait KalmanFilterProcessNoiseCovariance<const CONTROLS: usize, T> {
+pub trait KalmanFilterControlProcessNoiseCovariance<const CONTROLS: usize, T> {
     type ProcessNoiseCovarianceMatrix: ControlProcessNoiseCovarianceMatrix<CONTROLS, T>;
 
-    /// Gets a reference to the control covariance matrix Q.
+    /// Gets a reference to the control process noise matrix Q.
     ///
-    /// This matrix represents the uncertainty in the state transition process, accounting for the
-    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
-    /// state transition.
+    /// This matrix represents the control process noise covariance. It quantifies the
+    /// uncertainty introduced by the control inputs, reflecting how much the true state
+    /// is expected to deviate from the predicted state due to noise and variations
+    /// in the control process. The matrix is used as B×Q×Bᵀ, where B
+    /// represents the control input model, and Q is the process noise covariance (this matrix).
     #[doc(alias = "control_covariance")]
     fn process_noise_covariance(&self) -> &Self::ProcessNoiseCovarianceMatrix;
 }
 
-pub trait KalmanFilterControlCovarianceMut<const CONTROLS: usize, T>:
-    KalmanFilterProcessNoiseCovariance<CONTROLS, T>
+pub trait KalmanFilterControlProcessNoiseMut<const CONTROLS: usize, T>:
+    KalmanFilterControlProcessNoiseCovariance<CONTROLS, T>
 {
     type ProcessNoiseCovarianceMatrixMut: ControlProcessNoiseCovarianceMatrixMut<CONTROLS, T>;
 
-    /// Gets a mutable reference to the control covariance matrix Q.
+    /// Gets a mutable reference to the control process noise matrix Q.
     ///
-    /// This matrix represents the uncertainty in the state transition process, accounting for the
-    /// randomness and inaccuracies in the model. It quantifies the expected variability in the
-    /// state transition.
+    /// This matrix represents the control process noise covariance. It quantifies the
+    /// uncertainty introduced by the control inputs, reflecting how much the true state
+    /// is expected to deviate from the predicted state due to noise and variations
+    /// in the control process. The matrix is used as B×Q×Bᵀ, where B
+    /// represents the control input model, and Q is the process noise covariance (this matrix).
     #[doc(alias = "kalman_get_control_covariance")]
     #[doc(alias = "control_covariance_mut")]
     fn process_noise_covariance_mut(&mut self) -> &mut Self::ProcessNoiseCovarianceMatrixMut;
