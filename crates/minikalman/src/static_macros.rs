@@ -427,7 +427,7 @@ macro_rules! impl_buffer_B {
 /// This matrix represents the control process noise covariance. It quantifies the
 /// uncertainty introduced by the control inputs, reflecting how much the true state
 /// is expected to deviate from the predicted state due to noise and variations
-/// in the control process. The matrix is calculated as B×Q×Bᵀ, where B
+/// in the control process. The matrix is used as B×Q×Bᵀ, where B
 /// represents the control input model, and Q is the process noise covariance (this matrix).
 ///
 /// ## Arguments

@@ -682,7 +682,7 @@ where
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
-    P: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+    Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
 {
     /// Gets a reference to the direct process noise matrix Q.
     ///
@@ -698,7 +698,7 @@ where
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
-    P: DirectProcessNoiseCovarianceMatrixMut<STATES, T>,
+    Q: DirectProcessNoiseCovarianceMatrixMut<STATES, T>,
 {
     /// Gets a mutable reference to the direct process noise matrix Q.
     ///
