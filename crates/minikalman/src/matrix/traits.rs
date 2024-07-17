@@ -121,7 +121,21 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// ## Arguments
     /// * `self` - The matrix to copy
     /// * `target` - The matrix to copy to
+    #[deprecated(since = "0.7.0", note = "Use copy_to instead")]
     fn copy<Target>(&self, target: &mut Target)
+    where
+        Target: MatrixMut<ROWS, COLS, T>,
+        T: Copy,
+    {
+        self.copy_to(target)
+    }
+
+    /// Copies the matrix from `mat` to `target`.
+    ///
+    /// ## Arguments
+    /// * `self` - The matrix to copy
+    /// * `target` - The matrix to copy to
+    fn copy_to<Target>(&self, target: &mut Target)
     where
         Target: MatrixMut<ROWS, COLS, T>,
         T: Copy,
@@ -140,6 +154,21 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         for index in (0..=(count - 1)).rev() {
             bdata[idx!(index)] = adata[idx![index]];
         }
+    }
+
+    /// Copies the matrix from `source` to `self`.
+    ///
+    /// ## Arguments
+    /// * `self` - The matrix to copy to
+    /// * `source` - The matrix to copy
+    #[inline]
+    fn copy_from<Source>(&mut self, source: &Source)
+    where
+        Self: MatrixMut<ROWS, COLS, T> + Sized,
+        Source: MatrixMut<ROWS, COLS, T>,
+        T: Copy,
+    {
+        source.copy_to(self)
     }
 
     /// Performs a matrix multiplication such that `C = A * B`. This method

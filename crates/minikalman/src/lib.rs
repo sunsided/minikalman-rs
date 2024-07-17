@@ -196,8 +196,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // Forbid unsafe code unless the `unsafe` crate feature is explicitly enabled.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
-// Attempt to disable allocations.
-#![cfg_attr(not(feature = "alloc"), forbid(box_pointers))]
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 extern crate alloc;

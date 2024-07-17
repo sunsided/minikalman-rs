@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added `copy_to` and `copy_from` to matrix trait.
+
+### Changed
+
+- The `copy` matrix operation is now deprecated in favor of `copy_to`.
+
 ## [0.6.0] - 2024-06-22
 
 [0.6.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.6.0

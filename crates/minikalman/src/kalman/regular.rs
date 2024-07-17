@@ -441,7 +441,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         // x = A*x
 
         A.mult_rowvector(x, x_predicted);
-        x_predicted.copy(x);
+        x_predicted.copy_to(x);
     }
 
     #[allow(non_snake_case)]

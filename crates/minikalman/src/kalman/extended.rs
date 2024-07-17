@@ -435,7 +435,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
         let x = self.x.as_matrix_mut();
         let x_predicted = self.predicted_x.as_matrix_mut();
-        x_predicted.copy(x);
+        x_predicted.copy_to(x);
     }
 
     #[allow(non_snake_case)]
@@ -747,7 +747,7 @@ mod tests {
             .as_matrix_mut()
             .apply(|_mat| test_fn_mut());
 
-        filter.predict_nonlinear(|state, next| state.as_matrix().copy(next.as_matrix_mut()));
+        filter.predict_nonlinear(|state, next| state.as_matrix().copy_to(next.as_matrix_mut()));
 
         filter
     }
@@ -821,7 +821,7 @@ mod tests {
             .as_matrix_mut()
             .apply(|_mat| test_fn_mut());
 
-        filter.predict_nonlinear(|state, next| state.as_matrix().copy(next.as_matrix_mut()));
+        filter.predict_nonlinear(|state, next| state.as_matrix().copy_to(next.as_matrix_mut()));
     }
 
     #[test]
@@ -842,14 +842,14 @@ mod tests {
         for _ in 0..5 {
             // Direct call.
             example.filter.predict_nonlinear(|current, next| {
-                current.copy(next);
+                current.copy_to(next);
             });
 
             // Call via trait.
             KalmanFilterNonlinearPredict::predict_nonlinear(
                 &mut example.filter,
                 |current, next| {
-                    current.copy(next);
+                    current.copy_to(next);
                 },
             );
         }
