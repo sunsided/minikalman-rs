@@ -126,3 +126,36 @@ jobs:
         run: cargo nextest run --package minikalman --verbose
       - name: Run doctests
         run: cargo test --doc --package minikalman --verbose
+
+  dependencies:
+    name: Dependency Submission
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-sbom
+        uses: psastras/sbom-rs/actions/install-cargo-sbom@cargo-sbom-v0.10.0
+
+      - name: Generate SBOM
+        run: cargo-sbom --output-format=spdx_json_2_3 > sbom.json
+
+      - name: Upload SBOM as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+      - name: Submit dependencies to GitHub
+        uses: advanced-security/spdx-dependency-submission-action@v0.2.0
+        with:
+          filePath: sbom.json
