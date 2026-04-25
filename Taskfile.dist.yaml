@@ -230,3 +230,24 @@ tasks:
       - doc:open
     cmds:
       - cargo doc --no-deps --all-features --open
+
+  coverage:
+    desc: Generate code coverage report (HTML)
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace --html
+
+  coverage:text:
+    desc: Generate code coverage report (text)
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace
+
+  coverage:lcov:
+    desc: Generate LCOV coverage file for upload
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+
+  coverage:lib:
+    desc: Generate code coverage for lib tests only
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace --lib
+
