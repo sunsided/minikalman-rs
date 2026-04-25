@@ -344,4 +344,152 @@ mod tests {
         a.set_value(0.0);
         assert_eq!(a.get_value(), 0.0);
     }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Row-major immutable tests
+    // -----------------------------------------------------------------------------------------------------------------
+
+    #[test]
+    #[rustfmt::skip]
+    fn row_major_new_from() {
+        let storage = MatrixDataArray::<2, 3, 6, f32>::new([
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0]);
+        let m = MatrixData::new_from::<2, 3, f32, _>(storage);
+
+        assert_f32_near!(m[0], 1.);
+        assert_f32_near!(m[1], 2.);
+        assert_f32_near!(m[2], 3.);
+        assert_f32_near!(m[3], 4.);
+        assert_f32_near!(m[4], 5.);
+        assert_f32_near!(m[5], 6.);
+
+        assert_eq!(m.get_at(1, 2), 6.0);
+
+        let inner: MatrixDataArray<2, 3, 6, f32> = m.into_inner();
+        assert_eq!(inner.as_slice(), &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+    }
+
+    #[test]
+    fn row_major_from_and_new() {
+        let storage = MatrixDataArray::<2, 2, 4, f32>::new([1.0, 2.0, 3.0, 4.0]);
+        let m1 = MatrixDataRowMajor::<2, 2, _, f32>::from(storage);
+        assert_eq!(m1.as_slice(), &[1.0, 2.0, 3.0, 4.0]);
+
+        let storage = MatrixDataArray::<2, 2, 4, f32>::new([5.0, 6.0, 7.0, 8.0]);
+        let m2 = MatrixDataRowMajor::<2, 2, _, f32>::new(storage);
+        assert_eq!(m2.as_slice(), &[5.0, 6.0, 7.0, 8.0]);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Row-major mutable tests
+    // -----------------------------------------------------------------------------------------------------------------
+
+    #[test]
+    #[rustfmt::skip]
+    fn row_major_mut_new_mut_from() {
+        let storage = MatrixDataArray::<2, 3, 6, f32>::new([
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0]);
+        let mut m = MatrixData::new_mut_from::<2, 3, f32, _>(storage);
+
+        assert_f32_near!(m[0], 1.);
+        assert_f32_near!(m.get_at(0, 0), 1.);
+
+        m[2] = 99.0;
+        m.set_at(1, 1, 88.0);
+
+        assert_f32_near!(m[2], 99.);
+        assert_f32_near!(m.get_at(1, 1), 88.);
+        assert_f32_near!(m.as_slice()[2], 99.);
+
+        let slice = m.as_mut_slice();
+        assert_f32_near!(slice[2], 99.);
+
+        let inner: MatrixDataArray<2, 3, 6, f32> = m.into_inner();
+        assert_f32_near!(inner.as_slice()[2], 99.);
+        assert_f32_near!(inner.as_slice()[4], 88.);
+    }
+
+    #[test]
+    fn row_major_mut_from_and_new() {
+        let storage = MatrixDataArray::<2, 2, 4, f32>::new([1.0, 2.0, 3.0, 4.0]);
+        let m1 = MatrixDataRowMajorMut::<2, 2, _, f32>::from(storage);
+        assert_eq!(m1.as_slice(), &[1.0, 2.0, 3.0, 4.0]);
+
+        let storage = MatrixDataArray::<2, 2, 4, f32>::new([5.0, 6.0, 7.0, 8.0]);
+        let m2 = MatrixDataRowMajorMut::<2, 2, _, f32>::new(storage);
+        assert_eq!(m2.as_slice(), &[5.0, 6.0, 7.0, 8.0]);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Boxed matrix tests
+    // -----------------------------------------------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    #[rustfmt::skip]
+    fn boxed_matrix_index_mut_and_slice() {
+        let mut m = MatrixData::new::<2, 3, f32>(0.0);
+
+        m[0] = 1.0;
+        m[1] = 2.0;
+        m[2] = 3.0;
+        m[3] = 4.0;
+        m[4] = 5.0;
+        m[5] = 6.0;
+
+        assert_f32_near!(m[0], 1.);
+        assert_f32_near!(m[5], 6.);
+
+        let s = m.as_slice();
+        assert_eq!(s.len(), 6);
+
+        let ms = m.as_mut_slice();
+        ms[0] = 10.0;
+        assert_f32_near!(m[0], 10.);
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn boxed_matrix_into_inner() {
+        let m = MatrixData::new::<2, 2, f32>(7.0);
+        let inner: Box<[f32]> = m.into_inner();
+        assert_eq!(&*inner, &[7.0, 7.0, 7.0, 7.0]);
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn boxed_matrix_inherent_into_inner() {
+        let m: MatrixDataBoxed<2, 2, f32> =
+            MatrixDataBoxed::new(alloc::vec![1.0, 2.0, 3.0, 4.0].into_boxed_slice());
+        let inner: Box<[f32]> = m.into_inner();
+        assert_eq!(&*inner, &[1.0, 2.0, 3.0, 4.0]);
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn boxed_matrix_clone() {
+        let m1 = MatrixData::new::<2, 2, f32>(5.0);
+        let mut m2 = m1.clone();
+        m2[0] = 99.0;
+        assert_f32_near!(m1[0], 5.);
+        assert_f32_near!(m2[0], 99.);
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn boxed_matrix_new_boxed() {
+        let data: Box<[f32]> = alloc::vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0].into_boxed_slice();
+        let m = MatrixData::new_boxed::<2, 3, f32, _>(data);
+        assert_eq!(m.as_slice(), &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn boxed_matrix_from_vec() {
+        let m: MatrixDataBoxed<2, 2, f32> =
+            MatrixDataBoxed::from(alloc::vec![10.0, 20.0, 30.0, 40.0]);
+        assert_eq!(m.as_slice(), &[10.0, 20.0, 30.0, 40.0]);
+    }
 }

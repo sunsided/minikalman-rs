@@ -146,3 +146,74 @@ impl MatrixDataType for fixed::types::I32F32 {
         self.sqrt()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::MatrixDataType;
+
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    #[test]
+    fn f32_recip_and_sqrt() {
+        let x: f32 = 2.0;
+        let r = x.recip();
+        assert!((r - 0.5).abs() < 1e-3);
+
+        let s = x.square_root();
+        assert!(s > 1.0 && s < 2.0);
+
+        let y: f32 = 4.0;
+        let sy = y.square_root();
+        assert!(sy > 1.0 && sy < 3.0);
+    }
+
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    #[test]
+    fn f64_recip_and_sqrt() {
+        let x: f64 = 2.0;
+        let r = x.recip();
+        assert!((r - 0.5).abs() < 1e-3);
+
+        let s = x.square_root();
+        assert!(s > 1.0 && s < 2.0);
+
+        let y: f64 = 4.0;
+        let sy = y.square_root();
+        assert!(sy > 1.0 && sy < 3.0);
+    }
+
+    #[cfg(feature = "fixed")]
+    #[test]
+    fn i16f16_recip_and_sqrt() {
+        use fixed::types::I16F16;
+
+        let x = I16F16::from_num(2);
+        let r = x.recip();
+        let expected_recip = I16F16::from_num(0.5);
+        let diff = (r - expected_recip).abs();
+        assert!(diff < I16F16::from_num(0.001));
+
+        let y = I16F16::from_num(4);
+        let s = y.square_root();
+        let expected_sqrt = I16F16::from_num(2);
+        let diff = (s - expected_sqrt).abs();
+        assert!(diff < I16F16::from_num(0.001));
+    }
+
+    #[cfg(feature = "fixed")]
+    #[test]
+    fn i32f32_recip_and_sqrt() {
+        use fixed::types::I32F32;
+
+        let x = I32F32::from_num(2);
+        let r = x.recip();
+        let expected_recip = I32F32::from_num(0.5);
+        let diff = (r - expected_recip).abs();
+        assert!(diff < I32F32::from_num(0.0001));
+
+        let y = I32F32::from_num(4);
+        let s = y.square_root();
+        let expected_sqrt = I32F32::from_num(2);
+        let diff = (s - expected_sqrt).abs();
+        assert!(diff < I32F32::from_num(0.0001));
+    }
+}
