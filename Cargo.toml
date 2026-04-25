@@ -5,7 +5,7 @@ default-members = ["crates/minikalman"]
 exclude = ["crates/minikalman/fuzz"]
 
 [workspace.package]
-version = "0.6.0"
+version = "0.7.0"
 description = "A microcontroller targeted Kalman filter implementation"
 authors = ["Markus Mayer"]
 repository = "https://github.com/sunsided/minikalman-rs"

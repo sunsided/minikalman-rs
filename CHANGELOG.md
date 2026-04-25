@@ -3,15 +3,34 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.7.0] - 2026-04-26
+
+[0.7.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.7.0
 
 ### Added
 
 - Added `copy_to` and `copy_from` to matrix trait.
+- Added Unscented Kalman Filter (UKF) support, including builder types and covariance computation.
+- Added integration tests for UKF covariance computation and type coverage.
+- Added support for GitNexus code intelligence.
+- Added dependency graph submission in CI/CD.
 
 ### Changed
 
 - The `copy` matrix operation is now deprecated in favor of `copy_to`.
+
+### Fixed
+
+- Fixed pre-existing clippy warnings for doc indentation and lifetime syntax.
+- Fixed clippy warnings in proptest files.
+- Fixed typo in README.md regarding libm usage.
+
+### Internal
+
+- Addressed CI/CD review: fixed ineffective skips, dropped no-op, aligned CI runs, and renamed test.
+- Used UFCS in data_type tests to exercise trait impls.
+- Cleaned up comments in data.rs.
+- Updated tea.yaml.
 
 ## [0.6.0] - 2024-06-22
 
