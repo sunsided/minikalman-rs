@@ -4,7 +4,7 @@ use core::ops::{Index, IndexMut};
 use crate::kalman::SigmaObservedMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
-use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
+use crate::prelude::{AsMatrix, AsMatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for observed sigma points (`num_observations` × `num_sigma_points`).
 ///
@@ -138,6 +138,33 @@ where
     fn as_matrix(&self) -> &Self::Target {
         &self.0
     }
+
+    #[inline(always)]
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const OBSERVATIONS: usize, const NUM_SIGMA: usize, T, M> AsMatrix<OBSERVATIONS, NUM_SIGMA, T>
+    for SigmaObservedMatrixBuffer<OBSERVATIONS, NUM_SIGMA, T, M>
+where
+    M: MatrixMut<OBSERVATIONS, NUM_SIGMA, T>,
+{
+    type Target = M;
+
+    #[inline(always)]
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const OBSERVATIONS: usize, const NUM_SIGMA: usize, T, M>
+    AsMatrixMut<OBSERVATIONS, NUM_SIGMA, T>
+    for SigmaObservedMatrixBuffer<OBSERVATIONS, NUM_SIGMA, T, M>
+where
+    M: MatrixMut<OBSERVATIONS, NUM_SIGMA, T>,
+{
+    type TargetMut = M;
 
     #[inline(always)]
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {

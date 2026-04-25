@@ -3,7 +3,7 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::matrix::{AsMatrixMut, Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
 #[allow(non_snake_case)]
@@ -259,7 +259,7 @@ where
         + core::ops::Mul<Output = T>
         + core::ops::Sub<Output = T>
         + core::ops::Div<Output = T>
-        + From<f64>
+        + num_traits::FromPrimitive
         + Default,
     Z: MeasurementVectorMut<OBSERVATIONS, T>,
     R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
@@ -272,17 +272,36 @@ where
     TempP: TempSigmaPMatrix<STATES, T>,
 {
     #[allow(non_snake_case)]
-    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, mut observation: F)
+    pub fn correct_nonlinear<X, P, SP>(&mut self, x: &mut X, P: &mut P, sigma_predicted: &SP)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut SigmaObserved),
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
     {
-        observation(x, &mut self.sigma_observed);
-
         let z_pred = self.compute_predicted_measurement();
         self.compute_innovation_covariance(&z_pred);
-        self.compute_cross_covariance(&z_pred);
+        self.compute_cross_covariance(&z_pred, sigma_predicted);
+        self.compute_kalman_gain();
+        self.apply_correction(x, P, &z_pred);
+    }
+
+    /// Correct using explicit weights (for proper UKF weighted averaging).
+    #[allow(non_snake_case)]
+    pub fn correct_with_weights<X, P, SP, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        weights: &W,
+    ) where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+    {
+        let z_pred = self.compute_predicted_measurement_weighted(weights);
+        self.compute_innovation_covariance_weighted(&z_pred, weights);
+        self.compute_cross_covariance_weighted(&z_pred, sigma_predicted, weights);
         self.compute_kalman_gain();
         self.apply_correction(x, P, &z_pred);
     }
@@ -298,9 +317,91 @@ where
             for j in 0..num_sigma {
                 sum += sigma_obs.get(i, j);
             }
-            z_pred[i] = sum / T::from(num_sigma as f64);
+            z_pred[i] = sum / T::from_usize(num_sigma).unwrap();
         }
         z_pred
+    }
+
+    #[allow(non_snake_case, clippy::needless_range_loop)]
+    fn compute_predicted_measurement_weighted<W: AsMatrixMut<NUM_SIGMA, 1, T>>(
+        &mut self,
+        weights: &W,
+    ) -> [T; OBSERVATIONS] {
+        let sigma_obs = self.sigma_observed.as_matrix();
+        let w = weights.as_matrix();
+        let mut z_pred = [T::default(); OBSERVATIONS];
+        for i in 0..OBSERVATIONS {
+            let mut sum = T::default();
+            for j in 0..NUM_SIGMA {
+                sum += w.get(j, 0) * sigma_obs.get(i, j);
+            }
+            z_pred[i] = sum;
+        }
+        z_pred
+    }
+
+    #[allow(non_snake_case, clippy::needless_range_loop)]
+    fn compute_innovation_covariance_weighted<W: AsMatrixMut<NUM_SIGMA, 1, T>>(
+        &mut self,
+        z_pred: &[T; OBSERVATIONS],
+        weights: &W,
+    ) {
+        let sigma_obs = self.sigma_observed.as_matrix();
+        let S = self.S.as_matrix_mut();
+        let R = self.R.as_matrix();
+        let w = weights.as_matrix();
+
+        for i in 0..OBSERVATIONS {
+            for j in 0..OBSERVATIONS {
+                let mut sum = T::default();
+                for k in 0..NUM_SIGMA {
+                    let diff_i = sigma_obs.get(i, k) - z_pred[i];
+                    let diff_j = sigma_obs.get(j, k) - z_pred[j];
+                    sum += w.get(k, 0) * diff_i * diff_j;
+                }
+                S.set(i, j, sum);
+            }
+        }
+
+        R.add_inplace_b(S);
+    }
+
+    #[allow(non_snake_case, clippy::needless_range_loop)]
+    fn compute_cross_covariance_weighted<SP, W>(
+        &mut self,
+        z_pred: &[T; OBSERVATIONS],
+        sigma_predicted: &SP,
+        weights: &W,
+    ) where
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+    {
+        let cross_cov = self.cross_covariance.as_matrix_mut();
+        let sigma_obs = self.sigma_observed.as_matrix();
+        let sigma_pred = sigma_predicted.as_matrix();
+        let w = weights.as_matrix();
+
+        // Compute weighted mean of predicted sigma points
+        let mut x_mean = [T::default(); STATES];
+        for i in 0..STATES {
+            let mut sum = T::default();
+            for k in 0..NUM_SIGMA {
+                sum += w.get(k, 0) * sigma_pred.get(i, k);
+            }
+            x_mean[i] = sum;
+        }
+
+        for i in 0..STATES {
+            for j in 0..OBSERVATIONS {
+                let mut sum = T::default();
+                for k in 0..NUM_SIGMA {
+                    let diff_x = sigma_pred.get(i, k) - x_mean[i];
+                    let diff_z = sigma_obs.get(j, k) - z_pred[j];
+                    sum += w.get(k, 0) * diff_x * diff_z;
+                }
+                cross_cov.set(i, j, sum);
+            }
+        }
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
@@ -318,7 +419,7 @@ where
                     let diff_j = sigma_obs.get(j, k) - z_pred[j];
                     sum += diff_i * diff_j;
                 }
-                S.set(i, j, sum / T::from(num_sigma as f64));
+                S.set(i, j, sum / T::from_usize(num_sigma).unwrap());
             }
         }
 
@@ -326,20 +427,34 @@ where
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn compute_cross_covariance(&mut self, z_pred: &[T; OBSERVATIONS]) {
+    fn compute_cross_covariance<SP>(&mut self, z_pred: &[T; OBSERVATIONS], sigma_predicted: &SP)
+    where
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+    {
         let num_sigma = NUM_SIGMA;
         let cross_cov = self.cross_covariance.as_matrix_mut();
         let sigma_obs = self.sigma_observed.as_matrix();
+        let sigma_pred = sigma_predicted.as_matrix();
+
+        // Compute mean of predicted sigma points (simple average)
+        let mut x_mean = [T::default(); STATES];
+        for i in 0..STATES {
+            let mut sum = T::default();
+            for k in 0..num_sigma {
+                sum += sigma_pred.get(i, k);
+            }
+            x_mean[i] = sum / T::from_usize(num_sigma).unwrap();
+        }
 
         for i in 0..STATES {
             for j in 0..OBSERVATIONS {
                 let mut sum = T::default();
                 for k in 0..num_sigma {
-                    let diff_x = sigma_obs.get(j, k);
+                    let diff_x = sigma_pred.get(i, k) - x_mean[i];
                     let diff_z = sigma_obs.get(j, k) - z_pred[j];
                     sum += diff_x * diff_z;
                 }
-                cross_cov.set(i, j, sum / T::from(num_sigma as f64));
+                cross_cov.set(i, j, sum / T::from_usize(num_sigma).unwrap());
             }
         }
     }
@@ -623,6 +738,102 @@ where
         &mut self,
     ) -> &mut Self::MeasurementNoiseCovarianceMatrixMut {
         self.measurement_noise_covariance_mut()
+    }
+}
+
+#[allow(non_snake_case)]
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        const NUM_SIGMA: usize,
+        T,
+        SigmaObserved,
+        CrossCov,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempP,
+    > KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>
+    for UnscentedObservation<
+        STATES,
+        OBSERVATIONS,
+        NUM_SIGMA,
+        T,
+        SigmaObserved,
+        CrossCov,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempP,
+    >
+where
+    T: MatrixDataType
+        + Copy
+        + core::ops::Add<Output = T>
+        + core::ops::Mul<Output = T>
+        + core::ops::Sub<Output = T>
+        + core::ops::Div<Output = T>
+        + num_traits::FromPrimitive
+        + Default,
+    Z: MeasurementVectorMut<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    SigmaObserved:
+        SigmaObservedMatrix<OBSERVATIONS, NUM_SIGMA, T> + AsMatrixMut<OBSERVATIONS, NUM_SIGMA, T>,
+    CrossCov: CrossCovarianceMatrix<STATES, OBSERVATIONS, T>,
+    TempP: TempSigmaPMatrix<STATES, T>,
+{
+    type ObservedSigmaPoints = SigmaObserved;
+
+    fn correct_with_observed<X, P, SP, F>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        mut observation: F,
+    ) where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+    {
+        observation(sigma_predicted, &mut self.sigma_observed);
+        self.correct_nonlinear(x, P, sigma_predicted);
+    }
+
+    fn correct_with_weights<X, P, SP, F, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        weights: &W,
+        mut observation: F,
+    ) where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+    {
+        observation(sigma_predicted, &mut self.sigma_observed);
+        self.correct_with_weights(x, P, sigma_predicted, weights);
+    }
+
+    fn correct_nonlinear<X, P>(&mut self, _x: &mut X, _p: &mut P)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        panic!("UKF correction requires sigma_predicted; use correct_with_observed instead")
     }
 }
 

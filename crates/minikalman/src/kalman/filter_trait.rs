@@ -25,13 +25,29 @@ pub trait ExtendedKalmanFilter<const STATES: usize, T>:
 }
 
 /// An Unscented Kalman Filter.
-pub trait UnscentedKalmanFilter<const STATES: usize, T>:
+///
+/// This trait is implemented automatically for types satisfying all required sub-traits.
+/// See [`UnscentedKalman`](crate::unscented::UnscentedKalman) for the concrete implementation.
+pub trait UnscentedKalmanFilter<const STATES: usize, const NUM_SIGMA: usize, T>:
     KalmanFilterNumStates<STATES>
     + KalmanFilterStateVectorMut<STATES, T>
     + KalmanFilterEstimateCovarianceMut<STATES, T>
     + KalmanFilterSigmaPointPredict<STATES, T>
-    + KalmanFilterSigmaPointCorrect<STATES, T>
+    + KalmanFilterSigmaPointCorrect<STATES, NUM_SIGMA, T>
     + KalmanFilterUnscentedParams<T>
+{
+}
+
+/// Auto-implementation of [`UnscentedKalmanFilter`] for types that implement all necessary traits.
+impl<const STATES: usize, const NUM_SIGMA: usize, T, Filter>
+    UnscentedKalmanFilter<STATES, NUM_SIGMA, T> for Filter
+where
+    Filter: KalmanFilterNumStates<STATES>
+        + KalmanFilterStateVectorMut<STATES, T>
+        + KalmanFilterEstimateCovarianceMut<STATES, T>
+        + KalmanFilterSigmaPointPredict<STATES, T>
+        + KalmanFilterSigmaPointCorrect<STATES, NUM_SIGMA, T>
+        + KalmanFilterUnscentedParams<T>,
 {
 }
 
@@ -87,17 +103,6 @@ impl<const STATES: usize, T, Filter> ExtendedKalmanFilter<STATES, T> for Filter 
         + KalmanFilterEstimateCovarianceMut<STATES, T>
         + KalmanFilterNonlinearPredict<STATES, T>
         + KalmanFilterNonlinearUpdate<STATES, T>
-{
-}
-
-/// Auto-implementation of [`UnscentedKalmanFilter`] for types that implement all necessary traits.
-impl<const STATES: usize, T, Filter> UnscentedKalmanFilter<STATES, T> for Filter where
-    Filter: KalmanFilterNumStates<STATES>
-        + KalmanFilterStateVectorMut<STATES, T>
-        + KalmanFilterEstimateCovarianceMut<STATES, T>
-        + KalmanFilterSigmaPointPredict<STATES, T>
-        + KalmanFilterSigmaPointCorrect<STATES, T>
-        + KalmanFilterUnscentedParams<T>
 {
 }
 
@@ -675,34 +680,32 @@ pub trait KalmanFilterUnscentedParamsMut<T>: KalmanFilterUnscentedParams<T> {
 pub trait KalmanFilterSigmaPointPredict<const STATES: usize, T>:
     KalmanFilterStateVectorMut<STATES, T>
 {
-    /// The type for the next state vector.
+    /// The type of the next state vector (used for sigma point propagation).
     type NextStateVector: AsMatrixMut<STATES, 1, T>;
 
-    /// Performs the nonlinear prediction step using sigma points.
-    ///
-    /// ## Arguments
-    /// * `state_transition` - A closure that propagates a sigma point through the nonlinear state transition.
+    /// Performs the nonlinear time update / prediction step.
+    /// The closure receives each sigma point and should modify it in-place
+    /// to produce the predicted sigma point.
     fn predict_sigma_point<F>(&mut self, state_transition: F)
     where
-        F: FnMut(&Self::StateVectorMut, &mut Self::NextStateVector);
+        F: FnMut(&mut Self::NextStateVector);
 }
 
 /// Nonlinear correction using sigma points (Unscented Kalman Filter).
-pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, T>:
+pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: usize, T>:
     KalmanFilterStateVectorMut<STATES, T>
 {
+    /// The type for predicted sigma points.
+    type SigmaPredicted: AsMatrixMut<STATES, NUM_SIGMA, T>;
+
     /// Performs the nonlinear correction step using sigma points.
-    ///
-    /// ## Arguments
-    /// * `measurement` - The measurement observation.
-    /// * `observation` - A closure that propagates a sigma point through the nonlinear observation.
-    fn correct_sigma_point<M, F, const OBSERVATIONS: usize, const NUM_SIGMA: usize>(
+    fn correct_sigma_point<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
     ) where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>,
-        F: FnMut(&Self::StateVectorMut, &mut M::ObservedSigmaPoints);
+        F: FnMut(&Self::SigmaPredicted, &mut M::ObservedSigmaPoints);
 }
 
 /// Observation correct filter for Unscented Kalman Filter.
@@ -716,16 +719,40 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
     /// The type for observed sigma points.
     type ObservedSigmaPoints: AsMatrixMut<OBSERVATIONS, NUM_SIGMA, T>;
 
-    /// Performs the nonlinear correction step.
-    ///
-    /// ## Arguments
-    /// * `x` - The state vector.
-    /// * `P` - The system covariance matrix.
-    /// * `observation` - The nonlinear observation function.
+    /// Performs the correction given pre-populated observed sigma points.
     #[allow(non_snake_case)]
-    fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
-    where
+    fn correct_with_observed<X, P, SP, F>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        observation: F,
+    ) where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut Self::ObservedSigmaPoints);
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints);
+
+    /// Performs correction with explicit UKF weights and observation closure.
+    #[allow(non_snake_case)]
+    fn correct_with_weights<X, P, SP, F, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        weights: &W,
+        observation: F,
+    ) where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints);
+
+    /// Performs the full nonlinear correction step.
+    #[allow(non_snake_case)]
+    fn correct_nonlinear<X, P>(&mut self, x: &mut X, P: &mut P)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>;
 }

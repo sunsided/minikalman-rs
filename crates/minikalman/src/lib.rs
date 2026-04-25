@@ -249,6 +249,13 @@ pub mod extended {
 /// Unscented Kalman Filters (UKF)
 pub mod unscented {
     pub use crate::kalman::unscented::*;
+    pub use crate::kalman::{
+        CrossCovarianceMatrix, KalmanFilterSigmaPointCorrect, KalmanFilterSigmaPointPredict,
+        KalmanFilterUnscentedObservationCorrectFilter, KalmanFilterUnscentedParams,
+        KalmanFilterUnscentedParamsMut, SigmaObservedMatrix, SigmaPointMatrix,
+        SigmaPredictedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
+        UnscentedKalmanFilter,
+    };
     pub use crate::observations::unscented::*;
 }
 
@@ -264,8 +271,10 @@ pub mod prelude {
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P,
         impl_buffer_Q_control, impl_buffer_Q_direct, impl_buffer_R, impl_buffer_S,
-        impl_buffer_temp_BQ, impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P,
-        impl_buffer_temp_PHt, impl_buffer_temp_S_inv, impl_buffer_temp_x, impl_buffer_u,
+        impl_buffer_cross_covariance, impl_buffer_sigma_observed, impl_buffer_sigma_points,
+        impl_buffer_sigma_predicted, impl_buffer_sigma_weights, impl_buffer_temp_BQ,
+        impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P, impl_buffer_temp_PHt,
+        impl_buffer_temp_S_inv, impl_buffer_temp_sigma_P, impl_buffer_temp_x, impl_buffer_u,
         impl_buffer_x, impl_buffer_y, impl_buffer_z,
     };
 

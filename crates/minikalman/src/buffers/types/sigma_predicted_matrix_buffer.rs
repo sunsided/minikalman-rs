@@ -4,7 +4,7 @@ use core::ops::{Index, IndexMut};
 use crate::kalman::SigmaPredictedMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
-use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
+use crate::prelude::{AsMatrix, AsMatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for propagated sigma points after state transition (`num_states` × `num_sigma_points`).
 ///
@@ -130,6 +130,30 @@ where
         &self.0
     }
 
+    #[inline(always)]
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const STATES: usize, const NUM_SIGMA: usize, T, M> AsMatrix<STATES, NUM_SIGMA, T>
+    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+where
+    M: MatrixMut<STATES, NUM_SIGMA, T>,
+{
+    type Target = M;
+    #[inline(always)]
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const STATES: usize, const NUM_SIGMA: usize, T, M> AsMatrixMut<STATES, NUM_SIGMA, T>
+    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+where
+    M: MatrixMut<STATES, NUM_SIGMA, T>,
+{
+    type TargetMut = M;
     #[inline(always)]
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
         &mut self.0
