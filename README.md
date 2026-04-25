@@ -10,7 +10,7 @@ This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-cli
 Kalman filter implementation, as well as the
 [libfixkalman](https://github.com/sunsided/libfixkalman) C library for Q16.16 fixed-point Kalman filters. It optionally
 uses [`micromath`](https://docs.rs/micromath)
-for square root calculations on `no_std`, and can use [`libm`](https://docs.rs/libm) is wished for.
+for square root calculations on `no_std`, and can use [`libm`](https://docs.rs/libm) if wished for.
 Depending on the configuration, this crate may require `f32` / FPU support.
 
 This implementation uses statically allocated buffers for all matrix operations. Due to lack
