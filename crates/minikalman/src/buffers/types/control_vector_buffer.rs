@@ -9,7 +9,7 @@ use crate::matrix::MatrixMut;
 /// Mutable buffer for the control (input) vector (`num_controls` × `1`), typically denoted "u".
 ///
 /// This vector represents the control input. It contains the values of the external inputs
-/// applied to the system at a given time step. The control vector \\( u \\) influences the state
+/// applied to the system at a given time step. The control vector `u` influences the state
 /// transition, allowing the Kalman Filter to account for known control actions when predicting
 /// the next state. By incorporating the effects of these control inputs, the filter provides
 /// a more accurate and realistic estimate of the system's state.

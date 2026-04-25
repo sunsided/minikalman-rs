@@ -8,7 +8,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the temporary P×Hᵀ matrix (`num_states` × `num_measurements`).
 ///
-/// This matrix represents the product of the estimate covariance and the transpose of the observation model, \\( P×Hᵀ \\).
+/// This matrix represents the product of the estimate covariance and the transpose of the observation model, `P×Hᵀ`.
 /// It quantifies how the uncertainty in the state estimate influences the relationship between the state and the measurements.
 /// The resulting matrix captures the effect of the current state uncertainty on the measurement update,
 /// providing an intermediate step in calculating the Kalman gain. This product helps to incorporate the

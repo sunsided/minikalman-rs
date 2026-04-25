@@ -11,13 +11,13 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 /// ## Regular Kalman Filters
 /// This matrix represents the state transition model. It defines how the state
 /// evolves from one time step to the next in the absence of process noise and control inputs.
-/// The matrix \\( A \\) is used to predict the next state based on the current state,
+/// The matrix `A` is used to predict the next state based on the current state,
 /// encapsulating the system dynamics and their influence on state progression.
 ///
 /// ## Extended Kalman Filters
 /// This matrix represents the state transition model in the context of the Extended Kalman Filter (EKF).
 /// It defines how the state evolves from one time step to the next in the absence of process noise and control inputs.
-/// In the EKF, the matrix \\( A \\) is the Jacobian of the state transition function with respect to the state,
+/// In the EKF, the matrix `A` is the Jacobian of the state transition function with respect to the state,
 /// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear state transition
 /// function around the current estimate, allowing the EKF to predict the next state based on the current state
 /// while accounting for the non-linear dynamics of the system.
@@ -43,13 +43,13 @@ where
 /// ## Regular Kalman Filters
 /// This matrix represents the state transition model. It defines how the state
 /// evolves from one time step to the next in the absence of process noise and control inputs.
-/// The matrix \\( A \\) is used to predict the next state based on the current state,
+/// The matrix `A` is used to predict the next state based on the current state,
 /// encapsulating the system dynamics and their influence on state progression.
 ///
 /// ## Extended Kalman Filters
 /// This matrix represents the state transition model in the context of the Extended Kalman Filter (EKF).
 /// It defines how the state evolves from one time step to the next in the absence of process noise and control inputs.
-/// In the EKF, the matrix \\( A \\) is the Jacobian of the state transition function with respect to the state,
+/// In the EKF, the matrix `A` is the Jacobian of the state transition function with respect to the state,
 /// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear state transition
 /// function around the current estimate, allowing the EKF to predict the next state based on the current state
 /// while accounting for the non-linear dynamics of the system.

@@ -9,7 +9,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 /// Immutable buffer for the control matrix (`num_states` × `num_controls`), typically denoted "B".
 ///
 /// This matrix represents the control input model. It defines how the control inputs
-/// influence the state evolution from one time step to the next. The matrix \\( B \\)
+/// influence the state evolution from one time step to the next. The matrix `B`
 /// is used to incorporate the effect of control inputs into the state transition,
 /// allowing the model to account for external controls applied to the system.
 ///
@@ -32,7 +32,7 @@ where
 /// Mutable buffer for the control matrix (`num_states` × `num_controls`), typically denoted "B".
 ///
 /// This matrix represents the control input model. It defines how the control inputs
-/// influence the state evolution from one time step to the next. The matrix \\( B \\)
+/// influence the state evolution from one time step to the next. The matrix `B`
 /// is used to incorporate the effect of control inputs into the state transition,
 /// allowing the model to account for external controls applied to the system.
 ///

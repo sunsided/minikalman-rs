@@ -8,7 +8,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the temporary H×P matrix (`num_measurements` × `num_states`).
 ///
-/// This matrix represents the product of the observation model and the estimate covariance, \\( H×P \\).
+/// This matrix represents the product of the observation model and the estimate covariance, `H×P`.
 /// It quantifies how the uncertainty in the state estimate propagates into the measurement space.
 /// The resulting matrix captures the influence of the current state uncertainty on the predicted
 /// measurements, providing an intermediate step in calculating the innovation (residual) covariance matrix.
