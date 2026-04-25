@@ -177,13 +177,17 @@ fuzz_target!(|input: ExtendedFilterInput| {
         });
     }
 
-    // Verify state is finite; skip inputs that produce non-finite results
+    // Read final state out of the filter.
+    let mut final_state = [0.0f32; NUM_STATES];
     filter.state_vector().inspect(|vec| {
-        for i in 0..NUM_STATES {
-            let v = vec.get_at(i, 0);
-            if !v.is_finite() {
-                return;
-            }
+        for (i, slot) in final_state.iter_mut().enumerate() {
+            *slot = vec.get_at(i, 0);
         }
     });
+
+    // Unstable dynamics naturally diverge with arbitrary inputs — not a
+    // library bug — so we do not assert finiteness here. The fuzz target
+    // only reports panics, UB, and hangs; reaching this point cleanly is
+    // enough.
+    let _ = final_state;
 });

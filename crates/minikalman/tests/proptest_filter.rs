@@ -313,14 +313,14 @@ proptest! {
 }
 
 // ============================================================================
-// Innovation linearity: y = z - H*x should match reference
+// Predict + correct on SPD inputs leaves state finite
 // ============================================================================
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(FILTER_CASES))]
 
     #[test]
-    fn innovation_linearity(
+    fn predict_correct_leaves_state_finite(
         state_vals in small_fixed_vec::<NUM_STATES>(),
         spd_p in spd_matrix_3x3(),
         h_vals in small_fixed_vec::<{ NUM_OBSERVATIONS * NUM_STATES }>(),
@@ -347,21 +347,11 @@ proptest! {
             }
         });
 
-        // Compute expected innovation: y = z - H*x
-        let mut expected_innovation = [0.0f32; NUM_OBSERVATIONS];
-        for (i, &m) in meas_vals.iter().enumerate() {
-            expected_innovation[i] = m;
-            for j in 0..NUM_STATES {
-                expected_innovation[i] -= h_vals[i * NUM_STATES + j] * state_vals[j];
-            }
-        }
-
         // Run one predict + correct cycle
         filter.predict();
         filter.correct(&mut measurement);
 
-        // The innovation vector should have been computed internally.
-        // We verify the filter didn't panic and state is finite.
+        // Verify state is finite after correct.
         let mut final_state = [0.0f32; NUM_STATES];
         filter.state_vector().inspect(|vec| {
             for (i, slot) in final_state.iter_mut().enumerate() {

@@ -54,16 +54,16 @@ jobs:
         run: cargo install cargo-fuzz
       - name: Smoke test matrix_cholesky
         working-directory: crates/minikalman/fuzz
-        run: cargo +nightly fuzz run matrix_cholesky -- -max_total_time=30 -runs=0
+        run: cargo +nightly fuzz run matrix_cholesky -- -runs=100
       - name: Smoke test matrix_mult
         working-directory: crates/minikalman/fuzz
-        run: cargo +nightly fuzz run matrix_mult -- -max_total_time=30 -runs=0
+        run: cargo +nightly fuzz run matrix_mult -- -runs=100
       - name: Smoke test regular_filter
         working-directory: crates/minikalman/fuzz
-        run: cargo +nightly fuzz run regular_filter -- -max_total_time=30 -runs=0
+        run: cargo +nightly fuzz run regular_filter -- -runs=100
       - name: Smoke test extended_filter
         working-directory: crates/minikalman/fuzz
-        run: cargo +nightly fuzz run extended_filter -- -max_total_time=30 -runs=0
+        run: cargo +nightly fuzz run extended_filter -- -runs=100
       - name: Upload crash artifacts
         if: failure()
         uses: actions/upload-artifact@v4
