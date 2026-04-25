@@ -205,3 +205,95 @@ where
         self.0.into_inner()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        const OBS: usize = 2;
+        const SIGMA: usize = 7;
+        const TOTAL: usize = OBS * SIGMA;
+        let value: SigmaObservedMatrixBuffer<OBS, SIGMA, f32, _> = [0.0; TOTAL].into();
+        assert_eq!(value.len(), TOTAL);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_mut_slice() {
+        const OBS: usize = 2;
+        const SIGMA: usize = 7;
+        let mut data = [0.0_f32; OBS * SIGMA];
+        let value: SigmaObservedMatrixBuffer<OBS, SIGMA, f32, _> = data.as_mut_slice().into();
+        assert_eq!(value.len(), OBS * SIGMA);
+        assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_slice(), &data));
+    }
+
+    #[test]
+    fn test_new_and_accessors() {
+        const OBS: usize = 2;
+        const SIGMA: usize = 7;
+        let data = MatrixData::new_array::<OBS, SIGMA, { OBS * SIGMA }, f32>([1.0; OBS * SIGMA]);
+        let buffer = SigmaObservedMatrixBuffer::new(data);
+        assert_eq!(buffer.len(), OBS * SIGMA);
+        assert!(!buffer.is_empty());
+        assert!(buffer.is_valid());
+        assert_eq!(buffer[0], 1.0);
+    }
+
+    #[test]
+    fn test_index_mut() {
+        const OBS: usize = 2;
+        const SIGMA: usize = 7;
+        let mut data = [0.0_f32; OBS * SIGMA];
+        let mut buffer: SigmaObservedMatrixBuffer<OBS, SIGMA, f32, _> = data.as_mut_slice().into();
+        buffer[3] = 42.0;
+        assert_eq!(buffer[3], 42.0);
+        assert_eq!(data[3], 42.0);
+    }
+
+    #[test]
+    fn test_as_matrix() {
+        const OBS: usize = 2;
+        const SIGMA: usize = 7;
+        let data = MatrixData::new_array::<OBS, SIGMA, { OBS * SIGMA }, f32>([5.0; OBS * SIGMA]);
+        let buffer = SigmaObservedMatrixBuffer::new(data);
+        let mat = AsMatrix::as_matrix(&buffer);
+        assert_eq!(mat.get(0, 0), 5.0);
+    }
+
+    #[test]
+    fn test_as_matrix_mut() {
+        const OBS: usize = 2;
+        const SIGMA: usize = 7;
+        let mut data = [0.0_f32; OBS * SIGMA];
+        let mut buffer: SigmaObservedMatrixBuffer<OBS, SIGMA, f32, _> = data.as_mut_slice().into();
+        {
+            let mat = AsMatrixMut::as_matrix_mut(&mut buffer);
+            mat.set(1, 2, 99.0);
+        }
+        assert_eq!(buffer[SIGMA + 2], 99.0);
+    }
+
+    #[test]
+    fn test_is_empty() {
+        let data = MatrixData::new_array::<0, 0, 0, f32>([]);
+        let buffer = SigmaObservedMatrixBuffer::<0, 0, f32, _>::new(data);
+        assert!(buffer.is_empty());
+        assert_eq!(buffer.len(), 0);
+    }
+
+    #[test]
+    fn test_into_inner() {
+        const OBS: usize = 2;
+        const SIGMA: usize = 7;
+        let arr: [f32; OBS * SIGMA] = [1.0; OBS * SIGMA];
+        let data = MatrixData::new_array::<OBS, SIGMA, { OBS * SIGMA }, f32>(arr);
+        let buffer = SigmaObservedMatrixBuffer::new(data);
+        let inner = buffer.into_inner();
+        assert_eq!(inner.as_ref()[0], 1.0);
+    }
+}

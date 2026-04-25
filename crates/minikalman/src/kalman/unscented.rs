@@ -973,12 +973,245 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::test_dummies::make_dummy_filter_ukf;
+    use crate::kalman::*;
+    use crate::test_dummies::{make_dummy_filter_ukf, make_dummy_observation_ukf, Dummy};
+    use crate::unscented::UnscentedKalman;
 
     #[test]
     fn builder_simple() {
         let filter = make_dummy_filter_ukf();
         assert_eq!(filter.states(), 3);
         assert_eq!(filter.num_sigma_points(), 7);
+    }
+
+    #[test]
+    fn state_vector_accessors() {
+        let filter = make_dummy_filter_ukf();
+        let _ = filter.state_vector();
+
+        let mut filter = make_dummy_filter_ukf();
+        let _ = filter.state_vector_mut();
+    }
+
+    #[test]
+    fn estimate_covariance_accessors() {
+        let filter = make_dummy_filter_ukf();
+        let _ = filter.estimate_covariance();
+
+        let mut filter = make_dummy_filter_ukf();
+        let _ = filter.estimate_covariance_mut();
+    }
+
+    #[test]
+    fn direct_process_noise_accessors() {
+        let filter = make_dummy_filter_ukf();
+        let _ = filter.direct_process_noise();
+
+        let mut filter = make_dummy_filter_ukf();
+        let _ = filter.direct_process_noise_mut();
+    }
+
+    #[test]
+    fn sigma_propagated_accessor() {
+        let filter = make_dummy_filter_ukf();
+        let _ = filter.sigma_propagated();
+    }
+
+    #[test]
+    fn parameter_getters_setters() {
+        let mut filter = make_dummy_filter_ukf();
+
+        assert_eq!(filter.alpha(), 1e-3);
+        assert_eq!(filter.beta(), 2.0);
+        assert_eq!(filter.kappa(), 0.0);
+
+        filter.set_alpha(0.5);
+        filter.set_beta(3.0);
+        filter.set_kappa(1.0);
+
+        assert_eq!(filter.alpha(), 0.5);
+        assert_eq!(filter.beta(), 3.0);
+        assert_eq!(filter.kappa(), 1.0);
+
+        let n = 3usize;
+        let expected_lambda = 0.5 * 0.5 * (n as f32 + 1.0) - n as f32;
+        assert!((filter.lambda() - expected_lambda).abs() < 1e-6);
+    }
+
+    #[test]
+    fn trait_num_states() {
+        fn check<T: KalmanFilterNumStates<3>>(_: &T) {}
+        let filter = make_dummy_filter_ukf();
+        check(&filter);
+    }
+
+    #[test]
+    fn trait_state_vector() {
+        fn check<T: KalmanFilterStateVector<3, f32>>(_: &T) {}
+        let filter = make_dummy_filter_ukf();
+        check(&filter);
+    }
+
+    #[test]
+    fn trait_state_vector_mut() {
+        fn check<T: KalmanFilterStateVectorMut<3, f32>>(_: &mut T) {}
+        let mut filter = make_dummy_filter_ukf();
+        check(&mut filter);
+    }
+
+    #[test]
+    fn trait_estimate_covariance() {
+        fn check<T: KalmanFilterEstimateCovariance<3, f32>>(_: &T) {}
+        let filter = make_dummy_filter_ukf();
+        check(&filter);
+    }
+
+    #[test]
+    fn trait_estimate_covariance_mut() {
+        fn check<T: KalmanFilterEstimateCovarianceMut<3, f32>>(_: &mut T) {}
+        let mut filter = make_dummy_filter_ukf();
+        check(&mut filter);
+    }
+
+    #[test]
+    fn trait_direct_process_noise() {
+        fn check<T: KalmanFilterDirectProcessNoiseCovariance<3, f32>>(_: &T) {}
+        let filter = make_dummy_filter_ukf();
+        check(&filter);
+    }
+
+    #[test]
+    fn trait_direct_process_noise_mut() {
+        fn check<T: KalmanFilterDirectProcessNoiseMut<3, f32>>(_: &mut T) {}
+        let mut filter = make_dummy_filter_ukf();
+        check(&mut filter);
+    }
+
+    #[test]
+    fn trait_unscented_params() {
+        fn check<T: KalmanFilterUnscentedParams<f32>>(_: &T) {}
+        let filter = make_dummy_filter_ukf();
+        check(&filter);
+
+        let lambda = KalmanFilterUnscentedParams::lambda(&filter, 3);
+        let expected = 1e-3 * 1e-3 * (3.0 + 0.0) - 3.0;
+        assert!((lambda - expected).abs() < 1e-6);
+    }
+
+    #[test]
+    fn trait_unscented_params_mut() {
+        fn check<T: KalmanFilterUnscentedParamsMut<f32>>(_: &mut T) {}
+        let mut filter = make_dummy_filter_ukf();
+        check(&mut filter);
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[test]
+    fn new_constructor() {
+        let filter: UnscentedKalman<
+            3,
+            7,
+            f32,
+            Dummy<f32, 3, 1>,
+            Dummy<f32, 3, 3>,
+            Dummy<f32, 3, 3>,
+            Dummy<f32, 3, 1>,
+            Dummy<f32, 3, 7>,
+            Dummy<f32, 7, 1>,
+            Dummy<f32, 3, 7>,
+            Dummy<f32, 3, 3>,
+        > = UnscentedKalman::new(
+            Dummy::default(),
+            Dummy::default(),
+            Dummy::default(),
+            Dummy::default(),
+            Dummy::default(),
+            Dummy::default(),
+            Dummy::default(),
+            Dummy::default(),
+            1.0,
+            2.0,
+            0.5,
+        );
+        assert_eq!(filter.alpha(), 1.0);
+        assert_eq!(filter.beta(), 2.0);
+        assert_eq!(filter.kappa(), 0.5);
+    }
+
+    #[test]
+    fn trait_sigma_point_predict() {
+        fn check<T: KalmanFilterSigmaPointPredict<3, f32>>(_: &T) {}
+        let filter = make_dummy_filter_ukf();
+        check(&filter);
+    }
+
+    #[test]
+    fn observation_accessors() {
+        let obs = make_dummy_observation_ukf();
+        assert_eq!(obs.states(), 3);
+        assert_eq!(obs.observations(), 2);
+    }
+
+    #[test]
+    fn observation_measurement_accessors() {
+        let mut obs = make_dummy_observation_ukf();
+        let _ = obs.measurement_vector();
+        let _ = obs.measurement_vector_mut();
+    }
+
+    #[test]
+    fn observation_noise_accessors() {
+        let mut obs = make_dummy_observation_ukf();
+        let _ = obs.measurement_noise_covariance();
+        let _ = obs.measurement_noise_covariance_mut();
+    }
+
+    #[test]
+    fn trait_observation_num_states() {
+        fn check<T: KalmanFilterNumStates<3>>(_: &T) {}
+        let obs = make_dummy_observation_ukf();
+        check(&obs);
+    }
+
+    #[test]
+    fn trait_observation_num_observations() {
+        fn check<T: KalmanFilterNumObservations<2>>(_: &T) {}
+        let obs = make_dummy_observation_ukf();
+        check(&obs);
+    }
+
+    #[test]
+    fn trait_observation_measurement_vector() {
+        fn check<T: KalmanFilterMeasurementVector<2, f32>>(_: &T) {}
+        let obs = make_dummy_observation_ukf();
+        check(&obs);
+    }
+
+    #[test]
+    fn trait_observation_measurement_vector_mut() {
+        fn check<T: KalmanFilterObservationVectorMut<2, f32>>(_: &mut T) {}
+        let mut obs = make_dummy_observation_ukf();
+        check(&mut obs);
+    }
+
+    #[test]
+    fn trait_observation_noise_covariance() {
+        fn check<T: KalmanFilterMeasurementNoiseCovariance<2, f32>>(_: &T) {}
+        let obs = make_dummy_observation_ukf();
+        check(&obs);
+    }
+
+    #[test]
+    fn trait_observation_noise_covariance_mut() {
+        fn check<T: KalmanFilterMeasurementNoiseCovarianceMut<2, f32>>(_: &mut T) {}
+        let mut obs = make_dummy_observation_ukf();
+        check(&mut obs);
+    }
+
+    #[test]
+    fn trait_sigma_point_correct() {
+        fn check<T: KalmanFilterSigmaPointCorrect<3, 7, f32>>(_: &T) {}
+        let filter = make_dummy_filter_ukf();
+        check(&filter);
     }
 }

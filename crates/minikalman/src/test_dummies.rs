@@ -605,3 +605,127 @@ pub fn make_dummy_observation_ukf() -> UnscentedObservation<
         Dummy::default(),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::matrix::{Matrix, MatrixMut};
+    use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
+
+    #[test]
+    fn test_make_dummy_filter() {
+        let filter = make_dummy_filter();
+        assert_eq!(filter.states(), 3);
+    }
+
+    #[test]
+    fn test_make_dummy_filter_ekf() {
+        let filter = make_dummy_filter_ekf();
+        assert_eq!(filter.states(), 3);
+    }
+
+    #[test]
+    fn test_make_dummy_control() {
+        let control = make_dummy_control();
+        assert_eq!(control.states(), 3);
+    }
+
+    #[test]
+    fn test_make_dummy_observation() {
+        let obs = make_dummy_observation();
+        assert_eq!(obs.states(), 3);
+        assert_eq!(obs.observations(), 1);
+    }
+
+    #[test]
+    fn test_make_dummy_observation_ekf() {
+        let obs = make_dummy_observation_ekf();
+        assert_eq!(obs.states(), 3);
+        assert_eq!(obs.observations(), 1);
+    }
+
+    #[test]
+    fn test_make_dummy_filter_ukf() {
+        let filter = make_dummy_filter_ukf();
+        assert_eq!(filter.states(), 3);
+        assert_eq!(filter.num_sigma_points(), 7);
+    }
+
+    #[test]
+    fn test_make_dummy_observation_ukf() {
+        let obs = make_dummy_observation_ukf();
+        assert_eq!(obs.states(), 3);
+        assert_eq!(obs.observations(), 2);
+    }
+
+    #[test]
+    fn test_dummy_as_matrix() {
+        let dummy: Dummy<f32, 3, 3> = Dummy::default();
+        let mat = dummy.as_matrix();
+        assert_eq!(mat.get(0, 0), 0.0);
+    }
+
+    #[test]
+    fn test_dummy_as_matrix_mut() {
+        let mut dummy: Dummy<f32, 3, 3> = Dummy::default();
+        let mat = dummy.as_matrix_mut();
+        mat.set(1, 1, 42.0);
+        assert_eq!(dummy.as_matrix().get(1, 1), 42.0);
+    }
+
+    #[test]
+    fn test_dummy_matrix_default() {
+        let matrix: DummyMatrix<f32, 3, 3> = DummyMatrix::default();
+        assert_eq!(matrix.as_slice().len(), 9);
+        for &v in matrix.as_slice() {
+            assert_eq!(v, 0.0);
+        }
+    }
+
+    #[test]
+    fn test_dummy_matrix_row_major_data() {
+        let mut matrix: DummyMatrix<f32, 3, 3> = DummyMatrix::default();
+        let slice = matrix.as_mut_slice();
+        slice[0] = 1.0;
+        slice[4] = 2.0;
+        slice[8] = 3.0;
+        assert_eq!(matrix.as_slice()[0], 1.0);
+        assert_eq!(matrix.as_slice()[4], 2.0);
+        assert_eq!(matrix.as_slice()[8], 3.0);
+    }
+
+    #[test]
+    fn test_dummy_matrix_index() {
+        let mut matrix: DummyMatrix<f32, 3, 3> = DummyMatrix::default();
+        matrix[5] = 99.0;
+        assert_eq!(matrix[5], 99.0);
+    }
+
+    #[test]
+    fn test_dummy_index() {
+        let mut dummy: Dummy<f32, 3, 1> = Dummy::default();
+        dummy[0] = 7.0;
+        assert_eq!(dummy[0], 7.0);
+    }
+
+    #[test]
+    fn test_dummy_row_major_data() {
+        let mut dummy: Dummy<f32, 3, 3> = Dummy::default();
+        let slice = dummy.as_mut_slice();
+        slice[0] = 1.0;
+        assert_eq!(dummy.as_slice()[0], 1.0);
+    }
+
+    #[test]
+    fn test_dummy_matrix_trait_impl() {
+        let matrix: DummyMatrix<f32, 3, 3> = DummyMatrix::default();
+        assert_eq!(matrix.get(0, 0), 0.0);
+    }
+
+    #[test]
+    fn test_dummy_matrix_mut_trait_impl() {
+        let mut matrix: DummyMatrix<f32, 3, 3> = DummyMatrix::default();
+        matrix.set(2, 2, 5.0);
+        assert_eq!(matrix.get(2, 2), 5.0);
+    }
+}

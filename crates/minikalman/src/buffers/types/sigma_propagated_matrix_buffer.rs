@@ -193,3 +193,99 @@ where
         self.0.into_inner()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_array() {
+        const STATES: usize = 3;
+        const SIGMA: usize = 7;
+        const TOTAL: usize = STATES * SIGMA;
+        let value: SigmaPropagatedMatrixBuffer<STATES, SIGMA, f32, _> = [0.0; TOTAL].into();
+        assert_eq!(value.len(), TOTAL);
+        assert!(!value.is_empty());
+        assert!(value.is_valid());
+    }
+
+    #[test]
+    fn test_from_mut_slice() {
+        const STATES: usize = 3;
+        const SIGMA: usize = 7;
+        let mut data = [0.0_f32; STATES * SIGMA];
+        let value: SigmaPropagatedMatrixBuffer<STATES, SIGMA, f32, _> = data.as_mut_slice().into();
+        assert_eq!(value.len(), STATES * SIGMA);
+        assert!(value.is_valid());
+        assert!(core::ptr::eq(value.as_slice(), &data));
+    }
+
+    #[test]
+    fn test_new_and_accessors() {
+        const STATES: usize = 3;
+        const SIGMA: usize = 7;
+        let data =
+            MatrixData::new_array::<STATES, SIGMA, { STATES * SIGMA }, f32>([1.0; STATES * SIGMA]);
+        let buffer = SigmaPropagatedMatrixBuffer::new(data);
+        assert_eq!(buffer.len(), STATES * SIGMA);
+        assert!(!buffer.is_empty());
+        assert!(buffer.is_valid());
+        assert_eq!(buffer[0], 1.0);
+    }
+
+    #[test]
+    fn test_index_mut() {
+        const STATES: usize = 3;
+        const SIGMA: usize = 7;
+        let mut data = [0.0_f32; STATES * SIGMA];
+        let mut buffer: SigmaPropagatedMatrixBuffer<STATES, SIGMA, f32, _> =
+            data.as_mut_slice().into();
+        buffer[5] = 42.0;
+        assert_eq!(buffer[5], 42.0);
+        assert_eq!(data[5], 42.0);
+    }
+
+    #[test]
+    fn test_as_matrix() {
+        const STATES: usize = 3;
+        const SIGMA: usize = 7;
+        let data =
+            MatrixData::new_array::<STATES, SIGMA, { STATES * SIGMA }, f32>([5.0; STATES * SIGMA]);
+        let buffer = SigmaPropagatedMatrixBuffer::new(data);
+        let mat = AsMatrix::as_matrix(&buffer);
+        assert_eq!(mat.get(0, 0), 5.0);
+    }
+
+    #[test]
+    fn test_as_matrix_mut() {
+        const STATES: usize = 3;
+        const SIGMA: usize = 7;
+        let mut data = [0.0_f32; STATES * SIGMA];
+        let mut buffer: SigmaPropagatedMatrixBuffer<STATES, SIGMA, f32, _> =
+            data.as_mut_slice().into();
+        {
+            let mat = AsMatrixMut::as_matrix_mut(&mut buffer);
+            mat.set(1, 2, 99.0);
+        }
+        assert_eq!(buffer[SIGMA + 2], 99.0);
+    }
+
+    #[test]
+    fn test_is_empty() {
+        let data = MatrixData::new_array::<0, 0, 0, f32>([]);
+        let buffer = SigmaPropagatedMatrixBuffer::<0, 0, f32, _>::new(data);
+        assert!(buffer.is_empty());
+        assert_eq!(buffer.len(), 0);
+    }
+
+    #[test]
+    fn test_into_inner() {
+        const STATES: usize = 3;
+        const SIGMA: usize = 7;
+        let arr: [f32; STATES * SIGMA] = [1.0; STATES * SIGMA];
+        let data = MatrixData::new_array::<STATES, SIGMA, { STATES * SIGMA }, f32>(arr);
+        let buffer = SigmaPropagatedMatrixBuffer::new(data);
+        let inner = buffer.into_inner();
+        assert_eq!(inner.as_ref()[0], 1.0);
+    }
+}
