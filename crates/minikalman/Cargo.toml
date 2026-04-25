@@ -49,6 +49,11 @@ name = "radar-2d"
 path = "examples/radar_2d.rs"
 required-features = ["std"]
 
+[[example]]
+name = "radar-2d-ukf"
+path = "examples/radar_2d_ukf.rs"
+required-features = ["std"]
+
 [[test]]
 name = "proptest_matrix"
 required-features = ["std"]

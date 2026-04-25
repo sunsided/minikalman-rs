@@ -351,6 +351,230 @@ macro_rules! impl_buffer_u {
     };
 }
 
+/// Creates a static buffer for sigma points (`num_states` × `num_sigma`).
+#[macro_export]
+macro_rules! impl_buffer_sigma_points {
+    (mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_points!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_points!($mat_name, $num_states, $num_sigma, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_points!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_points!($mat_name, $num_states, $num_sigma, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_points!($mat_name, $num_states, $num_sigma, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_points!($mat_name, $num_states, $num_sigma, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::SigmaPointMatrixBuffer<
+            $num_states,
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_sigma, { $num_states * $num_sigma }, $t>,
+        > = $crate::buffers::types::SigmaPointMatrixBuffer::<
+            $num_states,
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_sigma, { $num_states * $num_sigma }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { $num_states * $num_sigma }],
+        ));
+    };
+}
+
+/// Creates a static buffer for sigma weights (`num_sigma` × `1`).
+#[macro_export]
+macro_rules! impl_buffer_sigma_weights {
+    (mut $vec_name:ident, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_weights!($vec_name, $num_sigma, $t, $init, let mut)
+    };
+    ($vec_name:ident, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_weights!($vec_name, $num_sigma, $t, $init, let)
+    };
+    (let mut $vec_name:ident, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_weights!($vec_name, $num_sigma, $t, $init, let mut)
+    };
+    (let $vec_name:ident, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_weights!($vec_name, $num_sigma, $t, $init, let)
+    };
+    (static mut $vec_name:ident, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_weights!($vec_name, $num_sigma, $t, $init, static mut)
+    };
+    (static $vec_name:ident, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_weights!($vec_name, $num_sigma, $t, $init, static)
+    };
+    ($vec_name:ident, $num_sigma:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::buffers::types::SigmaWeightsVectorBuffer<
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_sigma, 1, $num_sigma, $t>,
+        > = $crate::buffers::types::SigmaWeightsVectorBuffer::<
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_sigma, 1, $num_sigma, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; $num_sigma],
+        ));
+    };
+}
+
+/// Creates a static buffer for propagated sigma points (`num_states` × `num_sigma`).
+#[macro_export]
+macro_rules! impl_buffer_sigma_propagated {
+    (mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::SigmaPropagatedMatrixBuffer<
+            $num_states,
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_sigma, { $num_states * $num_sigma }, $t>,
+        > = $crate::buffers::types::SigmaPropagatedMatrixBuffer::<
+            $num_states,
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_sigma, { $num_states * $num_sigma }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { $num_states * $num_sigma }],
+        ));
+    };
+}
+
+/// Creates a static buffer for observed sigma points (`num_observations` × `num_sigma`).
+#[macro_export]
+macro_rules! impl_buffer_sigma_observed {
+    (mut $mat_name:ident, $num_obs:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_observed!($mat_name, $num_obs, $num_sigma, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_obs:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_observed!($mat_name, $num_obs, $num_sigma, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_obs:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_observed!($mat_name, $num_obs, $num_sigma, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_obs:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_observed!($mat_name, $num_obs, $num_sigma, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_obs:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_observed!($mat_name, $num_obs, $num_sigma, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_obs:expr, $num_sigma:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_sigma_observed!($mat_name, $num_obs, $num_sigma, $t, $init, static)
+    };
+    ($mat_name:ident, $num_obs:expr, $num_sigma:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::SigmaObservedMatrixBuffer<
+            $num_obs,
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_obs, $num_sigma, { $num_obs * $num_sigma }, $t>,
+        > = $crate::buffers::types::SigmaObservedMatrixBuffer::<
+            $num_obs,
+            $num_sigma,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_obs, $num_sigma, { $num_obs * $num_sigma }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { $num_obs * $num_sigma }],
+        ));
+    };
+}
+
+/// Creates a static buffer for cross-covariance (`num_states` × `num_observations`).
+#[macro_export]
+macro_rules! impl_buffer_cross_covariance {
+    (mut $mat_name:ident, $num_states:expr, $num_obs:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_cross_covariance!($mat_name, $num_states, $num_obs, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $num_obs:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_cross_covariance!($mat_name, $num_states, $num_obs, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $num_obs:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_cross_covariance!($mat_name, $num_states, $num_obs, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $num_obs:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_cross_covariance!($mat_name, $num_states, $num_obs, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $num_obs:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_cross_covariance!($mat_name, $num_states, $num_obs, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $num_obs:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_cross_covariance!($mat_name, $num_states, $num_obs, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $num_obs:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::CrossCovarianceMatrixBuffer<
+            $num_states,
+            $num_obs,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_obs, { $num_states * $num_obs }, $t>,
+        > = $crate::buffers::types::CrossCovarianceMatrixBuffer::<
+            $num_states,
+            $num_obs,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_obs, { $num_states * $num_obs }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { $num_states * $num_obs }],
+        ));
+    };
+}
+
+/// Creates a static buffer for temporary sigma P computation (`num_states` × `num_states`).
+#[macro_export]
+macro_rules! impl_buffer_temp_sigma_P {
+    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_sigma_P!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_sigma_P!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_sigma_P!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_sigma_P!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_sigma_P!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_sigma_P!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::buffers::types::TempSigmaPMatrixBuffer<
+            $num_states,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        > = $crate::buffers::types::TempSigmaPMatrixBuffer::<
+            $num_states,
+            $t,
+            $crate::matrix::MatrixDataArray<$num_states, $num_states, { $num_states * $num_states }, $t>,
+        >::new($crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { $num_states * $num_states }],
+        ));
+    };
+}
+
 /// Creates a static buffer fitting the control matrix B (`num_states` × `num_controls`).
 ///
 /// This will create a [`ControlMatrixMutBuffer`](crate::buffers::types::ControlMatrixMutBuffer)

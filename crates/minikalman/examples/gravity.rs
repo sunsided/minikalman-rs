@@ -75,20 +75,19 @@ fn main() {
 }
 
 fn generate_values(n: usize) -> Vec<f32> {
-    let g = 9.81; // acceleration due to gravity
-    let mut s = 0.0; // initial displacement
-    let mut v = 0.0; // initial velocity
-    let delta_t = 1.0; // time duration (1 second)
+    let g = 9.81;
+    let delta_t = 1.0;
 
-    let mut values = vec![0.0; n]; // vector to store the generated values
+    let mut s = 0.0;
+    let mut v = 0.0;
 
-    for i in 0..n {
-        s = s + v * delta_t + g * 0.5 * delta_t * delta_t;
-        v = v + g * delta_t;
-        values[i] = s;
-    }
-
-    values // return the generated values
+    (0..n)
+        .map(|_| {
+            s = s + v * delta_t + g * 0.5 * delta_t * delta_t;
+            v += g * delta_t;
+            s
+        })
+        .collect()
 }
 
 /// Generate measurement error with variance 0.5
@@ -97,13 +96,9 @@ fn generate_error(n: usize) -> Vec<f32> {
     let normal = Normal::new(0.0, 0.1).unwrap();
     let mut rng = rand::thread_rng();
 
-    let mut error = vec![0.0; n]; // vector to store the generated errors
-
-    for i in 0..n {
-        error[i] = 0.5 * 0.5 * normal.sample(&mut rng);
-    }
-
-    error // return the generated errors
+    (0..n)
+        .map(|_| 0.5 * 0.5 * normal.sample(&mut rng))
+        .collect()
 }
 
 /// Initializes the state vector with initial assumptions.

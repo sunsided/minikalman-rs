@@ -123,6 +123,41 @@ impl BufferBuilder {
     pub fn temp_KHP<const STATES: usize>() -> TemporaryKHPMatrixBufferBuilder<STATES> {
         TemporaryKHPMatrixBufferBuilder
     }
+
+    #[allow(non_snake_case)]
+    pub fn sigma_point_matrix<const STATES: usize, const NUM_SIGMA: usize>(
+    ) -> SigmaPointMatrixBufferBuilder<STATES, NUM_SIGMA> {
+        SigmaPointMatrixBufferBuilder
+    }
+
+    #[allow(non_snake_case)]
+    pub fn sigma_weights_vector<const NUM_SIGMA: usize>(
+    ) -> SigmaWeightsVectorBufferBuilder<NUM_SIGMA> {
+        SigmaWeightsVectorBufferBuilder
+    }
+
+    #[allow(non_snake_case)]
+    pub fn sigma_propagated_matrix<const STATES: usize, const NUM_SIGMA: usize>(
+    ) -> SigmaPropagatedMatrixBufferBuilder<STATES, NUM_SIGMA> {
+        SigmaPropagatedMatrixBufferBuilder
+    }
+
+    #[allow(non_snake_case)]
+    pub fn sigma_observed_matrix<const OBSERVATIONS: usize, const NUM_SIGMA: usize>(
+    ) -> SigmaObservedMatrixBufferBuilder<OBSERVATIONS, NUM_SIGMA> {
+        SigmaObservedMatrixBufferBuilder
+    }
+
+    #[allow(non_snake_case)]
+    pub fn cross_covariance_matrix<const STATES: usize, const OBSERVATIONS: usize>(
+    ) -> CrossCovarianceMatrixBufferBuilder<STATES, OBSERVATIONS> {
+        CrossCovarianceMatrixBufferBuilder
+    }
+
+    #[allow(non_snake_case)]
+    pub fn temp_sigma_P<const STATES: usize>() -> TempSigmaPMatrixBufferBuilder<STATES> {
+        TempSigmaPMatrixBufferBuilder
+    }
 }
 
 /// A builder for state vectors (`num_states` × `1`).
@@ -186,6 +221,24 @@ pub struct TemporaryPHtMatrixBufferBuilder<const STATES: usize, const OBSERVATIO
 
 /// A builder for temporary K×(H×P) sized matrices (`num_states` × `num_states`).
 pub struct TemporaryKHPMatrixBufferBuilder<const STATES: usize>;
+
+/// A builder for sigma point matrices (`num_states` × `num_sigma`).
+pub struct SigmaPointMatrixBufferBuilder<const STATES: usize, const NUM_SIGMA: usize>;
+
+/// A builder for sigma weights vectors (`num_sigma`).
+pub struct SigmaWeightsVectorBufferBuilder<const NUM_SIGMA: usize>;
+
+/// A builder for sigma propagated matrices (`num_states` × `num_sigma`).
+pub struct SigmaPropagatedMatrixBufferBuilder<const STATES: usize, const NUM_SIGMA: usize>;
+
+/// A builder for sigma observed matrices (`num_observations` × `num_sigma`).
+pub struct SigmaObservedMatrixBufferBuilder<const OBSERVATIONS: usize, const NUM_SIGMA: usize>;
+
+/// A builder for cross-covariance matrices (`num_states` × `num_observations`).
+pub struct CrossCovarianceMatrixBufferBuilder<const STATES: usize, const OBSERVATIONS: usize>;
+
+/// A builder for temporary sigma P matrices (`num_states` × `num_states`).
+pub struct TempSigmaPMatrixBufferBuilder<const STATES: usize>;
 
 /// The type of owned state vector buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -1349,6 +1402,212 @@ impl<const STATES: usize> TemporaryKHPMatrixBufferBuilder<STATES> {
         T: Copy,
     {
         TemporaryKHPMatrixBuffer::<STATES, T, MatrixDataBoxed<STATES, STATES, T>>::new(
+            MatrixData::new_boxed::<STATES, STATES, T, _>(alloc::vec![init; STATES * STATES]),
+        )
+    }
+}
+
+/// The type of owned sigma point matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type SigmaPointMatrixBufferOwnedType<const STATES: usize, const NUM_SIGMA: usize, T> =
+    SigmaPointMatrixBuffer<STATES, NUM_SIGMA, T, MatrixDataBoxed<STATES, NUM_SIGMA, T>>;
+
+impl<const STATES: usize, const NUM_SIGMA: usize> SigmaPointMatrixBufferBuilder<STATES, NUM_SIGMA> {
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new<T>(&self) -> SigmaPointMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> SigmaPointMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
+    where
+        T: Copy,
+    {
+        SigmaPointMatrixBuffer::<STATES, NUM_SIGMA, T, MatrixDataBoxed<STATES, NUM_SIGMA, T>>::new(
+            MatrixData::new_boxed::<STATES, NUM_SIGMA, T, _>(alloc::vec![init; STATES * NUM_SIGMA]),
+        )
+    }
+}
+
+/// The type of owned sigma weights vector buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type SigmaWeightsVectorBufferOwnedType<const NUM_SIGMA: usize, T> =
+    SigmaWeightsVectorBuffer<NUM_SIGMA, T, MatrixDataArray<NUM_SIGMA, 1, NUM_SIGMA, T>>;
+
+impl<const NUM_SIGMA: usize> SigmaWeightsVectorBufferBuilder<NUM_SIGMA> {
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new<T>(&self) -> SigmaWeightsVectorBufferOwnedType<NUM_SIGMA, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> SigmaWeightsVectorBufferOwnedType<NUM_SIGMA, T>
+    where
+        T: Copy,
+    {
+        SigmaWeightsVectorBuffer::<NUM_SIGMA, T, MatrixDataArray<NUM_SIGMA, 1, NUM_SIGMA, T>>::new(
+            MatrixData::new_array::<NUM_SIGMA, 1, NUM_SIGMA, T>([init; NUM_SIGMA]),
+        )
+    }
+}
+
+/// The type of owned sigma propagated matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type SigmaPropagatedMatrixBufferOwnedType<const STATES: usize, const NUM_SIGMA: usize, T> =
+    SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, MatrixDataBoxed<STATES, NUM_SIGMA, T>>;
+
+impl<const STATES: usize, const NUM_SIGMA: usize>
+    SigmaPropagatedMatrixBufferBuilder<STATES, NUM_SIGMA>
+{
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new<T>(&self) -> SigmaPropagatedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> SigmaPropagatedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
+    where
+        T: Copy,
+    {
+        SigmaPropagatedMatrixBuffer::<
+            STATES,
+            NUM_SIGMA,
+            T,
+            MatrixDataBoxed<STATES, NUM_SIGMA, T>,
+        >::new(MatrixData::new_boxed::<STATES, NUM_SIGMA, T, _>(
+            alloc::vec![init; STATES * NUM_SIGMA],
+        ))
+    }
+}
+
+/// The type of owned sigma observed matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type SigmaObservedMatrixBufferOwnedType<const OBSERVATIONS: usize, const NUM_SIGMA: usize, T> =
+    SigmaObservedMatrixBuffer<
+        OBSERVATIONS,
+        NUM_SIGMA,
+        T,
+        MatrixDataBoxed<OBSERVATIONS, NUM_SIGMA, T>,
+    >;
+
+impl<const OBSERVATIONS: usize, const NUM_SIGMA: usize>
+    SigmaObservedMatrixBufferBuilder<OBSERVATIONS, NUM_SIGMA>
+{
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new<T>(&self) -> SigmaObservedMatrixBufferOwnedType<OBSERVATIONS, NUM_SIGMA, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(
+        &self,
+        init: T,
+    ) -> SigmaObservedMatrixBufferOwnedType<OBSERVATIONS, NUM_SIGMA, T>
+    where
+        T: Copy,
+    {
+        SigmaObservedMatrixBuffer::<
+            OBSERVATIONS,
+            NUM_SIGMA,
+            T,
+            MatrixDataBoxed<OBSERVATIONS, NUM_SIGMA, T>,
+        >::new(MatrixData::new_boxed::<OBSERVATIONS, NUM_SIGMA, T, _>(
+            alloc::vec![init; OBSERVATIONS * NUM_SIGMA],
+        ))
+    }
+}
+
+/// The type of owned cross-covariance matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type CrossCovarianceMatrixBufferOwnedType<const STATES: usize, const OBSERVATIONS: usize, T> =
+    CrossCovarianceMatrixBuffer<STATES, OBSERVATIONS, T, MatrixDataBoxed<STATES, OBSERVATIONS, T>>;
+
+impl<const STATES: usize, const OBSERVATIONS: usize>
+    CrossCovarianceMatrixBufferBuilder<STATES, OBSERVATIONS>
+{
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new<T>(&self) -> CrossCovarianceMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(
+        &self,
+        init: T,
+    ) -> CrossCovarianceMatrixBufferOwnedType<STATES, OBSERVATIONS, T>
+    where
+        T: Copy,
+    {
+        CrossCovarianceMatrixBuffer::<
+            STATES,
+            OBSERVATIONS,
+            T,
+            MatrixDataBoxed<STATES, OBSERVATIONS, T>,
+        >::new(MatrixData::new_boxed::<STATES, OBSERVATIONS, T, _>(
+            alloc::vec![init; STATES * OBSERVATIONS],
+        ))
+    }
+}
+
+/// The type of owned temp sigma P matrix buffers.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub type TempSigmaPMatrixBufferOwnedType<const STATES: usize, T> =
+    TempSigmaPMatrixBuffer<STATES, T, MatrixDataBoxed<STATES, STATES, T>>;
+
+impl<const STATES: usize> TempSigmaPMatrixBufferBuilder<STATES> {
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new<T>(&self) -> TempSigmaPMatrixBufferOwnedType<STATES, T>
+    where
+        T: Copy + Default,
+    {
+        self.new_with(T::default())
+    }
+
+    #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub fn new_with<T>(&self, init: T) -> TempSigmaPMatrixBufferOwnedType<STATES, T>
+    where
+        T: Copy,
+    {
+        TempSigmaPMatrixBuffer::<STATES, T, MatrixDataBoxed<STATES, STATES, T>>::new(
             MatrixData::new_boxed::<STATES, STATES, T, _>(alloc::vec![init; STATES * STATES]),
         )
     }

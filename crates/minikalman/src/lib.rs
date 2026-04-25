@@ -246,6 +246,26 @@ pub mod extended {
     pub use crate::kalman_builder::extended as builder;
 }
 
+/// Unscented Kalman Filters (UKF)
+pub mod unscented {
+    pub use crate::kalman::unscented::*;
+    pub use crate::kalman::{
+        CrossCovarianceMatrix, KalmanFilterSigmaPointCorrect, KalmanFilterSigmaPointPredict,
+        KalmanFilterUnscentedObservationCorrectFilter, KalmanFilterUnscentedParams,
+        KalmanFilterUnscentedParamsMut, SigmaObservedMatrix, SigmaPointMatrix,
+        SigmaPropagatedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
+        UnscentedKalmanFilter,
+    };
+    pub use crate::observations::unscented::*;
+
+    /// Builder types for unscented Kalman filters
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub mod builder {
+        pub use crate::kalman_builder::unscented::*;
+    }
+}
+
 /// Exports all macros and common types.
 pub mod prelude {
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -258,8 +278,10 @@ pub mod prelude {
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P,
         impl_buffer_Q_control, impl_buffer_Q_direct, impl_buffer_R, impl_buffer_S,
-        impl_buffer_temp_BQ, impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P,
-        impl_buffer_temp_PHt, impl_buffer_temp_S_inv, impl_buffer_temp_x, impl_buffer_u,
+        impl_buffer_cross_covariance, impl_buffer_sigma_observed, impl_buffer_sigma_points,
+        impl_buffer_sigma_propagated, impl_buffer_sigma_weights, impl_buffer_temp_BQ,
+        impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P, impl_buffer_temp_PHt,
+        impl_buffer_temp_S_inv, impl_buffer_temp_sigma_P, impl_buffer_temp_x, impl_buffer_u,
         impl_buffer_x, impl_buffer_y, impl_buffer_z,
     };
 
@@ -267,6 +289,9 @@ pub mod prelude {
         size_buffer_A, size_buffer_B, size_buffer_H, size_buffer_K, size_buffer_P,
         size_buffer_Q_control, size_buffer_Q_direct, size_buffer_R, size_buffer_S, size_buffer_u,
         size_buffer_x, size_buffer_y, size_buffer_z,
+    };
+    pub use crate::{
+        size_buffer_sigma_observed, size_buffer_sigma_points, size_buffer_sigma_weights,
     };
     pub use crate::{
         size_buffer_temp_BQ, size_buffer_temp_HP, size_buffer_temp_KHP, size_buffer_temp_P,
@@ -693,5 +718,91 @@ macro_rules! size_buffer_temp_KHP {
     ( $num_states:expr ) => {{
         const NUM_STATES_: usize = ($num_states) as usize;
         (NUM_STATES_ * NUM_STATES_) as usize
+    }};
+}
+
+/// Sizes a buffer fitting the sigma point matrix (`num_states` × `2*num_states+1`).
+///
+/// ## Arguments
+/// * `num_states` - The number of states describing the system.
+///
+/// ## Example
+/// ```
+/// # use minikalman::*;
+/// const NUM_STATES: usize = 3;
+/// assert_eq!(size_buffer_sigma_points!(NUM_STATES), 21);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! size_buffer_sigma_points {
+    ( $num_states:expr ) => {{
+        const NUM_STATES_: usize = ($num_states) as usize;
+        (NUM_STATES_ * (2 * NUM_STATES_ + 1)) as usize
+    }};
+}
+
+/// Sizes a buffer fitting the sigma weights vector (`2*num_states+1`).
+///
+/// ## Arguments
+/// * `num_states` - The number of states describing the system.
+///
+/// ## Example
+/// ```
+/// # use minikalman::*;
+/// const NUM_STATES: usize = 3;
+/// assert_eq!(size_buffer_sigma_weights!(NUM_STATES), 7);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! size_buffer_sigma_weights {
+    ( $num_states:expr ) => {{
+        const NUM_STATES_: usize = ($num_states) as usize;
+        (2 * NUM_STATES_ + 1) as usize
+    }};
+}
+
+/// Sizes a buffer fitting the observed sigma points (`num_observations` × `2*num_states+1`).
+///
+/// ## Arguments
+/// * `num_observations` - The number of observations.
+/// * `num_states` - The number of states describing the system.
+///
+/// ## Example
+/// ```
+/// # use minikalman::*;
+/// const NUM_OBSERVATIONS: usize = 2;
+/// const NUM_STATES: usize = 3;
+/// assert_eq!(size_buffer_sigma_observed!(NUM_OBSERVATIONS, NUM_STATES), 14);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! size_buffer_sigma_observed {
+    ( $num_observations:expr, $num_states:expr ) => {{
+        const NUM_OBS_: usize = ($num_observations) as usize;
+        const NUM_STATES_: usize = ($num_states) as usize;
+        (NUM_OBS_ * (2 * NUM_STATES_ + 1)) as usize
+    }};
+}
+
+/// Sizes a buffer fitting the cross-covariance matrix (`num_states` × `num_observations`).
+///
+/// ## Arguments
+/// * `num_states` - The number of states.
+/// * `num_observations` - The number of observations.
+///
+/// ## Example
+/// ```
+/// # use minikalman::*;
+/// const NUM_STATES: usize = 3;
+/// const NUM_OBSERVATIONS: usize = 2;
+/// assert_eq!(size_buffer_cross_covariance!(NUM_STATES, NUM_OBSERVATIONS), 6);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! size_buffer_cross_covariance {
+    ( $num_states:expr, $num_observations:expr ) => {{
+        const NUM_STATES_: usize = ($num_states) as usize;
+        const NUM_OBS_: usize = ($num_observations) as usize;
+        (NUM_STATES_ * NUM_OBS_) as usize
     }};
 }

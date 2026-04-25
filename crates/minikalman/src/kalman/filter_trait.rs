@@ -1,5 +1,5 @@
 use crate::kalman::*;
-use crate::prelude::AsMatrixMut;
+use crate::prelude::{AsMatrix, AsMatrixMut};
 
 /// A Kalman Filter.
 pub trait KalmanFilter<const STATES: usize, T>:
@@ -21,6 +21,33 @@ pub trait ExtendedKalmanFilter<const STATES: usize, T>:
     + KalmanFilterEstimateCovarianceMut<STATES, T>
     + KalmanFilterNonlinearPredict<STATES, T>
     + KalmanFilterNonlinearUpdate<STATES, T>
+{
+}
+
+/// An Unscented Kalman Filter.
+///
+/// This trait is implemented automatically for types satisfying all required sub-traits.
+/// See [`UnscentedKalman`](crate::unscented::UnscentedKalman) for the concrete implementation.
+pub trait UnscentedKalmanFilter<const STATES: usize, const NUM_SIGMA: usize, T>:
+    KalmanFilterNumStates<STATES>
+    + KalmanFilterStateVectorMut<STATES, T>
+    + KalmanFilterEstimateCovarianceMut<STATES, T>
+    + KalmanFilterSigmaPointPredict<STATES, T>
+    + KalmanFilterSigmaPointCorrect<STATES, NUM_SIGMA, T>
+    + KalmanFilterUnscentedParams<T>
+{
+}
+
+/// Auto-implementation of [`UnscentedKalmanFilter`] for types that implement all necessary traits.
+impl<const STATES: usize, const NUM_SIGMA: usize, T, Filter>
+    UnscentedKalmanFilter<STATES, NUM_SIGMA, T> for Filter
+where
+    Filter: KalmanFilterNumStates<STATES>
+        + KalmanFilterStateVectorMut<STATES, T>
+        + KalmanFilterEstimateCovarianceMut<STATES, T>
+        + KalmanFilterSigmaPointPredict<STATES, T>
+        + KalmanFilterSigmaPointCorrect<STATES, NUM_SIGMA, T>
+        + KalmanFilterUnscentedParams<T>,
 {
 }
 
@@ -625,4 +652,90 @@ pub trait KalmanFilterMeasurementNoiseCovarianceMut<const OBSERVATIONS: usize, T
     fn measurement_noise_covariance_mut(
         &mut self,
     ) -> &mut Self::MeasurementNoiseCovarianceMatrixMut;
+}
+
+/// UKF parameters (alpha, beta, kappa).
+pub trait KalmanFilterUnscentedParams<T> {
+    /// Spread parameter (default 1e-3).
+    fn alpha(&self) -> T;
+
+    /// Distribution knowledge parameter (2.0 for Gaussian).
+    fn beta(&self) -> T;
+
+    /// Secondary scaling parameter (default 0.0).
+    fn kappa(&self) -> T;
+
+    /// Computed lambda: alpha^2 * (n + kappa) - n.
+    fn lambda(&self, n: usize) -> T;
+}
+
+/// Mutable UKF parameters.
+pub trait KalmanFilterUnscentedParamsMut<T>: KalmanFilterUnscentedParams<T> {
+    fn set_alpha(&mut self, alpha: T);
+    fn set_beta(&mut self, beta: T);
+    fn set_kappa(&mut self, kappa: T);
+}
+
+/// Nonlinear prediction using sigma points (Unscented Kalman Filter).
+pub trait KalmanFilterSigmaPointPredict<const STATES: usize, T>:
+    KalmanFilterStateVectorMut<STATES, T>
+{
+    /// The type of the next state vector (used for sigma point propagation).
+    type NextStateVector: AsMatrixMut<STATES, 1, T>;
+
+    /// Performs the nonlinear time update / prediction step.
+    /// The closure receives each sigma point and should modify it in-place
+    /// to produce the predicted sigma point.
+    fn predict_sigma_point<F>(&mut self, state_transition: F)
+    where
+        F: FnMut(&mut Self::NextStateVector);
+}
+
+/// Nonlinear correction using sigma points (Unscented Kalman Filter).
+pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: usize, T>:
+    KalmanFilterStateVectorMut<STATES, T>
+{
+    /// The type for propagated sigma points.
+    type SigmaPropagated: AsMatrix<STATES, NUM_SIGMA, T>;
+
+    /// Performs the nonlinear correction step using sigma points.
+    fn correct_sigma_point<M, F, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) where
+        M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>,
+        F: FnMut(&Self::SigmaPropagated, &mut M::ObservedSigmaPoints);
+}
+
+/// Observation correct filter for Unscented Kalman Filter.
+pub trait KalmanFilterUnscentedObservationCorrectFilter<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+>
+{
+    /// The type for observed sigma points.
+    type ObservedSigmaPoints: AsMatrixMut<OBSERVATIONS, NUM_SIGMA, T>;
+
+    /// Performs the correction given pre-populated observed sigma points.
+    ///
+    /// The closure receives predicted sigma points and is responsible for
+    /// populating the observed sigma points before correction proceeds.
+    #[allow(non_snake_case)]
+    fn correct_with_observed<X, P, SP, F, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        weights: &W,
+        lambda: T,
+        observation: F,
+    ) where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints);
 }

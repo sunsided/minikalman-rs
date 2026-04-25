@@ -5,3 +5,4 @@ pub mod extended;
 mod filter_trait;
 mod matrix_types;
 pub mod regular;
+pub mod unscented;

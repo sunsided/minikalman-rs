@@ -166,3 +166,88 @@ tasks:
     desc: Remove Cargo build artifacts
     cmds:
       - "{{.CARGO}} clean"
+
+  # ── Examples ──────────────────────────────────────────────────────────────
+
+  # Unscented Kalman Filter examples
+  example:ukf:radar-2d:
+    desc: Run the radar-2d UKF example (macro-based buffer construction)
+    aliases:
+      - example:radar-2d:ukf
+    cmds:
+      - "{{.CARGO}} run --example radar-2d-ukf --features std"
+
+  example:ukf:radar-2d-builder:
+    desc: Run the radar-2d UKF example (builder-based buffer construction)
+    aliases:
+      - example:radar-2d:ukf-builder
+    cmds:
+      - "{{.CARGO}} run --example radar_2d_ukf_builder --features std"
+
+  # Extended Kalman Filter examples
+  example:ekf:radar-2d:
+    desc: Run the radar-2d EKF example
+    aliases:
+      - example:radar-2d:ekf
+    cmds:
+      - "{{.CARGO}} run --example radar-2d --features std"
+
+  # Regular (linear) Kalman Filter examples
+  example:linear:gravity:
+    desc: Run the gravity regular Kalman filter example
+    aliases:
+      - example:gravity:linear
+      - example:gravity
+    cmds:
+      - "{{.CARGO}} run --example gravity --features std"
+
+  example:linear:gravity-fixed:
+    desc: Run the gravity-fixed regular Kalman filter example (fixed-point)
+    aliases:
+      - example:gravity-fixed:linear
+      - example:gravity-fixed
+    cmds:
+      - "{{.CARGO}} run --example fixed --features \"fixed,std\""
+
+  example:linear:car-1d:
+    desc: Run the car-1d regular Kalman filter example
+    aliases:
+      - example:car-1d:linear
+      - example:car-1d
+    cmds:
+      - "{{.CARGO}} run --example car-1d --features std"
+
+  docs:
+    desc: Build rustdoc
+    aliases:
+      - doc
+    cmds:
+      - cargo doc --no-deps --all-features
+
+  docs:open:
+    desc: Build rustdoc (and open them)
+    aliases:
+      - doc:open
+    cmds:
+      - cargo doc --no-deps --all-features --open
+
+  coverage:
+    desc: Generate code coverage report (HTML)
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace --html
+
+  coverage:text:
+    desc: Generate code coverage report (text)
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace
+
+  coverage:lcov:
+    desc: Generate LCOV coverage file for upload
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+
+  coverage:lib:
+    desc: Generate code coverage for lib tests only
+    cmds:
+      - cargo llvm-cov nextest --all-features --workspace --lib
+
