@@ -1,0 +1,77 @@
+---
+name: Test & Fuzz
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**"
+      - ".github/workflows/test.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**"
+      - ".github/workflows/test.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-stable:
+    name: Stable Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - ""
+          - "--features std"
+          - "--no-default-features --features libm,alloc"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@nextest
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@v2
+      - name: Run tests (${{ matrix.features || 'default' }})
+        run: cargo nextest run --verbose --package minikalman ${{ matrix.features }}
+
+  fuzz-smoke:
+    name: Fuzz Smoke (nightly)
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: nightly-fuzz
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+      - name: Smoke test matrix_cholesky
+        working-directory: crates/minikalman/fuzz
+        run: cargo +nightly fuzz run matrix_cholesky -- -runs=100
+      - name: Smoke test matrix_mult
+        working-directory: crates/minikalman/fuzz
+        run: cargo +nightly fuzz run matrix_mult -- -runs=100
+      - name: Smoke test regular_filter
+        working-directory: crates/minikalman/fuzz
+        run: cargo +nightly fuzz run regular_filter -- -runs=100
+      - name: Smoke test extended_filter
+        working-directory: crates/minikalman/fuzz
+        run: cargo +nightly fuzz run extended_filter -- -runs=100
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: |
+            crates/minikalman/fuzz/artifacts/
+            crates/minikalman/fuzz/corpus/*/crash-*
+            crates/minikalman/fuzz/corpus/*/oom-*
+            crates/minikalman/fuzz/corpus/*/timeout-*
+          retention-days: 30

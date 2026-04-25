@@ -1,0 +1,168 @@
+version: "3"
+
+vars:
+  CARGO: cargo
+  FUZZ_CARGO: cargo +nightly
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list-all
+
+  fmt:
+    desc: Apply Rust formatting
+    aliases:
+      - fmt:fix
+    cmds:
+      - "{{.CARGO}} fmt"
+
+  fmt:check:
+    desc: Check Rust formatting
+    cmds:
+      - "{{.CARGO}} fmt -- --check"
+
+  check:
+    desc: Check the crate with default features
+    cmds:
+      - "{{.CARGO}} check"
+
+  check:all-features:
+    desc: Check the crate with all features
+    cmds:
+      - "{{.CARGO}} check --all-features --all-targets"
+
+  check:no-features:
+    desc: Check the crate without default features
+    cmds:
+      - "{{.CARGO}} check --no-default-features"
+
+  lint:
+    desc: Check clippy lints for all targets and features
+    aliases:
+      - lint:check
+    cmds:
+      - "{{.CARGO}} clippy --all-features --all-targets"
+
+  lint:fix:
+    desc: Apply clippy fixes for all targets and features
+    aliases:
+      - clippy
+    cmds:
+      - "{{.CARGO}} clippy --fix --allow-dirty --all-features --all-targets"
+
+  build:
+    desc: Build the crate with default features
+    cmds:
+      - "{{.CARGO}} build"
+
+  test:all-features:
+    desc: Test the crate with all features
+    aliases:
+      - test
+      - test:all
+    cmds:
+      - "{{.CARGO}} test --all-features"
+
+  test:default-features:
+    desc: Test the crate with default features
+    aliases:
+      - test:default
+    cmds:
+      - "{{.CARGO}} test"
+
+  test:no-features:
+    desc: Test the crate without default features
+    aliases:
+      - test:no-default-features
+    cmds:
+      - "{{.CARGO}} test --no-default-features"
+
+  fuzz:list:
+    desc: List available fuzz targets
+    cmds:
+      - |
+        echo "Fuzz targets:"
+        for f in fuzz/fuzz_targets/*.rs; do
+          basename "$f" .rs
+        done
+    dir: crates/minikalman/fuzz
+
+  fuzz:build:
+    desc: Build fuzz targets
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz build"
+    dir: crates/minikalman/fuzz
+
+  fuzz:matrix-cholesky:
+    desc: Run the matrix_cholesky fuzz target
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run matrix_cholesky"
+    dir: crates/minikalman/fuzz
+
+  fuzz:matrix-mult:
+    desc: Run the matrix_mult fuzz target
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run matrix_mult"
+    dir: crates/minikalman/fuzz
+
+  fuzz:regular-filter:
+    desc: Run the regular_filter fuzz target
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run regular_filter"
+    dir: crates/minikalman/fuzz
+
+  fuzz:extended-filter:
+    desc: Run the extended_filter fuzz target
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run extended_filter"
+    dir: crates/minikalman/fuzz
+
+  fuzz:smoke:
+    desc: Run a brief smoke test on all fuzz targets
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run matrix_cholesky -- -runs=100"
+      - "{{.FUZZ_CARGO}} fuzz run matrix_mult -- -runs=100"
+      - "{{.FUZZ_CARGO}} fuzz run regular_filter -- -runs=100"
+      - "{{.FUZZ_CARGO}} fuzz run extended_filter -- -runs=100"
+    dir: crates/minikalman/fuzz
+
+  fuzz:smoke:matrix-cholesky:
+    desc: Briefly smoke test matrix_cholesky
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run matrix_cholesky -- -runs=100"
+    dir: crates/minikalman/fuzz
+
+  fuzz:smoke:matrix-mult:
+    desc: Briefly smoke test matrix_mult
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run matrix_mult -- -runs=100"
+    dir: crates/minikalman/fuzz
+
+  fuzz:smoke:regular-filter:
+    desc: Briefly smoke test regular_filter
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run regular_filter -- -runs=100"
+    dir: crates/minikalman/fuzz
+
+  fuzz:smoke:extended-filter:
+    desc: Briefly smoke test extended_filter
+    cmds:
+      - "{{.FUZZ_CARGO}} fuzz run extended_filter -- -runs=100"
+    dir: crates/minikalman/fuzz
+
+  verify:
+    desc: Run formatting checks, static checks, clippy, and the test matrix
+    deps:
+      - fmt:check
+      - check:all-features
+      - check:no-features
+      - lint:check
+      - test
+      - test:all-features
+      - test:no-features
+
+  clean:
+    desc: Remove Cargo build artifacts
+    cmds:
+      - "{{.CARGO}} clean"
