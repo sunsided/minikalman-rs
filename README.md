@@ -1,7 +1,7 @@
 # Kalman Filters for Embedded Targets (in Rust)
 
-[![Crates.io](https://img.shields.io/crates/v/minikalman)](https://crates.io/crates/minikalman-rs)
-[![Crates.io](https://img.shields.io/crates/l/minikalman)](https://crates.io/crates/minikalman-rs)
+[![Crates.io](https://img.shields.io/crates/v/minikalman)](https://crates.io/crates/minikalman)
+[![Crates.io](https://img.shields.io/crates/l/minikalman)](https://crates.io/crates/minikalman)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/sunsided/minikalman-rs/rust.yml)
 [![docs.rs](https://img.shields.io/docsrs/minikalman)](https://docs.rs/minikalman/)
 [![codecov](https://codecov.io/gh/sunsided/minikalman-rs/graph/badge.svg?token=YJYARXA8EL)](https://codecov.io/gh/sunsided/minikalman-rs)
