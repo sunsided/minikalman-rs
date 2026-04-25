@@ -171,11 +171,18 @@ tasks:
 
   # Unscented Kalman Filter examples
   example:ukf:radar-2d:
-    desc: Run the radar-2d UKF example
+    desc: Run the radar-2d UKF example (macro-based buffer construction)
     aliases:
       - example:radar-2d:ukf
     cmds:
       - "{{.CARGO}} run --example radar-2d-ukf --all-features"
+
+  example:ukf:radar-2d-builder:
+    desc: Run the radar-2d UKF example (builder-based buffer construction)
+    aliases:
+      - example:radar-2d:ukf-builder
+    cmds:
+      - "{{.CARGO}} run --example radar_2d_ukf_builder --all-features"
 
   # Extended Kalman Filter examples
   example:ekf:radar-2d:
@@ -209,3 +216,17 @@ tasks:
       - example:car-1d
     cmds:
       - "{{.CARGO}} run --example car-1d --features std"
+
+  docs:
+    desc: Build rustdoc
+    aliases:
+      - doc
+    cmds:
+      - cargo doc --no-deps --all-features
+
+  docs:open:
+    desc: Build rustdoc (and open them)
+    aliases:
+      - doc:open
+    cmds:
+      - cargo doc --no-deps --all-features --open

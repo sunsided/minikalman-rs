@@ -2,3 +2,6 @@
 
 pub mod extended;
 pub mod regular;
+
+#[cfg(feature = "alloc")]
+pub mod unscented;

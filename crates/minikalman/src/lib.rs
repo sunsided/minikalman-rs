@@ -257,6 +257,13 @@ pub mod unscented {
         UnscentedKalmanFilter,
     };
     pub use crate::observations::unscented::*;
+
+    /// Builder types for unscented Kalman filters
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[cfg(feature = "alloc")]
+    pub mod builder {
+        pub use crate::kalman_builder::unscented::*;
+    }
 }
 
 /// Exports all macros and common types.
