@@ -21,9 +21,9 @@
 //! * `micromath` - Enables [micromath](https://crates.io/crates/micromath) support.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
-//!              compiles the crate as `#![forbid(unsafe)]`.
+//!   compiles the crate as `#![forbid(unsafe)]`.
 //! * `nalgebra` - Enables [nalgebra](https://crates.io/crates/nalgebra) support. For major parts,
-//!                must be used in conjunction with `unsafe`.
+//!   must be used in conjunction with `unsafe`.
 //!
 //! ## Example
 //!

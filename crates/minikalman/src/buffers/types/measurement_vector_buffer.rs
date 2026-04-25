@@ -85,4 +85,15 @@ mod tests {
 
         assert_eq!(value.into_inner(), [10.0, 11.0, 12.0, 13.0, 14.0]);
     }
+
+    #[test]
+    fn test_as_ref_as_mut() {
+        let mut value: MeasurementVectorBuffer<5, f32, _> = [1.0, 2.0, 3.0, 4.0, 5.0].into();
+        let slice: &[f32] = value.as_ref();
+        assert_eq!(slice, &[1.0, 2.0, 3.0, 4.0, 5.0]);
+
+        let mut_slice: &mut [f32] = value.as_mut();
+        mut_slice[0] = 99.0;
+        assert_eq!(value[0], 99.0);
+    }
 }
