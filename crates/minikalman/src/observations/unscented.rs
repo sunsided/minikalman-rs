@@ -293,15 +293,18 @@ where
         P: &mut P,
         sigma_predicted: &SP,
         weights: &W,
+        lambda: T,
     ) where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
         W: AsMatrixMut<NUM_SIGMA, 1, T>,
     {
-        let z_pred = self.compute_predicted_measurement_weighted(weights);
+        let n = T::from_usize(STATES).unwrap();
+        let w0_m = lambda / (n + lambda);
+        let z_pred = self.compute_predicted_measurement_weighted(weights, w0_m);
         self.compute_innovation_covariance_weighted(&z_pred, weights);
-        self.compute_cross_covariance_weighted(&z_pred, sigma_predicted, weights);
+        self.compute_cross_covariance_weighted(&z_pred, sigma_predicted, weights, w0_m);
         self.compute_kalman_gain();
         self.apply_correction(x, P, &z_pred);
     }
@@ -326,6 +329,7 @@ where
     fn compute_predicted_measurement_weighted<W: AsMatrixMut<NUM_SIGMA, 1, T>>(
         &mut self,
         weights: &W,
+        w0_m: T,
     ) -> [T; OBSERVATIONS] {
         let sigma_obs = self.sigma_observed.as_matrix();
         let w = weights.as_matrix();
@@ -333,7 +337,8 @@ where
         for i in 0..OBSERVATIONS {
             let mut sum = T::default();
             for j in 0..NUM_SIGMA {
-                sum += w.get(j, 0) * sigma_obs.get(i, j);
+                let w_val = if j == 0 { w0_m } else { w.get(j, 0) };
+                sum += w_val * sigma_obs.get(i, j);
             }
             z_pred[i] = sum;
         }
@@ -372,6 +377,7 @@ where
         z_pred: &[T; OBSERVATIONS],
         sigma_predicted: &SP,
         weights: &W,
+        w0_m: T,
     ) where
         SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
         W: AsMatrixMut<NUM_SIGMA, 1, T>,
@@ -381,12 +387,12 @@ where
         let sigma_pred = sigma_predicted.as_matrix();
         let w = weights.as_matrix();
 
-        // Compute weighted mean of predicted sigma points
         let mut x_mean = [T::default(); STATES];
         for i in 0..STATES {
             let mut sum = T::default();
             for k in 0..NUM_SIGMA {
-                sum += w.get(k, 0) * sigma_pred.get(i, k);
+                let w_val = if k == 0 { w0_m } else { w.get(k, 0) };
+                sum += w_val * sigma_pred.get(i, k);
             }
             x_mean[i] = sum;
         }
@@ -816,6 +822,7 @@ where
         P: &mut P,
         sigma_predicted: &SP,
         weights: &W,
+        lambda: T,
         mut observation: F,
     ) where
         X: StateVectorMut<STATES, T>,
@@ -825,7 +832,7 @@ where
         F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
     {
         observation(sigma_predicted, &mut self.sigma_observed);
-        self.correct_with_weights(x, P, sigma_predicted, weights);
+        self.correct_with_weights(x, P, sigma_predicted, weights, lambda);
     }
 
     fn correct_nonlinear<X, P>(&mut self, _x: &mut X, _p: &mut P)

@@ -146,16 +146,16 @@ fn main() {
             // sigma_pred is row-major: sigma_pred[row * NUM_SIGMA + col]
             filter.correct_sigma_point(&mut measurement, |sigma_pred, observed| {
                 for j in 0..NUM_SIGMA {
-                    let px = sigma_pred[0 * NUM_SIGMA + j];
-                    let py = sigma_pred[1 * NUM_SIGMA + j];
+                    let px = sigma_pred[j];
+                    let py = sigma_pred[NUM_SIGMA + j];
                     let vx = sigma_pred[2 * NUM_SIGMA + j];
                     let vy = sigma_pred[3 * NUM_SIGMA + j];
 
                     let dx = px - RX;
                     let dy = py - RY;
                     let norm = (dx * dx + dy * dy).sqrt();
-                    observed[0 * NUM_SIGMA + j] = norm;
-                    observed[1 * NUM_SIGMA + j] = dy.atan2(dx);
+                    observed[j] = norm;
+                    observed[NUM_SIGMA + j] = dy.atan2(dx);
                     observed[2 * NUM_SIGMA + j] = (dx * vx + dy * vy) / norm;
                 }
             });
@@ -195,56 +195,4 @@ fn main() {
         marker, time, state[0], std_x, state[1], std_y, state[2], std_vx, state[3], std_vy
     );
     }
-}
-
-fn print_correction_debug<T>(filter: &T)
-where
-    T: UnscentedKalmanFilter<NUM_STATES, NUM_SIGMA, f32>,
-{
-    let x = filter.state_vector();
-    let P = filter.estimate_covariance();
-    let P = P.as_matrix();
-    eprintln!(
-        "  After correction: x=[{:.4}, {:.4}, {:.4}, {:.4}]",
-        x[0], x[1], x[2], x[3]
-    );
-    eprintln!(
-        "  P diag: [{:.4}, {:.4}, {:.4}, {:.4}]",
-        P.get_at(0, 0),
-        P.get_at(1, 1),
-        P.get_at(2, 2),
-        P.get_at(3, 3)
-    );
-}
-
-enum Stage {
-    Prior,
-    PriorAboutToUpdate,
-    Posterior,
-}
-
-fn print_state<T>(time: f32, filter: &T, state: Stage)
-where
-    T: UnscentedKalmanFilter<NUM_STATES, NUM_SIGMA, f32>,
-{
-    let marker = match state {
-        Stage::Prior => ' ',
-        Stage::PriorAboutToUpdate => '-',
-        Stage::Posterior => '+',
-    };
-
-    let state = filter.state_vector();
-
-    let covariances = filter.estimate_covariance();
-    let covariances = covariances.as_matrix();
-
-    let std_x = covariances.get_at(0, 0).sqrt();
-    let std_y = covariances.get_at(1, 1).sqrt();
-    let std_vx = covariances.get_at(2, 2).sqrt();
-    let std_vy = covariances.get_at(3, 3).sqrt();
-
-    println!(
-        "{} t={:.2} s,  x={:.2} ± {:.4} m\n              y={:.2} ± {:.4} m\n             vx={:2.2} ± {:.4} m/s\n             vy={:2.2} ± {:.4} m/s",
-        marker, time, state[0], std_x, state[1], std_y, state[2], std_vx, state[3], std_vy
-    );
 }

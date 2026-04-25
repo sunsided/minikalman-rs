@@ -741,6 +741,7 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
         P: &mut P,
         sigma_predicted: &SP,
         weights: &W,
+        lambda: T,
         observation: F,
     ) where
         X: StateVectorMut<STATES, T>,

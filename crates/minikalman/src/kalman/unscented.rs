@@ -405,11 +405,9 @@ where
         let lambda = self.lambda();
         let n_lambda = n + lambda;
         let w = self.sigma_weights.as_matrix_mut();
-        let w0_m = lambda / n_lambda;
         let w0_c =
             lambda / n_lambda + (T::from_usize(1).unwrap() - self.alpha * self.alpha + self.beta);
         let wi = T::from_usize(1).unwrap() / (T::from_usize(2).unwrap() * n_lambda);
-        w.set(0, 0, w0_m);
         w.set(0, 0, w0_c);
         for i in 1..NUM_SIGMA {
             w.set(i, 0, wi);
@@ -470,6 +468,9 @@ where
 
     #[allow(non_snake_case)]
     fn reconstruct_prediction(&mut self) {
+        let lambda = self.lambda();
+        let n = T::from_usize(STATES).unwrap();
+        let w0_m = lambda / (n + lambda);
         let w = self.sigma_weights.as_matrix();
         let sigma_pred = self.sigma_predicted.as_matrix();
         let x = self.x.as_matrix_mut();
@@ -477,7 +478,7 @@ where
         for i in 0..STATES {
             x.set(i, 0, T::default());
             for j in 0..NUM_SIGMA {
-                let w_val = w.get(j, 0);
+                let w_val = if j == 0 { w0_m } else { w.get(j, 0) };
                 x.set(i, 0, x.get(i, 0) + w_val * sigma_pred.get(i, j));
             }
         }
@@ -912,11 +913,13 @@ where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBS, NUM_SIGMA, T>,
         F: FnMut(&SigmaPredicted, &mut M::ObservedSigmaPoints),
     {
+        let lambda = self.lambda();
         measurement.correct_with_weights(
             &mut self.x,
             &mut self.P,
             &self.sigma_predicted,
             &self.sigma_weights,
+            lambda,
             observation,
         )
     }
