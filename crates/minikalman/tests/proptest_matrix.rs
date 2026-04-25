@@ -89,16 +89,16 @@ proptest! {
     ) {
         let mut result = zero_3x3();
         a.sub(&a, &mut result);
-        assert_matrix_close(result.as_slice(), &vec![0.0f32; 9], EPS);
+        assert_matrix_close(result.as_slice(), &[0.0f32; 9], EPS);
     }
 
     #[test]
     fn sub_self_is_zero_boxed_3x3(
         a in random_matrix_boxed_3x3()
     ) {
-        let mut result = MatrixDataBoxed::<3, 3, f32>::new(vec![0.0f32; 9]);
+        let mut result = MatrixDataBoxed::<3, 3, f32>::new(vec![0.0f32; 9].into_boxed_slice());
         a.sub(&a, &mut result);
-        assert_matrix_close(result.as_slice(), &vec![0.0f32; 9], EPS);
+        assert_matrix_close(result.as_slice(), &[0.0f32; 9], EPS);
     }
 }
 

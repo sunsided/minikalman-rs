@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use proptest::prelude::*;
 
 use minikalman::matrix::{MatrixDataArray, MatrixDataBoxed};

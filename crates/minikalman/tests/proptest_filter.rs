@@ -39,8 +39,8 @@ fn build_regular_filter(
 
     // Set state
     filter.state_vector_mut().apply(|vec| {
-        for i in 0..NUM_STATES {
-            vec.set_at(i, 0, state_init[i]);
+        for (i, &v) in state_init.iter().enumerate() {
+            vec.set_at(i, 0, v);
         }
     });
 
@@ -262,7 +262,7 @@ proptest! {
         );
 
         // Compute z = H * x_initial (perfect measurement, no noise)
-        let mut z = vec![0.0f32; NUM_OBSERVATIONS];
+        let mut z = [0.0f32; NUM_OBSERVATIONS];
         for i in 0..NUM_OBSERVATIONS {
             for j in 0..NUM_STATES {
                 z[i] += h_vals[i * NUM_STATES + j] * initial_state[j];
@@ -276,8 +276,8 @@ proptest! {
             filter.predict();
 
             measurement.measurement_vector_mut().apply(|vec| {
-                for i in 0..NUM_OBSERVATIONS {
-                    vec.set_at(i, 0, z[i]);
+                for (i, &v) in z.iter().enumerate() {
+                    vec.set_at(i, 0, v);
                 }
             });
             filter.correct(&mut measurement);
@@ -286,27 +286,27 @@ proptest! {
         // State should remain finite
         let mut final_state = [0.0f32; NUM_STATES];
         filter.state_vector().inspect(|vec| {
-            for i in 0..NUM_STATES {
-                final_state[i] = vec.get_at(i, 0);
+            for (i, slot) in final_state.iter_mut().enumerate() {
+                *slot = vec.get_at(i, 0);
             }
         });
 
-        for i in 0..NUM_STATES {
+        for (i, &v) in final_state.iter().enumerate() {
             prop_assert!(
-                final_state[i].is_finite(),
-                "State[{}] diverged to non-finite value: {}", i, final_state[i]
+                v.is_finite(),
+                "State[{}] diverged to non-finite value: {}", i, v
             );
         }
 
         // With A=I, Q=0, and perfect measurements, the state should converge
         // toward something reasonable (not blow up). We check that it stays
         // within a reasonable bound of the initial state.
-        for i in 0..NUM_STATES {
-            let diff = (final_state[i] - initial_state_vec[i]).abs();
+        for (i, (&v, &init)) in final_state.iter().zip(initial_state_vec.iter()).enumerate() {
+            let diff = (v - init).abs();
             prop_assert!(
                 diff < 1e4,
                 "State[{}] drifted too far from initial: {} vs {} (diff={})",
-                i, final_state[i], initial_state_vec[i], diff
+                i, v, init, diff
             );
         }
     }
@@ -342,15 +342,15 @@ proptest! {
 
         // Set measurement
         measurement.measurement_vector_mut().apply(|vec| {
-            for i in 0..NUM_OBSERVATIONS {
-                vec.set_at(i, 0, meas_vals[i]);
+            for (i, &v) in meas_vals.iter().enumerate() {
+                vec.set_at(i, 0, v);
             }
         });
 
         // Compute expected innovation: y = z - H*x
-        let mut expected_innovation = vec![0.0f32; NUM_OBSERVATIONS];
-        for i in 0..NUM_OBSERVATIONS {
-            expected_innovation[i] = meas_vals[i];
+        let mut expected_innovation = [0.0f32; NUM_OBSERVATIONS];
+        for (i, &m) in meas_vals.iter().enumerate() {
+            expected_innovation[i] = m;
             for j in 0..NUM_STATES {
                 expected_innovation[i] -= h_vals[i * NUM_STATES + j] * state_vals[j];
             }
@@ -364,14 +364,14 @@ proptest! {
         // We verify the filter didn't panic and state is finite.
         let mut final_state = [0.0f32; NUM_STATES];
         filter.state_vector().inspect(|vec| {
-            for i in 0..NUM_STATES {
-                final_state[i] = vec.get_at(i, 0);
+            for (i, slot) in final_state.iter_mut().enumerate() {
+                *slot = vec.get_at(i, 0);
             }
         });
 
-        for i in 0..NUM_STATES {
+        for (i, &v) in final_state.iter().enumerate() {
             prop_assert!(
-                final_state[i].is_finite(),
+                v.is_finite(),
                 "State[{}] is non-finite after correct", i
             );
         }
@@ -400,8 +400,8 @@ proptest! {
 
         // Set state
         filter.state_vector_mut().apply(|vec| {
-            for i in 0..NUM_STATES {
-                vec.set_at(i, 0, state_vals[i]);
+            for (i, &v) in state_vals.iter().enumerate() {
+                vec.set_at(i, 0, v);
             }
         });
 
@@ -469,14 +469,14 @@ proptest! {
         // Verify state is finite
         let mut final_state = [0.0f32; NUM_STATES];
         filter.state_vector().inspect(|vec| {
-            for i in 0..NUM_STATES {
-                final_state[i] = vec.get_at(i, 0);
+            for (i, slot) in final_state.iter_mut().enumerate() {
+                *slot = vec.get_at(i, 0);
             }
         });
 
-        for i in 0..NUM_STATES {
+        for (i, &v) in final_state.iter().enumerate() {
             prop_assert!(
-                final_state[i].is_finite(),
+                v.is_finite(),
                 "Extended filter state[{}] is non-finite", i
             );
         }
