@@ -93,14 +93,14 @@ impl MatrixData {
     /// Creates a new matrix buffer that references the data.
     pub const fn new_ref<const ROWS: usize, const COLS: usize, T>(
         data: &[T],
-    ) -> MatrixDataRef<ROWS, COLS, T> {
+    ) -> MatrixDataRef<'_, ROWS, COLS, T> {
         MatrixDataRef::<ROWS, COLS, T>::new(data)
     }
 
     /// Creates a new matrix buffer that mutably references the data.
     pub fn new_mut<const ROWS: usize, const COLS: usize, T>(
         data: &mut [T],
-    ) -> MatrixDataMut<ROWS, COLS, T> {
+    ) -> MatrixDataMut<'_, ROWS, COLS, T> {
         MatrixDataMut::<ROWS, COLS, T>::new(data)
     }
 }
