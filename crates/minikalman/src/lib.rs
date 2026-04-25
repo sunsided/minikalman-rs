@@ -4,6 +4,37 @@
 //! a microcontroller targeted Kalman filter implementation. It can use [`micromath`](https://docs.rs/micromath)
 //! for square root and reciprocal calculations on `no_std`; [`libm`](https://docs.rs/libm) is supported as well.
 //!
+//! ## The Kalman Filter Equations
+//!
+//! The discrete-time Kalman filter operates in two phases:
+//!
+//! **Prediction (time update):**
+//!
+//! $$
+//! \begin{aligned}
+//! \mathbf{x}\_{k|k-1} &= \mathbf{A} \\, \mathbf{x}\_{k-1|k-1} \\\\
+//! \mathbf{P}\_{k|k-1} &= \mathbf{A} \\, \mathbf{P}\_{k-1|k-1} \\, \mathbf{A}^\top + \mathbf{Q}
+//! \end{aligned}
+//! $$
+//!
+//! **Correction (measurement update):**
+//!
+//! $$
+//! \begin{aligned}
+//! \mathbf{y}\_k &= \mathbf{z}\_k - \mathbf{H} \\, \mathbf{x}\_{k|k-1} \\\\
+//! \mathbf{S}\_k &= \mathbf{H} \\, \mathbf{P}\_{k|k-1} \\, \mathbf{H}^\top + \mathbf{R} \\\\
+//! \mathbf{K}\_k &= \mathbf{P}\_{k|k-1} \\, \mathbf{H}^\top \\, \mathbf{S}\_k^{-1} \\\\
+//! \mathbf{x}\_{k|k} &= \mathbf{x}\_{k|k-1} + \mathbf{K}\_k \\, \mathbf{y}\_k \\\\
+//! \mathbf{P}\_{k|k} &= (\mathbf{I} - \mathbf{K}\_k \\, \mathbf{H}) \\, \mathbf{P}\_{k|k-1}
+//! \end{aligned}
+//! $$
+//!
+//! where \\(\mathbf{x}\\) is the state vector, \\(\mathbf{P}\\) the estimate covariance,
+//! \\(\mathbf{A}\\) the state transition matrix, \\(\mathbf{Q}\\) the process noise covariance,
+//! \\(\mathbf{z}\\) the measurement, \\(\mathbf{H}\\) the observation matrix,
+//! \\(\mathbf{R}\\) the measurement noise covariance, \\(\mathbf{y}\\) the innovation,
+//! \\(\mathbf{S}\\) the innovation covariance, and \\(\mathbf{K}\\) the Kalman gain.
+//!
 //! This implementation uses statically allocated buffers for all matrix operations. Due to lack
 //! of `const` generics for array allocations in Rust, this crate also provides helper macros
 //! to create the required arrays (see e.g. [`impl_buffer_A`]).

@@ -339,6 +339,13 @@ where
 {
     /// Applies a nonlinear correction step to the provided state vector and covariance matrix.
     ///
+    /// Computes the nonlinear observation and innovation:
+    ///
+    /// - \\(\mathbf{y} = \mathbf{z} - h(\mathbf{x})\\) (nonlinear innovation)
+    ///
+    /// then delegates to the internal update step for the
+    /// standard Kalman update equations.
+    ///
     /// ## Arguments
     /// * `x` - The current state vector.
     /// * `P` - The current state estimate covariance matrix.

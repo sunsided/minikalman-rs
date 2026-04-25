@@ -334,6 +334,10 @@ where
     T: MatrixDataType,
 {
     /// Applies a correction step to the provided state vector and covariance matrix.
+    ///
+    /// Computes the innovation and delegates the update to the internal update step:
+    ///
+    /// - \\(\mathbf{y} = \mathbf{z} - \mathbf{H} \\, \mathbf{x}\\) (innovation)
     #[inline]
     #[allow(non_snake_case)]
     pub fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
@@ -357,6 +361,17 @@ where
 
     /// Performs the update step. Assumes that the innovation vector is already calculated correctly,
     /// either by means of [`correct`](Self::correct) or [`correct_nonlinear`](Self::correct_nonlinear).
+    ///
+    /// The update equations are:
+    ///
+    /// $$
+    /// \begin{aligned}
+    /// \mathbf{S} &= \mathbf{H} \\, \mathbf{P} \\, \mathbf{H}^\top + \mathbf{R} \\\\
+    /// \mathbf{K} &= \mathbf{P} \\, \mathbf{H}^\top \\, \mathbf{S}^{-1} \\\\
+    /// \mathbf{x} &\leftarrow \mathbf{x} + \mathbf{K} \\, \mathbf{y} \\\\
+    /// \mathbf{P} &\leftarrow (\mathbf{I} - \mathbf{K} \\, \mathbf{H}) \\, \mathbf{P}
+    /// \end{aligned}
+    /// $$
     ///
     /// ## Arguments
     /// * `x` - The current state vector.

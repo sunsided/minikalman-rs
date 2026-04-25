@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build documentation
-        run: cargo doc
+        run: cargo doc --no-deps --package minikalman --all-features
 
   codecov:
     needs: lint

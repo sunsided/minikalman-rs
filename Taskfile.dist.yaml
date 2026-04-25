@@ -162,6 +162,20 @@ tasks:
       - test:all-features
       - test:no-features
 
+  docs:
+    desc: Build rustdoc with KaTeX math rendering
+    aliases:
+      - doc
+    cmds:
+      - RUSTDOCFLAGS="--html-in-header $(pwd)/crates/minikalman/katex-header.html" cargo doc --no-deps --all-features
+
+  docs:open:
+    desc: Build rustdoc with KaTeX math rendering (and open them)
+    aliases:
+      - doc:open
+    cmds:
+      - RUSTDOCFLAGS="--html-in-header $(pwd)/crates/minikalman/katex-header.html" cargo doc --no-deps --all-features --open
+
   clean:
     desc: Remove Cargo build artifacts
     cmds:

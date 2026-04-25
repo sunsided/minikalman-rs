@@ -1,7 +1,31 @@
+# Agent instructions
+
+## Writing Math in Doc Comments
+
+This crate uses [KaTeX](https://katex.org/) for rendering math in rustdoc. The
+KaTeX header is injected via `--html-in-header` on both docs.rs and local
+`cargo doc`. Build the docs with `task docs`.
+
+**Delimiters:**
+- `\( ... \)` for inline math (e.g., \(\mathbf{x}\) is the state vector)
+- `$$ ... $$` on its own line for display math
+- `\[ ... \]` also works for display math
+- Bare `$ ... $` is intentionally **not** supported
+
+**Conventions:**
+- Use `\_` if an underscore is needed (e.g. for subscripts) in LaTeX; the Markdown preprocessor strips the `\`
+- Use `\*` if an asterisk is needed in LaTeX; the Markdown preprocessor strips the `\`
+- Use `\mathbf{}` for vectors and matrices (e.g., `\mathbf{x}`, `\mathbf{P}`, `\mathbf{A}`)
+- Use `\top` for transpose (e.g., `\mathbf{A}^\top`)
+- Use `\leftarrow` for assignment/update (e.g., `\mathbf{x} \leftarrow \mathbf{A} \, \mathbf{x}`)
+- Use `\,` for thin spacing between multiplied terms
+- Escape subscript underscores inside math as needed; `\mathrm{}` or `\text{}` for letter subscripts
+- Internal `//` comments may keep ASCII notation; only `///` public doc comments need LaTeX
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **kalman-rs** (1520 symbols, 2785 relationships, 79 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **kalman-rs** (1807 symbols, 3147 relationships, 79 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

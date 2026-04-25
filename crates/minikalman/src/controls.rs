@@ -194,7 +194,15 @@ where
     TempBQ: TemporaryBQMatrix<STATES, CONTROLS, T>,
     T: MatrixDataType,
 {
-    /// Applies a correction step to the provided state vector and covariance matrix.
+    /// Applies the control input to the provided state vector and covariance matrix.
+    ///
+    /// Incorporates the control input into the state estimate:
+    ///
+    /// - \\(\mathbf{x} \leftarrow \mathbf{x} + \mathbf{B} \\, \mathbf{u}\\)
+    /// - \\(\mathbf{P} \leftarrow \mathbf{P} + \mathbf{B} \\, \mathbf{Q}\_u \\, \mathbf{B}^\top\\)
+    ///
+    /// where \\(\mathbf{B}\\) is the control transition matrix, \\(\mathbf{u}\\) the control vector,
+    /// and \\(\mathbf{Q}\_u\\) the control process noise covariance.
     #[allow(non_snake_case)]
     pub fn apply_control<X, P>(&mut self, x: &mut X, P: &mut P)
     where

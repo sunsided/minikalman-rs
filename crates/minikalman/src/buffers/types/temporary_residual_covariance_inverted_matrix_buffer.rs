@@ -8,9 +8,9 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the temporary inverted innovation residual covariance matrix (`num_measurements` × `num_measurements`).
 ///
-/// This matrix represents the inverse of the innovation (residual) covariance matrix, \( S^{-1} \).
+/// This matrix represents the inverse of the innovation (residual) covariance matrix, \\( S^{-1} \\).
 /// It quantifies the weight given to the innovation (residual) in the update step of the Kalman Filter.
-/// By inverting the innovation covariance matrix, \( S^{-1} \) provides a measure of the certainty
+/// By inverting the innovation covariance matrix, \\( S^{-1} \\) provides a measure of the certainty
 /// of the innovation, allowing the Kalman gain to optimally adjust the state estimate based on
 /// the difference between the predicted and actual measurements. This inverse matrix ensures that
 /// the filter accurately balances the contributions of the state prediction and the measurement
