@@ -343,8 +343,8 @@ where
     /// * `x` - The current state vector.
     /// * `P` - The current state estimate covariance matrix.
     /// * `observation` - The observation function; takes the current state and provides observations.
-    ///                   This function uses the innovation vector as a temporary storage, even though
-    ///                   the innovation itself will only be calculated afterward.
+    ///   This function uses the innovation vector as a temporary storage, even though
+    ///   the innovation itself will only be calculated afterward.
     #[inline]
     #[allow(non_snake_case)]
     pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, mut observation: F)

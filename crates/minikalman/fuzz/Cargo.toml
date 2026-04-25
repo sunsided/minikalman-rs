@@ -1,0 +1,43 @@
+[package]
+name = "minikalman-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+arbitrary = { version = "1", features = ["derive"] }
+libfuzzer-sys = "0.4"
+minikalman = { path = "..", features = ["libm", "alloc"] }
+
+[[bin]]
+name = "matrix_cholesky"
+path = "fuzz_targets/matrix_cholesky.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "matrix_mult"
+path = "fuzz_targets/matrix_mult.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "regular_filter"
+path = "fuzz_targets/regular_filter.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "extended_filter"
+path = "fuzz_targets/extended_filter.rs"
+test = false
+doc = false
+bench = false

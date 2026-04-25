@@ -2,6 +2,7 @@
 resolver = "2"
 members = ["crates/minikalman", "xbuild-tests/stm32"]
 default-members = ["crates/minikalman"]
+exclude = ["crates/minikalman/fuzz"]
 
 [workspace.package]
 version = "0.6.0"
