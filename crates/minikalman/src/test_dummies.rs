@@ -488,7 +488,7 @@ impl<const NUM_SIGMA: usize, T> SigmaWeightsVector<NUM_SIGMA, T> for Dummy<T, NU
 
 impl<const NUM_SIGMA: usize, T> SigmaWeightsVectorMut<NUM_SIGMA, T> for Dummy<T, NUM_SIGMA, 1> {}
 
-impl<const STATES: usize, const NUM_SIGMA: usize, T> SigmaPredictedMatrix<STATES, NUM_SIGMA, T>
+impl<const STATES: usize, const NUM_SIGMA: usize, T> SigmaPropagatedMatrix<STATES, NUM_SIGMA, T>
     for Dummy<T, STATES, NUM_SIGMA>
 {
     type Target = DummyMatrix<T, STATES, NUM_SIGMA>;

@@ -1,5 +1,5 @@
 use crate::kalman::*;
-use crate::prelude::AsMatrixMut;
+use crate::prelude::{AsMatrix, AsMatrixMut};
 
 /// A Kalman Filter.
 pub trait KalmanFilter<const STATES: usize, T>:
@@ -695,8 +695,8 @@ pub trait KalmanFilterSigmaPointPredict<const STATES: usize, T>:
 pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: usize, T>:
     KalmanFilterStateVectorMut<STATES, T>
 {
-    /// The type for predicted sigma points.
-    type SigmaPredicted: AsMatrixMut<STATES, NUM_SIGMA, T>;
+    /// The type for propagated sigma points.
+    type SigmaPropagated: AsMatrix<STATES, NUM_SIGMA, T>;
 
     /// Performs the nonlinear correction step using sigma points.
     fn correct_sigma_point<M, F, const OBSERVATIONS: usize>(
@@ -705,7 +705,7 @@ pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: us
         observation: F,
     ) where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>,
-        F: FnMut(&Self::SigmaPredicted, &mut M::ObservedSigmaPoints);
+        F: FnMut(&Self::SigmaPropagated, &mut M::ObservedSigmaPoints);
 }
 
 /// Observation correct filter for Unscented Kalman Filter.
@@ -720,22 +720,11 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
     type ObservedSigmaPoints: AsMatrixMut<OBSERVATIONS, NUM_SIGMA, T>;
 
     /// Performs the correction given pre-populated observed sigma points.
+    ///
+    /// The closure receives predicted sigma points and is responsible for
+    /// populating the observed sigma points before correction proceeds.
     #[allow(non_snake_case)]
-    fn correct_with_observed<X, P, SP, F>(
-        &mut self,
-        x: &mut X,
-        P: &mut P,
-        sigma_predicted: &SP,
-        observation: F,
-    ) where
-        X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
-        F: FnMut(&SP, &mut Self::ObservedSigmaPoints);
-
-    /// Performs correction with explicit UKF weights and observation closure.
-    #[allow(non_snake_case)]
-    fn correct_with_weights<X, P, SP, F, W>(
+    fn correct_with_observed<X, P, SP, F, W>(
         &mut self,
         x: &mut X,
         P: &mut P,
@@ -746,14 +735,7 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
     ) where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
-        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
         F: FnMut(&SP, &mut Self::ObservedSigmaPoints);
-
-    /// Performs the full nonlinear correction step.
-    #[allow(non_snake_case)]
-    fn correct_nonlinear<X, P>(&mut self, x: &mut X, P: &mut P)
-    where
-        X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>;
 }

@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use crate::kalman::SigmaPredictedMatrix;
+use crate::kalman::SigmaPropagatedMatrix;
 use crate::matrix::{IntoInnerData, MatrixData, MatrixDataArray, MatrixDataMut};
 use crate::matrix::{Matrix, MatrixMut};
 use crate::prelude::{AsMatrix, AsMatrixMut, RowMajorSequentialData, RowMajorSequentialDataMut};
@@ -13,16 +13,16 @@ use crate::prelude::{AsMatrix, AsMatrixMut, RowMajorSequentialData, RowMajorSequ
 ///
 /// ## Example
 /// ```
-/// use minikalman::buffers::types::SigmaPredictedMatrixBuffer;
+/// use minikalman::buffers::types::SigmaPropagatedMatrixBuffer;
 /// use minikalman::prelude::*;
 ///
 /// const NUM_STATES: usize = 3;
 /// const NUM_SIGMA: usize = 2 * NUM_STATES + 1;
 ///
 /// let mut data = [0.0_f32; { NUM_STATES * NUM_SIGMA }];
-/// let buffer = SigmaPredictedMatrixBuffer::<NUM_STATES, NUM_SIGMA, f32, _>::from(data.as_mut_slice());
+/// let buffer = SigmaPropagatedMatrixBuffer::<NUM_STATES, NUM_SIGMA, f32, _>::from(data.as_mut_slice());
 /// ```
-pub struct SigmaPredictedMatrixBuffer<const STATES: usize, const NUM_SIGMA: usize, T, M>(
+pub struct SigmaPropagatedMatrixBuffer<const STATES: usize, const NUM_SIGMA: usize, T, M>(
     M,
     PhantomData<T>,
 )
@@ -30,7 +30,7 @@ where
     M: MatrixMut<STATES, NUM_SIGMA, T>;
 
 impl<const STATES: usize, const NUM_SIGMA: usize, const TOTAL: usize, T> From<[T; TOTAL]>
-    for SigmaPredictedMatrixBuffer<
+    for SigmaPropagatedMatrixBuffer<
         STATES,
         NUM_SIGMA,
         T,
@@ -47,7 +47,7 @@ impl<const STATES: usize, const NUM_SIGMA: usize, const TOTAL: usize, T> From<[T
 }
 
 impl<'a, const STATES: usize, const NUM_SIGMA: usize, T> From<&'a mut [T]>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, MatrixDataMut<'a, STATES, NUM_SIGMA, T>>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, MatrixDataMut<'a, STATES, NUM_SIGMA, T>>
 {
     fn from(value: &'a mut [T]) -> Self {
         #[cfg(not(feature = "no_assert"))]
@@ -59,7 +59,7 @@ impl<'a, const STATES: usize, const NUM_SIGMA: usize, T> From<&'a mut [T]>
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M>
-    SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -81,7 +81,7 @@ where
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> RowMajorSequentialData<STATES, NUM_SIGMA, T>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -93,7 +93,7 @@ where
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M>
     RowMajorSequentialDataMut<STATES, NUM_SIGMA, T>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -104,21 +104,21 @@ where
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> Matrix<STATES, NUM_SIGMA, T>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> MatrixMut<STATES, NUM_SIGMA, T>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
 }
 
-impl<const STATES: usize, const NUM_SIGMA: usize, T, M> SigmaPredictedMatrix<STATES, NUM_SIGMA, T>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+impl<const STATES: usize, const NUM_SIGMA: usize, T, M> SigmaPropagatedMatrix<STATES, NUM_SIGMA, T>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -137,7 +137,7 @@ where
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> AsMatrix<STATES, NUM_SIGMA, T>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -149,7 +149,7 @@ where
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> AsMatrixMut<STATES, NUM_SIGMA, T>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -161,7 +161,7 @@ where
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> Index<usize>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -173,7 +173,7 @@ where
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> IndexMut<usize>
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T>,
 {
@@ -183,7 +183,7 @@ where
 }
 
 impl<const STATES: usize, const NUM_SIGMA: usize, T, M> IntoInnerData
-    for SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, M>
+    for SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, M>
 where
     M: MatrixMut<STATES, NUM_SIGMA, T> + IntoInnerData,
 {

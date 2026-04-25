@@ -32,7 +32,7 @@ pub type KalmanFilterType<const STATES: usize, const NUM_SIGMA: usize, T> = Unsc
     TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
     SigmaPointMatrixBufferOwnedType<STATES, NUM_SIGMA, T>,
     SigmaWeightsVectorBufferOwnedType<NUM_SIGMA, T>,
-    SigmaPredictedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>,
+    SigmaPropagatedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>,
     TempSigmaPMatrixBufferOwnedType<STATES, T>,
 >;
 
@@ -79,7 +79,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
         // UKF-specific buffers.
         let sigma_points = BufferBuilder::sigma_point_matrix::<STATES, NUM_SIGMA>().new();
         let sigma_weights = BufferBuilder::sigma_weights_vector::<NUM_SIGMA>().new();
-        let sigma_predicted = BufferBuilder::sigma_predicted_matrix::<STATES, NUM_SIGMA>().new();
+        let sigma_propagated = BufferBuilder::sigma_propagated_matrix::<STATES, NUM_SIGMA>().new();
         let temp_sigma_P = BufferBuilder::temp_sigma_P::<STATES>().new();
 
         UnscentedKalman::new(
@@ -89,7 +89,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
             predicted_x,
             sigma_points,
             sigma_weights,
-            sigma_predicted,
+            sigma_propagated,
             temp_sigma_P,
             T::one(),
             T::from_usize(2).unwrap_or(T::one()),
@@ -111,7 +111,7 @@ impl<const STATES: usize, T> Default for KalmanFilterObservationBuilder<STATES, 
 
 /// The type of Kalman filter observation with owned buffers for UKF.
 ///
-/// See also the [`KalmanFilterUnscentedObservation`](crate::kalman::KalmanFilterUnscentedObservation) trait.
+/// See also the [`UnscentedObservation`](crate::unscented::UnscentedObservation) type.
 pub type KalmanFilterObservationType<
     const STATES: usize,
     const OBSERVATIONS: usize,

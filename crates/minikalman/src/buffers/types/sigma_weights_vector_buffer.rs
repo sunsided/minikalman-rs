@@ -8,9 +8,9 @@ use crate::prelude::{AsMatrix, AsMatrixMut, RowMajorSequentialData, RowMajorSequ
 
 /// Mutable buffer for sigma point weights (`num_sigma_points`).
 ///
-/// Stores the weights used for combining sigma points during the unscented transform.
-/// Typically stores both mean weights (W_m) and covariance weights (W_c) interleaved
-/// or in separate halves.
+/// Stores the covariance weights (W_c) used for combining sigma points during
+/// the unscented transform. The mean weight for the first sigma point (W_m0)
+/// is computed separately from `lambda / (n + lambda)` and not stored here.
 ///
 /// ## Example
 /// ```

@@ -425,34 +425,34 @@ macro_rules! impl_buffer_sigma_weights {
     };
 }
 
-/// Creates a static buffer for predicted sigma points (`num_states` × `num_sigma`).
+/// Creates a static buffer for propagated sigma points (`num_states` × `num_sigma`).
 #[macro_export]
-macro_rules! impl_buffer_sigma_predicted {
+macro_rules! impl_buffer_sigma_propagated {
     (mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_sigma_predicted!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
     };
     ($mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_sigma_predicted!($mat_name, $num_states, $num_sigma, $t, $init, let)
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let)
     };
     (let mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_sigma_predicted!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let mut)
     };
     (let $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_sigma_predicted!($mat_name, $num_states, $num_sigma, $t, $init, let)
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, let)
     };
     (static mut $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_sigma_predicted!($mat_name, $num_states, $num_sigma, $t, $init, static mut)
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, static mut)
     };
     (static $mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr) => {
-        $crate::impl_buffer_sigma_predicted!($mat_name, $num_states, $num_sigma, $t, $init, static)
+        $crate::impl_buffer_sigma_propagated!($mat_name, $num_states, $num_sigma, $t, $init, static)
     };
     ($mat_name:ident, $num_states:expr, $num_sigma:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
-        $($keywords)* $mat_name: $crate::buffers::types::SigmaPredictedMatrixBuffer<
+        $($keywords)* $mat_name: $crate::buffers::types::SigmaPropagatedMatrixBuffer<
             $num_states,
             $num_sigma,
             $t,
             $crate::matrix::MatrixDataArray<$num_states, $num_sigma, { $num_states * $num_sigma }, $t>,
-        > = $crate::buffers::types::SigmaPredictedMatrixBuffer::<
+        > = $crate::buffers::types::SigmaPropagatedMatrixBuffer::<
             $num_states,
             $num_sigma,
             $t,

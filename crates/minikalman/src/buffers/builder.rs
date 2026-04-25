@@ -137,9 +137,9 @@ impl BufferBuilder {
     }
 
     #[allow(non_snake_case)]
-    pub fn sigma_predicted_matrix<const STATES: usize, const NUM_SIGMA: usize>(
-    ) -> SigmaPredictedMatrixBufferBuilder<STATES, NUM_SIGMA> {
-        SigmaPredictedMatrixBufferBuilder
+    pub fn sigma_propagated_matrix<const STATES: usize, const NUM_SIGMA: usize>(
+    ) -> SigmaPropagatedMatrixBufferBuilder<STATES, NUM_SIGMA> {
+        SigmaPropagatedMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
@@ -228,8 +228,8 @@ pub struct SigmaPointMatrixBufferBuilder<const STATES: usize, const NUM_SIGMA: u
 /// A builder for sigma weights vectors (`num_sigma`).
 pub struct SigmaWeightsVectorBufferBuilder<const NUM_SIGMA: usize>;
 
-/// A builder for sigma predicted matrices (`num_states` × `num_sigma`).
-pub struct SigmaPredictedMatrixBufferBuilder<const STATES: usize, const NUM_SIGMA: usize>;
+/// A builder for sigma propagated matrices (`num_states` × `num_sigma`).
+pub struct SigmaPropagatedMatrixBufferBuilder<const STATES: usize, const NUM_SIGMA: usize>;
 
 /// A builder for sigma observed matrices (`num_observations` × `num_sigma`).
 pub struct SigmaObservedMatrixBufferBuilder<const OBSERVATIONS: usize, const NUM_SIGMA: usize>;
@@ -1465,18 +1465,18 @@ impl<const NUM_SIGMA: usize> SigmaWeightsVectorBufferBuilder<NUM_SIGMA> {
     }
 }
 
-/// The type of owned sigma predicted matrix buffers.
+/// The type of owned sigma propagated matrix buffers.
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub type SigmaPredictedMatrixBufferOwnedType<const STATES: usize, const NUM_SIGMA: usize, T> =
-    SigmaPredictedMatrixBuffer<STATES, NUM_SIGMA, T, MatrixDataBoxed<STATES, NUM_SIGMA, T>>;
+pub type SigmaPropagatedMatrixBufferOwnedType<const STATES: usize, const NUM_SIGMA: usize, T> =
+    SigmaPropagatedMatrixBuffer<STATES, NUM_SIGMA, T, MatrixDataBoxed<STATES, NUM_SIGMA, T>>;
 
 impl<const STATES: usize, const NUM_SIGMA: usize>
-    SigmaPredictedMatrixBufferBuilder<STATES, NUM_SIGMA>
+    SigmaPropagatedMatrixBufferBuilder<STATES, NUM_SIGMA>
 {
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new<T>(&self) -> SigmaPredictedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
+    pub fn new<T>(&self) -> SigmaPropagatedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
     where
         T: Copy + Default,
     {
@@ -1486,11 +1486,11 @@ impl<const STATES: usize, const NUM_SIGMA: usize>
     #[allow(clippy::new_ret_no_self, clippy::wrong_self_convention)]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
-    pub fn new_with<T>(&self, init: T) -> SigmaPredictedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
+    pub fn new_with<T>(&self, init: T) -> SigmaPropagatedMatrixBufferOwnedType<STATES, NUM_SIGMA, T>
     where
         T: Copy,
     {
-        SigmaPredictedMatrixBuffer::<
+        SigmaPropagatedMatrixBuffer::<
             STATES,
             NUM_SIGMA,
             T,

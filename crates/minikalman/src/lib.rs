@@ -253,7 +253,7 @@ pub mod unscented {
         CrossCovarianceMatrix, KalmanFilterSigmaPointCorrect, KalmanFilterSigmaPointPredict,
         KalmanFilterUnscentedObservationCorrectFilter, KalmanFilterUnscentedParams,
         KalmanFilterUnscentedParamsMut, SigmaObservedMatrix, SigmaPointMatrix,
-        SigmaPredictedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
+        SigmaPropagatedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
         UnscentedKalmanFilter,
     };
     pub use crate::observations::unscented::*;
@@ -279,7 +279,7 @@ pub mod prelude {
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P,
         impl_buffer_Q_control, impl_buffer_Q_direct, impl_buffer_R, impl_buffer_S,
         impl_buffer_cross_covariance, impl_buffer_sigma_observed, impl_buffer_sigma_points,
-        impl_buffer_sigma_predicted, impl_buffer_sigma_weights, impl_buffer_temp_BQ,
+        impl_buffer_sigma_propagated, impl_buffer_sigma_weights, impl_buffer_temp_BQ,
         impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P, impl_buffer_temp_PHt,
         impl_buffer_temp_S_inv, impl_buffer_temp_sigma_P, impl_buffer_temp_x, impl_buffer_u,
         impl_buffer_x, impl_buffer_y, impl_buffer_z,
@@ -289,6 +289,9 @@ pub mod prelude {
         size_buffer_A, size_buffer_B, size_buffer_H, size_buffer_K, size_buffer_P,
         size_buffer_Q_control, size_buffer_Q_direct, size_buffer_R, size_buffer_S, size_buffer_u,
         size_buffer_x, size_buffer_y, size_buffer_z,
+    };
+    pub use crate::{
+        size_buffer_sigma_observed, size_buffer_sigma_points, size_buffer_sigma_weights,
     };
     pub use crate::{
         size_buffer_temp_BQ, size_buffer_temp_HP, size_buffer_temp_KHP, size_buffer_temp_P,

@@ -33,7 +33,7 @@ fn main() {
 
     impl_buffer_sigma_points!(mut sigma_pts, NUM_STATES, NUM_SIGMA, f32, 0.0);
     impl_buffer_sigma_weights!(mut sigma_w, NUM_SIGMA, f32, 0.0);
-    impl_buffer_sigma_predicted!(mut sigma_pred, NUM_STATES, NUM_SIGMA, f32, 0.0);
+    impl_buffer_sigma_propagated!(mut sigma_prop, NUM_STATES, NUM_SIGMA, f32, 0.0);
     impl_buffer_temp_sigma_P!(mut sigma_temp_P, NUM_STATES, f32, 0.0);
 
     impl_buffer_z!(mut meas_z, NUM_OBSERVATIONS, f32, 0.0);
@@ -55,7 +55,7 @@ fn main() {
         predicted_x,
         sigma_pts,
         sigma_w,
-        sigma_pred,
+        sigma_prop,
         sigma_temp_P,
         1.0, // alpha: spread parameter
         2.0, // beta: distribution knowledge (2.0 for Gaussian)
@@ -143,13 +143,13 @@ fn main() {
 
             // Apply nonlinear correction step using sigma points.
             // No Jacobian computation needed!
-            // sigma_pred is row-major: sigma_pred[row * NUM_SIGMA + col]
-            filter.correct_sigma_point(&mut measurement, |sigma_pred, observed| {
+            // sigma_prop is row-major: sigma_prop[row * NUM_SIGMA + col]
+            filter.correct_sigma_point(&mut measurement, |sigma_propagated, observed| {
                 for j in 0..NUM_SIGMA {
-                    let px = sigma_pred[j];
-                    let py = sigma_pred[NUM_SIGMA + j];
-                    let vx = sigma_pred[2 * NUM_SIGMA + j];
-                    let vy = sigma_pred[3 * NUM_SIGMA + j];
+                    let px = sigma_propagated[j];
+                    let py = sigma_propagated[NUM_SIGMA + j];
+                    let vx = sigma_propagated[2 * NUM_SIGMA + j];
+                    let vy = sigma_propagated[3 * NUM_SIGMA + j];
 
                     let dx = px - RX;
                     let dy = py - RY;

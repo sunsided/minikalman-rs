@@ -440,7 +440,9 @@ pub trait SigmaPointMatrix<const STATES: usize, const NUM_SIGMA: usize, T = f32>
 
 /// Sigma point weights vector (`num_sigma`).
 ///
-/// Stores the weights for combining sigma points (both mean and covariance weights).
+/// Stores the covariance weights (W_c) for combining sigma points.
+/// The mean weight for the first sigma point (W_m0) is computed separately
+/// from `lambda / (n + lambda)` and not stored in this vector.
 pub trait SigmaWeightsVector<const NUM_SIGMA: usize, T = f32>:
     RowMajorSequentialData<NUM_SIGMA, 1, T> + Index<usize, Output = T> + AsMatrix<NUM_SIGMA, 1, T>
 {
@@ -458,7 +460,7 @@ pub trait SigmaWeightsVectorMut<const NUM_SIGMA: usize, T = f32>:
 /// Propagated sigma point matrix (`num_states` × `num_sigma`).
 ///
 /// Stores sigma points after propagation through the nonlinear state transition.
-pub trait SigmaPredictedMatrix<const STATES: usize, const NUM_SIGMA: usize, T = f32>:
+pub trait SigmaPropagatedMatrix<const STATES: usize, const NUM_SIGMA: usize, T = f32>:
     RowMajorSequentialData<STATES, NUM_SIGMA, T>
     + RowMajorSequentialDataMut<STATES, NUM_SIGMA, T>
     + Index<usize, Output = T>

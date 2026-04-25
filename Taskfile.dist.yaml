@@ -175,14 +175,14 @@ tasks:
     aliases:
       - example:radar-2d:ukf
     cmds:
-      - "{{.CARGO}} run --example radar-2d-ukf --all-features"
+      - "{{.CARGO}} run --example radar-2d-ukf --features std"
 
   example:ukf:radar-2d-builder:
     desc: Run the radar-2d UKF example (builder-based buffer construction)
     aliases:
       - example:radar-2d:ukf-builder
     cmds:
-      - "{{.CARGO}} run --example radar_2d_ukf_builder --all-features"
+      - "{{.CARGO}} run --example radar_2d_ukf_builder --features std"
 
   # Extended Kalman Filter examples
   example:ekf:radar-2d:

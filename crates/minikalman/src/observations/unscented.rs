@@ -3,7 +3,7 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{AsMatrixMut, Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::matrix::{AsMatrix, AsMatrixMut, Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
 #[allow(non_snake_case)]
@@ -272,15 +272,15 @@ where
     TempP: TempSigmaPMatrix<STATES, T>,
 {
     #[allow(non_snake_case)]
-    pub fn correct_nonlinear<X, P, SP>(&mut self, x: &mut X, P: &mut P, sigma_predicted: &SP)
+    pub fn correct_nonlinear<X, P, SP>(&mut self, x: &mut X, P: &mut P, sigma_propagated: &SP)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
     {
         let z_pred = self.compute_predicted_measurement();
         self.compute_innovation_covariance(&z_pred);
-        self.compute_cross_covariance(&z_pred, sigma_predicted);
+        self.compute_cross_covariance(&z_pred, sigma_propagated);
         self.compute_kalman_gain();
         self.apply_correction(x, P, &z_pred);
     }
@@ -291,20 +291,20 @@ where
         &mut self,
         x: &mut X,
         P: &mut P,
-        sigma_predicted: &SP,
+        sigma_propagated: &SP,
         weights: &W,
         lambda: T,
     ) where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
-        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
     {
         let n = T::from_usize(STATES).unwrap();
         let w0_m = lambda / (n + lambda);
         let z_pred = self.compute_predicted_measurement_weighted(weights, w0_m);
         self.compute_innovation_covariance_weighted(&z_pred, weights);
-        self.compute_cross_covariance_weighted(&z_pred, sigma_predicted, weights, w0_m);
+        self.compute_cross_covariance_weighted(&z_pred, sigma_propagated, weights, w0_m);
         self.compute_kalman_gain();
         self.apply_correction(x, P, &z_pred);
     }
@@ -326,7 +326,7 @@ where
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn compute_predicted_measurement_weighted<W: AsMatrixMut<NUM_SIGMA, 1, T>>(
+    fn compute_predicted_measurement_weighted<W: AsMatrix<NUM_SIGMA, 1, T>>(
         &mut self,
         weights: &W,
         w0_m: T,
@@ -346,7 +346,7 @@ where
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn compute_innovation_covariance_weighted<W: AsMatrixMut<NUM_SIGMA, 1, T>>(
+    fn compute_innovation_covariance_weighted<W: AsMatrix<NUM_SIGMA, 1, T>>(
         &mut self,
         z_pred: &[T; OBSERVATIONS],
         weights: &W,
@@ -375,16 +375,16 @@ where
     fn compute_cross_covariance_weighted<SP, W>(
         &mut self,
         z_pred: &[T; OBSERVATIONS],
-        sigma_predicted: &SP,
+        sigma_propagated: &SP,
         weights: &W,
         w0_m: T,
     ) where
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
-        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
     {
         let cross_cov = self.cross_covariance.as_matrix_mut();
         let sigma_obs = self.sigma_observed.as_matrix();
-        let sigma_pred = sigma_predicted.as_matrix();
+        let sigma_prop = sigma_propagated.as_matrix();
         let w = weights.as_matrix();
 
         let mut x_mean = [T::default(); STATES];
@@ -392,7 +392,7 @@ where
             let mut sum = T::default();
             for k in 0..NUM_SIGMA {
                 let w_val = if k == 0 { w0_m } else { w.get(k, 0) };
-                sum += w_val * sigma_pred.get(i, k);
+                sum += w_val * sigma_prop.get(i, k);
             }
             x_mean[i] = sum;
         }
@@ -401,7 +401,7 @@ where
             for j in 0..OBSERVATIONS {
                 let mut sum = T::default();
                 for k in 0..NUM_SIGMA {
-                    let diff_x = sigma_pred.get(i, k) - x_mean[i];
+                    let diff_x = sigma_prop.get(i, k) - x_mean[i];
                     let diff_z = sigma_obs.get(j, k) - z_pred[j];
                     sum += w.get(k, 0) * diff_x * diff_z;
                 }
@@ -433,21 +433,21 @@ where
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn compute_cross_covariance<SP>(&mut self, z_pred: &[T; OBSERVATIONS], sigma_predicted: &SP)
+    fn compute_cross_covariance<SP>(&mut self, z_pred: &[T; OBSERVATIONS], sigma_propagated: &SP)
     where
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
     {
         let num_sigma = NUM_SIGMA;
         let cross_cov = self.cross_covariance.as_matrix_mut();
         let sigma_obs = self.sigma_observed.as_matrix();
-        let sigma_pred = sigma_predicted.as_matrix();
+        let sigma_prop = sigma_propagated.as_matrix();
 
-        // Compute mean of predicted sigma points (simple average)
+        // Compute mean of propagated sigma points (simple average)
         let mut x_mean = [T::default(); STATES];
         for i in 0..STATES {
             let mut sum = T::default();
             for k in 0..num_sigma {
-                sum += sigma_pred.get(i, k);
+                sum += sigma_prop.get(i, k);
             }
             x_mean[i] = sum / T::from_usize(num_sigma).unwrap();
         }
@@ -456,7 +456,7 @@ where
             for j in 0..OBSERVATIONS {
                 let mut sum = T::default();
                 for k in 0..num_sigma {
-                    let diff_x = sigma_pred.get(i, k) - x_mean[i];
+                    let diff_x = sigma_prop.get(i, k) - x_mean[i];
                     let diff_z = sigma_obs.get(j, k) - z_pred[j];
                     sum += diff_x * diff_z;
                 }
@@ -800,47 +800,23 @@ where
 {
     type ObservedSigmaPoints = SigmaObserved;
 
-    fn correct_with_observed<X, P, SP, F>(
+    fn correct_with_observed<X, P, SP, F, W>(
         &mut self,
         x: &mut X,
         P: &mut P,
-        sigma_predicted: &SP,
-        mut observation: F,
-    ) where
-        X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
-        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
-    {
-        observation(sigma_predicted, &mut self.sigma_observed);
-        self.correct_nonlinear(x, P, sigma_predicted);
-    }
-
-    fn correct_with_weights<X, P, SP, F, W>(
-        &mut self,
-        x: &mut X,
-        P: &mut P,
-        sigma_predicted: &SP,
+        sigma_propagated: &SP,
         weights: &W,
         lambda: T,
         mut observation: F,
     ) where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
-        W: AsMatrixMut<NUM_SIGMA, 1, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
         F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
     {
-        observation(sigma_predicted, &mut self.sigma_observed);
-        self.correct_with_weights(x, P, sigma_predicted, weights, lambda);
-    }
-
-    fn correct_nonlinear<X, P>(&mut self, _x: &mut X, _p: &mut P)
-    where
-        X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-    {
-        panic!("UKF correction requires sigma_predicted; use correct_with_observed instead")
+        observation(sigma_propagated, &mut self.sigma_observed);
+        self.correct_with_weights(x, P, sigma_propagated, weights, lambda);
     }
 }
 

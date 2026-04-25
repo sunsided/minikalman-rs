@@ -5,7 +5,7 @@
 
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
-use crate::prelude::AsMatrixMut;
+use crate::prelude::AsMatrix;
 use core::marker::PhantomData;
 
 /// Kalman Filter structure for Unscented Kalman Filter.
@@ -20,7 +20,7 @@ pub struct UnscentedKalman<
     PX,
     SigmaPoints,
     SigmaWeights,
-    SigmaPredicted,
+    SigmaPropagated,
     TempSigmaP,
 > {
     x: X,
@@ -29,7 +29,7 @@ pub struct UnscentedKalman<
     predicted_x: PX,
     sigma_points: SigmaPoints,
     sigma_weights: SigmaWeights,
-    sigma_predicted: SigmaPredicted,
+    sigma_propagated: SigmaPropagated,
     temp_sigma_P: TempSigmaP,
     alpha: T,
     beta: T,
@@ -47,7 +47,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -60,7 +60,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 {
@@ -79,7 +79,7 @@ impl<
         predicted_x: PX,
         sigma_points: SigmaPoints,
         sigma_weights: SigmaWeights,
-        sigma_predicted: SigmaPredicted,
+        sigma_propagated: SigmaPropagated,
         temp_sigma_P: TempSigmaP,
         alpha: T,
         beta: T,
@@ -92,7 +92,7 @@ impl<
             predicted_x,
             sigma_points,
             sigma_weights,
-            sigma_predicted,
+            sigma_propagated,
             temp_sigma_P,
             alpha,
             beta,
@@ -101,9 +101,9 @@ impl<
         }
     }
 
-    /// Returns a reference to the predicted sigma points buffer.
-    pub fn sigma_predicted(&self) -> &SigmaPredicted {
-        &self.sigma_predicted
+    /// Returns a reference to the propagated sigma points buffer.
+    pub fn sigma_propagated(&self) -> &SigmaPropagated {
+        &self.sigma_propagated
     }
 }
 
@@ -117,7 +117,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -130,7 +130,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -152,7 +152,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -165,7 +165,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -188,7 +188,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -201,7 +201,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -230,7 +230,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -243,7 +243,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -265,7 +265,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -278,7 +278,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -300,7 +300,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -313,7 +313,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -364,7 +364,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
     UnscentedKalman<
@@ -377,7 +377,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -396,7 +396,7 @@ where
     PX: PredictedStateEstimateVector<STATES, T>,
     SigmaPoints: SigmaPointMatrix<STATES, NUM_SIGMA, T>,
     SigmaWeights: SigmaWeightsVectorMut<NUM_SIGMA, T>,
-    SigmaPredicted: SigmaPredictedMatrix<STATES, NUM_SIGMA, T>,
+    SigmaPropagated: SigmaPropagatedMatrix<STATES, NUM_SIGMA, T>,
     TempSigmaP: TempSigmaPMatrix<STATES, T>,
 {
     #[allow(non_snake_case)]
@@ -451,7 +451,7 @@ where
         F: FnMut(&mut PX),
     {
         let sigma = self.sigma_points.as_matrix();
-        let sigma_pred = self.sigma_predicted.as_matrix_mut();
+        let sigma_prop = self.sigma_propagated.as_matrix_mut();
         for j in 0..NUM_SIGMA {
             // Load sigma point into predicted_x
             for i in 0..STATES {
@@ -461,7 +461,7 @@ where
             state_transition(&mut self.predicted_x);
             // Store result
             for i in 0..STATES {
-                sigma_pred.set(i, j, self.predicted_x.as_matrix().get(i, 0));
+                sigma_prop.set(i, j, self.predicted_x.as_matrix().get(i, 0));
             }
         }
     }
@@ -472,14 +472,14 @@ where
         let n = T::from_usize(STATES).unwrap();
         let w0_m = lambda / (n + lambda);
         let w = self.sigma_weights.as_matrix();
-        let sigma_pred = self.sigma_predicted.as_matrix();
+        let sigma_prop = self.sigma_propagated.as_matrix();
         let x = self.x.as_matrix_mut();
         let P = self.P.as_matrix_mut();
         for i in 0..STATES {
             x.set(i, 0, T::default());
             for j in 0..NUM_SIGMA {
                 let w_val = if j == 0 { w0_m } else { w.get(j, 0) };
-                x.set(i, 0, x.get(i, 0) + w_val * sigma_pred.get(i, j));
+                x.set(i, 0, x.get(i, 0) + w_val * sigma_prop.get(i, j));
             }
         }
         for i in 0..STATES {
@@ -491,8 +491,8 @@ where
             let w_val = w.get(k, 0);
             for i in 0..STATES {
                 for j in 0..STATES {
-                    let diff_i = sigma_pred.get(i, k) - x.get(i, 0);
-                    let diff_j = sigma_pred.get(j, k) - x.get(j, 0);
+                    let diff_i = sigma_prop.get(i, k) - x.get(i, 0);
+                    let diff_j = sigma_prop.get(j, k) - x.get(j, 0);
                     P.set(i, j, P.get(i, j) + w_val * diff_i * diff_j);
                 }
             }
@@ -523,7 +523,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterNumStates<STATES>
     for UnscentedKalman<
@@ -536,7 +536,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 {
@@ -552,7 +552,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterStateVector<STATES, T>
     for UnscentedKalman<
@@ -565,7 +565,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -588,7 +588,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterStateVectorMut<STATES, T>
     for UnscentedKalman<
@@ -601,7 +601,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -624,7 +624,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterEstimateCovariance<STATES, T>
     for UnscentedKalman<
@@ -637,7 +637,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -660,7 +660,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterEstimateCovarianceMut<STATES, T>
     for UnscentedKalman<
@@ -673,7 +673,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -696,7 +696,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterDirectProcessNoiseCovariance<STATES, T>
     for UnscentedKalman<
@@ -709,7 +709,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -732,7 +732,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterDirectProcessNoiseMut<STATES, T>
     for UnscentedKalman<
@@ -745,7 +745,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -768,7 +768,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterUnscentedParams<T>
     for UnscentedKalman<
@@ -781,7 +781,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -817,7 +817,53 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
+        TempSigmaP,
+    > KalmanFilterUnscentedParamsMut<T>
+    for UnscentedKalman<
+        STATES,
+        NUM_SIGMA,
+        T,
+        X,
+        P,
+        Q,
+        PX,
+        SigmaPoints,
+        SigmaWeights,
+        SigmaPropagated,
+        TempSigmaP,
+    >
+where
+    T: MatrixDataType
+        + Copy
+        + core::ops::Add<Output = T>
+        + core::ops::Mul<Output = T>
+        + core::ops::Sub<Output = T>
+        + num_traits::FromPrimitive
+        + PartialOrd,
+{
+    fn set_alpha(&mut self, v: T) {
+        self.alpha = v;
+    }
+    fn set_beta(&mut self, v: T) {
+        self.beta = v;
+    }
+    fn set_kappa(&mut self, v: T) {
+        self.kappa = v;
+    }
+}
+
+impl<
+        const STATES: usize,
+        const NUM_SIGMA: usize,
+        T,
+        X,
+        P,
+        Q,
+        PX,
+        SigmaPoints,
+        SigmaWeights,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterSigmaPointPredict<STATES, T>
     for UnscentedKalman<
@@ -830,7 +876,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -849,7 +895,7 @@ where
     PX: PredictedStateEstimateVector<STATES, T>,
     SigmaPoints: SigmaPointMatrix<STATES, NUM_SIGMA, T>,
     SigmaWeights: SigmaWeightsVectorMut<NUM_SIGMA, T>,
-    SigmaPredicted: SigmaPredictedMatrix<STATES, NUM_SIGMA, T>,
+    SigmaPropagated: SigmaPropagatedMatrix<STATES, NUM_SIGMA, T>,
     TempSigmaP: TempSigmaPMatrix<STATES, T>,
 {
     type NextStateVector = PX;
@@ -872,7 +918,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     > KalmanFilterSigmaPointCorrect<STATES, NUM_SIGMA, T>
     for UnscentedKalman<
@@ -885,7 +931,7 @@ impl<
         PX,
         SigmaPoints,
         SigmaWeights,
-        SigmaPredicted,
+        SigmaPropagated,
         TempSigmaP,
     >
 where
@@ -904,20 +950,20 @@ where
     PX: PredictedStateEstimateVector<STATES, T>,
     SigmaPoints: SigmaPointMatrix<STATES, NUM_SIGMA, T>,
     SigmaWeights: SigmaWeightsVectorMut<NUM_SIGMA, T>,
-    SigmaPredicted: SigmaPredictedMatrix<STATES, NUM_SIGMA, T> + AsMatrixMut<STATES, NUM_SIGMA, T>,
+    SigmaPropagated: SigmaPropagatedMatrix<STATES, NUM_SIGMA, T> + AsMatrix<STATES, NUM_SIGMA, T>,
     TempSigmaP: TempSigmaPMatrix<STATES, T>,
 {
-    type SigmaPredicted = SigmaPredicted;
+    type SigmaPropagated = SigmaPropagated;
     fn correct_sigma_point<M, F, const OBS: usize>(&mut self, measurement: &mut M, observation: F)
     where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBS, NUM_SIGMA, T>,
-        F: FnMut(&SigmaPredicted, &mut M::ObservedSigmaPoints),
+        F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
     {
         let lambda = self.lambda();
-        measurement.correct_with_weights(
+        measurement.correct_with_observed(
             &mut self.x,
             &mut self.P,
-            &self.sigma_predicted,
+            &self.sigma_propagated,
             &self.sigma_weights,
             lambda,
             observation,
