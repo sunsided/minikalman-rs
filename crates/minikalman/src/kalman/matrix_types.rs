@@ -421,3 +421,100 @@ pub trait TemporaryPHTMatrix<const STATES: usize, const OBSERVATIONS: usize, T =
     fn as_matrix(&self) -> &Self::Target;
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
 }
+
+/// Sigma point matrix (`num_states` × `num_sigma`).
+///
+/// Stores sigma points generated from the current state and covariance.
+pub trait SigmaPointMatrix<const STATES: usize, const NUM_SIGMA: usize, T = f32>:
+    RowMajorSequentialData<STATES, NUM_SIGMA, T>
+    + RowMajorSequentialDataMut<STATES, NUM_SIGMA, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+{
+    type Target: Matrix<STATES, NUM_SIGMA, T>;
+    type TargetMut: MatrixMut<STATES, NUM_SIGMA, T>;
+
+    fn as_matrix(&self) -> &Self::Target;
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
+}
+
+/// Sigma point weights vector (`num_sigma`).
+///
+/// Stores the weights for combining sigma points (both mean and covariance weights).
+pub trait SigmaWeightsVector<const NUM_SIGMA: usize, T = f32>:
+    RowMajorSequentialData<NUM_SIGMA, 1, T> + Index<usize, Output = T> + AsMatrix<NUM_SIGMA, 1, T>
+{
+}
+
+/// Sigma point weights vector (`num_sigma`), mutable variant.
+pub trait SigmaWeightsVectorMut<const NUM_SIGMA: usize, T = f32>:
+    SigmaWeightsVector<NUM_SIGMA, T>
+    + RowMajorSequentialDataMut<NUM_SIGMA, 1, T>
+    + IndexMut<usize, Output = T>
+    + AsMatrixMut<NUM_SIGMA, 1, T>
+{
+}
+
+/// Propagated sigma point matrix (`num_states` × `num_sigma`).
+///
+/// Stores sigma points after propagation through the nonlinear state transition.
+pub trait SigmaPredictedMatrix<const STATES: usize, const NUM_SIGMA: usize, T = f32>:
+    RowMajorSequentialData<STATES, NUM_SIGMA, T>
+    + RowMajorSequentialDataMut<STATES, NUM_SIGMA, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+{
+    type Target: Matrix<STATES, NUM_SIGMA, T>;
+    type TargetMut: MatrixMut<STATES, NUM_SIGMA, T>;
+
+    fn as_matrix(&self) -> &Self::Target;
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
+}
+
+/// Observed sigma point matrix (`num_observations` × `num_sigma`).
+///
+/// Stores sigma points after propagation through the nonlinear observation function.
+pub trait SigmaObservedMatrix<const OBSERVATIONS: usize, const NUM_SIGMA: usize, T = f32>:
+    RowMajorSequentialData<OBSERVATIONS, NUM_SIGMA, T>
+    + RowMajorSequentialDataMut<OBSERVATIONS, NUM_SIGMA, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+{
+    type Target: Matrix<OBSERVATIONS, NUM_SIGMA, T>;
+    type TargetMut: MatrixMut<OBSERVATIONS, NUM_SIGMA, T>;
+
+    fn as_matrix(&self) -> &Self::Target;
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
+}
+
+/// Cross-covariance matrix (`num_states` × `num_observations`).
+///
+/// Stores the cross-covariance between state and observation sigma points.
+pub trait CrossCovarianceMatrix<const STATES: usize, const OBSERVATIONS: usize, T = f32>:
+    RowMajorSequentialData<STATES, OBSERVATIONS, T>
+    + RowMajorSequentialDataMut<STATES, OBSERVATIONS, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+{
+    type Target: Matrix<STATES, OBSERVATIONS, T>;
+    type TargetMut: MatrixMut<STATES, OBSERVATIONS, T>;
+
+    fn as_matrix(&self) -> &Self::Target;
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
+}
+
+/// Temporary sigma P matrix (`num_states` × `num_states`).
+///
+/// Temporary matrix for sigma point covariance computation.
+pub trait TempSigmaPMatrix<const STATES: usize, T = f32>:
+    RowMajorSequentialData<STATES, STATES, T>
+    + RowMajorSequentialDataMut<STATES, STATES, T>
+    + Index<usize, Output = T>
+    + IndexMut<usize, Output = T>
+{
+    type Target: Matrix<STATES, STATES, T>;
+    type TargetMut: MatrixMut<STATES, STATES, T>;
+
+    fn as_matrix(&self) -> &Self::Target;
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut;
+}

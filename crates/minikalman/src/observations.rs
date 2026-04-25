@@ -1,4 +1,5 @@
-//! # Observations for Regular and Extended Kalman Filters.
+//! # Observations for Regular, Extended, and Unscented Kalman Filters.
 
 pub mod extended;
 pub mod regular;
+pub mod unscented;

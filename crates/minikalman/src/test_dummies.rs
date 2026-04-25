@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use crate::extended::{ExtendedObservation, ExtendedObservationBuilder};
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
@@ -465,4 +467,141 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T> TemporaryPHTMatrix<STATE
     fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
         &mut self.0
     }
+}
+
+impl<const STATES: usize, const NUM_SIGMA: usize, T> SigmaPointMatrix<STATES, NUM_SIGMA, T>
+    for Dummy<T, STATES, NUM_SIGMA>
+{
+    type Target = DummyMatrix<T, STATES, NUM_SIGMA>;
+    type TargetMut = DummyMatrix<T, STATES, NUM_SIGMA>;
+
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const NUM_SIGMA: usize, T> SigmaWeightsVector<NUM_SIGMA, T> for Dummy<T, NUM_SIGMA, 1> {}
+
+impl<const NUM_SIGMA: usize, T> SigmaWeightsVectorMut<NUM_SIGMA, T> for Dummy<T, NUM_SIGMA, 1> {}
+
+impl<const STATES: usize, const NUM_SIGMA: usize, T> SigmaPredictedMatrix<STATES, NUM_SIGMA, T>
+    for Dummy<T, STATES, NUM_SIGMA>
+{
+    type Target = DummyMatrix<T, STATES, NUM_SIGMA>;
+    type TargetMut = DummyMatrix<T, STATES, NUM_SIGMA>;
+
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const OBSERVATIONS: usize, const NUM_SIGMA: usize, T>
+    SigmaObservedMatrix<OBSERVATIONS, NUM_SIGMA, T> for Dummy<T, OBSERVATIONS, NUM_SIGMA>
+{
+    type Target = DummyMatrix<T, OBSERVATIONS, NUM_SIGMA>;
+    type TargetMut = DummyMatrix<T, OBSERVATIONS, NUM_SIGMA>;
+
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const STATES: usize, const OBSERVATIONS: usize, T>
+    CrossCovarianceMatrix<STATES, OBSERVATIONS, T> for Dummy<T, STATES, OBSERVATIONS>
+{
+    type Target = DummyMatrix<T, STATES, OBSERVATIONS>;
+    type TargetMut = DummyMatrix<T, STATES, OBSERVATIONS>;
+
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+impl<const STATES: usize, T> TempSigmaPMatrix<STATES, T> for Dummy<T, STATES, STATES> {
+    type Target = DummyMatrix<T, STATES, STATES>;
+    type TargetMut = DummyMatrix<T, STATES, STATES>;
+
+    fn as_matrix(&self) -> &Self::Target {
+        &self.0
+    }
+
+    fn as_matrix_mut(&mut self) -> &mut Self::TargetMut {
+        &mut self.0
+    }
+}
+
+use crate::kalman::unscented::UnscentedKalman;
+use crate::observations::unscented::UnscentedObservation;
+
+pub fn make_dummy_filter_ukf() -> UnscentedKalman<
+    3,
+    7,
+    f32,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 3>,
+    Dummy<f32, 3, 1>,
+    Dummy<f32, 3, 7>,
+    Dummy<f32, 7, 1>,
+    Dummy<f32, 3, 7>,
+    Dummy<f32, 3, 3>,
+> {
+    UnscentedKalman::new(
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        1e-3,
+        2.0,
+        0.0,
+    )
+}
+
+#[allow(dead_code)]
+pub fn make_dummy_observation_ukf() -> UnscentedObservation<
+    3,
+    2,
+    7,
+    f32,
+    Dummy<f32, 2, 7>,
+    Dummy<f32, 3, 2>,
+    Dummy<f32, 2, 1>,
+    Dummy<f32, 2, 2>,
+    Dummy<f32, 2, 1>,
+    Dummy<f32, 2, 2>,
+    Dummy<f32, 3, 2>,
+    Dummy<f32, 2, 2>,
+    Dummy<f32, 3, 3>,
+> {
+    UnscentedObservation::new(
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+        Dummy::default(),
+    )
 }
