@@ -268,6 +268,23 @@ At t = 14, corrected state: s = 960.39984 m, v = 136.6101 m/s, a = 9.684802 m/sÂ
 
 [`xbuild-tests/stm32`]: https://github.com/sunsided/minikalman-rs/tree/main/xbuild-tests/stm32
 
+## Building Documentation
+
+The crate's rustdoc uses [KaTeX](https://katex.org/) to render math equations.
+Build the documentation with:
+
+```shell
+cargo doc --no-deps --all-features
+```
+
+or with the Taskfile target:
+
+```shell
+task docs
+```
+
+The rendered docs are available at `target/doc/minikalman/index.html`.
+
 ## Testing & Fuzzing
 
 ### Property-based tests (stable)

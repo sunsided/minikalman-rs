@@ -63,14 +63,24 @@ name = "proptest_filter"
 required-features = ["std"]
 
 [features]
+## Enables `libm` and `alloc` features by default.
 default = ["libm", "alloc"]
+## Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).
 std = ["num-traits/std", "alloc"]
+## Enables [libm](https://crates.io/crates/libm) support.
 libm = ["dep:libm", "num-traits/libm"]
+## Enables some unsafe pointer operations. Disabled by default;
+## when turned off, compiles the crate as `#![forbid(unsafe)]`.
 unsafe = []
+## Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 fixed = ["dep:fixed", "fixed/num-traits"]
+## Enables allocation support for builder types.
 alloc = []
 no_assert = []
+## Enables [micromath](https://crates.io/crates/micromath) support.
 micromath = ["dep:micromath"]
+## Enables [nalgebra](https://crates.io/crates/nalgebra) support.
+## For major parts, must be used in conjunction with `unsafe`.
 nalgebra = ["dep:nalgebra"]
 
 # Unstable implementation
@@ -96,4 +106,4 @@ rand_distr = "0.4.3"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "katex-header.html"]

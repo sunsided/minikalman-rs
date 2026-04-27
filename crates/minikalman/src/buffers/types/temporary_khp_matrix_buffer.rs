@@ -8,7 +8,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
 /// Mutable buffer for the temporary K×(H×P) matrix (`num_states` × `num_states`).
 ///
-/// This matrix represents the product of the Kalman gain and the product of the observation model and the estimate covariance, \( K×(H×P) \).
+/// This matrix represents the product of the Kalman gain and the product of the observation model and the estimate covariance, `K×(H×P)`.
 /// It quantifies the adjustment applied to the state estimate covariance during the measurement update step.
 /// The resulting matrix captures the influence of the Kalman gain on the uncertainty of the state estimate,
 /// providing an intermediate step in updating the estimate covariance matrix. This product helps to incorporate

@@ -48,7 +48,7 @@ jobs:
       - name: Clippy
         run: cargo clippy
       - name: Build documentation
-        run: cargo doc
+        run: cargo doc --no-deps
 
   build:
     needs: lint

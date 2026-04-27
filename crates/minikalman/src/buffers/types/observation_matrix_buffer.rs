@@ -10,14 +10,14 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 ///
 /// ## Regular Kalman Filters
 /// This matrix represents the observation model. It defines the relationship between
-/// the state and the measurements obtained from the system. The matrix \( H \) is used
+/// the state and the measurements obtained from the system. The matrix `H` is used
 /// to map the predicted state into the measurement space, allowing the Kalman filter
 /// to compare the predicted measurements with the actual measurements for updating the state estimate.
 ///
 /// ## Extended Kalman Filters
 /// This matrix represents the observation model in the context of the Extended Kalman Filter (EKF).
 /// It defines the relationship between the state and the measurements obtained from the system.
-/// In the EKF, the matrix \( H \) is the Jacobian of the measurement function with respect to the state,
+/// In the EKF, the matrix `H` is the Jacobian of the measurement function with respect to the state,
 /// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear measurement
 /// function around the current estimate, allowing the EKF to map the predicted state into the measurement
 /// space for comparison with the actual measurements during the update step.
@@ -45,14 +45,14 @@ where
 ///
 /// ## Regular Kalman Filters
 /// This matrix represents the observation model. It defines the relationship between
-/// the state and the measurements obtained from the system. The matrix \( H \) is used
+/// the state and the measurements obtained from the system. The matrix `H` is used
 /// to map the predicted state into the measurement space, allowing the Kalman filter
 /// to compare the predicted measurements with the actual measurements for updating the state estimate.
 ///
 /// ## Extended Kalman Filters
 /// This matrix represents the observation model in the context of the Extended Kalman Filter (EKF).
 /// It defines the relationship between the state and the measurements obtained from the system.
-/// In the EKF, the matrix \( H \) is the Jacobian of the measurement function with respect to the state,
+/// In the EKF, the matrix `H` is the Jacobian of the measurement function with respect to the state,
 /// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear measurement
 /// function around the current estimate, allowing the EKF to map the predicted state into the measurement
 /// space for comparison with the actual measurements during the update step.

@@ -423,7 +423,7 @@ pub trait KalmanFilterControlTransition<const STATES: usize, const CONTROLS: usi
     /// Gets a reference to the control transition matrix B.
     ///
     /// This matrix represents the control input model. It defines how the control inputs
-    /// influence the state evolution from one time step to the next. The matrix \( B \)
+    /// influence the state evolution from one time step to the next. The matrix `B`
     /// is used to incorporate the effect of control inputs into the state transition,
     /// allowing the model to account for external controls applied to the system.
     fn control_matrix(&self) -> &Self::ControlTransitionMatrix;
@@ -437,7 +437,7 @@ pub trait KalmanFilterControlTransitionMut<const STATES: usize, const CONTROLS: 
     /// Gets a mutable reference to the control transition matrix B.
     ///
     /// This matrix represents the control input model. It defines how the control inputs
-    /// influence the state evolution from one time step to the next. The matrix \( B \)
+    /// influence the state evolution from one time step to the next. The matrix `B`
     /// is used to incorporate the effect of control inputs into the state transition,
     /// allowing the model to account for external controls applied to the system.
     #[doc(alias = "kalman_get_control_matrix")]

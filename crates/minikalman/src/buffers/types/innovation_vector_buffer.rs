@@ -8,7 +8,7 @@ use crate::prelude::MatrixMut;
 ///
 /// This vector represents the innovation (or residual). It is the difference between the actual
 /// measurement and the predicted measurement based on the current state estimate. The innovation
-/// vector \( y \) quantifies the discrepancy between observed data and the filter's predictions,
+/// vector `y` quantifies the discrepancy between observed data and the filter's predictions,
 /// providing a measure of the new information gained from the measurements. This vector is used
 /// to update the state estimate, ensuring that the Kalman Filter corrects for any deviations
 /// between the predicted and actual observations, thus refining the state estimation.

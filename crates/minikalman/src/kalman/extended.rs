@@ -269,7 +269,13 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// This function can be used to implement the nonlinear state prediction step of the
     /// Extended Kalman Filter. Since it predicts both the next state and the next
     /// state estimate covariance, it interprets the state transition matrix ("A" or "F") as
-    /// the Jacobian of the state transition instead.
+    /// the Jacobian of the state transition instead:
+    ///
+    /// - \\(\mathbf{x}\_{k|k-1} = a(\mathbf{x}\_{k-1|k-1})\\) (nonlinear state prediction)
+    /// - \\(\mathbf{P}\_{k|k-1} = \mathbf{A} \\, \mathbf{P}\_{k-1|k-1} \\, \mathbf{A}^\top + \mathbf{Q}\\)
+    ///
+    /// where \\(\mathbf{A} = \frac{\partial a}{\partial \mathbf{x}}\\) is the Jacobian of the
+    /// nonlinear state transition function \\(a(\cdot)\\).
     ///
     /// Callers need to use the [`state_transition_jacobian_mut`](Self::state_transition_jacobian_mut) (or external
     /// access to the state transition matrix) to linearize it around the current state.
@@ -378,6 +384,11 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     }
 
     /// Nonlinear state transformation with a state estimation covariance tuning factor.
+    ///
+    /// Performs nonlinear prediction with the covariance scaled by \\(1/\lambda^2\\):
+    ///
+    /// - \\(\mathbf{x}\_{k|k-1} = a(\mathbf{x}\_{k-1|k-1})\\)
+    /// - \\(\mathbf{P}\_{k|k-1} = \frac{1}{\lambda^2} \\, \mathbf{A} \\, \mathbf{P}\_{k-1|k-1} \\, \mathbf{A}^\top + \mathbf{Q}\\)
     ///
     /// ## Arguments
     /// * `lambda` - The estimation covariance scaling factor, in range 0 < `lambda` <= 1.
@@ -500,6 +511,17 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// This function expects that the Jacobian of the observation transformation function
     /// is correctly set up for the measurement. See [`KalmanFilterObservationTransformationMut`](KalmanFilterObservationTransformationMut::observation_matrix_mut)
     /// for more information.
+    ///
+    /// The correction equations are:
+    ///
+    /// - \\(\mathbf{y} = \mathbf{z} - h(\mathbf{x})\\) (nonlinear innovation)
+    /// - \\(\mathbf{S} = \mathbf{H} \\, \mathbf{P} \\, \mathbf{H}^\top + \mathbf{R}\\)
+    /// - \\(\mathbf{K} = \mathbf{P} \\, \mathbf{H}^\top \\, \mathbf{S}^{-1}\\)
+    /// - \\(\mathbf{x} \leftarrow \mathbf{x} + \mathbf{K} \\, \mathbf{y}\\)
+    /// - \\(\mathbf{P} \leftarrow (\mathbf{I} - \mathbf{K} \\, \mathbf{H}) \\, \mathbf{P}\\)
+    ///
+    /// where \\(h(\cdot)\\) is the nonlinear observation function and
+    /// \\(\mathbf{H} = \frac{\partial h}{\partial \mathbf{x}}\\) is its Jacobian.
     ///
     /// ## Arguments
     /// * `measurement` - The measurement.

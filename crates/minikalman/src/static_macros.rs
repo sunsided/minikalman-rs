@@ -4,7 +4,7 @@
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// This vector represents the state estimate. It contains the predicted values of the system's
-/// state variables at a given time step. The state vector \( x \) is updated at each time step
+/// state variables at a given time step. The state vector `x` is updated at each time step
 /// based on the system dynamics, control inputs, and measurements. It provides the best estimate
 /// of the current state of the system, combining prior knowledge with new information from
 /// observations to minimize the estimation error.
@@ -83,13 +83,13 @@ macro_rules! impl_buffer_x {
 /// ## Regular Kalman Filters
 /// This matrix represents the state transition model. It defines how the state
 /// evolves from one time step to the next in the absence of process noise and control inputs.
-/// The matrix \( A \) is used to predict the next state based on the current state,
+/// The matrix `A` is used to predict the next state based on the current state,
 /// encapsulating the system dynamics and their influence on state progression.
 ///
 /// ## Extended Kalman Filters
 /// This matrix represents the state transition model in the context of the Extended Kalman Filter (EKF).
 /// It defines how the state evolves from one time step to the next in the absence of process noise and control inputs.
-/// In the EKF, the matrix \( A \) is the Jacobian of the state transition function with respect to the state,
+/// In the EKF, the matrix `A` is the Jacobian of the state transition function with respect to the state,
 /// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear state transition
 /// function around the current estimate, allowing the EKF to predict the next state based on the current state
 /// while accounting for the non-linear dynamics of the system.
@@ -293,7 +293,7 @@ macro_rules! impl_buffer_Q_direct {
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// This vector represents the control input. It contains the values of the external inputs
-/// applied to the system at a given time step. The control vector \( u \) influences the state
+/// applied to the system at a given time step. The control vector `u` influences the state
 /// transition, allowing the Kalman Filter to account for known control actions when predicting
 /// the next state. By incorporating the effects of these control inputs, the filter provides
 /// a more accurate and realistic estimate of the system's state.
@@ -581,7 +581,7 @@ macro_rules! impl_buffer_temp_sigma_P {
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// This matrix represents the control input model. It defines how the control inputs
-/// influence the state evolution from one time step to the next. The matrix \( B \)
+/// influence the state evolution from one time step to the next. The matrix `B`
 /// is used to incorporate the effect of control inputs into the state transition,
 /// allowing the model to account for external controls applied to the system.
 ///
@@ -773,14 +773,14 @@ macro_rules! impl_buffer_z {
 ///
 /// ## Regular Kalman Filters
 /// This matrix represents the observation model. It defines the relationship between
-/// the state and the measurements obtained from the system. The matrix \( H \) is used
+/// the state and the measurements obtained from the system. The matrix `H` is used
 /// to map the predicted state into the measurement space, allowing the Kalman filter
 /// to compare the predicted measurements with the actual measurements for updating the state estimate.
 ///
 /// ## Extended Kalman Filters
 /// This matrix represents the observation model in the context of the Extended Kalman Filter (EKF).
 /// It defines the relationship between the state and the measurements obtained from the system.
-/// In the EKF, the matrix \( H \) is the Jacobian of the measurement function with respect to the state,
+/// In the EKF, the matrix `H` is the Jacobian of the measurement function with respect to the state,
 /// evaluated at the current state estimate. This Jacobian matrix linearizes the non-linear measurement
 /// function around the current estimate, allowing the EKF to map the predicted state into the measurement
 /// space for comparison with the actual measurements during the update step.
@@ -859,7 +859,7 @@ macro_rules! impl_buffer_H {
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
 /// This matrix represents the measurement noise covariance. It quantifies the uncertainty
-/// associated with the measurements obtained from the system. The matrix \( R \) provides
+/// associated with the measurements obtained from the system. The matrix `R` provides
 /// a measure of the expected variability in the measurement noise, reflecting the accuracy
 /// and reliability of the sensor or measurement device. This matrix is used in the Kalman
 /// filter to weigh the influence of the actual measurements during the update step,
@@ -936,7 +936,7 @@ macro_rules! impl_buffer_R {
 ///
 /// This vector represents the innovation (or residual). It is the difference between the actual
 /// measurement and the predicted measurement based on the current state estimate. The innovation
-/// vector \( y \) quantifies the discrepancy between observed data and the filter's predictions,
+/// vector `y` quantifies the discrepancy between observed data and the filter's predictions,
 /// providing a measure of the new information gained from the measurements. This vector is used
 /// to update the state estimate, ensuring that the Kalman Filter corrects for any deviations
 /// between the predicted and actual observations, thus refining the state estimation.
@@ -1079,7 +1079,7 @@ macro_rules! impl_buffer_S {
 ///
 /// This matrix represents the Kalman gain. It determines how much the state estimate should
 /// be adjusted based on the difference between the predicted measurements and the actual measurements.
-/// The matrix \( K \) balances the uncertainty in the state estimate with the uncertainty in the
+/// The matrix `K` balances the uncertainty in the state estimate with the uncertainty in the
 /// measurements, providing an optimal weight for incorporating new measurement information into the
 /// state estimate. By minimizing the estimation error covariance, the Kalman gain ensures that the
 /// updated state estimate is as accurate as possible given the available data.
@@ -1274,7 +1274,7 @@ macro_rules! impl_buffer_temp_P {
 /// This will create a [`TemporaryBQMatrixBuffer`](crate::buffers::types::TemporaryBQMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
-/// This matrix represents the product of the control input model and the process noise covariance, \( B \cdot Q \).
+/// This matrix represents the product of the control input model and the process noise covariance, `B·Q`.
 /// It quantifies the influence of the process noise on the state evolution when control inputs are applied.
 /// The resulting matrix captures the combined effect of control input dynamics and inherent system noise,
 /// providing an intermediate step in calculating the control process noise contribution to the state
@@ -1344,9 +1344,9 @@ macro_rules! impl_buffer_temp_BQ {
 /// This will create a [`TemporaryResidualCovarianceInvertedMatrixBuffer`](crate::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
-/// This matrix represents the inverse of the innovation (residual) covariance matrix, \( S^{-1} \).
+/// This matrix represents the inverse of the innovation (residual) covariance matrix, `S^{-1}`.
 /// It quantifies the weight given to the innovation (residual) in the update step of the Kalman Filter.
-/// By inverting the innovation covariance matrix, \( S^{-1} \) provides a measure of the certainty
+/// By inverting the innovation covariance matrix, `S^{-1}` provides a measure of the certainty
 /// of the innovation, allowing the Kalman gain to optimally adjust the state estimate based on
 /// the difference between the predicted and actual measurements. This inverse matrix ensures that
 /// the filter accurately balances the contributions of the state prediction and the measurement
@@ -1421,7 +1421,7 @@ macro_rules! impl_buffer_temp_S_inv {
 /// This will create a [`TemporaryHPMatrixBuffer`](crate::buffers::types::TemporaryHPMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
-/// This matrix represents the product of the observation model and the estimate covariance, \( H×P \).
+/// This matrix represents the product of the observation model and the estimate covariance, `H×P`.
 /// It quantifies how the uncertainty in the state estimate propagates into the measurement space.
 /// The resulting matrix captures the influence of the current state uncertainty on the predicted
 /// measurements, providing an intermediate step in calculating the innovation (residual) covariance matrix.
@@ -1502,7 +1502,7 @@ macro_rules! impl_buffer_temp_HP {
 /// This will create a [`TemporaryPHTMatrixBuffer`](crate::buffers::types::TemporaryPHTMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
-/// This matrix represents the product of the estimate covariance and the transpose of the observation model, \( P×Hᵀ \).
+/// This matrix represents the product of the estimate covariance and the transpose of the observation model, `P×Hᵀ`.
 /// It quantifies how the uncertainty in the state estimate influences the relationship between the state and the measurements.
 /// The resulting matrix captures the effect of the current state uncertainty on the measurement update,
 /// providing an intermediate step in calculating the Kalman gain. This product helps to incorporate the
@@ -1583,7 +1583,7 @@ macro_rules! impl_buffer_temp_PHt {
 /// This will create a [`TemporaryKHPMatrixBuffer`](crate::buffers::types::TemporaryKHPMatrixBuffer)
 /// backed by a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
 ///
-/// This matrix represents the product of the Kalman gain and the product of the observation model and the estimate covariance, \( K×(H×P) \).
+/// This matrix represents the product of the Kalman gain and the product of the observation model and the estimate covariance, `K×(H×P)`.
 /// It quantifies the adjustment applied to the state estimate covariance during the measurement update step.
 /// The resulting matrix captures the influence of the Kalman gain on the uncertainty of the state estimate,
 /// providing an intermediate step in updating the estimate covariance matrix. This product helps to incorporate

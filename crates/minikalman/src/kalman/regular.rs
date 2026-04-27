@@ -295,6 +295,84 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///     filter.correct(&mut measurement);
     /// }
     /// ```
+    /// Performs the time update / prediction step.
+    ///
+    /// Updates the state vector and estimate covariance:
+    ///
+    /// - \\(\mathbf{x} \leftarrow \mathbf{A} \\, \mathbf{x}\\)
+    /// - \\(\mathbf{P} \leftarrow \mathbf{A} \\, \mathbf{P} \\, \mathbf{A}^\top + \mathbf{Q}\\)
+    ///
+    /// This call assumes that the control covariance and variables are already set in the filter structure.
+    ///
+    /// ## Example
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::prelude::*;
+    /// use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_CONTROLS: usize = 0;
+    /// # const NUM_OBSERVATIONS: usize = 1;
+    /// # // System buffers.
+    /// # impl_buffer_x!(mut gravity_x, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_A!(mut gravity_A, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_P!(mut gravity_P, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_Q_direct!(mut gravity_Q, NUM_STATES, f32, 0.0);
+    /// #
+    /// # // Filter temporaries.
+    /// # impl_buffer_temp_x!(mut gravity_temp_x, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_P!(mut gravity_temp_P, NUM_STATES, f32, 0.0);
+    /// #
+    /// # let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
+    /// #     gravity_A,
+    /// #     gravity_x,
+    /// #     gravity_P,
+    /// #     gravity_Q,
+    /// #     gravity_temp_x,
+    /// #     gravity_temp_P,
+    /// #  );
+    /// #
+    /// # // Observation buffers.
+    /// # impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
+    /// #
+    /// # // Observation temporaries.
+    /// # impl_buffer_temp_S_inv!(mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_HP!(mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// # impl_buffer_temp_PHt!(mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
+    /// # impl_buffer_temp_KHP!(mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
+    /// #
+    /// # let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+    /// #     gravity_H,
+    /// #     gravity_z,
+    /// #     gravity_R,
+    /// #     gravity_y,
+    /// #     gravity_S,
+    /// #     gravity_K,
+    /// #     gravity_temp_S_inv,
+    /// #     gravity_temp_HP,
+    /// #     gravity_temp_PHt,
+    /// #     gravity_temp_KHP,
+    /// # );
+    /// #
+    /// # const REAL_DISTANCE: &[f32] = &[0.0, 0.0, 0.0];
+    /// # const OBSERVATION_ERROR: &[f32] = &[0.0, 0.0, 0.0];
+    /// #
+    /// for t in 0..REAL_DISTANCE.len() {
+    ///     // Prediction.
+    ///     filter.predict();
+    ///
+    ///     // Measure ...
+    ///     let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
+    ///     measurement.measurement_vector_mut().apply(|z| z[0] = m);
+    ///
+    ///     // Update.
+    ///     filter.correct(&mut measurement);
+    /// }
+    /// ```
     #[doc(alias = "kalman_predict")]
     pub fn predict(&mut self)
     where
@@ -315,7 +393,12 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         self.predict_P();
     }
 
-    /// Performs the time update / prediction step.
+    /// Performs the time update / prediction step with a tuning factor.
+    ///
+    /// Updates the state vector and estimate covariance:
+    ///
+    /// - \\(\mathbf{x} \leftarrow \mathbf{A} \\, \mathbf{x}\\)
+    /// - \\(\mathbf{P} \leftarrow \frac{1}{\lambda^2} \\, \mathbf{A} \\, \mathbf{P} \\, \mathbf{A}^\top + \mathbf{Q}\\)
     ///
     /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
@@ -513,6 +596,14 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     }
 
     /// Performs the measurement update step.
+    ///
+    /// Applies a correction to the state estimate using an observation:
+    ///
+    /// - \\(\mathbf{y} = \mathbf{z} - \mathbf{H} \\, \mathbf{x}\\) (innovation)
+    /// - \\(\mathbf{S} = \mathbf{H} \\, \mathbf{P} \\, \mathbf{H}^\top + \mathbf{R}\\) (innovation covariance)
+    /// - \\(\mathbf{K} = \mathbf{P} \\, \mathbf{H}^\top \\, \mathbf{S}^{-1}\\) (Kalman gain)
+    /// - \\(\mathbf{x} \leftarrow \mathbf{x} + \mathbf{K} \\, \mathbf{y}\\) (state update)
+    /// - \\(\mathbf{P} \leftarrow (\mathbf{I} - \mathbf{K} \\, \mathbf{H}) \\, \mathbf{P}\\) (covariance update)
     ///
     /// ## Arguments
     /// * `measurement` - The measurement.

@@ -9,7 +9,7 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 /// Mutable buffer for the measurement noise covariance matrix (`num_measurements` × `num_measurements`), typically denoted "R".
 ///
 /// This matrix represents the measurement noise covariance. It quantifies the uncertainty
-/// associated with the measurements obtained from the system. The matrix \( R \) provides
+/// associated with the measurements obtained from the system. The matrix `R` provides
 /// a measure of the expected variability in the measurement noise, reflecting the accuracy
 /// and reliability of the sensor or measurement device. This matrix is used in the Kalman
 /// filter to weigh the influence of the actual measurements during the update step,
