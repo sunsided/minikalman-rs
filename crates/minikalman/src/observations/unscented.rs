@@ -918,9 +918,162 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::angles;
+    use crate::buffers::types::{SigmaPropagatedMatrixBuffer, SigmaWeightsVectorBuffer};
+    use crate::matrix::{MatrixData, RowMajorSequentialData};
 
     #[test]
     fn test_dummy() {
         assert_eq!(2 * 3 + 1, 7);
+    }
+
+    #[test]
+    fn anchored_mean_without_fix_is_weighted_mean() {
+        let points = MatrixData::new_array::<1, 3, 3, f64>([1.0, 2.0, 4.0]);
+        // The first weight is the covariance weight and must be ignored for the mean.
+        let weights = SigmaWeightsVectorBuffer::<3, f64, _>::from([99.0, 0.4, 0.4]);
+        let mean = anchored_mean(&points, &weights, 0.2, &mut |_: &mut [f64]| {});
+        assert!((mean[0] - (0.2 * 1.0 + 0.4 * 2.0 + 0.4 * 4.0)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn anchored_mean_wraps_across_pi() {
+        // 3.0 and -3.0 rad are 0.28 rad apart across π, not 6 rad apart across 0.
+        let points = MatrixData::new_array::<1, 3, 3, f64>([3.0, -3.0, 3.1]);
+        let third = 1.0 / 3.0;
+        let weights = SigmaWeightsVectorBuffer::<3, f64, _>::from([third, third, third]);
+
+        let wrapped = anchored_mean(&points, &weights, third, &mut |d: &mut [f64]| {
+            d[0] = angles::wrap_pi(d[0])
+        });
+        let expected = 3.0 + (2.0 * core::f64::consts::PI - 6.0 + 0.1) / 3.0;
+        assert!((wrapped[0] - expected).abs() < 1e-12, "{}", wrapped[0]);
+
+        let plain = anchored_mean(&points, &weights, third, &mut |_: &mut [f64]| {});
+        assert!(
+            (plain[0] - (3.0 - 3.0 + 3.1) / 3.0).abs() < 1e-12,
+            "{}",
+            plain[0]
+        );
+    }
+
+    /// Five sigma points around `x = (1, 2)` and the weights for `λ = 0`, i.e. `w0_m = 0`.
+    #[allow(clippy::type_complexity)]
+    fn sigma_points() -> (
+        SigmaPropagatedMatrixBuffer<2, 5, f64, crate::matrix::MatrixDataArray<2, 5, 10, f64>>,
+        SigmaWeightsVectorBuffer<5, f64, crate::matrix::MatrixDataArray<5, 1, 5, f64>>,
+    ) {
+        let sigma = SigmaPropagatedMatrixBuffer::from([
+            1.0, 1.5, 1.0, 0.5, 1.0, // x
+            2.0, 2.0, 2.5, 2.0, 1.5, // y
+        ]);
+        let weights = SigmaWeightsVectorBuffer::from([2.0, 0.25, 0.25, 0.25, 0.25]);
+        (sigma, weights)
+    }
+
+    /// Observes `x + y` for each sigma point.
+    fn observe_sum<SP, O>(sigma: &SP, observed: &mut O)
+    where
+        SP: AsMatrix<2, 5, f64>,
+        O: AsMatrixMut<1, 5, f64>,
+    {
+        let sigma = sigma.as_matrix();
+        let observed = observed.as_matrix_mut();
+        for k in 0..5 {
+            observed.set_at(0, k, sigma.get_at(0, k) + sigma.get_at(1, k));
+        }
+    }
+
+    #[cfg(feature = "alloc")]
+    #[allow(non_snake_case)]
+    fn correct_once(
+        correct: impl FnOnce(
+            &mut crate::kalman_builder::unscented::KalmanFilterObservationType<2, 1, 5, f64>,
+            &mut crate::buffers::types::StateVectorBuffer<
+                2,
+                f64,
+                crate::matrix::MatrixDataArray<2, 1, 2, f64>,
+            >,
+            &mut crate::buffers::types::EstimateCovarianceMatrixBuffer<
+                2,
+                f64,
+                crate::matrix::MatrixDataArray<2, 2, 4, f64>,
+            >,
+        ),
+    ) -> ([f64; 2], [f64; 4]) {
+        use crate::buffers::types::{EstimateCovarianceMatrixBuffer, StateVectorBuffer};
+        use crate::kalman_builder::unscented::KalmanFilterBuilder;
+
+        let builder = KalmanFilterBuilder::<2, f64>::default();
+        let mut measurement = builder.observations().build::<1, 5>();
+        measurement.measurement_vector_mut().set_at(0, 0, 3.2);
+        measurement
+            .measurement_noise_covariance_mut()
+            .set_at(0, 0, 0.1);
+
+        let mut x = StateVectorBuffer::from([1.0, 2.0]);
+        let mut P = EstimateCovarianceMatrixBuffer::from([0.125, 0.0, 0.0, 0.125]);
+        correct(&mut measurement, &mut x, &mut P);
+
+        let x = x.as_matrix();
+        let P = P.as_matrix();
+        (
+            [x.get_at(0, 0), x.get_at(1, 0)],
+            [
+                P.get_at(0, 0),
+                P.get_at(0, 1),
+                P.get_at(1, 0),
+                P.get_at(1, 1),
+            ],
+        )
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    #[allow(non_snake_case)]
+    fn all_weighted_entry_points_agree_without_fix() {
+        let (sigma, weights) = sigma_points();
+
+        let residuals = correct_once(|m, x, P| {
+            m.correct_with_observed_residuals(
+                x,
+                P,
+                &sigma,
+                &weights,
+                0.0,
+                observe_sum,
+                |_| {},
+                |_| {},
+            )
+        });
+        let observed = correct_once(|m, x, P| {
+            m.correct_with_observed(x, P, &sigma, &weights, 0.0, observe_sum)
+        });
+        let weighted = correct_once(|m, x, P| {
+            observe_sum(&sigma, &mut m.sigma_observed);
+            m.correct_with_weights(x, P, &sigma, &weights, 0.0)
+        });
+
+        assert_eq!(residuals, observed);
+        assert_eq!(residuals, weighted);
+
+        // The update pulls x + y from 3.0 towards the measurement 3.2 and shrinks P.
+        let ([x, y], [pxx, _, _, pyy]) = residuals;
+        assert!(x + y > 3.0 && x + y < 3.2, "x + y = {}", x + y);
+        assert!(pxx < 0.125 && pyy < 0.125);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    #[allow(non_snake_case)]
+    fn unweighted_correction_moves_towards_measurement() {
+        let (sigma, _) = sigma_points();
+        let ([x, y], [pxx, _, _, pyy]) = correct_once(|m, x, P| {
+            observe_sum(&sigma, &mut m.sigma_observed);
+            m.correct_nonlinear(x, P, &sigma)
+        });
+        assert!(x + y > 3.0 && x + y < 3.2, "x + y = {}", x + y);
+        assert!(pxx < 0.125 && pyy < 0.125);
     }
 }
