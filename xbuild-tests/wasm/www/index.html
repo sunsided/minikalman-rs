@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>minikalman in the browser</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; }
+    canvas { width: 100%; height: auto; border: 1px solid #ccc; }
+    .legend span { margin-right: 1.5rem; }
+    .truth { color: #888; } .meas { color: #d62728; } .est { color: #1f77b4; }
+  </style>
+</head>
+<body>
+  <h1>minikalman in the browser</h1>
+  <p>
+    A constant-velocity Kalman filter compiled to <code>wasm32-unknown-unknown</code>,
+    loaded with plain <code>WebAssembly.instantiateStreaming</code>.
+  </p>
+  <p class="legend">
+    <span class="truth">— true position</span>
+    <span class="meas">● noisy measurement</span>
+    <span class="est">— filtered estimate ±2σ</span>
+  </p>
+  <canvas id="plot" width="960" height="400"></canvas>
+  <p>
+    <label>Measurement noise σ <input id="sigma" type="range" min="0.1" max="3" step="0.1" value="1"></label>
+    <output id="sigma-value">1</output>
+    <button id="rerun">Rerun</button>
+  </p>
+  <p id="status"></p>
+
+  <script type="module">
+    const { instance } = await WebAssembly.instantiateStreaming(fetch("minikalman_wasm.wasm"), {});
+    const kf = instance.exports;
+
+    const canvas = document.getElementById("plot");
+    const ctx = canvas.getContext("2d");
+    const sigmaInput = document.getElementById("sigma");
+    const sigmaValue = document.getElementById("sigma-value");
+
+    // Box-Muller transform for normally distributed noise.
+    function gaussian() {
+      const u = 1 - Math.random();
+      const v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function run() {
+      const sigma = Number(sigmaInput.value);
+      sigmaValue.textContent = sigma.toFixed(1);
+
+      const dt = 0.1;
+      const n = 300;
+      kf.reset(dt, 0.5, sigma * sigma);
+
+      const rows = [];
+      for (let i = 0; i < n; i++) {
+        const t = i * dt;
+        const truth = 10 * Math.sin(t / 4) + t; // smooth, slowly changing velocity
+        const z = truth + sigma * gaussian();
+        const estimate = kf.step(z);
+        rows.push({ t, truth, z, estimate, sd: Math.sqrt(kf.position_variance()) });
+      }
+      draw(rows);
+      document.getElementById("status").textContent =
+        `final velocity estimate: ${kf.velocity().toFixed(2)} units/s`;
+    }
+
+    function draw(rows) {
+      const { width, height } = canvas;
+      const ys = rows.flatMap((r) => [r.truth, r.z]);
+      const yMin = Math.min(...ys), yMax = Math.max(...ys);
+      const x = (t) => (t / rows.at(-1).t) * (width - 20) + 10;
+      const y = (v) => height - 10 - ((v - yMin) / (yMax - yMin)) * (height - 20);
+
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.fillStyle = "rgba(31, 119, 180, 0.15)";
+      ctx.beginPath();
+      rows.forEach((r, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x(r.t), y(r.estimate + 2 * r.sd)));
+      [...rows].reverse().forEach((r) => ctx.lineTo(x(r.t), y(r.estimate - 2 * r.sd)));
+      ctx.fill();
+
+      ctx.fillStyle = "#d62728";
+      for (const r of rows) ctx.fillRect(x(r.t) - 1.5, y(r.z) - 1.5, 3, 3);
+
+      line(rows, (r) => r.truth, "#888");
+      line(rows, (r) => r.estimate, "#1f77b4");
+
+      function line(rows, f, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        rows.forEach((r, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x(r.t), y(f(r))));
+        ctx.stroke();
+      }
+    }
+
+    sigmaInput.addEventListener("input", run);
+    document.getElementById("rerun").addEventListener("click", run);
+    run();
+  </script>
+</body>
+</html>

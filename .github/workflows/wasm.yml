@@ -1,0 +1,55 @@
+---
+name: WebAssembly
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/minikalman/src/**"
+      - "crates/minikalman/Cargo.toml"
+      - "xbuild-tests/wasm/**"
+      - ".github/workflows/wasm.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/minikalman/src/**"
+      - "crates/minikalman/Cargo.toml"
+      - "xbuild-tests/wasm/**"
+      - ".github/workflows/wasm.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # The workspace release profile keeps debug info for the embedded targets.
+  CARGO_PROFILE_RELEASE_DEBUG: "false"
+  CARGO_PROFILE_RELEASE_STRIP: "true"
+
+jobs:
+  wasm32:
+    name: Build and smoke test (wasm32-unknown-unknown)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - name: Build library (no_std)
+        run: cargo build --release --package minikalman --target wasm32-unknown-unknown
+      - name: Build example module
+        run: cargo build --release --package minikalman-wasm --target wasm32-unknown-unknown
+      - name: Smoke test
+        run: |
+          wasm=target/wasm32-unknown-unknown/release/minikalman_wasm.wasm
+          ls -l "$wasm"
+          node xbuild-tests/wasm/smoke.mjs "$wasm"

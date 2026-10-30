@@ -217,6 +217,18 @@ tasks:
     cmds:
       - "{{.CARGO}} run --example car-1d --features std"
 
+  # WebAssembly example
+  example:wasm:
+    desc: Build the wasm32 browser example and serve it on http://localhost:8000
+    env:
+      CARGO_PROFILE_RELEASE_DEBUG: "false"
+      CARGO_PROFILE_RELEASE_STRIP: "true"
+    cmds:
+      - "{{.CARGO}} build --release -p minikalman-wasm --target wasm32-unknown-unknown"
+      - cp target/wasm32-unknown-unknown/release/minikalman_wasm.wasm xbuild-tests/wasm/www/
+      - node xbuild-tests/wasm/smoke.mjs xbuild-tests/wasm/www/minikalman_wasm.wasm
+      - python3 -m http.server --directory xbuild-tests/wasm/www
+
   docs:
     desc: Build rustdoc
     aliases:
