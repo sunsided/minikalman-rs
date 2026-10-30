@@ -9,6 +9,18 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Added `models::motion::constant_velocity` and `models::motion::constant_acceleration` to fill the state transition
   and process noise matrices for a given time step.
+- Added `correct_with` (regular) and `correct_nonlinear_with` (extended) to normalize the innovation
+  before it is applied, e.g. to wrap angles across ±π or 0°/360° ([#40]).
+- Added `angles::wrap_pi` and `angles::wrap_180`, which also work for fixed-point types.
+
+### Changed
+
+- **Breaking** for custom implementations of `KalmanFilterUpdate`, `KalmanFilterNonlinearUpdate`,
+  `KalmanFilterObservationCorrectFilter` and `KalmanFilterNonlinearObservationCorrectFilter`:
+  implement `correct_with` / `correct_nonlinear_with` instead of `correct` / `correct_nonlinear`,
+  which are now provided methods. Code that only calls these methods is unaffected.
+
+[#40]: https://github.com/sunsided/minikalman-rs/issues/40
 
 ## [0.7.0] - 2026-04-26
 

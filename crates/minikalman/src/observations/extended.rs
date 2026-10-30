@@ -3,7 +3,7 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::matrix::{Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut, SquareMatrix};
 
 /// A builder for a Kalman filter [`ExtendedObservation`] instances.
 #[allow(clippy::type_complexity)]
@@ -347,11 +347,36 @@ where
     ///   the innovation itself will only be calculated afterward.
     #[inline]
     #[allow(non_snake_case)]
-    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, mut observation: F)
+    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         F: FnMut(&X, &mut Y),
+    {
+        self.correct_nonlinear_with(x, P, observation, |_| {})
+    }
+
+    /// Applies a nonlinear correction step to the provided state vector and covariance matrix,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `fix` - Normalizes the innovation `y = z - h(x)` in place, e.g. by wrapping angles.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_with<X, P, F, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        mut observation: F,
+        mut fix: N,
+    ) where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        N: FnMut(&mut [T]),
     {
         // y = h(x)
         observation(x, &mut self.y);
@@ -362,6 +387,7 @@ where
         // Calculate innovation:
         // y = z - h(x)
         z.sub_inplace_b(y);
+        fix(y.as_mut_slice());
 
         // Perform the remaining update.
         self.update_with_innovation(x, P);
@@ -842,13 +868,14 @@ where
 
     #[inline(always)]
     #[allow(non_snake_case)]
-    fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
+    fn correct_nonlinear_with<X, P, F, N>(&mut self, x: &mut X, P: &mut P, observation: F, fix: N)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]),
     {
-        self.correct_nonlinear(x, P, observation)
+        self.correct_nonlinear_with(x, P, observation, fix)
     }
 }
 

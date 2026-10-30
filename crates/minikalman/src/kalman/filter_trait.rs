@@ -201,9 +201,25 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
+    #[inline(always)]
     fn correct<M>(&mut self, measurement: &mut M)
     where
-        M: KalmanFilterObservationCorrectFilter<STATES, T>;
+        M: KalmanFilterObservationCorrectFilter<STATES, T>,
+    {
+        self.correct_with(measurement, |_| {})
+    }
+
+    /// Performs the measurement update step, normalizing the innovation before it is applied.
+    ///
+    /// See [`KalmanFilterObservationCorrectFilter::correct_with`].
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement to update the state prediction with.
+    /// * `fix` - Normalizes the innovation `y = z - H×x`, e.g. by wrapping angles.
+    fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N)
+    where
+        M: KalmanFilterObservationCorrectFilter<STATES, T>,
+        N: FnMut(&mut [T]);
 }
 
 pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
@@ -213,6 +229,7 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
+    #[inline(always)]
     fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
@@ -222,7 +239,31 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
         F: FnMut(
             &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
             &mut M::ObservationVector,
-        );
+        ),
+    {
+        self.correct_nonlinear_with(measurement, observation, |_| {})
+    }
+
+    /// Performs the measurement update step, normalizing the innovation before it is applied.
+    ///
+    /// See [`KalmanFilterNonlinearObservationCorrectFilter::correct_nonlinear_with`].
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement to update the state prediction with.
+    /// * `observation` - The nonlinear observation function.
+    /// * `fix` - Normalizes the innovation `y = z - h(x)`, e.g. by wrapping angles.
+    fn correct_nonlinear_with<M, F, N, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+    ) where
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(
+            &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
+            &mut M::ObservationVector,
+        ),
+        N: FnMut(&mut [T]);
 }
 
 pub trait KalmanFilterStateVector<const STATES: usize, T> {
@@ -497,10 +538,32 @@ pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
     /// * `x` - The state vector.
     /// * `P` - The system covariance matrix.
     #[allow(non_snake_case)]
+    #[inline(always)]
     fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
     where
         X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>;
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        self.correct_with(x, P, |_| {})
+    }
+
+    /// Performs the measurement update step, normalizing the innovation before it is applied.
+    ///
+    /// The innovation `y = z - H×x` is computed by plain subtraction. For measurements that
+    /// wrap around, such as angles, the difference can come out a full turn too large;
+    /// `fix` receives `y` as a slice (one entry per measurement) and can wrap it back,
+    /// e.g. with [`angles::wrap_pi`](crate::angles::wrap_pi).
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `fix` - Normalizes the innovation vector in place.
+    #[allow(non_snake_case)]
+    fn correct_with<X, P, N>(&mut self, x: &mut X, P: &mut P, fix: N)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        N: FnMut(&mut [T]);
 }
 
 /// The observation function for an Extended Kalman Filter.
@@ -524,11 +587,36 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
     /// * `P` - The system covariance matrix.
     /// * `observations` - The nonlinear observation function.
     #[allow(non_snake_case)]
+    #[inline(always)]
     fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
-        F: FnMut(&X, &mut Self::ObservationVector);
+        F: FnMut(&X, &mut Self::ObservationVector),
+    {
+        self.correct_nonlinear_with(x, P, observation, |_| {})
+    }
+
+    /// Performs the nonlinear measurement update step, normalizing the innovation before
+    /// it is applied.
+    ///
+    /// The innovation `y = z - h(x)` is computed by plain subtraction. For measurements that
+    /// wrap around, such as bearings, the difference can come out a full turn too large;
+    /// `fix` receives `y` as a slice (one entry per measurement) and can wrap it back,
+    /// e.g. with [`angles::wrap_pi`](crate::angles::wrap_pi).
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `fix` - Normalizes the innovation vector in place.
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_with<X, P, F, N>(&mut self, x: &mut X, P: &mut P, observation: F, fix: N)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]);
 }
 
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {

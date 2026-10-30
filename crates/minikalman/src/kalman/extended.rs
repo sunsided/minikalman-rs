@@ -517,6 +517,38 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     {
         measurement.correct_nonlinear(&mut self.x, &mut self.P, observation);
     }
+
+    /// Performs the nonlinear measurement update step, normalizing the innovation before
+    /// it is applied.
+    ///
+    /// The innovation `y = z - h(x)` is computed by plain subtraction. For measurements that
+    /// wrap around, such as a bearing from `atan2`, `fix` can wrap each entry back into range,
+    /// e.g. `|y| y[1] = angles::wrap_pi(y[1])` with [`angles::wrap_pi`](crate::angles::wrap_pi).
+    ///
+    /// ## Extended Kalman Filters
+    /// This function expects that the Jacobian of the observation transformation function
+    /// is correctly set up for the measurement. See [`KalmanFilterObservationTransformationMut`](KalmanFilterObservationTransformationMut::observation_matrix_mut)
+    /// for more information.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - The observation function.
+    /// * `fix` - Normalizes the innovation vector in place.
+    pub fn correct_nonlinear_with<M, F, N, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+    ) where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+        N: FnMut(&mut [T]),
+    {
+        measurement.correct_nonlinear_with(&mut self.x, &mut self.P, observation, fix);
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>
@@ -660,15 +692,17 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
+    fn correct_nonlinear_with<M, F, N, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
+        fix: N,
     ) where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
         F: FnMut(&X, &mut M::ObservationVector),
+        N: FnMut(&mut [T]),
     {
-        self.correct_nonlinear(measurement, observation)
+        self.correct_nonlinear_with(measurement, observation, fix)
     }
 }
 
