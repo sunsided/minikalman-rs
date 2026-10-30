@@ -10,10 +10,12 @@ glue is needed.
 The page shows two demos:
 
 - **Smoothing a noisy position**: a linear constant-velocity filter in 1D.
-- **Tracking a moving target**: a radar at the origin measures range and
-  bearing to a passing target. An Extended and an Unscented Kalman filter run
-  side by side on the same measurements; each plot shows the crescent-shaped
-  measurement uncertainty against the filter's 2σ ellipse.
+- **Tracking a moving target**: radars measure range and bearing to a target
+  circling past them. An Extended and an Unscented Kalman filter run side by
+  side on the same measurements; each plot shows the crescent-shaped
+  measurement uncertainty against the filter's 2σ ellipse. Toggles turn on a
+  second radar and turn off wrapping of the bearing residual, to show what goes
+  wrong when the target passes behind a radar.
 
 ### 1D smoothing
 
@@ -32,12 +34,15 @@ State is `[x, y, vx, vy]`; `variant` is `0` for the EKF and `1` for the UKF.
 |----------------------------------------------|------------------------------------------------------------|
 | `radar_reset(x, y, q, sigma_range, sigma_bearing)` | Restart both filters at `(x, y)` with unknown velocity |
 | `radar_predict(dt)`                          | Advance both filters by `dt` seconds                       |
-| `radar_correct(range, bearing)`              | Correct both filters with a measurement (bearing in radians) |
+| `radar_correct(sensor_x, sensor_y, range, bearing)` | Correct both filters with a measurement from a radar at `(sensor_x, sensor_y)` (bearing in radians) |
+| `radar_set_wrap(enabled)`                    | Wrap the bearing residual into (−π, π] (default) or not; survives `radar_reset` |
 | `radar_state(variant, i) -> f32`             | Entry `i` of the state                                     |
 | `radar_covariance(variant, i, j) -> f32`     | Entry `(i, j)` of the estimate covariance                  |
 
-Bearings are not wrapped, so the demo keeps the target above the radar, away
-from the ±π jump of `atan2`.
+Bearings from `atan2` jump by 2π behind a radar. Both filters wrap the bearing
+residual with `angles::wrap_pi` (`correct_nonlinear_with` for the EKF,
+`correct_sigma_point_with` for the UKF), so they track the target straight
+through the jump.
 
 ## Build and run
 

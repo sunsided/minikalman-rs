@@ -1,16 +1,18 @@
-//! Tracking a 2D target with a range/bearing radar at the origin.
+//! Tracking a 2D target with range/bearing radars.
 //!
 //! Both an Extended and an Unscented Kalman filter run on the same inputs so the
 //! page can compare them. The state is `[x, y, vx, vy]` under a constant-velocity
-//! model; each measurement is `[range, bearing]`. Noise in range and bearing
-//! makes a crescent-shaped region in x/y, which both filters approximate with a
-//! Gaussian ellipse.
+//! model; each measurement is `[range, bearing]` from a radar at a given position.
+//! Noise in range and bearing makes a crescent-shaped region in x/y, which both
+//! filters approximate with a Gaussian ellipse.
 //!
-//! Bearings are not wrapped, so the page keeps the target in the upper half-plane,
-//! away from the ±π discontinuity of `atan2`.
+//! Bearings come from `atan2` and jump by 2π behind the radar. Unless turned off
+//! with [`radar_set_wrap`], both filters wrap the bearing residual back into
+//! (-π, π] using [`angles::wrap_pi`].
 
 use std::cell::RefCell;
 
+use minikalman::angles;
 use minikalman::extended::builder::{
     KalmanFilterBuilder as EkfBuilder, KalmanFilterObservationType as EkfObservation,
     KalmanFilterType as Ekf,
@@ -37,6 +39,7 @@ struct Radar {
     ukf: Ukf<NUM_STATES, NUM_SIGMA, f32>,
     ukf_measurement: UkfObservation<NUM_STATES, NUM_OBSERVATIONS, NUM_SIGMA, f32>,
     q: f32,
+    wrap: bool,
 }
 
 impl Radar {
@@ -51,6 +54,7 @@ impl Radar {
                 .observations()
                 .build::<NUM_OBSERVATIONS, NUM_SIGMA>(),
             q,
+            wrap: true,
         };
 
         // Known initial position, unknown velocity.
@@ -98,7 +102,7 @@ impl Radar {
         });
     }
 
-    fn correct(&mut self, range: f32, bearing: f32) {
+    fn correct(&mut self, sensor_x: f32, sensor_y: f32, range: f32, bearing: f32) {
         measure(
             self.ekf_measurement.measurement_vector_mut(),
             range,
@@ -110,9 +114,18 @@ impl Radar {
             bearing,
         );
 
-        // Linearize h(x) = [√(x² + y²), atan2(y, x)] at the prior.
-        let x = self.ekf.state_vector().get_at(0, 0);
-        let y = self.ekf.state_vector().get_at(1, 0);
+        // Wraps the bearing difference, unless turned off to show what goes wrong.
+        let wrap = self.wrap;
+        let fix = move |dz: &mut [f32]| {
+            if wrap {
+                dz[1] = angles::wrap_pi(dz[1]);
+            }
+        };
+
+        // Linearize h(x) = [√(dx² + dy²), atan2(dy, dx)] at the prior,
+        // with (dx, dy) relative to the radar.
+        let x = self.ekf.state_vector().get_at(0, 0) - sensor_x;
+        let y = self.ekf.state_vector().get_at(1, 0) - sensor_y;
         let norm_sq = x * x + y * y;
         let norm = norm_sq.sqrt();
         self.ekf_measurement
@@ -124,22 +137,28 @@ impl Radar {
                 mat.set_at(1, 0, -y / norm_sq);
                 mat.set_at(1, 1, x / norm_sq);
             });
-        self.ekf
-            .correct_nonlinear(&mut self.ekf_measurement, |state, observation| {
-                let (x, y) = (state[0], state[1]);
+        self.ekf.correct_nonlinear_with(
+            &mut self.ekf_measurement,
+            |state, observation| {
+                let (x, y) = (state[0] - sensor_x, state[1] - sensor_y);
                 observation[0] = (x * x + y * y).sqrt();
                 observation[1] = y.atan2(x);
-            });
+            },
+            fix,
+        );
 
-        self.ukf
-            .correct_sigma_point(&mut self.ukf_measurement, |sigma_pred, observed| {
+        self.ukf.correct_sigma_point_with(
+            &mut self.ukf_measurement,
+            |sigma_pred, observed| {
                 for j in 0..NUM_SIGMA {
-                    let x = sigma_pred[j];
-                    let y = sigma_pred[NUM_SIGMA + j];
+                    let x = sigma_pred[j] - sensor_x;
+                    let y = sigma_pred[NUM_SIGMA + j] - sensor_y;
                     observed[j] = (x * x + y * y).sqrt();
                     observed[NUM_SIGMA + j] = y.atan2(x);
                 }
-            });
+            },
+            fix,
+        );
     }
 
     fn state(&self, variant: u32, i: usize) -> f32 {
@@ -201,7 +220,12 @@ thread_local! {
 /// and measurement standard deviations for range and bearing (radians).
 #[unsafe(no_mangle)]
 pub extern "C" fn radar_reset(x: f32, y: f32, q: f32, sigma_range: f32, sigma_bearing: f32) {
-    RADAR.with(|r| *r.borrow_mut() = Radar::new(x, y, q, sigma_range, sigma_bearing));
+    RADAR.with(|r| {
+        let wrap = r.borrow().wrap;
+        let mut radar = Radar::new(x, y, q, sigma_range, sigma_bearing);
+        radar.wrap = wrap;
+        *r.borrow_mut() = radar;
+    });
 }
 
 /// Advances both filters by `dt` seconds.
@@ -210,10 +234,21 @@ pub extern "C" fn radar_predict(dt: f32) {
     RADAR.with(|r| r.borrow_mut().predict(dt));
 }
 
-/// Corrects both filters with a range and bearing (radians) measurement.
+/// Corrects both filters with a range and bearing (radians) measurement from
+/// a radar at `(sensor_x, sensor_y)`.
 #[unsafe(no_mangle)]
-pub extern "C" fn radar_correct(range: f32, bearing: f32) {
-    RADAR.with(|r| r.borrow_mut().correct(range, bearing));
+pub extern "C" fn radar_correct(sensor_x: f32, sensor_y: f32, range: f32, bearing: f32) {
+    RADAR.with(|r| r.borrow_mut().correct(sensor_x, sensor_y, range, bearing));
+}
+
+/// Turns wrapping of the bearing residual on (non-zero) or off (zero).
+///
+/// With wrapping off, both filters treat a bearing that jumps from +π to -π as a
+/// full turn and lose the target behind the radar. The setting survives
+/// [`radar_reset`].
+#[unsafe(no_mangle)]
+pub extern "C" fn radar_set_wrap(enabled: u32) {
+    RADAR.with(|r| r.borrow_mut().wrap = enabled != 0);
 }
 
 /// Returns entry `i` of `[x, y, vx, vy]` for the [`EKF`] or [`UKF`] variant.
@@ -242,7 +277,7 @@ mod tests {
             if step % 5 == 0 {
                 let t = step as f32 * dt;
                 let (x, y) = (-40.0 + vx * t, 15.0 + vy * t);
-                radar_correct((x * x + y * y).sqrt(), y.atan2(x));
+                radar_correct(0.0, 0.0, (x * x + y * y).sqrt(), y.atan2(x));
             }
         }
 
@@ -252,6 +287,67 @@ mod tests {
             assert!((radar_state(variant, 2) - vx).abs() < 0.3, "vx");
             assert!((radar_state(variant, 3) - vy).abs() < 0.3, "vy");
             assert!(radar_covariance(variant, 0, 0) < 1.0);
+        }
+    }
+
+    /// Circles the radar at the origin for 1.5 laps, crossing the bearing jump behind it
+    /// twice, and returns each variant's largest distance from the target once settled.
+    fn circle_the_radar(wrap: bool) -> [f32; 2] {
+        let (radius, omega, dt) = (20.0_f32, core::f32::consts::TAU / 40.0, 0.1);
+        let truth = |t: f32| (radius * (omega * t).cos(), radius * (omega * t).sin());
+
+        radar_set_wrap(wrap as u32);
+        radar_reset(radius, 0.0, 0.5, 0.5, 0.02);
+        let mut worst = [0.0_f32; 2];
+        for step in 1..=600 {
+            radar_predict(dt);
+            let (x, y) = truth(step as f32 * dt);
+            if step % 5 == 0 {
+                radar_correct(0.0, 0.0, (x * x + y * y).sqrt(), y.atan2(x));
+            }
+            if step > 100 {
+                for (worst, v) in worst.iter_mut().zip([EKF, UKF]) {
+                    let error = (radar_state(v, 0) - x).hypot(radar_state(v, 1) - y);
+                    *worst = worst.max(error);
+                }
+            }
+        }
+        worst
+    }
+
+    #[test]
+    fn both_variants_track_a_target_behind_the_radar() {
+        let errors = circle_the_radar(true);
+        for error in errors {
+            assert!(error < 1.0, "error = {error}");
+        }
+    }
+
+    #[test]
+    fn without_wrapping_the_ekf_loses_the_target_behind_the_radar() {
+        let [ekf, ukf] = circle_the_radar(false);
+        let [_, ukf_wrapped] = circle_the_radar(true);
+
+        // The EKF applies a 2π innovation and is thrown off.
+        assert!(ekf > 10.0, "ekf error = {ekf}");
+
+        // The UKF's predicted bearing spread blows up instead, so its gain collapses and it
+        // coasts on the motion model through the jump: worse, but not lost.
+        assert!(ukf > ukf_wrapped, "ukf error = {ukf} vs. {ukf_wrapped}");
+    }
+
+    #[test]
+    fn a_second_radar_is_measured_from_its_own_position() {
+        // Seen from a radar at (10, 0), a target at (10, 10) is at range 10, bearing π/2.
+        radar_set_wrap(1);
+        radar_reset(9.0, 11.0, 0.5, 0.1, 0.01);
+        for _ in 0..20 {
+            radar_predict(0.1);
+            radar_correct(10.0, 0.0, 10.0, core::f32::consts::FRAC_PI_2);
+        }
+        for variant in [EKF, UKF] {
+            assert!((radar_state(variant, 0) - 10.0).abs() < 0.3, "x");
+            assert!((radar_state(variant, 1) - 10.0).abs() < 0.3, "y");
         }
     }
 }

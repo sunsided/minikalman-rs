@@ -41,7 +41,7 @@ for (let step = 1; step <= 200; step++) {
   if (step % 5 === 0) {
     const t = step * dt;
     const [x, y] = [-40 + vx * t, 15 + vy * t];
-    exports.radar_correct(Math.hypot(x, y), Math.atan2(y, x));
+    exports.radar_correct(0, 0, Math.hypot(x, y), Math.atan2(y, x));
   }
 }
 for (const [name, variant] of [["EKF", 0], ["UKF", 1]]) {
