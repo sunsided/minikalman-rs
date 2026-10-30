@@ -15,6 +15,13 @@
     .controls label { white-space: nowrap; }
     .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; }
     output { font-variant-numeric: tabular-nums; }
+    canvas.radar, canvas.plot { touch-action: none; }
+    canvas.plot { cursor: crosshair; }
+    fieldset { border: 1px solid #ddd; border-radius: 4px; margin: 0.75rem 0; padding: 0.25rem 0.75rem; }
+    legend { color: #666; font-size: 0.9rem; }
+    .tools { display: inline-flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+    .hint, .status { color: #666; font-size: 0.9rem; margin: 0.25rem 0 0.5rem; }
+    .status { font-variant-numeric: tabular-nums; }
     nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
     footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #ccc; color: #666; font-size: 0.9rem; }
   </style>
@@ -32,37 +39,22 @@
     <code>extern "C"</code> functions that take and return numbers; there is no generated JS glue.
   </p>
 
-  <h2>Smoothing a noisy position</h2>
-  <p>A linear constant-velocity filter tracking a 1D position.</p>
-  <p class="legend">
-    <span class="truth">— true position</span>
-    <span class="meas">● noisy measurement</span>
-    <span class="est">— filtered estimate ±2σ</span>
-  </p>
-  <canvas id="plot" width="960" height="400"></canvas>
-  <p class="controls">
-    <label>Measurement noise σ <input id="sigma" type="range" min="0.1" max="3" step="0.1" value="1"></label>
-    <output id="sigma-value">1.0</output>
-    <button id="rerun">Rerun</button>
-  </p>
-  <p id="status"></p>
-
   <h2>Tracking a moving target</h2>
   <p>
-    Radars measure range and bearing to a target circling past them. Range noise spreads a
-    measurement along the line of sight; bearing noise spreads it sideways, more so the further
-    away the target is. Together they make a <span class="meas">crescent</span> in x/y. Both
-    filters approximate it with a Gaussian ellipse: the Extended filter by linearizing at its
-    estimate, the Unscented filter by pushing sigma points through the measurement function.
-    Both run on the same measurements.
+    Radars measure range and bearing to a moving target. Range noise spreads a measurement
+    along the line of sight; bearing noise spreads it sideways, more so the further away the
+    target is. Together they make a <span class="meas">crescent</span> in x/y. Both filters
+    approximate it with a Gaussian ellipse: the Extended filter by linearizing at its estimate,
+    the Unscented filter by pushing sigma points through the measurement function. Both run on
+    the same measurements. Between measurements they only predict, and the ellipse grows; each
+    correction (a dot on the track) shrinks it again.
   </p>
   <p>
-    Behind a radar, the bearing jumps from +180° to −180°. With <em>wrap bearing residuals</em>
-    on, both filters use <code>angles::wrap_pi</code> to see that as the small step it is. Turn
-    it off and restart: when the target passes behind the radar, both filters see a jump of
-    almost a full turn and are thrown off. With very little bearing noise the Unscented filter
-    can coast through instead, because its gain collapses rather than applying the jump. Turn on
-    the second radar to see how two crescents intersect into a much tighter estimate.
+    Behind a radar, the bearing jumps from +180° to −180° (the dashed line). With
+    <em>wrap bearing residuals</em> on, both filters use <code>angles::wrap_pi</code> to see that
+    as the small step it is. Turn it off and restart, and both are thrown off when the target
+    passes behind the radar. A second radar adds a crescent from another angle, and where the two
+    intersect, the ellipses shrink.
   </p>
   <p class="legend">
     <span class="truth">— true path</span>
@@ -72,20 +64,77 @@
     <span class="ukf">— UKF estimate, 2σ ellipse</span>
   </p>
   <div class="variants">
-    <div><h3 class="est">Extended Kalman filter</h3><canvas id="radar-ekf" width="640" height="360"></canvas></div>
-    <div><h3 class="ukf">Unscented Kalman filter</h3><canvas id="radar-ukf" width="640" height="360"></canvas></div>
+    <div><h3 class="est">Extended Kalman filter</h3><canvas id="radar-ekf" class="radar" width="640" height="360"></canvas></div>
+    <div><h3 class="ukf">Unscented Kalman filter</h3><canvas id="radar-ukf" class="radar" width="640" height="360"></canvas></div>
   </div>
-  <p class="controls">
-    <label><input id="wrap" type="checkbox" checked> Wrap bearing residuals</label>
-    <label><input id="second-radar" type="checkbox"> Second radar</label>
-    <button id="pause">Pause</button>
-    <button id="restart">Restart</button>
+  <p class="status" id="radar-status"></p>
+  <fieldset>
+    <legend>Target</legend>
+    <p class="controls">
+      <label>Path
+        <select id="preset">
+          <option value="circle">Circle the radar</option>
+          <option value="straight">Straight pass, like the radar examples</option>
+          <option value="eight">Figure eight</option>
+          <option value="drawn" disabled>Drawn by you</option>
+        </select>
+      </label>
+      <span class="tools" role="radiogroup" aria-label="Pointer tool">
+        Pointer:
+        <label><input type="radio" name="tool" value="edit" checked> Drag radars and waypoints</label>
+        <label><input type="radio" name="tool" value="draw"> Draw a path</label>
+        <label><input type="radio" name="tool" value="steer"> Steer the target</label>
+      </span>
+    </p>
+    <p class="hint" id="tool-hint"></p>
+  </fieldset>
+  <fieldset>
+    <legend>Simulation</legend>
+    <p class="controls">
+      <button id="pause">Pause</button>
+      <button id="step" disabled>Step</button>
+      <button id="next-measurement" disabled>Next measurement</button>
+      <button id="restart">Restart</button>
+      <label><input id="wrap" type="checkbox" checked> Wrap bearing residuals</label>
+      <label><input id="second-radar" type="checkbox"> Second radar</label>
+    </p>
+    <p class="controls">
+      <label>Speed <input id="speed" type="range" min="1" max="15" step="0.5" value="6"></label>
+      <output id="speed-value"></output>
+      <label>Measure every <input id="measure-every" type="range" min="1" max="20" step="1" value="5"></label>
+      <output id="measure-every-value"></output>
+      <label>Process noise q <input id="process-noise" type="range" min="0.1" max="10" step="0.1" value="3"></label>
+      <output id="process-noise-value"></output>
+    </p>
+    <p class="controls">
+      <label>Bearing noise σ <input id="sigma-bearing" type="range" min="0.01" max="0.3" step="0.01" value="0.12"></label>
+      <output id="sigma-bearing-value"></output>
+      <label>Range noise σ <input id="sigma-range" type="range" min="0.1" max="3" step="0.1" value="0.5"></label>
+      <output id="sigma-range-value"></output>
+    </p>
+  </fieldset>
+
+  <h2>The basics: smoothing a noisy position</h2>
+  <p>
+    A linear filter tracking position and velocity in 1D. <strong>Drag across the plot</strong>
+    to draw your own signal; the filter reruns on it as you draw. Sudden changes show the
+    trade-off of the process noise: low values smooth more but lag behind, high values follow
+    quickly but let more noise through.
   </p>
+  <p class="legend">
+    <span class="truth">— true position</span>
+    <span class="meas">● noisy measurement</span>
+    <span class="est">— filtered estimate ±2σ</span>
+  </p>
+  <canvas id="plot" class="plot" width="960" height="240"></canvas>
+  <p class="status" id="status"></p>
   <p class="controls">
-    <label>Bearing noise σ <input id="sigma-bearing" type="range" min="0.01" max="0.3" step="0.01" value="0.12"></label>
-    <output id="sigma-bearing-value"></output>
-    <label>Range noise σ <input id="sigma-range" type="range" min="0.1" max="3" step="0.1" value="0.5"></label>
-    <output id="sigma-range-value"></output>
+    <label>Measurement noise σ <input id="sigma" type="range" min="0.1" max="5" step="0.1" value="2"></label>
+    <output id="sigma-value"></output>
+    <label>Process noise q <input id="smooth-q" type="range" min="0" max="100" step="1" value="50"></label>
+    <output id="smooth-q-value"></output>
+    <button id="rerun">New noise</button>
+    <button id="reset-signal">Reset signal</button>
   </p>
 
   <footer>
@@ -124,52 +173,99 @@
       const canvas = document.getElementById("plot");
       const ctx = canvas.getContext("2d");
       const sigmaInput = document.getElementById("sigma");
-      const sigmaValue = document.getElementById("sigma-value");
+      const qInput = document.getElementById("smooth-q");
+
+      const n = 300, dt = 0.1;
+      const range = { min: -15, max: 50 }; // fixed, so a drawn signal stays where it was drawn
+      const defaultSignal = () =>
+        Array.from({ length: n }, (_, i) => 10 * Math.sin(i * dt / 4) + i * dt);
+      let signal = defaultSignal();
+      let noise = Array.from({ length: n }, gaussian); // kept between runs, so sliders compare like with like
+      let lastDrawn = null;
+
+      const x = (i) => (i / (n - 1)) * (canvas.width - 20) + 10;
+      const y = (v) => canvas.height - 10 - ((v - range.min) / (range.max - range.min)) * (canvas.height - 20);
+      // The process noise slider is logarithmic, from 0.01 to 100.
+      const q = () => 10 ** (-2 + (4 * Number(qInput.value)) / 100);
 
       function run() {
         const sigma = Number(sigmaInput.value);
-        sigmaValue.textContent = sigma.toFixed(1);
+        document.getElementById("sigma-value").textContent = sigma.toFixed(1);
+        document.getElementById("smooth-q-value").textContent = q().toPrecision(2);
 
-        const dt = 0.1;
-        kf.reset(dt, 0.5, sigma * sigma);
-
-        const rows = [];
-        for (let i = 0; i < 300; i++) {
-          const t = i * dt;
-          const truth = 10 * Math.sin(t / 4) + t; // smooth, slowly changing velocity
-          const z = truth + sigma * gaussian();
+        kf.reset(dt, q(), sigma * sigma);
+        const rows = signal.map((truth, i) => {
+          const z = truth + sigma * noise[i];
           const estimate = kf.step(z);
-          rows.push({ t, truth, z, estimate, sd: Math.sqrt(kf.position_variance()) });
-        }
+          return { truth, z, estimate, sd: Math.sqrt(kf.position_variance()) };
+        });
         draw(rows);
+
+        const rms = (f) => Math.sqrt(rows.reduce((sum, r) => sum + f(r) ** 2, 0) / rows.length);
         document.getElementById("status").textContent =
-          `final velocity estimate: ${kf.velocity().toFixed(2)} units/s`;
+          `RMS error: measurements ${rms((r) => r.z - r.truth).toFixed(2)}, ` +
+          `filtered ${rms((r) => r.estimate - r.truth).toFixed(2)}`;
       }
 
       function draw(rows) {
-        const { width, height } = canvas;
-        const ys = rows.flatMap((r) => [r.truth, r.z]);
-        const yMin = Math.min(...ys), yMax = Math.max(...ys);
-        const x = (t) => (t / rows.at(-1).t) * (width - 20) + 10;
-        const y = (v) => height - 10 - ((v - yMin) / (yMax - yMin)) * (height - 20);
-
-        ctx.clearRect(0, 0, width, height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         ctx.fillStyle = "rgba(31, 119, 180, 0.15)";
         ctx.beginPath();
-        rows.forEach((r, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x(r.t), y(r.estimate + 2 * r.sd)));
-        [...rows].reverse().forEach((r) => ctx.lineTo(x(r.t), y(r.estimate - 2 * r.sd)));
+        rows.forEach((r, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x(i), y(r.estimate + 2 * r.sd)));
+        for (let i = rows.length - 1; i >= 0; i--) ctx.lineTo(x(i), y(rows[i].estimate - 2 * rows[i].sd));
         ctx.fill();
 
         ctx.fillStyle = "#d62728";
-        for (const r of rows) ctx.fillRect(x(r.t) - 1.5, y(r.z) - 1.5, 3, 3);
+        rows.forEach((r, i) => ctx.fillRect(x(i) - 1.5, y(r.z) - 1.5, 3, 3));
 
-        polyline(ctx, rows.map((r) => [x(r.t), y(r.truth)]), "#888");
-        polyline(ctx, rows.map((r) => [x(r.t), y(r.estimate)]), "#1f77b4");
+        polyline(ctx, rows.map((r, i) => [x(i), y(r.truth)]), "#888");
+        polyline(ctx, rows.map((r, i) => [x(i), y(r.estimate)]), "#1f77b4");
       }
 
+      // Drawing: map the pointer to a sample index and value, filling any gap linearly.
+      function drawAt(event) {
+        const rect = canvas.getBoundingClientRect();
+        const px = ((event.clientX - rect.left) / rect.width) * canvas.width;
+        const py = ((event.clientY - rect.top) / rect.height) * canvas.height;
+        const i = Math.round(((px - 10) / (canvas.width - 20)) * (n - 1));
+        const v = range.min + ((canvas.height - 10 - py) / (canvas.height - 20)) * (range.max - range.min);
+        const index = Math.min(Math.max(i, 0), n - 1);
+        const value = Math.min(Math.max(v, range.min), range.max);
+        if (lastDrawn) {
+          const [li, lv] = lastDrawn;
+          const steps = Math.abs(index - li);
+          for (let k = 1; k < steps; k++) signal[li + Math.sign(index - li) * k] = lv + ((value - lv) * k) / steps;
+        }
+        signal[index] = value;
+        lastDrawn = [index, value];
+        run();
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        lastDrawn = null;
+        try {
+          canvas.setPointerCapture(event.pointerId);
+        } catch {
+          // Synthetic events have no active pointer to capture.
+        }
+        drawAt(event);
+      });
+      canvas.addEventListener("pointermove", (event) => {
+        if (lastDrawn) drawAt(event);
+      });
+      canvas.addEventListener("pointerup", () => (lastDrawn = null));
+
       sigmaInput.addEventListener("input", run);
-      document.getElementById("rerun").addEventListener("click", run);
+      qInput.addEventListener("input", run);
+      document.getElementById("rerun").addEventListener("click", () => {
+        noise = Array.from({ length: n }, gaussian);
+        run();
+      });
+      document.getElementById("reset-signal").addEventListener("click", () => {
+        signal = defaultSignal();
+        run();
+      });
       run();
     }
 
@@ -178,67 +274,136 @@
     {
       const EKF = 0, UKF = 1;
       const variants = [
-        { id: EKF, canvas: document.getElementById("radar-ekf"), color: "#1f77b4", fill: "rgba(31, 119, 180, 0.15)" },
-        { id: UKF, canvas: document.getElementById("radar-ukf"), color: "#ff7f0e", fill: "rgba(255, 127, 14, 0.15)" },
+        { id: EKF, name: "EKF", canvas: document.getElementById("radar-ekf"), color: "#1f77b4", fill: "rgba(31, 119, 180, 0.15)" },
+        { id: UKF, name: "UKF", canvas: document.getElementById("radar-ukf"), color: "#ff7f0e", fill: "rgba(255, 127, 14, 0.15)" },
       ];
       const radars = [
         { x: 0, y: 0, color: "#333", crescent: "214, 39, 40" },
         { x: 30, y: -17, color: "#9467bd", crescent: "148, 103, 189" },
       ];
 
-      // World window in metres, centred on the first radar.
+      // World window in metres, centred on the first radar's starting position.
       const view = { xMin: -45, xMax: 45, yMin: -25.3, yMax: 25.3 };
       const dt = 0.1;
-      const measureEvery = 5; // steps between radar measurements
       const crescentSamples = 300;
-      const trail = 450; // steps of history to draw, a little over one lap
+      const trail = 450; // steps of history to draw
+      const minRange = 1; // a radar cannot measure a target on top of itself
+      const grabRadius = 2.5; // metres
+      const drawSpacing = 3; // metres between waypoints of a drawn path
 
-      const bearingInput = document.getElementById("sigma-bearing");
-      const rangeInput = document.getElementById("sigma-range");
-      const bearingValue = document.getElementById("sigma-bearing-value");
-      const rangeValue = document.getElementById("sigma-range-value");
-      const wrapInput = document.getElementById("wrap");
-      const secondRadarInput = document.getElementById("second-radar");
+      const $ = (id) => document.getElementById(id);
+      const inputs = {
+        bearing: $("sigma-bearing"), range: $("sigma-range"), speed: $("speed"),
+        processNoise: $("process-noise"),
+        measureEvery: $("measure-every"), wrap: $("wrap"), secondRadar: $("second-radar"),
+        preset: $("preset"),
+      };
+      const hints = {
+        edit: "Drag a radar or a waypoint of the path (the small circles). The filters keep running.",
+        draw: "Press and drag on either plot to draw a new path. End near the start to close the loop.",
+        steer: "Move the pointer over a plot; the target heads for it at the set speed.",
+      };
 
-      let sim, paused = false;
+      // ── Paths: polylines with constant-speed travel along them ──
 
-      // An ellipse around the first radar, passing behind it (negative x) once per lap.
-      function truthAt(t) {
-        const phase = (2 * Math.PI * t) / 40;
-        return { x: 4 + 28 * Math.cos(phase), y: 16 * Math.sin(phase) };
+      function makePath(points, closed) {
+        const cum = [0];
+        const n = closed ? points.length : points.length - 1;
+        for (let i = 0; i < n; i++) {
+          const [ax, ay] = points[i], [bx, by] = points[(i + 1) % points.length];
+          cum.push(cum[i] + Math.hypot(bx - ax, by - ay));
+        }
+        return { points, closed, cum, length: cum[cum.length - 1] };
       }
+
+      function pointAt(path, s) {
+        if (path.closed) s = ((s % path.length) + path.length) % path.length;
+        else s = Math.min(Math.max(s, 0), path.length);
+        let i = 1;
+        while (i < path.cum.length - 1 && path.cum[i] < s) i++;
+        const [ax, ay] = path.points[i - 1], [bx, by] = path.points[i % path.points.length];
+        const seg = path.cum[i] - path.cum[i - 1] || 1;
+        const f = (s - path.cum[i - 1]) / seg;
+        return { x: ax + f * (bx - ax), y: ay + f * (by - ay) };
+      }
+
+      const sampled = (n, f) => Array.from({ length: n }, (_, i) => f((2 * Math.PI * i) / n));
+      const presets = {
+        circle: () => makePath(sampled(24, (p) => [4 + 28 * Math.cos(p), 16 * Math.sin(p)]), true),
+        straight: () => makePath([[-42, -20], [42, 18]], false),
+        eight: () => makePath(sampled(32, (p) => {
+          const d = 1 + Math.sin(p) ** 2;
+          return [36 * Math.cos(p) / d, 6 + 30 * Math.sin(p) * Math.cos(p) / d];
+        }), true),
+      };
+
+      // ── Simulation state ──
+
+      let path = presets.circle();
+      let tool = "edit";
+      let paused = false;
+      let sim;
+      let pointer = null; // world position of the pointer over a plot, for steering
+      let drawing = null; // points collected while drawing
+      let dragging = null; // { kind: "radar" | "waypoint", index }
 
       function activeRadars() {
-        return secondRadarInput.checked ? radars : radars.slice(0, 1);
+        return inputs.secondRadar.checked ? radars : radars.slice(0, 1);
       }
 
-      function restart() {
-        const sigmaBearing = Number(bearingInput.value);
-        const sigmaRange = Number(rangeInput.value);
-        bearingValue.textContent = `${sigmaBearing.toFixed(2)} rad (${(sigmaBearing * 180 / Math.PI).toFixed(1)}°)`;
-        rangeValue.textContent = `${sigmaRange.toFixed(1)} m`;
+      function updateLabels() {
+        const b = Number(inputs.bearing.value), r = Number(inputs.range.value);
+        const every = Number(inputs.measureEvery.value);
+        $("sigma-bearing-value").textContent = `${b.toFixed(2)} rad (${(b * 180 / Math.PI).toFixed(1)}°)`;
+        $("sigma-range-value").textContent = `${r.toFixed(1)} m`;
+        $("speed-value").textContent = `${Number(inputs.speed.value).toFixed(1)} m/s`;
+        $("measure-every-value").textContent = `${every} step${every > 1 ? "s" : ""} (${(every * dt).toFixed(1)} s)`;
+        $("process-noise-value").textContent = `${Number(inputs.processNoise.value).toFixed(1)} (m/s²)²`;
+      }
 
-        kf.radar_set_wrap(wrapInput.checked ? 1 : 0);
-        const start = truthAt(0);
-        kf.radar_reset(start.x, start.y, 1.0, sigmaRange, sigmaBearing);
+      function restart(start) {
+        updateLabels();
+        const sigmaBearing = Number(inputs.bearing.value);
+        const sigmaRange = Number(inputs.range.value);
+        const at = start ?? pointAt(path, 0);
+        kf.radar_set_wrap(inputs.wrap.checked ? 1 : 0);
+        kf.radar_reset(at.x, at.y, Number(inputs.processNoise.value), sigmaRange, sigmaBearing);
         sim = {
-          step: 0, sigmaBearing, sigmaRange,
-          truth: [], crescents: [],
-          tracks: variants.map(() => []),
+          step: 0, s: 0, pos: at, sigmaBearing, sigmaRange,
+          truth: [at], crescents: [], tracks: variants.map(() => []), measurements: 0,
         };
+      }
+
+      function moveTarget() {
+        const speed = Number(inputs.speed.value);
+        if (tool === "steer") {
+          if (!pointer) return;
+          const dx = pointer.x - sim.pos.x, dy = pointer.y - sim.pos.y;
+          const dist = Math.hypot(dx, dy);
+          const stepLength = Math.min(speed * dt, dist);
+          if (dist > 1e-6) sim.pos = { x: sim.pos.x + dx / dist * stepLength, y: sim.pos.y + dy / dist * stepLength };
+          return;
+        }
+        sim.s += speed * dt;
+        if (!path.closed && sim.s > path.length) return restart();
+        sim.pos = pointAt(path, sim.s);
       }
 
       function advance() {
         sim.step += 1;
-        const truth = truthAt(sim.step * dt);
+        moveTarget();
+        const truth = sim.pos;
         sim.truth.push(truth);
         if (sim.truth.length > trail) sim.truth.shift();
 
         kf.radar_predict(dt);
 
-        if (sim.step % measureEvery === 0) {
+        const measuring = sim.step % Number(inputs.measureEvery.value) === 0;
+        if (measuring) {
+          sim.measurements += 1;
           for (const radar of activeRadars()) {
             const dx = truth.x - radar.x, dy = truth.y - radar.y;
+            if (Math.hypot(dx, dy) < minRange) continue;
             const range = Math.hypot(dx, dy) + sim.sigmaRange * gaussian();
             const bearing = Math.atan2(dy, dx) + sim.sigmaBearing * gaussian();
             kf.radar_correct(radar.x, radar.y, range, bearing);
@@ -262,9 +427,20 @@
             pxx: kf.radar_covariance(v.id, 0, 0),
             pxy: kf.radar_covariance(v.id, 0, 1),
             pyy: kf.radar_covariance(v.id, 1, 1),
+            corrected: measuring,
           });
           if (sim.tracks[k].length > trail) sim.tracks[k].shift();
         });
+        return measuring;
+      }
+
+      // ── Rendering ──
+
+      function transform(canvas) {
+        const { width, height } = canvas;
+        const sx = width / (view.xMax - view.xMin);
+        const sy = height / (view.yMax - view.yMin);
+        return { sx, sy, px: (x) => (x - view.xMin) * sx, py: (y) => height - (y - view.yMin) * sy };
       }
 
       function drawRadar(ctx, px, py, radar) {
@@ -280,31 +456,50 @@
         const { canvas } = variant;
         const ctx = canvas.getContext("2d");
         const { width, height } = canvas;
-        const sx = width / (view.xMax - view.xMin);
-        const sy = height / (view.yMax - view.yMin);
-        const px = (x) => (x - view.xMin) * sx;
-        const py = (y) => height - (y - view.yMin) * sy;
+        const { sx, sy, px, py } = transform(canvas);
 
         ctx.clearRect(0, 0, width, height);
 
-        // Range rings around the first radar, and the line where its bearing jumps.
+        // Range rings around the first radar, and the line behind it where its bearing jumps.
+        const r0 = radars[0];
         ctx.strokeStyle = "#eee";
         ctx.lineWidth = 1;
         for (let r = 10; r <= 50; r += 10) {
           ctx.beginPath();
-          ctx.ellipse(px(0), py(0), r * sx, r * sy, 0, 0, 2 * Math.PI);
+          ctx.ellipse(px(r0.x), py(r0.y), r * sx, r * sy, 0, 0, 2 * Math.PI);
           ctx.stroke();
         }
         ctx.setLineDash([4, 4]);
         ctx.strokeStyle = "#ccc";
         ctx.beginPath();
-        ctx.moveTo(px(0), py(0));
-        ctx.lineTo(px(view.xMin), py(0));
+        ctx.moveTo(px(r0.x), py(r0.y));
+        ctx.lineTo(px(view.xMin), py(r0.y));
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.fillStyle = "#aaa";
         ctx.font = "12px system-ui, sans-serif";
-        ctx.fillText("±180°", px(view.xMin) + 4, py(0) - 4);
+        ctx.fillText("±180°", px(view.xMin) + 4, py(r0.y) - 4);
+
+        // The planned path, with handles while editing.
+        if (tool !== "steer") {
+          const pts = path.points.map(([x, y]) => [px(x), py(y)]);
+          if (path.closed) pts.push(pts[0]);
+          ctx.setLineDash([2, 6]);
+          polyline(ctx, pts, "#bbb", 1.5);
+          ctx.setLineDash([]);
+          if (tool === "edit") {
+            ctx.strokeStyle = "#999";
+            ctx.lineWidth = 1;
+            for (const [x, y] of path.points) {
+              ctx.beginPath();
+              ctx.arc(px(x), py(y), 4, 0, 2 * Math.PI);
+              ctx.stroke();
+            }
+          }
+        }
+        if (drawing && drawing.length > 1) {
+          polyline(ctx, drawing.map(([x, y]) => [px(x), py(y)]), "#2ca02c", 2);
+        }
 
         // Older crescents fade out.
         sim.crescents.forEach(({ radar, points }, i) => {
@@ -314,10 +509,20 @@
         });
 
         polyline(ctx, sim.truth.map((p) => [px(p.x), py(p.y)]), "#888");
-        polyline(ctx, track.map((p) => [px(p.x), py(p.y)]), variant.color);
+        const finite = track.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+        polyline(ctx, finite.map((p) => [px(p.x), py(p.y)]), variant.color);
+
+        // Corrections as dots on the track; the steps in between are predictions only.
+        ctx.fillStyle = variant.color;
+        for (const p of finite) {
+          if (!p.corrected) continue;
+          ctx.beginPath();
+          ctx.arc(px(p.x), py(p.y), 2.5, 0, 2 * Math.PI);
+          ctx.fill();
+        }
 
         const last = track.at(-1);
-        if (last) {
+        if (last && [last.x, last.y, last.pxx, last.pxy, last.pyy].every(Number.isFinite)) {
           // 2σ ellipse from the eigen-decomposition of the position covariance.
           const { pxx: a, pxy: b, pyy: c } = last;
           const mean = (a + c) / 2;
@@ -341,15 +546,139 @@
         }
 
         const truth = sim.truth.at(-1);
-        if (truth) {
-          ctx.fillStyle = "#333";
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.arc(px(truth.x), py(truth.y), 4, 0, 2 * Math.PI);
+        ctx.fill();
+
+        if (tool === "steer" && pointer) {
+          ctx.strokeStyle = "#2ca02c";
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(px(truth.x), py(truth.y), 4, 0, 2 * Math.PI);
-          ctx.fill();
+          ctx.arc(px(pointer.x), py(pointer.y), 6, 0, 2 * Math.PI);
+          ctx.stroke();
         }
 
         for (const radar of activeRadars()) drawRadar(ctx, px, py, radar);
       }
+
+      function render() {
+        variants.forEach((v, k) => draw(v, sim.tracks[k]));
+        const truth = sim.truth.at(-1);
+        const parts = [`t = ${(sim.step * dt).toFixed(1)} s`, `${sim.measurements} measurements`];
+        for (const [k, v] of variants.entries()) {
+          const p = sim.tracks[k].at(-1);
+          if (!p) continue;
+          const error = Math.hypot(p.x - truth.x, p.y - truth.y);
+          parts.push(Number.isFinite(error) ? `${v.name} error ${error.toFixed(2)} m` : `${v.name} diverged, restart`);
+        }
+        $("radar-status").textContent = parts.join(" · ");
+      }
+
+      // ── Pointer interaction ──
+
+      function toWorld(canvas, event) {
+        const rect = canvas.getBoundingClientRect();
+        const fx = (event.clientX - rect.left) / rect.width;
+        const fy = (event.clientY - rect.top) / rect.height;
+        return { x: view.xMin + fx * (view.xMax - view.xMin), y: view.yMax - fy * (view.yMax - view.yMin) };
+      }
+
+      function grab(at) {
+        const near = (x, y) => Math.hypot(x - at.x, y - at.y) < grabRadius;
+        const r = activeRadars().findIndex((radar) => near(radar.x, radar.y));
+        if (r >= 0) return { kind: "radar", index: r };
+        const w = path.points.findIndex(([x, y]) => near(x, y));
+        if (w >= 0) return { kind: "waypoint", index: w };
+        return null;
+      }
+
+      for (const { canvas } of variants) {
+        canvas.addEventListener("pointerdown", (event) => {
+          const at = toWorld(canvas, event);
+          if (tool === "draw") drawing = [[at.x, at.y]];
+          else if (tool === "edit") dragging = grab(at);
+          else pointer = at;
+          if (drawing || dragging) {
+            try {
+              canvas.setPointerCapture(event.pointerId);
+            } catch {
+              // Synthetic events have no active pointer to capture.
+            }
+          }
+        });
+        canvas.addEventListener("pointermove", (event) => {
+          const at = toWorld(canvas, event);
+          if (tool === "steer") pointer = at;
+          if (drawing) {
+            const [lx, ly] = drawing.at(-1);
+            if (Math.hypot(at.x - lx, at.y - ly) >= drawSpacing) drawing.push([at.x, at.y]);
+          } else if (dragging?.kind === "radar") {
+            Object.assign(radars[dragging.index], at);
+          } else if (dragging?.kind === "waypoint") {
+            path.points[dragging.index] = [at.x, at.y];
+            path = makePath(path.points, path.closed);
+          } else if (tool === "edit") {
+            canvas.style.cursor = grab(at) ? "grab" : "default";
+          }
+        });
+        canvas.addEventListener("pointerup", (event) => {
+          if (drawing) {
+            const at = toWorld(canvas, event);
+            drawing.push([at.x, at.y]);
+            if (drawing.length >= 3) {
+              const [sx0, sy0] = drawing[0], [ex, ey] = drawing.at(-1);
+              const closed = Math.hypot(ex - sx0, ey - sy0) < 3 * drawSpacing;
+              if (closed) drawing.pop();
+              path = makePath(drawing, closed);
+              inputs.preset.value = "drawn";
+              restart();
+            }
+            drawing = null;
+          }
+          dragging = null;
+        });
+        canvas.addEventListener("pointerleave", () => {
+          if (tool === "steer") pointer = null;
+        });
+      }
+
+      function setTool(next) {
+        const leavingSteer = tool === "steer" && next !== "steer";
+        tool = next;
+        $("tool-hint").textContent = hints[tool];
+        for (const { canvas } of variants) canvas.style.cursor = tool === "edit" ? "default" : "crosshair";
+        pointer = null;
+        // After steering, the target goes back to the start of the path.
+        if (leavingSteer) restart();
+      }
+
+      // ── Controls ──
+
+      function setPaused(value) {
+        paused = value;
+        $("pause").textContent = paused ? "Resume" : "Pause";
+        $("step").disabled = !paused;
+        $("next-measurement").disabled = !paused;
+      }
+
+      document.querySelectorAll('input[name="tool"]').forEach((radio) =>
+        radio.addEventListener("change", () => setTool(radio.value)));
+      inputs.preset.addEventListener("change", () => {
+        path = presets[inputs.preset.value]();
+        restart();
+      });
+      for (const input of [inputs.bearing, inputs.range, inputs.processNoise]) {
+        input.addEventListener("input", () => restart(tool === "steer" ? sim.pos : undefined));
+      }
+      for (const input of [inputs.speed, inputs.measureEvery]) input.addEventListener("input", updateLabels);
+      inputs.wrap.addEventListener("change", () => kf.radar_set_wrap(inputs.wrap.checked ? 1 : 0));
+      $("restart").addEventListener("click", () => restart(tool === "steer" ? sim.pos : undefined));
+      $("pause").addEventListener("click", () => setPaused(!paused));
+      $("step").addEventListener("click", advance);
+      $("next-measurement").addEventListener("click", () => {
+        for (let i = 0; i < 1000 && !advance(); i++);
+      });
 
       let last = 0;
       function frame(now) {
@@ -357,20 +686,12 @@
         if (!paused && now - last > 50) {
           last = now;
           advance();
-          variants.forEach((v, k) => draw(v, sim.tracks[k]));
         }
+        render();
         requestAnimationFrame(frame);
       }
 
-      bearingInput.addEventListener("input", restart);
-      rangeInput.addEventListener("input", restart);
-      wrapInput.addEventListener("change", () => kf.radar_set_wrap(wrapInput.checked ? 1 : 0));
-      document.getElementById("restart").addEventListener("click", restart);
-      document.getElementById("pause").addEventListener("click", (e) => {
-        paused = !paused;
-        e.target.textContent = paused ? "Resume" : "Pause";
-      });
-
+      setTool("edit");
       restart();
       requestAnimationFrame(frame);
     }
