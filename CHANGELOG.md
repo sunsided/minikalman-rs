@@ -7,7 +7,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Added `models::constant_velocity` and `models::constant_acceleration` to fill the state transition
+- Added `models::motion::constant_velocity` and `models::motion::constant_acceleration` to fill the state transition
   and process noise matrices for a given time step.
 
 ## [0.7.0] - 2026-04-26
