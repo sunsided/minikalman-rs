@@ -41,7 +41,7 @@ for (let step = 1; step <= 200; step++) {
   if (step % 5 === 0) {
     const t = step * dt;
     const [x, y] = [-40 + vx * t, 15 + vy * t];
-    exports.radar_correct(Math.hypot(x, y), Math.atan2(y, x));
+    exports.radar_correct(0, 0, Math.hypot(x, y), Math.atan2(y, x));
   }
 }
 for (const [name, variant] of [["EKF", 0], ["UKF", 1]]) {
@@ -51,4 +51,32 @@ for (const [name, variant] of [["EKF", 0], ["UKF", 1]]) {
     console.error(`${name}: expected v≈(${vx}, ${vy})`);
     process.exit(1);
   }
+}
+
+// Two radars: two corrections per prediction, with the target circling behind the
+// first radar so bearings cross ±π.
+const circle = (t) => {
+  const phase = (2 * Math.PI * t) / 40;
+  return [4 + 28 * Math.cos(phase), 16 * Math.sin(phase)];
+};
+exports.radar_set_wrap(1);
+exports.radar_reset(...circle(0), 1.0, 0.5, 0.12);
+let worst = [0, 0];
+for (let step = 1; step <= 600; step++) {
+  exports.radar_predict(dt);
+  const [x, y] = circle(step * dt);
+  if (step % 5 === 0) {
+    for (const [sx, sy] of [[0, 0], [30, -17]]) {
+      exports.radar_correct(sx, sy, Math.hypot(x - sx, y - sy), Math.atan2(y - sy, x - sx));
+    }
+  }
+  if (step > 100) {
+    worst = worst.map((w, v) =>
+      Math.max(w, Math.hypot(exports.radar_state(v, 0) - x, exports.radar_state(v, 1) - y)));
+  }
+}
+console.log(`two radars, worst error: EKF ${worst[0].toFixed(2)} m, UKF ${worst[1].toFixed(2)} m`);
+if (!worst.every((w) => w < 2)) {
+  console.error("expected both filters to stay within 2 m of the target");
+  process.exit(1);
 }

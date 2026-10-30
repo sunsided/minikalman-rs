@@ -9,9 +9,10 @@
     body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; line-height: 1.4; }
     canvas { width: 100%; height: auto; border: 1px solid #ccc; display: block; }
     .legend span { margin-right: 1.5rem; white-space: nowrap; }
-    .truth { color: #888; } .meas { color: #d62728; } .est { color: #1f77b4; } .ukf { color: #ff7f0e; }
+    .truth { color: #888; } .meas { color: #d62728; } .est { color: #1f77b4; } .ukf { color: #ff7f0e; } .r2 { color: #9467bd; }
     .variants { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
     .variants h3 { margin: 0 0 0.25rem; }
+    .controls label { white-space: nowrap; }
     .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; }
     output { font-variant-numeric: tabular-nums; }
     nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
@@ -48,16 +49,25 @@
 
   <h2>Tracking a moving target</h2>
   <p>
-    A radar at the bottom centre measures range and bearing to a target passing by.
-    Range noise spreads a measurement along the line of sight; bearing noise spreads it
-    sideways, more so the further away the target is. Together they make a
-    <span class="meas">crescent</span> in x/y. Both filters approximate it with a Gaussian ellipse:
-    the Extended filter by linearizing at its estimate, the Unscented filter by pushing sigma points
-    through the measurement function. Both run on the same measurements.
+    Radars measure range and bearing to a target circling past them. Range noise spreads a
+    measurement along the line of sight; bearing noise spreads it sideways, more so the further
+    away the target is. Together they make a <span class="meas">crescent</span> in x/y. Both
+    filters approximate it with a Gaussian ellipse: the Extended filter by linearizing at its
+    estimate, the Unscented filter by pushing sigma points through the measurement function.
+    Both run on the same measurements.
+  </p>
+  <p>
+    Behind a radar, the bearing jumps from +180° to −180°. With <em>wrap bearing residuals</em>
+    on, both filters use <code>angles::wrap_pi</code> to see that as the small step it is. Turn
+    it off and restart: when the target passes behind the radar, both filters see a jump of
+    almost a full turn and are thrown off. With very little bearing noise the Unscented filter
+    can coast through instead, because its gain collapses rather than applying the jump. Turn on
+    the second radar to see how two crescents intersect into a much tighter estimate.
   </p>
   <p class="legend">
     <span class="truth">— true path</span>
-    <span class="meas">∙ measurement uncertainty</span>
+    <span class="meas">∙ radar 1 measurement</span>
+    <span class="r2">∙ radar 2 measurement</span>
     <span class="est">— EKF estimate, 2σ ellipse</span>
     <span class="ukf">— UKF estimate, 2σ ellipse</span>
   </p>
@@ -66,12 +76,16 @@
     <div><h3 class="ukf">Unscented Kalman filter</h3><canvas id="radar-ukf" width="640" height="360"></canvas></div>
   </div>
   <p class="controls">
+    <label><input id="wrap" type="checkbox" checked> Wrap bearing residuals</label>
+    <label><input id="second-radar" type="checkbox"> Second radar</label>
+    <button id="pause">Pause</button>
+    <button id="restart">Restart</button>
+  </p>
+  <p class="controls">
     <label>Bearing noise σ <input id="sigma-bearing" type="range" min="0.01" max="0.3" step="0.01" value="0.12"></label>
     <output id="sigma-bearing-value"></output>
     <label>Range noise σ <input id="sigma-range" type="range" min="0.1" max="3" step="0.1" value="0.5"></label>
     <output id="sigma-range-value"></output>
-    <button id="pause">Pause</button>
-    <button id="restart">Restart</button>
   </p>
 
   <footer>
@@ -82,7 +96,11 @@
   </footer>
 
   <script type="module">
-    const { instance } = await WebAssembly.instantiateStreaming(fetch("minikalman_wasm.wasm"), {});
+    const { instance } = await WebAssembly.instantiateStreaming(
+      // Revalidate, so a rebuilt or redeployed module is never served from a stale cache.
+      fetch("minikalman_wasm.wasm", { cache: "no-cache" }),
+      {},
+    );
     const kf = instance.exports;
 
     // Box-Muller transform for normally distributed noise.
@@ -163,26 +181,35 @@
         { id: EKF, canvas: document.getElementById("radar-ekf"), color: "#1f77b4", fill: "rgba(31, 119, 180, 0.15)" },
         { id: UKF, canvas: document.getElementById("radar-ukf"), color: "#ff7f0e", fill: "rgba(255, 127, 14, 0.15)" },
       ];
+      const radars = [
+        { x: 0, y: 0, color: "#333", crescent: "214, 39, 40" },
+        { x: 30, y: -17, color: "#9467bd", crescent: "148, 103, 189" },
+      ];
 
-      // World window in metres; the radar sits at the origin.
-      const view = { xMin: -45, xMax: 45, yMin: -3, yMax: 47.6 };
+      // World window in metres, centred on the first radar.
+      const view = { xMin: -45, xMax: 45, yMin: -25.3, yMax: 25.3 };
       const dt = 0.1;
       const measureEvery = 5; // steps between radar measurements
-      const crescentSamples = 400;
+      const crescentSamples = 300;
+      const trail = 450; // steps of history to draw, a little over one lap
 
       const bearingInput = document.getElementById("sigma-bearing");
       const rangeInput = document.getElementById("sigma-range");
       const bearingValue = document.getElementById("sigma-bearing-value");
       const rangeValue = document.getElementById("sigma-range-value");
+      const wrapInput = document.getElementById("wrap");
+      const secondRadarInput = document.getElementById("second-radar");
 
       let sim, paused = false;
 
-      // A slow S-curve from left to right, always above the radar.
+      // An ellipse around the first radar, passing behind it (negative x) once per lap.
       function truthAt(t) {
-        return {
-          x: -40 + 3.2 * t,
-          y: 22 + 12 * Math.sin(t / 5),
-        };
+        const phase = (2 * Math.PI * t) / 40;
+        return { x: 4 + 28 * Math.cos(phase), y: 16 * Math.sin(phase) };
+      }
+
+      function activeRadars() {
+        return secondRadarInput.checked ? radars : radars.slice(0, 1);
       }
 
       function restart() {
@@ -191,8 +218,9 @@
         bearingValue.textContent = `${sigmaBearing.toFixed(2)} rad (${(sigmaBearing * 180 / Math.PI).toFixed(1)}°)`;
         rangeValue.textContent = `${sigmaRange.toFixed(1)} m`;
 
+        kf.radar_set_wrap(wrapInput.checked ? 1 : 0);
         const start = truthAt(0);
-        kf.radar_reset(start.x, start.y, 2.0, sigmaRange, sigmaBearing);
+        kf.radar_reset(start.x, start.y, 1.0, sigmaRange, sigmaBearing);
         sim = {
           step: 0, sigmaBearing, sigmaRange,
           truth: [], crescents: [],
@@ -202,27 +230,29 @@
 
       function advance() {
         sim.step += 1;
-        const t = sim.step * dt;
-        const truth = truthAt(t);
-        if (truth.x > view.xMax) return restart();
+        const truth = truthAt(sim.step * dt);
         sim.truth.push(truth);
+        if (sim.truth.length > trail) sim.truth.shift();
 
         kf.radar_predict(dt);
 
         if (sim.step % measureEvery === 0) {
-          const range = Math.hypot(truth.x, truth.y) + sim.sigmaRange * gaussian();
-          const bearing = Math.atan2(truth.y, truth.x) + sim.sigmaBearing * gaussian();
-          kf.radar_correct(range, bearing);
+          for (const radar of activeRadars()) {
+            const dx = truth.x - radar.x, dy = truth.y - radar.y;
+            const range = Math.hypot(dx, dy) + sim.sigmaRange * gaussian();
+            const bearing = Math.atan2(dy, dx) + sim.sigmaBearing * gaussian();
+            kf.radar_correct(radar.x, radar.y, range, bearing);
 
-          // Sample the measurement likelihood in x/y: the crescent.
-          const points = [];
-          for (let i = 0; i < crescentSamples; i++) {
-            const r = range + sim.sigmaRange * gaussian();
-            const b = bearing + sim.sigmaBearing * gaussian();
-            points.push([r * Math.cos(b), r * Math.sin(b)]);
+            // Sample the measurement likelihood in x/y: the crescent.
+            const points = [];
+            for (let i = 0; i < crescentSamples; i++) {
+              const r = range + sim.sigmaRange * gaussian();
+              const b = bearing + sim.sigmaBearing * gaussian();
+              points.push([radar.x + r * Math.cos(b), radar.y + r * Math.sin(b)]);
+            }
+            sim.crescents.push({ radar, points });
           }
-          sim.crescents.push(points);
-          if (sim.crescents.length > 4) sim.crescents.shift();
+          while (sim.crescents.length > 3 * activeRadars().length) sim.crescents.shift();
         }
 
         variants.forEach((v, k) => {
@@ -233,7 +263,17 @@
             pxy: kf.radar_covariance(v.id, 0, 1),
             pyy: kf.radar_covariance(v.id, 1, 1),
           });
+          if (sim.tracks[k].length > trail) sim.tracks[k].shift();
         });
+      }
+
+      function drawRadar(ctx, px, py, radar) {
+        ctx.fillStyle = radar.color;
+        ctx.beginPath();
+        ctx.moveTo(px(radar.x), py(radar.y) - 8);
+        ctx.lineTo(px(radar.x) - 7, py(radar.y) + 4);
+        ctx.lineTo(px(radar.x) + 7, py(radar.y) + 4);
+        ctx.fill();
       }
 
       function draw(variant, track) {
@@ -247,19 +287,29 @@
 
         ctx.clearRect(0, 0, width, height);
 
-        // Range rings around the radar.
+        // Range rings around the first radar, and the line where its bearing jumps.
         ctx.strokeStyle = "#eee";
         ctx.lineWidth = 1;
-        for (let r = 10; r <= 60; r += 10) {
+        for (let r = 10; r <= 50; r += 10) {
           ctx.beginPath();
-          ctx.ellipse(px(0), py(0), r * sx, r * sy, 0, Math.PI, 2 * Math.PI);
+          ctx.ellipse(px(0), py(0), r * sx, r * sy, 0, 0, 2 * Math.PI);
           ctx.stroke();
         }
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "#ccc";
+        ctx.beginPath();
+        ctx.moveTo(px(0), py(0));
+        ctx.lineTo(px(view.xMin), py(0));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#aaa";
+        ctx.font = "12px system-ui, sans-serif";
+        ctx.fillText("±180°", px(view.xMin) + 4, py(0) - 4);
 
         // Older crescents fade out.
-        sim.crescents.forEach((points, i) => {
+        sim.crescents.forEach(({ radar, points }, i) => {
           const alpha = 0.6 * (i + 1) / sim.crescents.length;
-          ctx.fillStyle = `rgba(214, 39, 40, ${alpha})`;
+          ctx.fillStyle = `rgba(${radar.crescent}, ${alpha})`;
           for (const [x, y] of points) ctx.fillRect(px(x) - 1, py(y) - 1, 2, 2);
         });
 
@@ -298,13 +348,7 @@
           ctx.fill();
         }
 
-        // The radar.
-        ctx.fillStyle = "#333";
-        ctx.beginPath();
-        ctx.moveTo(px(0), py(0) - 8);
-        ctx.lineTo(px(0) - 7, py(0) + 4);
-        ctx.lineTo(px(0) + 7, py(0) + 4);
-        ctx.fill();
+        for (const radar of activeRadars()) drawRadar(ctx, px, py, radar);
       }
 
       let last = 0;
@@ -320,6 +364,7 @@
 
       bearingInput.addEventListener("input", restart);
       rangeInput.addEventListener("input", restart);
+      wrapInput.addEventListener("change", () => kf.radar_set_wrap(wrapInput.checked ? 1 : 0));
       document.getElementById("restart").addEventListener("click", restart);
       document.getElementById("pause").addEventListener("click", (e) => {
         paused = !paused;
