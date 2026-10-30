@@ -6,6 +6,8 @@
 //! `WebAssembly.instantiate` alone; no `wasm-bindgen` or JS glue is required.
 //! See `www/index.html` for the browser side and `smoke.mjs` for a Node check.
 
+pub mod radar;
+
 use std::cell::RefCell;
 
 use minikalman::prelude::*;
