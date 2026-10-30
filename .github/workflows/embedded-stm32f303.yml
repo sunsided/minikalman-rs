@@ -38,11 +38,9 @@ jobs:
     continue-on-error: true  # Allow for the cross-builds
     steps:
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
-        with:
-          toolchain: stable
-          components: rust-src
-          target: thumbv7em-none-eabihf
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update --component rust-src --target thumbv7em-none-eabihf
+          rustup default stable
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
@@ -66,11 +64,9 @@ jobs:
           - kalman-fixed
     steps:
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
-        with:
-          toolchain: stable
-          components: rust-src
-          target: thumbv7em-none-eabihf
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update --component rust-src --target thumbv7em-none-eabihf
+          rustup default stable
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
