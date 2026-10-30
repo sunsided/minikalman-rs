@@ -595,6 +595,48 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     {
         measurement.correct(&mut self.x, &mut self.P);
     }
+
+    /// Performs the measurement update step, normalizing the innovation before it is applied.
+    ///
+    /// The innovation `y = z - H×x` is computed by plain subtraction. For measurements that
+    /// wrap around, such as a compass heading, `fix` can wrap each entry back into range:
+    ///
+    /// ```
+    /// # use minikalman::prelude::*;
+    /// # use minikalman::regular::builder::KalmanFilterBuilder;
+    /// use minikalman::angles;
+    ///
+    /// # let builder = KalmanFilterBuilder::<1, f32>::default();
+    /// # let mut filter = builder.build();
+    /// # let mut measurement = builder.observations().build::<1>();
+    /// # filter.state_transition_mut().make_identity();
+    /// # measurement.observation_matrix_mut().make_identity();
+    /// # measurement.measurement_noise_covariance_mut().make_identity();
+    /// // The filter believes the heading is 359°; the compass reads 1°.
+    /// filter.state_vector_mut().set_at(0, 0, 359.0);
+    /// filter.estimate_covariance_mut().make_identity();
+    /// measurement.measurement_vector_mut().set_at(0, 0, 1.0);
+    ///
+    /// filter.correct_with(&mut measurement, |y| y[0] = angles::wrap_180(y[0]));
+    ///
+    /// // The estimate moves about +1° across north, not 179° the long way round.
+    /// let heading = filter.state_vector().get_at(0, 0);
+    /// assert!(heading > 359.5 && heading <= 361.0);
+    /// ```
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `fix` - Normalizes the innovation vector in place.
+    pub fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N)
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectFilter<STATES, T>,
+        N: FnMut(&mut [T]),
+    {
+        measurement.correct_with(&mut self.x, &mut self.P, fix);
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>
@@ -737,11 +779,12 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn correct<M>(&mut self, measurement: &mut M)
+    fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N)
     where
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
+        N: FnMut(&mut [T]),
     {
-        self.correct(measurement)
+        self.correct_with(measurement, fix)
     }
 }
 

@@ -3,7 +3,7 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::matrix::{Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut, SquareMatrix};
 
 /// A builder for a Kalman filter [`RegularObservation`] instances.
 #[allow(clippy::type_complexity)]
@@ -341,6 +341,24 @@ where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
     {
+        self.correct_with(x, P, |_| {})
+    }
+
+    /// Applies a correction step to the provided state vector and covariance matrix,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `fix` - Normalizes the innovation `y = z - H×x` in place, e.g. by wrapping angles.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_with<X, P, N>(&mut self, x: &mut X, P: &mut P, mut fix: N)
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        N: FnMut(&mut [T]),
+    {
         // matrices and vectors
         let H = self.H.as_matrix();
         let y = self.y.as_matrix_mut();
@@ -350,6 +368,7 @@ where
         // y = z - H*x
         H.mult_rowvector(x.as_matrix(), y);
         z.sub_inplace_b(y);
+        fix(y.as_mut_slice());
 
         // Perform the remaining update.
         self.update_with_innovation(x, P);
@@ -823,12 +842,13 @@ where
 {
     #[inline(always)]
     #[allow(non_snake_case)]
-    fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
+    fn correct_with<X, P, N>(&mut self, x: &mut X, P: &mut P, fix: N)
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
+        N: FnMut(&mut [T]),
     {
-        self.correct(x, P)
+        self.correct_with(x, P, fix)
     }
 }
 

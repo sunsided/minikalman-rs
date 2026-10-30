@@ -205,6 +205,7 @@ extern crate core;
 #[cfg(feature = "alloc")]
 mod kalman_builder;
 
+pub mod angles;
 pub mod buffers;
 mod controls;
 mod kalman;
