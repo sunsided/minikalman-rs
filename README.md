@@ -17,6 +17,9 @@ This implementation uses statically allocated buffers for all matrix operations.
 of `const` generics for array allocations in Rust, this crate also provides helper macros
 to create the required arrays.
 
+Try it in the browser: the [live demo](https://sunsided.github.io/minikalman-rs/) runs the Extended and
+Unscented Kalman filters, compiled to WebAssembly, side by side on a radar tracking problem.
+
 <div align="center">
     <img src="docs/hero.webp" width="780" alt="Kalman Filter Library Hero Picture" />
 </div>
