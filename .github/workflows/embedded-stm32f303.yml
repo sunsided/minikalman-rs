@@ -10,7 +10,7 @@ on:
       - 'build.rs'
       - 'crates/**'
       - 'xbuild-tests/**'
-      - '.github/workflows/rust.yml'
+      - '.github/workflows/embedded-stm32f303.yml'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -19,7 +19,10 @@ on:
       - 'build.rs'
       - 'crates/**'
       - 'xbuild-tests/**'
-      - '.github/workflows/rust.yml'
+      - '.github/workflows/embedded-stm32f303.yml'
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -35,12 +38,14 @@ jobs:
     continue-on-error: true  # Allow for the cross-builds
     steps:
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           toolchain: stable
           components: rust-src
           target: thumbv7em-none-eabihf
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
       - name: Check format
         run: cargo fmt --check
       - name: Check
@@ -61,11 +66,13 @@ jobs:
           - kalman-fixed
     steps:
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           toolchain: stable
           components: rust-src
           target: thumbv7em-none-eabihf
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
       - name: Build
         run: cargo build --no-default-features --features=${{ matrix.feature }}
