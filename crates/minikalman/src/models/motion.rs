@@ -15,14 +15,23 @@
 //! for dt in [0.1, 0.12, 0.09] {
 //!     let model = motion::constant_velocity(dt, 0.5);
 //!     filter.state_transition_mut().apply(|a| model.fill_transition(a));
-//!     filter.direct_process_noise_mut().apply(|q| model.fill_process_noise(q));
+//!     filter.direct_process_noise_mut().apply(|noise| model.fill_process_noise(noise));
 //!     filter.predict();
 //! }
 //! ```
 //!
-//! Process noise follows the discrete white noise model: the highest-order
-//! derivative changes by a normally distributed amount with variance `q` between
-//! steps and stays constant during a step.
+//! ## Process noise
+//!
+//! The models use the *discrete* white noise model: the highest-order derivative
+//! (acceleration for [`constant_velocity`], jerk for [`constant_acceleration`]) is
+//! constant during a step and changes by a normally distributed amount between
+//! steps. Its variance is passed per step, e.g. as `acceleration_variance` in
+//! units of (m/s²)² for a position in metres.
+//!
+//! This is not the continuous white noise model, which takes a spectral density
+//! instead and yields `∆t³/3, ∆t²/2, ∆t` terms. If that model is added later, it
+//! will get its own constructor next to the existing ones; the model types keep
+//! their fields private so that this does not break existing callers.
 
 use crate::matrix::{MatrixDataTypeBase, MatrixMut};
 
@@ -30,34 +39,37 @@ use crate::matrix::{MatrixDataTypeBase, MatrixMut};
 ///
 /// ## Arguments
 /// * `dt` - The time step.
-/// * `q` - The variance of the acceleration acting on the object.
-pub fn constant_velocity<T>(dt: T, q: T) -> ConstantVelocity<T> {
-    ConstantVelocity { dt, q }
+/// * `acceleration_variance` - The variance of the (piecewise constant) acceleration
+///   acting on the object during one step.
+pub fn constant_velocity<T>(dt: T, acceleration_variance: T) -> ConstantVelocity<T> {
+    ConstantVelocity {
+        dt,
+        acceleration_variance,
+    }
 }
 
 /// Creates a constant-acceleration model for the state `[position, velocity, acceleration]`.
 ///
 /// ## Arguments
 /// * `dt` - The time step.
-/// * `q` - The variance of the change in acceleration per step.
-pub fn constant_acceleration<T>(dt: T, q: T) -> ConstantAcceleration<T> {
-    ConstantAcceleration { dt, q }
+/// * `jerk_variance` - The variance of the (piecewise constant) jerk, i.e. the change
+///   in acceleration, during one step.
+pub fn constant_acceleration<T>(dt: T, jerk_variance: T) -> ConstantAcceleration<T> {
+    ConstantAcceleration { dt, jerk_variance }
 }
 
 /// A constant-velocity model for the state `[position, velocity]`.
 ///
 /// ```text
-/// A = | 1  ∆t |      Q = q | ∆t⁴/4  ∆t³/2 |
-///     | 0   1 |            | ∆t³/2  ∆t²   |
+/// A = | 1  ∆t |      Q = σ²ₐ | ∆t⁴/4  ∆t³/2 |
+///     | 0   1 |              | ∆t³/2  ∆t²   |
 /// ```
 ///
-/// See [`constant_velocity`].
+/// where `σ²ₐ` is the acceleration variance. See [`constant_velocity`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConstantVelocity<T> {
-    /// The time step.
-    pub dt: T,
-    /// The variance of the acceleration.
-    pub q: T,
+    dt: T,
+    acceleration_variance: T,
 }
 
 impl<T: MatrixDataTypeBase> ConstantVelocity<T> {
@@ -79,25 +91,24 @@ impl<T: MatrixDataTypeBase> ConstantVelocity<T> {
         Q: MatrixMut<2, 2, T> + ?Sized,
     {
         let dt = self.dt;
-        fill_outer_product(process_noise, self.q, &[dt * dt * half(), dt]);
+        let g = [dt * dt * half(), dt];
+        fill_outer_product(process_noise, self.acceleration_variance, &g);
     }
 }
 
 /// A constant-acceleration model for the state `[position, velocity, acceleration]`.
 ///
 /// ```text
-///     | 1  ∆t  ∆t²/2 |          | ∆t⁴/4  ∆t³/2  ∆t²/2 |
-/// A = | 0   1  ∆t    |    Q = q | ∆t³/2  ∆t²    ∆t    |
-///     | 0   0   1    |          | ∆t²/2  ∆t     1     |
+///     | 1  ∆t  ∆t²/2 |             | ∆t⁴/4  ∆t³/2  ∆t²/2 |
+/// A = | 0   1  ∆t    |    Q = σ²ⱼ | ∆t³/2  ∆t²    ∆t    |
+///     | 0   0   1    |             | ∆t²/2  ∆t     1     |
 /// ```
 ///
-/// See [`constant_acceleration`].
+/// where `σ²ⱼ` is the jerk variance. See [`constant_acceleration`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConstantAcceleration<T> {
-    /// The time step.
-    pub dt: T,
-    /// The variance of the change in acceleration per step.
-    pub q: T,
+    dt: T,
+    jerk_variance: T,
 }
 
 impl<T: MatrixDataTypeBase> ConstantAcceleration<T> {
@@ -124,7 +135,8 @@ impl<T: MatrixDataTypeBase> ConstantAcceleration<T> {
         Q: MatrixMut<3, 3, T> + ?Sized,
     {
         let dt = self.dt;
-        fill_outer_product(process_noise, self.q, &[dt * dt * half(), dt, T::one()]);
+        let g = [dt * dt * half(), dt, T::one()];
+        fill_outer_product(process_noise, self.jerk_variance, &g);
     }
 }
 
@@ -132,15 +144,15 @@ fn half<T: MatrixDataTypeBase>() -> T {
     T::one() / (T::one() + T::one())
 }
 
-/// Sets `Q = q·g·gᵀ`.
-fn fill_outer_product<const N: usize, T, Q>(process_noise: &mut Q, q: T, g: &[T; N])
+/// Sets `Q = σ²·g·gᵀ`.
+fn fill_outer_product<const N: usize, T, Q>(process_noise: &mut Q, variance: T, g: &[T; N])
 where
     T: MatrixDataTypeBase,
     Q: MatrixMut<N, N, T> + ?Sized,
 {
     for (row, &gr) in g.iter().enumerate() {
         for (col, &gc) in g.iter().enumerate() {
-            process_noise.set_at(row, col, q * gr * gc);
+            process_noise.set_at(row, col, variance * gr * gc);
         }
     }
 }
@@ -160,7 +172,7 @@ mod tests {
         model.fill_process_noise(&mut q);
 
         assert_eq!(a.as_slice(), &[1.0, 0.5, 0.0, 1.0]);
-        // q·[dt⁴/4, dt³/2; dt³/2, dt²] with dt = 0.5, q = 2
+        // σ²ₐ·[dt⁴/4, dt³/2; dt³/2, dt²] with dt = 0.5, σ²ₐ = 2
         assert_f32_near!(q.get_at(0, 0), 2.0 * 0.0625 / 4.0);
         assert_f32_near!(q.get_at(0, 1), 2.0 * 0.125 / 2.0);
         assert_f32_near!(q.get_at(1, 0), 2.0 * 0.125 / 2.0);
