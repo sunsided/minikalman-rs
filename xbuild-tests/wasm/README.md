@@ -1,5 +1,7 @@
 # minikalman in the browser
 
+Live demo: <https://sunsided.github.io/minikalman-rs/>
+
 Builds minikalman for `wasm32-unknown-unknown` and runs it in the browser. The
 module exports plain `extern "C"` functions that take and return numbers, so it
 loads with `WebAssembly.instantiate` alone; no `wasm-bindgen` or generated JS
@@ -52,6 +54,9 @@ python3 -m http.server --directory xbuild-tests/wasm/www
 Then open <http://localhost:8000>. The workspace release profile keeps debug
 info for the embedded targets; the two environment variables drop it here,
 which brings the module to about 47 kB (21 kB without the radar demo).
+
+The `GitHub Pages` workflow builds the same module and deploys `www/` on every
+push to `main` that touches the library or this example.
 
 To check the module without a browser:
 
