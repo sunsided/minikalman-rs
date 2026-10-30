@@ -5,6 +5,7 @@
 
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
+use crate::observations::unscented::anchored_mean;
 use crate::prelude::AsMatrix;
 use core::marker::PhantomData;
 
@@ -34,6 +35,7 @@ pub struct UnscentedKalman<
     alpha: T,
     beta: T,
     kappa: T,
+    state_residual: Option<fn(&mut [T])>,
     _phantom: PhantomData<T>,
 }
 
@@ -97,6 +99,7 @@ impl<
             alpha,
             beta,
             kappa,
+            state_residual: None,
             _phantom: PhantomData,
         }
     }
@@ -104,6 +107,41 @@ impl<
     /// Returns a reference to the propagated sigma points buffer.
     pub fn sigma_propagated(&self) -> &SigmaPropagated {
         &self.sigma_propagated
+    }
+
+    /// Sets the function that normalizes differences between states, e.g. sigma point
+    /// minus mean.
+    ///
+    /// Use this when a state wraps around, such as a heading. The function receives the
+    /// difference as a slice (one entry per state) and can wrap it back into range:
+    ///
+    /// ```
+    /// # use minikalman::prelude::*;
+    /// # use minikalman::unscented::builder::KalmanFilterBuilder;
+    /// use minikalman::angles;
+    ///
+    /// # let builder = KalmanFilterBuilder::<3, f32>::default();
+    /// # let mut filter = builder.build::<7>();
+    /// // State: x, y, heading
+    /// filter.set_state_residual(|dx| dx[2] = angles::wrap_pi(dx[2]));
+    /// ```
+    ///
+    /// It applies to the state means and residuals in both [`predict_nonlinear`](Self::predict_nonlinear)
+    /// and [`correct_sigma_point_with`](KalmanFilterSigmaPointCorrect::correct_sigma_point_with).
+    /// Means are taken relative to the centre sigma point, so sigma points on either side
+    /// of the wrap point average correctly. The resulting state itself is not wrapped; do
+    /// that on [`state_vector_mut`](Self::state_vector_mut) if you need it in range.
+    pub fn set_state_residual(&mut self, fix: fn(&mut [T])) {
+        self.state_residual = Some(fix);
+    }
+
+    /// Calls the state residual function, if one is set.
+    fn fix_state(residual: Option<fn(&mut [T])>) -> impl FnMut(&mut [T]) {
+        move |dx: &mut [T]| {
+            if let Some(fix) = residual {
+                fix(dx)
+            }
+        }
     }
 }
 
@@ -466,34 +504,35 @@ where
         }
     }
 
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case, clippy::needless_range_loop)]
     fn reconstruct_prediction(&mut self) {
         let lambda = self.lambda();
         let n = T::from_usize(STATES).unwrap();
         let w0_m = lambda / (n + lambda);
+        let mut fix_state = Self::fix_state(self.state_residual);
+
         let w = self.sigma_weights.as_matrix();
         let sigma_prop = self.sigma_propagated.as_matrix();
         let x = self.x.as_matrix_mut();
         let P = self.P.as_matrix_mut();
+
+        let mean = anchored_mean(sigma_prop, &self.sigma_weights, w0_m, &mut fix_state);
         for i in 0..STATES {
-            x.set(i, 0, T::default());
-            for j in 0..NUM_SIGMA {
-                let w_val = if j == 0 { w0_m } else { w.get(j, 0) };
-                x.set(i, 0, x.get(i, 0) + w_val * sigma_prop.get(i, j));
-            }
+            x.set(i, 0, mean[i]);
         }
-        for i in 0..STATES {
-            for j in 0..STATES {
-                P.set(i, j, T::default());
-            }
-        }
+
+        P.set_zero();
+        let mut dx = [T::default(); STATES];
         for k in 0..NUM_SIGMA {
+            for i in 0..STATES {
+                dx[i] = sigma_prop.get(i, k) - mean[i];
+            }
+            fix_state(&mut dx);
+
             let w_val = w.get(k, 0);
             for i in 0..STATES {
                 for j in 0..STATES {
-                    let diff_i = sigma_prop.get(i, k) - x.get(i, 0);
-                    let diff_j = sigma_prop.get(j, k) - x.get(j, 0);
-                    P.set(i, j, P.get(i, j) + w_val * diff_i * diff_j);
+                    P.set(i, j, P.get(i, j) + w_val * dx[i] * dx[j]);
                 }
             }
         }
@@ -851,6 +890,9 @@ where
     fn set_kappa(&mut self, v: T) {
         self.kappa = v;
     }
+    fn set_state_residual(&mut self, fix: fn(&mut [T])) {
+        self.state_residual = Some(fix);
+    }
 }
 
 impl<
@@ -954,19 +996,26 @@ where
     TempSigmaP: TempSigmaPMatrix<STATES, T>,
 {
     type SigmaPropagated = SigmaPropagated;
-    fn correct_sigma_point<M, F, const OBS: usize>(&mut self, measurement: &mut M, observation: F)
-    where
+    fn correct_sigma_point_with<M, F, N, const OBS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+    ) where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBS, NUM_SIGMA, T>,
         F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
+        N: FnMut(&mut [T]),
     {
         let lambda = self.lambda();
-        measurement.correct_with_observed(
+        measurement.correct_with_observed_residuals(
             &mut self.x,
             &mut self.P,
             &self.sigma_propagated,
             &self.sigma_weights,
             lambda,
             observation,
+            Self::fix_state(self.state_residual),
+            fix,
         )
     }
 }

@@ -12,6 +12,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `correct_with` (regular) and `correct_nonlinear_with` (extended) to normalize the innovation
   before it is applied, e.g. to wrap angles across ±π or 0°/360° ([#40]).
 - Added `angles::wrap_pi` and `angles::wrap_180`, which also work for fixed-point types.
+- Added `correct_sigma_point_with` and `set_state_residual` to the Unscented Kalman Filter to normalize
+  measurement and state differences, e.g. for bearings or headings across ±π ([#40]).
+
+### Fixed
+
+- The Unscented Kalman Filter now averages sigma points relative to the centre sigma point. Results are
+  unchanged for ordinary states, but sigma points on either side of a wrap point now average correctly once
+  a residual function is set.
 
 ### Changed
 
@@ -19,6 +27,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `KalmanFilterObservationCorrectFilter` and `KalmanFilterNonlinearObservationCorrectFilter`:
   implement `correct_with` / `correct_nonlinear_with` instead of `correct` / `correct_nonlinear`,
   which are now provided methods. Code that only calls these methods is unaffected.
+- **Breaking** for custom implementations of `KalmanFilterSigmaPointCorrect`,
+  `KalmanFilterUnscentedObservationCorrectFilter` and `KalmanFilterUnscentedParamsMut`: implement
+  `correct_sigma_point_with`, `correct_with_observed_residuals` and `set_state_residual`.
 
 [#40]: https://github.com/sunsided/minikalman-rs/issues/40
 
