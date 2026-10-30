@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added `models::motion::constant_velocity` and `models::motion::constant_acceleration` to fill the state transition
+  and process noise matrices for a given time step.
+
 ## [0.7.0] - 2026-04-26
 
 [0.7.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.7.0

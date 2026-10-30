@@ -209,6 +209,7 @@ pub mod buffers;
 mod controls;
 mod kalman;
 pub mod matrix;
+pub mod models;
 mod observations;
 mod static_macros;
 
