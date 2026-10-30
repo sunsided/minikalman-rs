@@ -5,6 +5,7 @@
 //! module describe a single axis and fill both matrices from the time step:
 //!
 //! ```
+//! # #[cfg(feature = "alloc")] {
 //! use minikalman::models::motion;
 //! use minikalman::prelude::*;
 //! use minikalman::regular::builder::KalmanFilterBuilder;
@@ -18,6 +19,7 @@
 //!     filter.direct_process_noise_mut().apply(|noise| model.fill_process_noise(noise));
 //!     filter.predict();
 //! }
+//! # }
 //! ```
 //!
 //! ## Process noise

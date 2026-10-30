@@ -54,6 +54,15 @@ name = "radar-2d-ukf"
 path = "examples/radar_2d_ukf.rs"
 required-features = ["std"]
 
+[[example]]
+name = "radar_2d_ukf_builder"
+path = "examples/radar_2d_ukf_builder.rs"
+required-features = ["alloc"]
+
+[[test]]
+name = "simple"
+required-features = ["alloc"]
+
 [[test]]
 name = "proptest_matrix"
 required-features = ["std"]

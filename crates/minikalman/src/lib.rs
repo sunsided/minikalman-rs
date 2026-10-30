@@ -31,6 +31,7 @@
 //! for setting up and operating the Kalman Filter could look like this:
 //!
 //! ```no_run
+//! # #[cfg(feature = "alloc")] {
 //! use minikalman::regular::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
@@ -71,6 +72,7 @@
 //!     let state = filter.state_vector();
 //!     let covariance = filter.estimate_covariance();
 //! }
+//! # }
 //! ```
 //!
 //! ## Extended Kalman Filters
@@ -79,6 +81,7 @@
 //! replaced with their nonlinear counterparts:
 //!
 //! ```no_run
+//! # #[cfg(feature = "alloc")] {
 //! use minikalman::extended::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
@@ -117,6 +120,7 @@
 //!     let state = filter.state_vector();
 //!     let covariance = filter.estimate_covariance();
 //! }
+//! # }
 //! ```
 //!
 //! ## `no_std` Example
