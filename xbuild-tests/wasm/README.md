@@ -9,13 +9,22 @@ glue is needed.
 
 The page shows two demos:
 
-- **Smoothing a noisy position**: a linear constant-velocity filter in 1D.
-- **Tracking a moving target**: radars measure range and bearing to a target
-  circling past them. An Extended and an Unscented Kalman filter run side by
-  side on the same measurements; each plot shows the crescent-shaped
-  measurement uncertainty against the filter's 2σ ellipse. Toggles turn on a
-  second radar and turn off wrapping of the bearing residual, to show what goes
-  wrong when the target passes behind a radar.
+- **Tracking a moving target**: radars measure range and bearing to a moving
+  target. An Extended and an Unscented Kalman filter run side by side on the
+  same measurements; each plot shows the crescent-shaped measurement
+  uncertainty against the filter's 2σ ellipse, and marks each correction on the
+  estimate track.
+  - Pick a preset path (circling the radar, a straight pass like the repo's
+    radar examples, a figure eight), **draw your own** path, **drag** the radars
+    and the path's waypoints, or **steer** the target with the pointer.
+  - Pause and step one prediction or one measurement at a time, change how
+    often the radars measure, the target's speed, the process noise and the
+    measurement noise.
+  - Toggle a second radar, and the wrapping of the bearing residual to see what
+    goes wrong when the target passes behind a radar.
+- **The basics: smoothing a noisy position**: a linear constant-velocity filter
+  in 1D. Draw your own signal on the plot and tune the process noise to see the
+  trade-off between smoothing and lag.
 
 ### 1D smoothing
 
