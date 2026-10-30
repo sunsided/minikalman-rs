@@ -21,7 +21,7 @@ Try it in the browser: the [live demo](https://sunsided.github.io/minikalman-rs/
 Unscented Kalman filters, compiled to WebAssembly, side by side on a radar tracking problem.
 
 <div align="center">
-    <img src="docs/hero.webp" width="780" alt="Kalman Filter Library Hero Picture" />
+    <img src="https://raw.githubusercontent.com/sunsided/minikalman-rs/main/docs/hero.webp" width="780" alt="Kalman Filter Library Hero Picture" />
 </div>
 
 ## `no_std` vs `std`, `alloc`
@@ -187,7 +187,7 @@ fn example() {
 ```
 
 For a slightly more realistic EKF example that simulates radar measurements of a moving object,
-see the [`radar-2d`](crates/minikalman/examples/radar_2d.rs) example.
+see the [`radar-2d`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/radar_2d.rs) example.
 
 ```shell
 cargo run --example radar-2d --features=std
