@@ -19,6 +19,9 @@ on:
       - 'xbuild-tests/**'
       - '.github/workflows/rust.yml'
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -27,7 +30,9 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
       - name: Check format
         run: cargo fmt --check
       - name: Clippy
@@ -37,7 +42,9 @@ jobs:
     name: Build documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
       - name: Build documentation
         run: cargo doc
 
@@ -46,18 +53,25 @@ jobs:
     name: Code Coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
       - name: Build
         run: cargo build --verbose
       - name: Build Benchmarks
         run: cargo build --benches --package minikalman
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
+          toolchain: stable
           components: llvm-tools-preview
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
+        uses: taiki-e/install-action@2409e52fd2fc8a8601d0d900fab9d85ae1fe714a # cargo-llvm-cov
+        with:
+          tool: cargo-llvm-cov
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        uses: taiki-e/install-action@d042af60014eb018fcd01f57f4f62118b69e3ea6 # nextest
+        with:
+          tool: nextest
       - name: Generate code coverage
         run: cargo llvm-cov nextest --features=std,fixed,alloc,unsafe,nalgebra --workspace --exclude stm32 --lcov --output-path lcov.info
       - name: Test using libm
@@ -65,7 +79,7 @@ jobs:
       - name: Test using micromath
         run: cargo nextest run --no-default-features --features=micromath,alloc
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.0.1
+        uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
@@ -78,8 +92,12 @@ jobs:
     name: Build and Test (floating-point)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@nextest
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@d042af60014eb018fcd01f57f4f62118b69e3ea6 # nextest
+        with:
+          tool: nextest
       - name: Run Example (float)
         run: cargo run --example=gravity --no-default-features --features=std
       - name: Run EKF example
@@ -100,8 +118,12 @@ jobs:
     name: Build and Test (fixed-point)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@nextest
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@d042af60014eb018fcd01f57f4f62118b69e3ea6 # nextest
+        with:
+          tool: nextest
       - name: Run Example (fixed)
         run: cargo run --example=fixed --no-default-features --features=fixed,std
       - name: Run tests (fixed)
@@ -120,8 +142,12 @@ jobs:
       matrix:
         os: [ macos-latest, windows-latest ]
     steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@nextest
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@d042af60014eb018fcd01f57f4f62118b69e3ea6 # nextest
+        with:
+          tool: nextest
       - name: Run tests
         run: cargo nextest run --package minikalman --verbose
       - name: Run doctests
@@ -135,27 +161,31 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
 
       - name: Cache Cargo artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
 
       - name: Install cargo-sbom
-        uses: psastras/sbom-rs/actions/install-cargo-sbom@cargo-sbom-v0.10.0
+        uses: psastras/sbom-rs/actions/install-cargo-sbom@9ecc460b937ac5558c4f8ebebc9e07d2bdbef67b # cargo-sbom-v0.10.0
 
       - name: Generate SBOM
         run: cargo-sbom --output-format=spdx_json_2_3 > sbom.json
 
       - name: Upload SBOM as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sbom
           path: sbom.json
 
       - name: Submit dependencies to GitHub
-        uses: advanced-security/spdx-dependency-submission-action@v0.2.0
+        uses: advanced-security/spdx-dependency-submission-action@169d22427d74f3faf93504e70b03eede8dab272a # v0.2.0
         with:
           filePath: sbom.json
