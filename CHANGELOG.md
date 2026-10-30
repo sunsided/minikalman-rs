@@ -14,6 +14,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `angles::wrap_pi` and `angles::wrap_180`, which also work for fixed-point types.
 - Added `correct_sigma_point_with` and `set_state_residual` to the Unscented Kalman Filter to normalize
   measurement and state differences, e.g. for bearings or headings across ±π ([#40]).
+- Added a WebAssembly example (`xbuild-tests/wasm`) that runs without `wasm-bindgen`, and an interactive
+  [live demo](https://sunsided.github.io/minikalman-rs/) comparing the Extended and Unscented filters on radar
+  tracking, with draggable radars, drawn paths and a toggle for bearing wrap-around.
 
 ### Fixed
 
@@ -25,6 +28,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The Unscented Kalman Filter now averages sigma points relative to the centre sigma point. Results are
   unchanged for ordinary states, but sigma points on either side of a wrap point now average correctly once
   a residual function is set.
+- `cargo test` and `cargo clippy --all-targets` work again with `--no-default-features --features libm`: tests,
+  examples, benches and doctests that use the builders now require the `alloc` feature.
 
 ### Changed
 
@@ -35,6 +40,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Breaking** for custom implementations of `KalmanFilterSigmaPointCorrect`,
   `KalmanFilterUnscentedObservationCorrectFilter` and `KalmanFilterUnscentedParamsMut`: implement
   `correct_sigma_point_with`, `correct_with_observed_residuals` and `set_state_residual`.
+
+### Internal
+
+- Added actionlint and zizmor checks for the GitHub workflows; actions are pinned to commit SHAs and kept up to
+  date by Dependabot.
+- Added CI jobs that build for `wasm32-unknown-unknown` and deploy the demo to GitHub Pages, and a CI test run
+  with `libm` but without `alloc`.
+- Added a `cargo-release` configuration and a workflow that creates GitHub releases from version tags.
 
 [#40]: https://github.com/sunsided/minikalman-rs/issues/40
 
