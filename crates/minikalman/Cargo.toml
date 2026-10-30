@@ -23,11 +23,12 @@ harness = false
 [[bench]]
 name = "gravity"
 harness = false
+required-features = ["alloc"]
 
 [[bench]]
 name = "gravity_fixed"
 harness = false
-required-features = ["fixed"]
+required-features = ["fixed", "alloc"]
 
 [[example]]
 name = "gravity"
