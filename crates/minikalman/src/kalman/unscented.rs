@@ -120,6 +120,7 @@ impl<
     /// difference as a slice (one entry per state) and can wrap it back into range:
     ///
     /// ```
+    /// # #[cfg(feature = "alloc")] {
     /// # use minikalman::prelude::*;
     /// # use minikalman::unscented::builder::KalmanFilterBuilder;
     /// use minikalman::angles;
@@ -128,6 +129,7 @@ impl<
     /// # let mut filter = builder.build::<7>();
     /// // State: x, y, heading
     /// filter.set_state_residual(|dx| dx[2] = angles::wrap_pi(dx[2]));
+    /// # }
     /// ```
     ///
     /// It applies to the state means and residuals in both [`predict_nonlinear`](Self::predict_nonlinear)

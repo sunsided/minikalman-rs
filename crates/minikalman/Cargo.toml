@@ -23,11 +23,12 @@ harness = false
 [[bench]]
 name = "gravity"
 harness = false
+required-features = ["alloc"]
 
 [[bench]]
 name = "gravity_fixed"
 harness = false
-required-features = ["fixed"]
+required-features = ["fixed", "alloc"]
 
 [[example]]
 name = "gravity"
@@ -53,6 +54,15 @@ required-features = ["std"]
 name = "radar-2d-ukf"
 path = "examples/radar_2d_ukf.rs"
 required-features = ["std"]
+
+[[example]]
+name = "radar_2d_ukf_builder"
+path = "examples/radar_2d_ukf_builder.rs"
+required-features = ["alloc"]
+
+[[test]]
+name = "simple"
+required-features = ["alloc"]
 
 [[test]]
 name = "proptest_matrix"

@@ -920,8 +920,14 @@ where
 mod tests {
     use super::*;
     use crate::angles;
-    use crate::buffers::types::{SigmaPropagatedMatrixBuffer, SigmaWeightsVectorBuffer};
-    use crate::matrix::{MatrixData, RowMajorSequentialData};
+    use crate::buffers::types::SigmaWeightsVectorBuffer;
+    use crate::matrix::MatrixData;
+
+    // Only the tests that build an observation through the builder need these.
+    #[cfg(feature = "alloc")]
+    use crate::buffers::types::SigmaPropagatedMatrixBuffer;
+    #[cfg(feature = "alloc")]
+    use crate::matrix::RowMajorSequentialData;
 
     #[test]
     fn test_dummy() {
@@ -959,6 +965,7 @@ mod tests {
     }
 
     /// Five sigma points around `x = (1, 2)` and the weights for `λ = 0`, i.e. `w0_m = 0`.
+    #[cfg(feature = "alloc")]
     #[allow(clippy::type_complexity)]
     fn sigma_points() -> (
         SigmaPropagatedMatrixBuffer<2, 5, f64, crate::matrix::MatrixDataArray<2, 5, 10, f64>>,
@@ -973,6 +980,7 @@ mod tests {
     }
 
     /// Observes `x + y` for each sigma point.
+    #[cfg(feature = "alloc")]
     fn observe_sum<SP, O>(sigma: &SP, observed: &mut O)
     where
         SP: AsMatrix<2, 5, f64>,

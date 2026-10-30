@@ -602,6 +602,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// wrap around, such as a compass heading, `fix` can wrap each entry back into range:
     ///
     /// ```
+    /// # #[cfg(feature = "alloc")] {
     /// # use minikalman::prelude::*;
     /// # use minikalman::regular::builder::KalmanFilterBuilder;
     /// use minikalman::angles;
@@ -622,6 +623,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// // The estimate moves about +1° across north, not 179° the long way round.
     /// let heading = filter.state_vector().get_at(0, 0);
     /// assert!(heading > 359.5 && heading <= 361.0);
+    /// # }
     /// ```
     ///
     /// ## Arguments
