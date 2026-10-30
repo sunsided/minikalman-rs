@@ -1,0 +1,43 @@
+---
+name: GitHub Release
+
+# Runs on the vX.Y.Z tags pushed by `cargo release` and creates the GitHub release,
+# using the matching CHANGELOG.md section as release notes.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Extract release notes from CHANGELOG.md
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          awk -v header="## [${version}]" -v link="[${version}]: " '
+            index($0, header) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found && index($0, link) == 1 { next }
+            found { print }
+          ' CHANGELOG.md | sed -e '/./,$!d' > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for ${version}"
+            exit 1
+          fi
+          cat notes.md
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --title "${TAG#v}" --notes-file notes.md --verify-tag
