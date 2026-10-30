@@ -1,0 +1,8 @@
+# cargo-release configuration for the workspace.
+# Dry run: `cargo release minor`; release: `cargo release minor --execute`.
+
+allow-branch = ["main"]
+consolidate-commits = true
+pre-release-commit-message = "Release {{version}}"
+tag-name = "v{{version}}"
+tag-message = "minikalman {{version}}"

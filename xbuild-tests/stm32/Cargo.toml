@@ -24,3 +24,7 @@ minikalman = { version = "*", path = "../../crates/minikalman", default-features
 panic-halt = "0.2.0"
 stm32f3 = { version = "0.15.1", features = ["stm32f303"] }
 stm32f3xx-hal = { version = "0.10.0", features = ["ld", "rt", "stm32f303xc"] }
+
+[package.metadata.release]
+# Cross-build checks only; never released or tagged.
+release = false

@@ -15,3 +15,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 minikalman = { version = "*", path = "../../crates/minikalman", default-features = false, features = ["std"] }
+
+[package.metadata.release]
+# Cross-build checks only; never released or tagged.
+release = false
