@@ -5,6 +5,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## [0.8.0] - 2026-10-30
+
+[0.8.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.8.0
+
 ### Added
 
 - Added `models::motion::constant_velocity` and `models::motion::constant_acceleration` to fill the state transition
