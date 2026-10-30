@@ -5,6 +5,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Fixed
+
+- The README examples compile again: they used `system_covariance`, `state_transition_mut` and
+  `observation_matrix_mut`, which are now `estimate_covariance`, `state_transition_jacobian_mut` and
+  `observation_jacobian_matrix_mut`. The README is now doctested so they stay in sync.
+- The hero image and the `radar_2d` example link in the README work on crates.io.
+
 ## [0.8.0] - 2026-10-30
 
 [0.8.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.8.0
