@@ -28,13 +28,13 @@ Unscented Kalman filters, compiled to WebAssembly, side by side on a radar track
 
 This crate builds as `no_std` by default. To build with `std` support, run:
 
-```
+```shell
 cargo build --features=std
 ```
 
 Independently of `std` you can turn on `alloc` features. This enables simplified builders with heap-allocated buffers:
 
-```
+```shell
 cargo build --features=alloc
 ```
 
@@ -47,10 +47,14 @@ some builders are enabled that allow for simple creation of filters. This should
 use case that does not have to explicitly manage buffer locations, to get an easier start:
 
 ```rust
+# use minikalman::prelude::*;
+# use minikalman::regular;
+#
 const NUM_STATES: usize = 3;
 const NUM_CONTROLS: usize = 2;
 const NUM_OBSERVATIONS: usize = 1;
 
+# #[cfg(feature = "alloc")]
 fn example() {
     let builder = regular::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
@@ -83,7 +87,7 @@ fn example() {
 
         // Access the state
         let state = filter.state_vector();
-        let covariance = filter.system_covariance();
+        let covariance = filter.estimate_covariance();
     }
 }
 ```
@@ -94,9 +98,14 @@ The general setup remains the same, however the `predict` and `correct` methods 
 replaced with their nonlinear counterparts:
 
 ```rust
+# use minikalman::prelude::*;
+# use minikalman::extended;
+# use rand_distr::{Distribution, Normal};
+#
 const NUM_STATES: usize = 3;
 const NUM_OBSERVATIONS: usize = 1;
 
+# #[cfg(feature = "alloc")]
 fn example() {
     let builder = extended::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
     let mut filter = builder.build();
@@ -131,7 +140,7 @@ fn example() {
         let time = step as f32 * DELTA_T;
 
         // Update the system transition Jacobian matrix.
-        filter.state_transition_mut().apply(|mat| {
+        filter.state_transition_jacobian_mut().apply(|mat| {
             mat.make_identity();
             mat.set(0, 2, DELTA_T);
             mat.set(1, 3, DELTA_T);
@@ -160,7 +169,7 @@ fn example() {
         });
 
         // Update the observation Jacobian.
-        measurement.observation_matrix_mut().apply(|mat| {
+        measurement.observation_jacobian_matrix_mut().apply(|mat| {
             let x = filter.state_vector().get_row(0);
             let y = filter.state_vector().get_row(1);
 
@@ -219,7 +228,7 @@ cargo run --example gravity --features=std,libm
 This will estimate the (earth's) gravitational constant (g ≈ 9.807 m/s²) through observation
 of the position of a free-falling object. When executed, it should print something along the lines of:
 
-```
+```text
 At t = 0, predicted state: s = 3 m, v = 6 m/s, a = 6 m/s²
 At t = 0, measurement: s = 0 m, noise ε = 0.13442 m
 At t = 0, corrected state: s = 0.908901 m, v = 3.6765568 m/s, a = 5.225519 m/s²
