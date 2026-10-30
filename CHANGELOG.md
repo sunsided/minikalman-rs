@@ -5,6 +5,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## [0.8.1] - 2026-10-30
+
+[0.8.1]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.8.1
+
 ### Fixed
 
 - The README examples compile again: they used `system_covariance`, `state_transition_mut` and
