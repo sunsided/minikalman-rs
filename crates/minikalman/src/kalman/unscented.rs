@@ -36,6 +36,9 @@ pub struct UnscentedKalman<
     beta: T,
     kappa: T,
     state_residual: Option<fn(&mut [T])>,
+    /// Whether `sigma_propagated` no longer describes the current `x` and `P`, i.e. a
+    /// correction ran since the last prediction (or no prediction ran yet).
+    sigma_points_stale: bool,
     _phantom: PhantomData<T>,
 }
 
@@ -100,6 +103,7 @@ impl<
             beta,
             kappa,
             state_residual: None,
+            sigma_points_stale: true,
             _phantom: PhantomData,
         }
     }
@@ -549,6 +553,30 @@ where
         self.generate_sigma_points();
         self.predict_sigma_points(state_transition);
         self.reconstruct_prediction();
+        self.sigma_points_stale = false;
+    }
+
+    /// Redraws the sigma points from the current state and covariance, without
+    /// propagating them, if a correction already used the current set.
+    ///
+    /// A correction updates `x` and `P` but not the sigma points. A second correction
+    /// before the next prediction (e.g. from another sensor) would otherwise reuse the
+    /// prior's spread and shrink `P` by that much again, until it is no longer positive.
+    fn refresh_sigma_points(&mut self) {
+        if !self.sigma_points_stale {
+            return;
+        }
+
+        self.compute_weights();
+        self.generate_sigma_points();
+        let sigma = self.sigma_points.as_matrix();
+        let sigma_prop = self.sigma_propagated.as_matrix_mut();
+        for j in 0..NUM_SIGMA {
+            for i in 0..STATES {
+                sigma_prop.set(i, j, sigma.get(i, j));
+            }
+        }
+        self.sigma_points_stale = false;
     }
 }
 
@@ -1006,6 +1034,7 @@ where
         F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
         N: FnMut(&mut [T]),
     {
+        self.refresh_sigma_points();
         let lambda = self.lambda();
         measurement.correct_with_observed_residuals(
             &mut self.x,
@@ -1016,7 +1045,8 @@ where
             observation,
             Self::fix_state(self.state_residual),
             fix,
-        )
+        );
+        self.sigma_points_stale = true;
     }
 }
 

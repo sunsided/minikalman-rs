@@ -17,6 +17,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The Unscented Kalman Filter now redraws its sigma points from the current state and covariance when
+  `correct_sigma_point` runs more than once between predictions, e.g. once per sensor. Previously each
+  further correction reused the prior's sigma points and shrank the covariance again by the same amount,
+  until it turned negative and the filter diverged. Correcting before the first prediction now uses
+  sigma points drawn from the initial state instead of zeroed buffers.
 - The Unscented Kalman Filter now averages sigma points relative to the centre sigma point. Results are
   unchanged for ordinary states, but sigma points on either side of a wrap point now average correctly once
   a residual function is set.
