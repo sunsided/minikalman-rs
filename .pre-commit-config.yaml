@@ -9,7 +9,8 @@ repos:
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.4
     hooks:
-      - id: codespell  - repo: https://github.com/rhysd/actionlint
+      - id: codespell
+  - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
     hooks:
       - id: actionlint
