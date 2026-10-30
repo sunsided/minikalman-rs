@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/minikalman", "xbuild-tests/stm32"]
+members = ["crates/minikalman", "xbuild-tests/stm32", "xbuild-tests/wasm"]
 default-members = ["crates/minikalman"]
 exclude = ["crates/minikalman/fuzz"]
 

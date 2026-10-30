@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>minikalman in the browser</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; line-height: 1.4; }
+    canvas { width: 100%; height: auto; border: 1px solid #ccc; display: block; }
+    .legend span { margin-right: 1.5rem; white-space: nowrap; }
+    .truth { color: #888; } .meas { color: #d62728; } .est { color: #1f77b4; } .ukf { color: #ff7f0e; }
+    .variants { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
+    .variants h3 { margin: 0 0 0.25rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; }
+    output { font-variant-numeric: tabular-nums; }
+    nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #ccc; color: #666; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>minikalman in the browser</h1>
+  <nav>
+    <a href="https://github.com/sunsided/minikalman-rs">GitHub repository</a>
+    <a href="https://crates.io/crates/minikalman">crates.io</a>
+    <a href="https://docs.rs/minikalman">Documentation</a>
+  </nav>
+  <p>
+    minikalman compiled to <code>wasm32-unknown-unknown</code> and loaded with plain
+    <code>WebAssembly.instantiateStreaming</code>. The module exports a few
+    <code>extern "C"</code> functions that take and return numbers; there is no generated JS glue.
+  </p>
+
+  <h2>Smoothing a noisy position</h2>
+  <p>A linear constant-velocity filter tracking a 1D position.</p>
+  <p class="legend">
+    <span class="truth">— true position</span>
+    <span class="meas">● noisy measurement</span>
+    <span class="est">— filtered estimate ±2σ</span>
+  </p>
+  <canvas id="plot" width="960" height="400"></canvas>
+  <p class="controls">
+    <label>Measurement noise σ <input id="sigma" type="range" min="0.1" max="3" step="0.1" value="1"></label>
+    <output id="sigma-value">1.0</output>
+    <button id="rerun">Rerun</button>
+  </p>
+  <p id="status"></p>
+
+  <h2>Tracking a moving target</h2>
+  <p>
+    A radar at the bottom centre measures range and bearing to a target passing by.
+    Range noise spreads a measurement along the line of sight; bearing noise spreads it
+    sideways, more so the further away the target is. Together they make a
+    <span class="meas">crescent</span> in x/y. Both filters approximate it with a Gaussian ellipse:
+    the Extended filter by linearizing at its estimate, the Unscented filter by pushing sigma points
+    through the measurement function. Both run on the same measurements.
+  </p>
+  <p class="legend">
+    <span class="truth">— true path</span>
+    <span class="meas">∙ measurement uncertainty</span>
+    <span class="est">— EKF estimate, 2σ ellipse</span>
+    <span class="ukf">— UKF estimate, 2σ ellipse</span>
+  </p>
+  <div class="variants">
+    <div><h3 class="est">Extended Kalman filter</h3><canvas id="radar-ekf" width="640" height="360"></canvas></div>
+    <div><h3 class="ukf">Unscented Kalman filter</h3><canvas id="radar-ukf" width="640" height="360"></canvas></div>
+  </div>
+  <p class="controls">
+    <label>Bearing noise σ <input id="sigma-bearing" type="range" min="0.01" max="0.3" step="0.01" value="0.12"></label>
+    <output id="sigma-bearing-value"></output>
+    <label>Range noise σ <input id="sigma-range" type="range" min="0.1" max="3" step="0.1" value="0.5"></label>
+    <output id="sigma-range-value"></output>
+    <button id="pause">Pause</button>
+    <button id="restart">Restart</button>
+  </p>
+
+  <footer>
+    <a href="https://github.com/sunsided/minikalman-rs">minikalman</a> is a Kalman filter library for
+    microcontrollers, written in Rust. Install it from
+    <a href="https://crates.io/crates/minikalman">crates.io</a>; the source of this page is in
+    <a href="https://github.com/sunsided/minikalman-rs/tree/main/xbuild-tests/wasm"><code>xbuild-tests/wasm</code></a>.
+  </footer>
+
+  <script type="module">
+    const { instance } = await WebAssembly.instantiateStreaming(fetch("minikalman_wasm.wasm"), {});
+    const kf = instance.exports;
+
+    // Box-Muller transform for normally distributed noise.
+    function gaussian() {
+      const u = 1 - Math.random();
+      const v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function polyline(ctx, points, color, width = 2) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.stroke();
+    }
+
+    // ── 1D smoothing ────────────────────────────────────────────────────────
+
+    {
+      const canvas = document.getElementById("plot");
+      const ctx = canvas.getContext("2d");
+      const sigmaInput = document.getElementById("sigma");
+      const sigmaValue = document.getElementById("sigma-value");
+
+      function run() {
+        const sigma = Number(sigmaInput.value);
+        sigmaValue.textContent = sigma.toFixed(1);
+
+        const dt = 0.1;
+        kf.reset(dt, 0.5, sigma * sigma);
+
+        const rows = [];
+        for (let i = 0; i < 300; i++) {
+          const t = i * dt;
+          const truth = 10 * Math.sin(t / 4) + t; // smooth, slowly changing velocity
+          const z = truth + sigma * gaussian();
+          const estimate = kf.step(z);
+          rows.push({ t, truth, z, estimate, sd: Math.sqrt(kf.position_variance()) });
+        }
+        draw(rows);
+        document.getElementById("status").textContent =
+          `final velocity estimate: ${kf.velocity().toFixed(2)} units/s`;
+      }
+
+      function draw(rows) {
+        const { width, height } = canvas;
+        const ys = rows.flatMap((r) => [r.truth, r.z]);
+        const yMin = Math.min(...ys), yMax = Math.max(...ys);
+        const x = (t) => (t / rows.at(-1).t) * (width - 20) + 10;
+        const y = (v) => height - 10 - ((v - yMin) / (yMax - yMin)) * (height - 20);
+
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.fillStyle = "rgba(31, 119, 180, 0.15)";
+        ctx.beginPath();
+        rows.forEach((r, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x(r.t), y(r.estimate + 2 * r.sd)));
+        [...rows].reverse().forEach((r) => ctx.lineTo(x(r.t), y(r.estimate - 2 * r.sd)));
+        ctx.fill();
+
+        ctx.fillStyle = "#d62728";
+        for (const r of rows) ctx.fillRect(x(r.t) - 1.5, y(r.z) - 1.5, 3, 3);
+
+        polyline(ctx, rows.map((r) => [x(r.t), y(r.truth)]), "#888");
+        polyline(ctx, rows.map((r) => [x(r.t), y(r.estimate)]), "#1f77b4");
+      }
+
+      sigmaInput.addEventListener("input", run);
+      document.getElementById("rerun").addEventListener("click", run);
+      run();
+    }
+
+    // ── 2D radar tracking ───────────────────────────────────────────────────
+
+    {
+      const EKF = 0, UKF = 1;
+      const variants = [
+        { id: EKF, canvas: document.getElementById("radar-ekf"), color: "#1f77b4", fill: "rgba(31, 119, 180, 0.15)" },
+        { id: UKF, canvas: document.getElementById("radar-ukf"), color: "#ff7f0e", fill: "rgba(255, 127, 14, 0.15)" },
+      ];
+
+      // World window in metres; the radar sits at the origin.
+      const view = { xMin: -45, xMax: 45, yMin: -3, yMax: 47.6 };
+      const dt = 0.1;
+      const measureEvery = 5; // steps between radar measurements
+      const crescentSamples = 400;
+
+      const bearingInput = document.getElementById("sigma-bearing");
+      const rangeInput = document.getElementById("sigma-range");
+      const bearingValue = document.getElementById("sigma-bearing-value");
+      const rangeValue = document.getElementById("sigma-range-value");
+
+      let sim, paused = false;
+
+      // A slow S-curve from left to right, always above the radar.
+      function truthAt(t) {
+        return {
+          x: -40 + 3.2 * t,
+          y: 22 + 12 * Math.sin(t / 5),
+        };
+      }
+
+      function restart() {
+        const sigmaBearing = Number(bearingInput.value);
+        const sigmaRange = Number(rangeInput.value);
+        bearingValue.textContent = `${sigmaBearing.toFixed(2)} rad (${(sigmaBearing * 180 / Math.PI).toFixed(1)}°)`;
+        rangeValue.textContent = `${sigmaRange.toFixed(1)} m`;
+
+        const start = truthAt(0);
+        kf.radar_reset(start.x, start.y, 2.0, sigmaRange, sigmaBearing);
+        sim = {
+          step: 0, sigmaBearing, sigmaRange,
+          truth: [], crescents: [],
+          tracks: variants.map(() => []),
+        };
+      }
+
+      function advance() {
+        sim.step += 1;
+        const t = sim.step * dt;
+        const truth = truthAt(t);
+        if (truth.x > view.xMax) return restart();
+        sim.truth.push(truth);
+
+        kf.radar_predict(dt);
+
+        if (sim.step % measureEvery === 0) {
+          const range = Math.hypot(truth.x, truth.y) + sim.sigmaRange * gaussian();
+          const bearing = Math.atan2(truth.y, truth.x) + sim.sigmaBearing * gaussian();
+          kf.radar_correct(range, bearing);
+
+          // Sample the measurement likelihood in x/y: the crescent.
+          const points = [];
+          for (let i = 0; i < crescentSamples; i++) {
+            const r = range + sim.sigmaRange * gaussian();
+            const b = bearing + sim.sigmaBearing * gaussian();
+            points.push([r * Math.cos(b), r * Math.sin(b)]);
+          }
+          sim.crescents.push(points);
+          if (sim.crescents.length > 4) sim.crescents.shift();
+        }
+
+        variants.forEach((v, k) => {
+          sim.tracks[k].push({
+            x: kf.radar_state(v.id, 0),
+            y: kf.radar_state(v.id, 1),
+            pxx: kf.radar_covariance(v.id, 0, 0),
+            pxy: kf.radar_covariance(v.id, 0, 1),
+            pyy: kf.radar_covariance(v.id, 1, 1),
+          });
+        });
+      }
+
+      function draw(variant, track) {
+        const { canvas } = variant;
+        const ctx = canvas.getContext("2d");
+        const { width, height } = canvas;
+        const sx = width / (view.xMax - view.xMin);
+        const sy = height / (view.yMax - view.yMin);
+        const px = (x) => (x - view.xMin) * sx;
+        const py = (y) => height - (y - view.yMin) * sy;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Range rings around the radar.
+        ctx.strokeStyle = "#eee";
+        ctx.lineWidth = 1;
+        for (let r = 10; r <= 60; r += 10) {
+          ctx.beginPath();
+          ctx.ellipse(px(0), py(0), r * sx, r * sy, 0, Math.PI, 2 * Math.PI);
+          ctx.stroke();
+        }
+
+        // Older crescents fade out.
+        sim.crescents.forEach((points, i) => {
+          const alpha = 0.6 * (i + 1) / sim.crescents.length;
+          ctx.fillStyle = `rgba(214, 39, 40, ${alpha})`;
+          for (const [x, y] of points) ctx.fillRect(px(x) - 1, py(y) - 1, 2, 2);
+        });
+
+        polyline(ctx, sim.truth.map((p) => [px(p.x), py(p.y)]), "#888");
+        polyline(ctx, track.map((p) => [px(p.x), py(p.y)]), variant.color);
+
+        const last = track.at(-1);
+        if (last) {
+          // 2σ ellipse from the eigen-decomposition of the position covariance.
+          const { pxx: a, pxy: b, pyy: c } = last;
+          const mean = (a + c) / 2;
+          const spread = Math.sqrt(((a - c) / 2) ** 2 + b * b);
+          const major = 2 * Math.sqrt(Math.max(mean + spread, 0));
+          const minor = 2 * Math.sqrt(Math.max(mean - spread, 0));
+          const angle = 0.5 * Math.atan2(2 * b, a - c);
+
+          ctx.save();
+          ctx.translate(px(last.x), py(last.y));
+          ctx.scale(sx, -sy); // world units, y up
+          ctx.rotate(angle);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, major, minor, 0, 0, 2 * Math.PI);
+          ctx.restore();
+          ctx.fillStyle = variant.fill;
+          ctx.fill();
+          ctx.strokeStyle = variant.color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        const truth = sim.truth.at(-1);
+        if (truth) {
+          ctx.fillStyle = "#333";
+          ctx.beginPath();
+          ctx.arc(px(truth.x), py(truth.y), 4, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+
+        // The radar.
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.moveTo(px(0), py(0) - 8);
+        ctx.lineTo(px(0) - 7, py(0) + 4);
+        ctx.lineTo(px(0) + 7, py(0) + 4);
+        ctx.fill();
+      }
+
+      let last = 0;
+      function frame(now) {
+        // About 20 filter steps per second, i.e. twice real time.
+        if (!paused && now - last > 50) {
+          last = now;
+          advance();
+          variants.forEach((v, k) => draw(v, sim.tracks[k]));
+        }
+        requestAnimationFrame(frame);
+      }
+
+      bearingInput.addEventListener("input", restart);
+      rangeInput.addEventListener("input", restart);
+      document.getElementById("restart").addEventListener("click", restart);
+      document.getElementById("pause").addEventListener("click", (e) => {
+        paused = !paused;
+        e.target.textContent = paused ? "Resume" : "Pause";
+      });
+
+      restart();
+      requestAnimationFrame(frame);
+    }
+  </script>
+</body>
+</html>
