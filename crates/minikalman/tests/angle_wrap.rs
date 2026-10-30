@@ -106,3 +106,144 @@ fn bearing_without_normalizing_jumps() {
     let y = bearing_target_y_after_one_reading(false);
     assert!(y.abs() > 10.0, "y = {y}");
 }
+
+/// How the UKF heading test sets the state residual function.
+#[derive(Clone, Copy)]
+enum StateResidual {
+    None,
+    Inherent,
+    Trait,
+}
+
+/// A heading near π whose transition wraps it, so the propagated sigma points land on
+/// both sides of ±π. Returns the predicted heading and its variance.
+fn ukf_heading_after_predict(residual: StateResidual) -> (f64, f64) {
+    use minikalman::unscented::builder::KalmanFilterBuilder;
+
+    let builder = KalmanFilterBuilder::<1, f64>::default();
+    let mut filter = builder.build::<3>();
+    filter.set_alpha(1.0);
+    filter.state_vector_mut().set_at(0, 0, 3.1);
+    filter.estimate_covariance_mut().make_scalar(0.01);
+    filter.direct_process_noise_mut().make_scalar(0.0);
+    match residual {
+        StateResidual::None => {}
+        StateResidual::Inherent => filter.set_state_residual(|dx| dx[0] = angles::wrap_pi(dx[0])),
+        StateResidual::Trait => {
+            KalmanFilterUnscentedParamsMut::set_state_residual(&mut filter, |dx| {
+                dx[0] = angles::wrap_pi(dx[0])
+            })
+        }
+    }
+
+    // Turn slowly; keep the heading in (-π, π].
+    filter.predict_nonlinear(|next| {
+        let heading = next.as_matrix().get_at(0, 0);
+        next.as_matrix_mut()
+            .set_at(0, 0, angles::wrap_pi(heading + 0.05));
+    });
+
+    (
+        filter.state_vector().get_at(0, 0),
+        filter.estimate_covariance().get_at(0, 0),
+    )
+}
+
+#[test]
+fn ukf_heading_mean_across_pi() {
+    // 3.1 + 0.05 = 3.15, which wraps to 3.15 - 2π. The spread stays at about 0.01 (Q = 0);
+    // the tolerances allow for `micromath`'s approximate square root.
+    let (heading, variance) = ukf_heading_after_predict(StateResidual::Inherent);
+    let expected = 3.15 - 2.0 * core::f64::consts::PI;
+    assert!((heading - expected).abs() < 1e-3, "heading = {heading}");
+    assert!((variance - 0.01).abs() < 0.003, "variance = {variance}");
+}
+
+#[test]
+fn ukf_state_residual_through_trait() {
+    let inherent = ukf_heading_after_predict(StateResidual::Inherent);
+    let via_trait = ukf_heading_after_predict(StateResidual::Trait);
+    assert_eq!(inherent, via_trait);
+}
+
+#[test]
+fn ukf_heading_mean_without_normalizing_is_wrong() {
+    // Sigma points at ≈+3.0 and ≈-3.0 average to about -π/2, with a huge variance.
+    let (heading, variance) = ukf_heading_after_predict(StateResidual::None);
+    assert!(heading.abs() < 2.0, "heading = {heading}");
+    assert!(variance > 1.0, "variance = {variance}");
+}
+
+/// The bearing test from above, for the UKF: the prior's sigma points straddle ±π.
+/// Returns the corrected `y` and its variance.
+fn ukf_bearing_target_after_one_reading(normalize: bool) -> (f64, f64) {
+    use minikalman::unscented::builder::KalmanFilterBuilder;
+
+    let builder = KalmanFilterBuilder::<2, f64>::default();
+    let mut filter = builder.build::<5>();
+    let mut measurement = builder.observations().build::<1, 5>();
+    filter.set_alpha(1.0);
+
+    let (true_x, true_y) = (-10.0_f64, 0.1_f64);
+    filter.state_vector_mut().apply(|s| {
+        s.set_at(0, 0, -10.0);
+        s.set_at(1, 0, -0.1);
+    });
+    filter.estimate_covariance_mut().apply(|p| {
+        p.make_scalar(1.0);
+        p.set_at(1, 1, 0.04);
+    });
+    filter.direct_process_noise_mut().make_scalar(0.0);
+    measurement
+        .measurement_noise_covariance_mut()
+        .make_scalar(0.0001);
+    measurement
+        .measurement_vector_mut()
+        .set_at(0, 0, true_y.atan2(true_x));
+
+    // Static target; the prediction only spreads the sigma points.
+    filter.predict_nonlinear(|_| {});
+
+    if normalize {
+        filter.correct_sigma_point_with(
+            &mut measurement,
+            |sigma_pred, observed| {
+                for j in 0..5 {
+                    observed[j] = sigma_pred[5 + j].atan2(sigma_pred[j]);
+                }
+            },
+            |dz| dz[0] = angles::wrap_pi(dz[0]),
+        );
+    } else {
+        filter.correct_sigma_point(&mut measurement, |sigma_pred, observed| {
+            for j in 0..5 {
+                observed[j] = sigma_pred[5 + j].atan2(sigma_pred[j]);
+            }
+        });
+    }
+
+    (
+        filter.state_vector().get_at(1, 0),
+        filter.estimate_covariance().get_at(1, 1),
+    )
+}
+
+#[test]
+fn ukf_bearing_across_pi() {
+    // A bearing with σ = 0.01 rad at range 10 pins y to about ±0.1 around the target.
+    let (y, variance) = ukf_bearing_target_after_one_reading(true);
+    assert!((y - 0.1).abs() < 0.1, "y = {y}");
+    assert!(variance < 0.012, "variance = {variance}");
+}
+
+#[test]
+fn ukf_bearing_without_normalizing_barely_updates() {
+    // Without the fix, the predicted bearing and its spread are off by about 2π, so the
+    // innovation covariance is huge and the update is far too weak.
+    let (_, normalized) = ukf_bearing_target_after_one_reading(true);
+    let (_, variance) = ukf_bearing_target_after_one_reading(false);
+    assert!(
+        variance > 2.0 * normalized,
+        "variance = {variance} vs. {normalized}"
+    );
+}

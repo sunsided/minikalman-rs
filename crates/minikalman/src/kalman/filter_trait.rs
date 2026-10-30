@@ -762,6 +762,15 @@ pub trait KalmanFilterUnscentedParamsMut<T>: KalmanFilterUnscentedParams<T> {
     fn set_alpha(&mut self, alpha: T);
     fn set_beta(&mut self, beta: T);
     fn set_kappa(&mut self, kappa: T);
+
+    /// Sets the function that normalizes differences between states, e.g. sigma point
+    /// minus mean.
+    ///
+    /// Use this when a state wraps around, such as a heading: the function receives the
+    /// difference as a slice (one entry per state) and can wrap it back into range, e.g.
+    /// with [`angles::wrap_pi`](crate::angles::wrap_pi). It applies to the state means and
+    /// residuals in both the prediction and the correction step.
+    fn set_state_residual(&mut self, fix: fn(&mut [T]));
 }
 
 /// Nonlinear prediction using sigma points (Unscented Kalman Filter).
@@ -787,13 +796,36 @@ pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: us
     type SigmaPropagated: AsMatrix<STATES, NUM_SIGMA, T>;
 
     /// Performs the nonlinear correction step using sigma points.
+    #[inline(always)]
     fn correct_sigma_point<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
     ) where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>,
-        F: FnMut(&Self::SigmaPropagated, &mut M::ObservedSigmaPoints);
+        F: FnMut(&Self::SigmaPropagated, &mut M::ObservedSigmaPoints),
+    {
+        self.correct_sigma_point_with(measurement, observation, |_| {})
+    }
+
+    /// Performs the nonlinear correction step using sigma points, normalizing differences
+    /// between measurements before they are used.
+    ///
+    /// `fix` receives each measurement difference (observed sigma point minus predicted
+    /// measurement, and measurement minus predicted measurement) as a slice, one entry per
+    /// measurement, and can wrap it back into range, e.g. with
+    /// [`angles::wrap_pi`](crate::angles::wrap_pi) for a bearing. The predicted measurement is
+    /// averaged relative to the centre sigma point, so values on either side of the wrap point
+    /// average correctly.
+    fn correct_sigma_point_with<M, F, N, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+    ) where
+        M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>,
+        F: FnMut(&Self::SigmaPropagated, &mut M::ObservedSigmaPoints),
+        N: FnMut(&mut [T]);
 }
 
 /// Observation correct filter for Unscented Kalman Filter.
@@ -811,7 +843,8 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
     ///
     /// The closure receives predicted sigma points and is responsible for
     /// populating the observed sigma points before correction proceeds.
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case, clippy::too_many_arguments)]
+    #[inline(always)]
     fn correct_with_observed<X, P, SP, F, W>(
         &mut self,
         x: &mut X,
@@ -825,5 +858,46 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrix<STATES, NUM_SIGMA, T>,
         W: AsMatrix<NUM_SIGMA, 1, T>,
-        F: FnMut(&SP, &mut Self::ObservedSigmaPoints);
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+    {
+        self.correct_with_observed_residuals(
+            x,
+            P,
+            sigma_predicted,
+            weights,
+            lambda,
+            observation,
+            |_| {},
+            |_| {},
+        )
+    }
+
+    /// Performs the correction given pre-populated observed sigma points, normalizing
+    /// state and measurement differences before they are used.
+    ///
+    /// * `fix_state` normalizes differences between states (one entry per state).
+    /// * `fix_measurement` normalizes differences between measurements (one entry per
+    ///   measurement).
+    ///
+    /// Means are taken relative to the centre sigma point, so values on either side of a
+    /// wrap point average correctly.
+    #[allow(non_snake_case, clippy::too_many_arguments)]
+    fn correct_with_observed_residuals<X, P, SP, F, W, NX, NZ>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        weights: &W,
+        lambda: T,
+        observation: F,
+        fix_state: NX,
+        fix_measurement: NZ,
+    ) where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+        NX: FnMut(&mut [T]),
+        NZ: FnMut(&mut [T]);
 }
