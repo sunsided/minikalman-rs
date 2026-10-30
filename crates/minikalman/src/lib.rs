@@ -231,6 +231,11 @@ pub use crate::buffers::builder::BufferBuilder;
 /// Re-export `num_traits`.
 pub use num_traits;
 
+/// Compiles and runs the code examples in the README as doctests.
+#[cfg(doctest)]
+#[doc = include_str!("../../../README.md")]
+pub struct ReadmeDoctests;
+
 /// Regular Kalman Filters
 pub mod regular {
     pub use crate::controls::*;
