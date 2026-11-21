@@ -26,6 +26,22 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   their parts; nothing is allocated, no `static` is created and no `unsafe` is generated.
   `macro_rules!` only, no new dependency, no feature, builds on the MSRV. The new `filter-dsl`
   example runs two filters sharing an observation and a control ([#157]).
+- Added placement modes to `filter!` items ([#159]).
+  - `kalman`, `observation` and `control` blocks take leading placement statements.
+  - `storage = owned;` generates `Owned` plus `new_owned()`: buffers held by value, no
+    lifetime, usable as a struct field.
+  - `storage = boxed;` (needs `alloc`) generates `Boxed` plus `new_boxed()`: each matrix
+    allocated directly on the heap.
+  - `M = extern;` leaves a matrix out of `Storage`; `build` then borrows it as a
+    `&mut [Scalar; N]` whose length the type checks, for DMA regions or shared arenas.
+  - `model()` works in every mode and writes declared values into extern buffers.
+  - Every item, scratch, observer and system exports `BYTES` and `EXTERN_BYTES` for its
+    footprint.
+  - Unsupported combinations are compile errors:
+    - `extern` with `owned` or `boxed`;
+    - `lean` with `owned` or `boxed`;
+    - placement statements after the model statements or in a `luenberger` block;
+    - owned or extern items as `system` members.
 - Added NIS gating to the fixed-gain (Luenberger) observer. `FixedGainObservation` takes an
   optional gate as a defaulted last type parameter: `NoGate` (the default, no extra memory) or a
   `FixedGainGate` holding a stored steady-state `S∞⁻¹` (`OBSERVATIONS²` scalars), added with
@@ -349,6 +365,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+[#159]: https://github.com/sunsided/minikalman-rs/issues/159
 [#157]: https://github.com/sunsided/minikalman-rs/issues/157
 [#153]: https://github.com/sunsided/minikalman-rs/issues/153
 [#124]: https://github.com/sunsided/minikalman-rs/issues/124

@@ -402,7 +402,10 @@ the library's own storage types, so memory stays explicit, and you call the usua
 `build` returns. `build` only wires, like the storage types' `build()`. `model` writes the
 declared values, and calling it again resets them. The `filter!` docs build up from the
 smallest filter to lean observations with a shared scratch, a Luenberger observer, `static`
-placement and fixed point, and end with the grammar.
+placement and fixed point, and end with the grammar. A block can also choose where its memory
+lives: `storage = owned;` gives a movable value without a lifetime for a struct field,
+`storage = boxed;` puts each matrix on the heap, and `P = extern;` borrows a buffer you own,
+such as a DMA region.
 [`examples/filter_dsl.rs`](crates/minikalman/examples/filter_dsl.rs) runs the two filters
 above next to an observer with a settled gain.
 
