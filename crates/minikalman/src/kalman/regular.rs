@@ -621,6 +621,43 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     {
         measurement.correct_with(&mut self.x, &mut self.P, fix)
     }
+
+    /// Performs the measurement update step with the externally supplied Kalman gain
+    /// stored in the measurement, instead of computing it.
+    ///
+    /// See [`KalmanFilterObservationCorrectWithGain`]: `P` is updated with the Joseph form,
+    /// the gate is not evaluated and the NIS is not updated.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement, with its gain set via `kalman_gain_mut`.
+    pub fn correct_with_gain<M>(&mut self, measurement: &mut M) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectWithGain<STATES, T>,
+    {
+        measurement.correct_with_gain(&mut self.x, &mut self.P)
+    }
+
+    /// Performs the measurement update step with the externally supplied Kalman gain
+    /// stored in the measurement, normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_with_gain`](Self::correct_with_gain).
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement, with its gain set via `kalman_gain_mut`.
+    /// * `fix` - Normalizes the innovation vector `y = z - H×x` in place.
+    pub fn correct_with_gain_with<M, N>(&mut self, measurement: &mut M, fix: N) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectWithGain<STATES, T>,
+        N: FnMut(&mut [T]),
+    {
+        measurement.correct_with_gain_with(&mut self.x, &mut self.P, fix)
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>

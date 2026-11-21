@@ -92,3 +92,61 @@ where
     P.sub_inplace_a(temp_KHP); // P -= temp_KHP
     CorrectionStatus::Applied
 }
+
+/// Performs the update step of the linear and extended observations with an externally
+/// supplied Kalman gain `K`, from an innovation `y` that is already computed.
+///
+/// Applies `x = x + K×y` and updates `P` with the Joseph form
+/// `P = (I - K×H)×P×(I - K×H)ᵀ + K×R×Kᵀ`, expanded as
+/// `P = P - K×H×P - (K×H×P)ᵀ + K×S×Kᵀ` with `S = H×P×Hᵀ + R`, so that `P` stays symmetric
+/// and positive semi-definite for any `K`. `S` is not inverted and is left holding
+/// `H×P×Hᵀ + R`.
+#[allow(non_snake_case, clippy::too_many_arguments)]
+pub(crate) fn update_with_gain<const STATES: usize, const OBSERVATIONS: usize, T>(
+    x: &mut impl MatrixMut<STATES, 1, T>,
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+    K: &impl Matrix<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
+) -> CorrectionStatus
+where
+    T: MatrixDataType,
+{
+    // S = H*P*H' + R, from the prior P
+    H.mult(P, temp_HP); // temp_HP = H*P
+    temp_HP.mult_transb(H, S); // S = temp_HP*Hᵀ
+    S.add_inplace_a(R); // S += R
+
+    // x = x + K*y
+    K.multadd_rowvector(y, x);
+
+    // P = P - K*H*P - (K*H*P)ᵀ
+    K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
+    subtract_with_transpose(P, temp_KHP);
+
+    // P = P + K*S*Kᵀ; temp_PHt MAY alias temp_KHP, so it is only written once temp_KHP is consumed.
+    K.mult(S, temp_PHt); // temp_PHt = K*S
+    temp_PHt.multadd_transb(K, P); // P += temp_PHt*Kᵀ
+    CorrectionStatus::Applied
+}
+
+/// Subtracts `A + Aᵀ` from the square matrix `P` in place.
+#[allow(non_snake_case)]
+fn subtract_with_transpose<const STATES: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    A: &impl Matrix<STATES, STATES, T>,
+) where
+    T: MatrixDataType,
+{
+    for i in 0..STATES {
+        for j in 0..STATES {
+            let value = P.get(i, j) - A.get(i, j) - A.get(j, i);
+            P.set(i, j, value);
+        }
+    }
+}
