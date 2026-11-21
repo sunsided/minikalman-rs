@@ -15,6 +15,7 @@ use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder;
 use minikalman::regular::{
     FilterStorage, FixedGainObservationStorage, ObservationStorage, ObserverStorage,
+    PredictorObserverStorage,
 };
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -46,6 +47,7 @@ fn main() {
     let kalman = run_kalman(&readings);
     let observer = run_observer(gain, &readings);
     let fixed = run_fixed_point(gain, &readings);
+    let ahead = run_predictor(gain, &readings);
 
     let gap = (SETTLED..STEPS)
         .map(|k| (kalman[k] - observer[k]).abs())
@@ -57,6 +59,14 @@ fn main() {
         rmse(&fixed, &truth)
     );
     println!("largest Kalman vs observer gap after {SETTLED} steps: {gap:e} m");
+
+    // The predictor form with L = A·K predicts the next position from the current estimate.
+    let ahead_rmse = ((SETTLED..STEPS - 1)
+        .map(|k| (ahead[k] - truth[k + 1]).powi(2))
+        .sum::<f32>()
+        / (STEPS - 1 - SETTLED) as f32)
+        .sqrt();
+    println!("predictor form: one-step-ahead position RMSE {ahead_rmse:.4} m");
     println!(
         "memory: Kalman {} + {} bytes, observer {} + {} bytes (f32)",
         size_of::<FilterStorage<2, f32>>(),
@@ -148,14 +158,14 @@ fn run_observer(gain: [f32; 2], readings: &[f32]) -> Vec<f32> {
     let mut observer_storage = ObserverStorage::<2, f32>::new(0.0);
     let mut position_storage = FixedGainObservationStorage::<2, 1, f32>::new(0.0);
     let mut observer = observer_storage.build();
-    let mut position = position_storage.build(GainForm::Current);
+    let mut position = position_storage.build();
 
     let model = motion::constant_velocity(DT, ACCELERATION_VARIANCE);
     observer
         .state_transition_mut()
         .apply(|a| model.fill_transition(a));
     position.observation_matrix_mut().set_at(0, 0, 1.0);
-    position.set_gain_current(&MatrixData::new_array::<2, 1, 2, f32>(gain));
+    position.set_gain(&MatrixData::new_array::<2, 1, 2, f32>(gain));
 
     readings
         .iter()
@@ -169,20 +179,51 @@ fn run_observer(gain: [f32; 2], readings: &[f32]) -> Vec<f32> {
         .collect()
 }
 
+/// Runs the fixed-gain observer in the predictor form with `L = A·K` and returns its
+/// one-step-ahead predictions `x̂ₖ₊₁|ₖ` of the position.
+///
+/// `correct` defers `L·y` without touching the state; the next `predict` applies it.
+fn run_predictor(gain: [f32; 2], readings: &[f32]) -> Vec<f32> {
+    let mut observer_storage = PredictorObserverStorage::<2, f32>::new(0.0);
+    let mut position_storage = FixedGainObservationStorage::<2, 1, f32, Predictor>::new(0.0);
+    let mut observer = observer_storage.build();
+    let mut position = position_storage.build();
+
+    let model = motion::constant_velocity(DT, ACCELERATION_VARIANCE);
+    observer
+        .state_transition_mut()
+        .apply(|a| model.fill_transition(a));
+    position.observation_matrix_mut().set_at(0, 0, 1.0);
+    // L = A·K for A = [[1, dt], [0, 1]].
+    let predictor_gain = [gain[0] + DT * gain[1], gain[1]];
+    position.set_gain(&MatrixData::new_array::<2, 1, 2, f32>(predictor_gain));
+
+    readings
+        .iter()
+        .map(|&z| {
+            position.measurement_vector_mut().set_at(0, 0, z);
+            let status = observer.correct(&mut position);
+            assert!(status.is_applied());
+            observer.predict();
+            observer.state_vector().get_at(0, 0)
+        })
+        .collect()
+}
+
 /// Runs the fixed-gain observer in `I16F16`, with the gain designed in `f32`, and returns its
 /// position estimates.
 fn run_fixed_point(gain: [f32; 2], readings: &[f32]) -> Vec<f32> {
     let mut observer_storage = ObserverStorage::<2, I16F16>::new(I16F16::ZERO);
     let mut position_storage = FixedGainObservationStorage::<2, 1, I16F16>::new(I16F16::ZERO);
     let mut observer = observer_storage.build();
-    let mut position = position_storage.build(GainForm::Current);
+    let mut position = position_storage.build();
 
     let model = motion::constant_velocity(I16F16::from_num(DT), I16F16::ONE);
     observer
         .state_transition_mut()
         .apply(|a| model.fill_transition(a));
     position.observation_matrix_mut().set_at(0, 0, I16F16::ONE);
-    position.set_gain_current(&MatrixData::new_array::<2, 1, 2, I16F16>(
+    position.set_gain(&MatrixData::new_array::<2, 1, 2, I16F16>(
         gain.map(I16F16::from_num),
     ));
 

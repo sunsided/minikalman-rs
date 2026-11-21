@@ -500,10 +500,10 @@ design.settle_gain(&mut gps, 1e-6, 10_000).expect("detectable model");
 
 // Run with the fixed gain K∞ ≈ [0.1812, 0.1810].
 let mut observer = builder.build_observer();
-let mut gps_fixed = builder.observations().build_fixed_gain::<1>();
+let mut gps_fixed = builder.observations().build_fixed_gain::<1, Current>();
 observer.state_transition_mut().apply(|a| model.fill_transition(a));
 gps_fixed.observation_matrix_mut().set(0, 0, 1.0);
-gps_fixed.set_gain_current(gps.kalman_gain());
+gps_fixed.set_gain(gps.kalman_gain());
 
 for z in [0.1, 0.25, 0.3, 0.45] {
     observer.predict();
@@ -515,13 +515,18 @@ for z in [0.1, 0.25, 0.3, 0.45] {
 Mind the gain convention. The crate's order (`predict`, then `correct`) is the *current* form
 `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`, and `settle_gain` returns that `K`. `place`, `acker` and
 python-control `dlqe` return the *predictor*-form gain `L = A·K` of
-`x̂ₖ₊₁ = A·x̂ₖ + L·(zₖ − H·x̂ₖ)`. Store it with `set_gain_predictor` and step with
-`predict_from_measurement` instead; the observer refuses to run a gain in the other form
-(`CorrectionStatus::GainFormMismatch`), because a deadbeat `L = [2, 10]` run as a current-form
-gain diverges. For fixed point, compute the gain in `f32` or `f64` and convert it: an `I16F16`
+`x̂ₖ₊₁ = A·x̂ₖ + L·(zₖ − H·x̂ₖ)`. The form is a type parameter, so pairing a gain with the
+observer of the other form does not compile; that matters, because a deadbeat `L = [2, 10]` run
+as a current-form gain diverges. Store `L` in a `build_fixed_gain::<M, Predictor>()` observation
+and run it on `build_predictor_observer()`. Its steps keep the same split as the current form:
+`correct` forms `y = z − H·x̂` and defers `L·y` without touching `x̂`, and the next `predict`
+applies `x̂ ← A·x̂ + L·y`. In both forms, `predict()` returns a handle for the control inputs of
+the step, e.g. `observer.predict().control(&mut throttle).control(&mut steering)`, so controls
+cannot slip in after a correction. For fixed point, compute the gain in `f32` or `f64` and convert it: an `I16F16`
 observer then stays within about `LSB / (1 − ρ)` of the float one (6 LSB in the
 [`luenberger`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/luenberger.rs) test), with the closed-loop spectral
-radius `ρ`. The `ObserverStorage` and `FixedGainObservationStorage` types hold the buffers
+radius `ρ`. The `ObserverStorage`, `PredictorObserverStorage` and `FixedGainObservationStorage`
+types hold the buffers
 without allocation; see the [`luenberger` example](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/luenberger.rs).
 
 To reject outliers without `P`, build the observation with `build_fixed_gain_gated` (or

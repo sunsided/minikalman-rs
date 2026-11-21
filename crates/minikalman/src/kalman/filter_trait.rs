@@ -41,15 +41,6 @@ pub enum CorrectionStatus {
     /// when the gain did not settle within its iteration budget; there it means that `P`, `S`
     /// and `K` hold the last iterate, not that a measurement was applied.
     NotConverged,
-    /// A [`LuenbergerObserver`](crate::regular::LuenbergerObserver) step was called with a
-    /// [`FixedGainObservation`](crate::regular::FixedGainObservation) whose gain is in the other
-    /// [`GainForm`], so the measurement was skipped and the state left unchanged.
-    ///
-    /// A current-form gain `K` belongs to
-    /// [`correct`](crate::regular::LuenbergerObserver::correct), a predictor-form gain `L` to
-    /// [`predict_from_measurement`](crate::regular::LuenbergerObserver::predict_from_measurement).
-    /// Running one with the other would silently give the wrong error dynamics.
-    GainFormMismatch,
 }
 
 impl CorrectionStatus {
@@ -1067,7 +1058,7 @@ pub trait KalmanFilterObservationCorrectWithGain<const STATES: usize, T> {
         N: FnMut(&mut [T]);
 }
 
-/// The convention a fixed observer gain is written in.
+/// The convention a fixed observer gain is written in: [`Current`] or [`Predictor`].
 ///
 /// Both forms run the same observer and have the same poles; they differ in which state the
 /// innovation is formed from and therefore in the gain. With the state transition `A`, the
@@ -1075,19 +1066,37 @@ pub trait KalmanFilterObservationCorrectWithGain<const STATES: usize, T> {
 ///
 /// | Form | Recursion | Error dynamics | Typical source |
 /// |---|---|---|---|
-/// | [`Current`](Self::Current) | `x̂⁻ = A·x̂⁺ + B·u`, `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)` | `(I − K·H)·A` | this crate's [`settle_gain`](crate::regular::RegularKalman::settle_gain), MATLAB `kalman`'s `Mx` |
-/// | [`Predictor`](Self::Predictor) | `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)` | `A − L·H` | `place`/`acker` on `(Aᵀ, Hᵀ)`, python-control `dlqe` |
+/// | [`Current`] | `x̂⁻ = A·x̂⁺ + B·u`, `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)` | `(I − K·H)·A` | this crate's [`settle_gain`](crate::regular::RegularKalman::settle_gain), MATLAB `kalman`'s `Mx` |
+/// | [`Predictor`] | `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)` | `A − L·H` | `place`/`acker` on `(Aᵀ, Hᵀ)`, python-control `dlqe` |
 ///
-/// See [`LuenbergerObserver`](crate::regular::LuenbergerObserver#the-gain-convention-trap)
-/// for a worked example of mixing them up.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GainForm {
-    /// The current (filtered) form `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`, applied after the prediction.
-    /// This is the crate's `predict` then `correct` order and the gain `K` of the Kalman filter.
-    Current,
-    /// The predictor (delayed) form `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`: one call forms the
-    /// innovation from the prior state and propagates it, so the estimate is one step ahead.
-    Predictor,
+/// The form is a type parameter of the
+/// [`FixedGainObservation`](crate::regular::FixedGainObservation) and of the
+/// [`LuenbergerObserver`](crate::regular::LuenbergerObserver), so running a gain in the
+/// recursion of the other form is a compile error. See
+/// [the gain convention trap](crate::regular::LuenbergerObserver#the-gain-convention-trap)
+/// for what goes wrong otherwise. The trait is sealed.
+pub trait GainForm: sealed::Sealed {}
+
+/// The current (filtered) [`GainForm`] `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`, applied after the prediction.
+///
+/// This is the crate's `predict` then `correct` order and the gain `K` of the Kalman filter.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Current;
+
+/// The predictor (delayed) [`GainForm`] `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`: the innovation is
+/// formed from the prior state, and the next prediction adds the correction `L·y`.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Predictor;
+
+impl GainForm for Current {}
+impl GainForm for Predictor {}
+
+/// Seals [`GainForm`].
+mod sealed {
+    /// Implemented only by [`Current`](super::Current) and [`Predictor`](super::Predictor).
+    pub trait Sealed {}
+    impl Sealed for super::Current {}
+    impl Sealed for super::Predictor {}
 }
 
 /// A control input that can move a state vector without touching a covariance.
@@ -1106,8 +1115,8 @@ pub trait KalmanFilterControlApplyToState<const STATES: usize, T> {
 /// A fixed-gain observation for the [`LuenbergerObserver`](crate::regular::LuenbergerObserver):
 /// it forms the innovation and adds the gain times the innovation, without any covariance.
 pub trait KalmanFilterObservationCorrectFixedGain<const STATES: usize, T> {
-    /// Returns the convention the stored gain is written in.
-    fn gain_form(&self) -> GainForm;
+    /// The [`GainForm`] the stored gain is written in.
+    type Form: GainForm;
 
     /// Forms the innovation `y = z − H·x` and normalizes it in place with `fix`.
     ///

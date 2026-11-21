@@ -8,17 +8,17 @@ use crate::observations::normalized_innovation_squared;
 
 /// A measurement with a fixed gain for the [`LuenbergerObserver`](crate::regular::LuenbergerObserver).
 ///
-/// Holds only the observation matrix `H`, the measurement `z`, the innovation `y` and the gain,
-/// plus the [`GainForm`] the gain is written in: `OBSERVATIONS·STATES·2 + OBSERVATIONS·2`
-/// scalars. There is no `R`, `S` or covariance temporary, so the correction costs
-/// `2·OBSERVATIONS·STATES` multiply-adds, with no square root, division or data-dependent
-/// branch.
+/// Holds only the observation matrix `H`, the measurement `z`, the innovation `y` and the gain:
+/// `OBSERVATIONS·STATES·2 + OBSERVATIONS·2` scalars. There is no `R`, `S` or covariance
+/// temporary, so the correction costs `2·OBSERVATIONS·STATES` multiply-adds, with no square
+/// root, division or data-dependent branch.
 ///
-/// Set the gain with [`set_gain_current`](Self::set_gain_current) (a Kalman-style gain `K`,
-/// e.g. from [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain)) or
-/// [`set_gain_predictor`](Self::set_gain_predictor) (a textbook observer gain `L`, e.g. from
-/// `place` or python-control `dlqe`). The setter records the form, and the observer refuses to
-/// run a gain in the recursion of the other form; see
+/// The type parameter `F` is the [`GainForm`] of the gain: [`Current`] (the default) for a
+/// Kalman-style gain `K`, e.g. from
+/// [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain), or [`Predictor`]
+/// for a textbook observer gain `L`, e.g. from `place` or python-control `dlqe`. A
+/// [`LuenbergerObserver`](crate::regular::LuenbergerObserver) of one form only accepts
+/// observations of the same form, so a gain cannot run in the wrong recursion; see
 /// [the gain convention trap](crate::regular::LuenbergerObserver#the-gain-convention-trap).
 ///
 /// ## Innovation gate
@@ -38,6 +38,7 @@ pub struct FixedGainObservation<
     Z,
     Y,
     K,
+    F = Current,
     G = NoGate,
 > {
     /// Observation matrix `H` (`OBSERVATIONS × STATES`).
@@ -49,17 +50,14 @@ pub struct FixedGainObservation<
     /// Innovation vector `y = z − H·x̂` of the last correction (`OBSERVATIONS × 1`).
     y: Y,
 
-    /// The fixed gain (`STATES × OBSERVATIONS`), `K` or `L` as [`form`](Self::form) says.
+    /// The fixed gain (`STATES × OBSERVATIONS`): `K` or `L`, as the form `F` says.
     K: K,
-
-    /// The convention the gain in [`K`](Self::K) is written in.
-    form: GainForm,
 
     /// The innovation gate: [`NoGate`] or a [`FixedGainGate`].
     gate: G,
 
-    /// Marks the scalar type.
-    _phantom: PhantomData<T>,
+    /// Marks the scalar type and the [`GainForm`].
+    _phantom: PhantomData<(T, F)>,
 }
 
 /// The absent innovation gate of a [`FixedGainObservation`]: every correction is applied.
@@ -84,22 +82,20 @@ pub struct FixedGainGate<const OBSERVATIONS: usize, T, SInv> {
     nis: T,
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K>
-    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, NoGate>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F>
+    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, NoGate>
+where
+    F: GainForm,
 {
-    /// Creates a fixed-gain observation from its buffers.
+    /// Creates a fixed-gain observation of the [`GainForm`] `F` from its buffers.
     ///
-    /// `form` states the convention of the gain that `K` already holds; with a zeroed `K`,
-    /// either form is harmless until a gain is set with
-    /// [`set_gain_current`](Self::set_gain_current) or
-    /// [`set_gain_predictor`](Self::set_gain_predictor).
+    /// `K` is taken to hold a gain in the form `F`; set one with [`set_gain`](Self::set_gain).
     ///
     /// ## Arguments
     /// * `H` - The observation matrix (`OBSERVATIONS` × `STATES`).
     /// * `z` - The measurement vector (`OBSERVATIONS` × `1`).
     /// * `y` - The innovation vector (`OBSERVATIONS` × `1`).
-    /// * `K` - The gain (`STATES` × `OBSERVATIONS`).
-    /// * `form` - The convention the gain in `K` is written in.
+    /// * `K` - The gain (`STATES` × `OBSERVATIONS`) in the form `F`.
     ///
     /// ## Example
     /// ```
@@ -112,18 +108,17 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K>
     /// impl_buffer_y!(mut y, 1, f32, 0.0);
     /// impl_buffer_K!(mut K, 2, 1, f32, 0.0);
     ///
-    /// let mut position = FixedGainObservation::<2, 1, f32, _, _, _, _>::new(H, z, y, K, GainForm::Current);
+    /// let mut position = FixedGainObservation::<2, 1, f32, _, _, _, _, Current>::new(H, z, y, K);
     /// position.observation_matrix_mut().set_at(0, 0, 1.0);
-    /// position.set_gain_current(&MatrixData::new_array::<2, 1, 2, f32>([0.181201, 0.180975]));
+    /// position.set_gain(&MatrixData::new_array::<2, 1, 2, f32>([0.181201, 0.180975]));
     /// ```
     #[allow(non_snake_case)]
-    pub fn new(H: H, z: Z, y: Y, K: K, form: GainForm) -> Self {
+    pub fn new(H: H, z: Z, y: Y, K: K) -> Self {
         Self {
             H,
             z,
             y,
             K,
-            form,
             gate: NoGate,
             _phantom: PhantomData,
         }
@@ -153,8 +148,8 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K>
     /// impl_buffer_K!(mut K, 2, 1, f32, 0.0);
     /// impl_buffer_S!(mut S_inv, 1, f32, 0.0);
     ///
-    /// let mut position = FixedGainObservation::<2, 1, f32, _, _, _, _>::new(H, z, y, K, GainForm::Current)
-    ///     .with_gate(S_inv);
+    /// let mut position =
+    ///     FixedGainObservation::<2, 1, f32, _, _, _, _, Current>::new(H, z, y, K).with_gate(S_inv);
     /// position.set_innovation_covariance_inverse(&MatrixData::new_array::<1, 1, 1, f32>([1.0 / 0.3053]));
     /// position.set_gate(Some(6.63));
     /// ```
@@ -170,6 +165,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K>
         Z,
         Y,
         K,
+        F,
         FixedGainGate<OBSERVATIONS, T, SInv>,
     >
     where
@@ -180,7 +176,6 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K>
             z: self.z,
             y: self.y,
             K: self.K,
-            form: self.form,
             gate: FixedGainGate {
                 S_inv,
                 threshold: None,
@@ -191,8 +186,8 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K>
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
-    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
+    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 {
     /// Returns the number of states.
     #[inline(always)]
@@ -204,12 +199,6 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
     #[inline(always)]
     pub const fn measurements(&self) -> usize {
         OBSERVATIONS
-    }
-
-    /// Returns the convention the stored gain is written in.
-    #[inline(always)]
-    pub fn gain_form(&self) -> GainForm {
-        self.form
     }
 
     /// Gets a reference to the measurement vector z.
@@ -242,77 +231,63 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
         &self.y
     }
 
-    /// Gets a reference to the stored gain; [`gain_form`](Self::gain_form) says whether it is
-    /// a current-form `K` or a predictor-form `L`.
-    ///
-    /// There is deliberately no mutable access: the gain is only written together with its
-    /// form, by [`set_gain_current`](Self::set_gain_current) or
-    /// [`set_gain_predictor`](Self::set_gain_predictor).
+    /// Gets a reference to the stored gain: a current-form `K` or a predictor-form `L`, as the
+    /// type parameter `F` says.
     #[inline(always)]
     pub fn gain(&self) -> &K {
         &self.K
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
-    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
+    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 where
     K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
     T: Copy,
 {
-    /// Stores a gain `K` in the **current (filtered) form** `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`.
+    /// Stores the gain, written in the [`GainForm`] `F` of this observation.
     ///
-    /// This is the crate's convention and the Kalman gain: copy it from
-    /// [`RegularObservation::kalman_gain`](crate::regular::RegularObservation::kalman_gain)
-    /// after [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain), or from
-    /// MATLAB `kalman`'s `Mx`. Run it with
-    /// [`LuenbergerObserver::predict`](crate::regular::LuenbergerObserver::predict) then
-    /// [`correct`](crate::regular::LuenbergerObserver::correct). The error dynamics are
-    /// `(I − K·H)·A`.
-    ///
-    /// A pole placement gives `K` directly when designed on the pair `(A, H·A)`, e.g.
-    /// `K = place(A.T, (H @ A).T, poles).T`, because `(I − K·H)·A = A − K·(H·A)`.
+    /// * For [`Current`], this is `K` of `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`, the crate's convention and
+    ///   the Kalman gain: copy it from
+    ///   [`RegularObservation::kalman_gain`](crate::regular::RegularObservation::kalman_gain)
+    ///   after [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain), or
+    ///   from MATLAB `kalman`'s `Mx`. The error dynamics are `(I − K·H)·A`. A pole placement
+    ///   gives `K` directly when designed on the pair `(A, H·A)`, e.g.
+    ///   `K = place(A.T, (H @ A).T, poles).T`, because `(I − K·H)·A = A − K·(H·A)`.
+    /// * For [`Predictor`], this is `L` of `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`, which
+    ///   `place(A', C')'`, `acker` and python-control `dlqe` return. The error dynamics are
+    ///   `A − L·H`, the same poles as the current form with `K` where `L = A·K`.
     ///
     /// ## Arguments
-    /// * `gain` - The gain `K` (`STATES` × `OBSERVATIONS`).
-    pub fn set_gain_current<M>(&mut self, gain: &M)
+    /// * `gain` - The gain (`STATES` × `OBSERVATIONS`).
+    pub fn set_gain<M>(&mut self, gain: &M)
     where
         M: Matrix<STATES, OBSERVATIONS, T>,
     {
         gain.copy_to(self.K.as_matrix_mut());
-        self.form = GainForm::Current;
-    }
-
-    /// Stores a gain `L` in the **predictor (textbook Luenberger) form**
-    /// `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`.
-    ///
-    /// This is what `place(A', C')'`, `acker` and python-control `dlqe` return. Run it with
-    /// [`LuenbergerObserver::predict_from_measurement`](crate::regular::LuenbergerObserver::predict_from_measurement),
-    /// which is the whole step; do not call `predict` in the same step. The error dynamics are
-    /// `A − L·H`, the same poles as the current form with `K` where `L = A·K`.
-    ///
-    /// ## Arguments
-    /// * `gain` - The gain `L` (`STATES` × `OBSERVATIONS`).
-    pub fn set_gain_predictor<M>(&mut self, gain: &M)
-    where
-        M: Matrix<STATES, OBSERVATIONS, T>,
-    {
-        gain.copy_to(self.K.as_matrix_mut());
-        self.form = GainForm::Predictor;
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, SInv>
-    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, FixedGainGate<OBSERVATIONS, T, SInv>>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, SInv>
+    FixedGainObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        Y,
+        K,
+        F,
+        FixedGainGate<OBSERVATIONS, T, SInv>,
+    >
 where
     SInv: InnovationCovarianceMatrix<OBSERVATIONS, T>,
     T: MatrixDataType,
 {
     /// Returns the normalized innovation squared `NIS = yᵀ·S∞⁻¹·y` of the last correction.
     ///
-    /// Every correction in the matching [`GainForm`] updates it, including one the
-    /// [gate](Self::set_gate) rejects; a [`CorrectionStatus::GainFormMismatch`] leaves it
-    /// unchanged. It is `0` before the first correction. Near steady state it equals the NIS of
+    /// Every correction updates it, including one the [gate](Self::set_gate) rejects. It is
+    /// `0` before the first correction. Near steady state it equals the NIS of
     /// [`RegularObservation::nis`](crate::regular::RegularObservation::nis) on the same data, so
     /// it averages to `OBSERVATIONS` for a consistent design.
     #[inline(always)]
@@ -335,11 +310,8 @@ where
     /// or `9.21` (two measurements) to reject about 1% of the measurements of a consistent
     /// filter. `None` (the default) disables the gate; the NIS is still computed.
     ///
-    /// In the [predictor form](GainForm::Predictor), a gated
-    /// [`predict_from_measurement`](crate::regular::LuenbergerObserver::predict_from_measurement)
-    /// skips the whole step, including its time update. Call
-    /// [`predict`](crate::regular::LuenbergerObserver::predict) to advance the step without the
-    /// measurement.
+    /// In the [`Predictor`] form, a gated correction leaves no pending correction behind, so the
+    /// next [`predict`](crate::regular::LuenbergerObserver::predict) is a pure model step.
     ///
     /// ## Start-up and lock-out
     ///
@@ -424,10 +396,10 @@ where
     ///
     /// // Copy K∞, invert S∞ ≈ 0.3053, and gate at the 99% chi-square quantile.
     /// let mut observer = builder.build_observer();
-    /// let mut fixed = builder.observations().build_fixed_gain_gated::<1>();
+    /// let mut fixed = builder.observations().build_fixed_gain_gated::<1, Current>();
     /// observer.state_transition_mut().apply(|a| model.fill_transition(a));
     /// fixed.observation_matrix_mut().set_at(0, 0, 1.0);
-    /// fixed.set_gain_current(position.kalman_gain());
+    /// fixed.set_gain(position.kalman_gain());
     /// fixed
     ///     .set_innovation_covariance(position.innovation_covariance_mut().as_matrix_mut())
     ///     .expect("S∞ is positive definite");
@@ -455,8 +427,8 @@ where
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
-    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
+    FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
     Z: MeasurementVector<OBSERVATIONS, T>,
@@ -488,20 +460,18 @@ where
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F>
     KalmanFilterObservationCorrectFixedGain<STATES, T>
-    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, NoGate>
+    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, NoGate>
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
     Z: MeasurementVector<OBSERVATIONS, T>,
     Y: InnovationVector<OBSERVATIONS, T>,
     K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    F: GainForm,
     T: MatrixDataType,
 {
-    #[inline(always)]
-    fn gain_form(&self) -> GainForm {
-        self.form
-    }
+    type Form = F;
 
     #[inline(always)]
     fn compute_innovation<X, N>(&mut self, x: &X, fix: N)
@@ -521,7 +491,7 @@ where
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, SInv>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, SInv>
     KalmanFilterObservationCorrectFixedGain<STATES, T>
     for FixedGainObservation<
         STATES,
@@ -531,6 +501,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, SInv>
         Z,
         Y,
         K,
+        F,
         FixedGainGate<OBSERVATIONS, T, SInv>,
     >
 where
@@ -539,12 +510,10 @@ where
     Y: InnovationVector<OBSERVATIONS, T>,
     K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
     SInv: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    F: GainForm,
     T: MatrixDataType,
 {
-    #[inline(always)]
-    fn gain_form(&self) -> GainForm {
-        self.form
-    }
+    type Form = F;
 
     #[inline(always)]
     fn compute_innovation<X, N>(&mut self, x: &X, fix: N)
@@ -570,20 +539,21 @@ where
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G> KalmanFilterNumStates<STATES>
-    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
+    KalmanFilterNumStates<STATES>
+    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 {
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
     KalmanFilterNumObservations<OBSERVATIONS>
-    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 {
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
     KalmanFilterMeasurementVector<OBSERVATIONS, T>
-    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 where
     Z: MeasurementVector<OBSERVATIONS, T>,
 {
@@ -595,9 +565,9 @@ where
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
     KalmanFilterObservationVectorMut<OBSERVATIONS, T>
-    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 where
     Z: MeasurementVectorMut<OBSERVATIONS, T>,
 {
@@ -609,9 +579,9 @@ where
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
     KalmanFilterObservationTransformation<STATES, OBSERVATIONS, T>
-    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 where
     H: ObservationMatrix<OBSERVATIONS, STATES, T>,
 {
@@ -623,9 +593,9 @@ where
     }
 }
 
-impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, G>
+impl<const STATES: usize, const OBSERVATIONS: usize, T, H, Z, Y, K, F, G>
     KalmanFilterObservationTransformationMut<STATES, OBSERVATIONS, T>
-    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, G>
+    for FixedGainObservation<STATES, OBSERVATIONS, T, H, Z, Y, K, F, G>
 where
     H: ObservationMatrixMut<OBSERVATIONS, STATES, T>,
 {

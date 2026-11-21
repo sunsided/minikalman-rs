@@ -992,8 +992,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///
     /// until no entry of `K` moves by more than `tolerance·max(1, |Kᵢⱼ|)`; the first iteration
     /// is never taken as converged. On `Ok`, the observation's `K` is the steady-state gain
-    /// `K∞` in the [current form](GainForm::Current) (the form of
-    /// [`FixedGainObservation::set_gain_current`](crate::regular::FixedGainObservation::set_gain_current)),
+    /// `K∞` in the [`Current`] form (the gain of a
+    /// [`FixedGainObservation`](crate::regular::FixedGainObservation) of that form),
     /// its `S` is the unfactored steady-state innovation covariance `S∞ = H·P⁻∞·Hᵀ + R`, and the
     /// filter's `P` is the corrected steady state `P⁺∞`.
     ///
