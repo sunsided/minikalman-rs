@@ -886,6 +886,122 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
         N: FnMut(&mut [T]);
 }
 
+/// A linear observation that corrects with temporaries borrowed per call from a
+/// [`CorrectionScratch`](crate::regular::CorrectionScratch), so that several observations
+/// share one set of temporaries.
+///
+/// Implemented by every [`RegularObservation`](crate::regular::RegularObservation), lean or
+/// owning; see [`RegularKalman::correct_in`](crate::regular::RegularKalman::correct_in).
+pub trait KalmanFilterObservationCorrectIn<const STATES: usize, T> {
+    /// Performs the measurement update step with the temporaries borrowed from `scratch`.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `scratch` - The temporaries, for any `MAX_OBSERVATIONS` at least the observation's
+    ///   number of measurements.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_in<X, P, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        scratch: &mut crate::regular::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        self.correct_with_in(x, P, scratch, |_| {})
+    }
+
+    /// Performs the measurement update step with the temporaries borrowed from `scratch`,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// See [`KalmanFilterObservationCorrectFilter::correct_with`] for `fix`.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_with_in<X, P, N, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        scratch: &mut crate::regular::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        N: FnMut(&mut [T]);
+}
+
+/// A nonlinear observation that corrects with temporaries borrowed per call from a
+/// [`CorrectionScratch`](crate::extended::CorrectionScratch), so that several observations
+/// share one set of temporaries.
+///
+/// Implemented by every [`ExtendedObservation`](crate::extended::ExtendedObservation), lean or
+/// owning; see
+/// [`ExtendedKalman::correct_nonlinear_in`](crate::extended::ExtendedKalman::correct_nonlinear_in).
+pub trait KalmanFilterNonlinearObservationCorrectIn<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    T,
+>
+{
+    /// The type of observation vector to fill.
+    type ObservationVector: AsMatrixMut<OBSERVATIONS, 1, T>;
+
+    /// Performs the nonlinear measurement update step with the temporaries borrowed from
+    /// `scratch`.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `scratch` - The temporaries, for any `MAX_OBSERVATIONS ≥ OBSERVATIONS`.
+    /// * `observation` - The nonlinear observation function.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_nonlinear_in<X, P, F, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        scratch: &mut crate::extended::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        observation: F,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+    {
+        self.correct_nonlinear_with_in(x, P, scratch, observation, |_| {})
+    }
+
+    /// Performs the nonlinear measurement update step with the temporaries borrowed from
+    /// `scratch`, normalizing the innovation before it is applied.
+    ///
+    /// See [`KalmanFilterNonlinearObservationCorrectFilter::correct_nonlinear_with`] for `fix`.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_with_in<X, P, F, N, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        scratch: &mut crate::extended::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]);
+}
+
 /// A linear observation that can be applied with an externally supplied Kalman gain.
 ///
 /// Instead of computing `K = P×Hᵀ×S⁻¹`, the correction uses the gain already stored in the

@@ -157,6 +157,83 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType>
     }
 }
 
+/// A lean [`RegularObservation`] whose buffers borrow a [`LeanObservationStorage`] and whose
+/// temporaries come from a [`CorrectionScratch`](crate::regular::CorrectionScratch) per call.
+pub type BorrowedLeanObservation<'a, const STATES: usize, const OBSERVATIONS: usize, T> =
+    RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        ObservationMatrixRef<'a, STATES, OBSERVATIONS, T>,
+        MeasurementVectorRef<'a, OBSERVATIONS, T>,
+        MeasurementNoiseRef<'a, OBSERVATIONS, T>,
+        InnovationVectorRef<'a, OBSERVATIONS, T>,
+        InnovationCovarianceRef<'a, OBSERVATIONS, T>,
+        KalmanGainRef<'a, STATES, OBSERVATIONS, T>,
+        (),
+        (),
+        (),
+        (),
+    >;
+
+/// Storage for the persistent buffers of a lean [`RegularObservation`] of `OBSERVATIONS`
+/// measurements, without the four temporaries.
+///
+/// Holds `H`, `z`, `R`, `y`, `S` and `K` as nested arrays. The observation it builds corrects
+/// with [`RegularKalman::correct_in`] and borrows its temporaries from a
+/// [`CorrectionScratch`](crate::regular::CorrectionScratch), which all lean observations of a
+/// filter can share. See [`FilterStorage`] for placement and memory.
+///
+/// For 4 states and 3 measurements in `f32`, this holds 48 values (192 bytes) where
+/// [`ObservationStorage`] holds 97 (388 bytes); the 49 values of the temporaries are paid once,
+/// in the shared scratch.
+///
+/// ## Example
+///
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman::regular::{CorrectionScratch, FilterStorage, LeanObservationStorage};
+///
+/// let mut filter_storage = FilterStorage::<3, f32>::new(0.0);
+/// let mut measurement_storage = LeanObservationStorage::<3, 1, f32>::new(0.0);
+/// let mut scratch = CorrectionScratch::<3, 1, f32>::new(0.0);
+///
+/// let mut filter = filter_storage.build();
+/// let mut measurement = measurement_storage.build();
+///
+/// filter.state_transition_mut().make_identity();
+/// filter.estimate_covariance_mut().make_identity();
+/// measurement.observation_matrix_mut().apply(|h| h.set_at(0, 0, 1.0));
+/// measurement.measurement_noise_covariance_mut().apply(|r| r.set_at(0, 0, 0.5));
+///
+/// filter.predict();
+/// measurement.measurement_vector_mut().apply(|z| z[0] = 1.0);
+/// filter.correct_in(&mut measurement, &mut scratch);
+/// assert!(filter.state_vector().get_row(0) > 0.0);
+/// ```
+pub struct LeanObservationStorage<const STATES: usize, const OBSERVATIONS: usize, T>(
+    LeanObservationBuffers<STATES, OBSERVATIONS, T>,
+);
+
+impl<const STATES: usize, const OBSERVATIONS: usize, T: Copy>
+    LeanObservationStorage<STATES, OBSERVATIONS, T>
+{
+    /// Creates the storage with every entry set to `init`.
+    pub const fn new(init: T) -> Self {
+        Self(LeanObservationBuffers::new(init))
+    }
+}
+
+impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType>
+    LeanObservationStorage<STATES, OBSERVATIONS, T>
+{
+    /// Wires a lean [`RegularObservation`] whose buffers borrow this storage.
+    pub fn build(&mut self) -> BorrowedLeanObservation<'_, STATES, OBSERVATIONS, T> {
+        let (h, z, r, y, s, k) = self.0.wire();
+        RegularObservationBuilder::new_lean::<STATES, OBSERVATIONS, T>(h, z, r, y, s, k)
+    }
+}
+
 /// Storage for the buffers of a [`Control`] with `CONTROLS` inputs.
 ///
 /// Holds `B`, `u`, the control process noise `Q` and the `B×Q` temporary as nested arrays.

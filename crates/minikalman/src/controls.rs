@@ -67,7 +67,7 @@ pub struct Control<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempB
 
     /// B×Q-sized temporary matrix (number of states × number of controls).
     ///
-    /// The backing field for this temporary MAY be aliased with temporary P.
+    /// A buffer of its own; it never shares memory with the filter's `P`-sized temporary.
     temp_BQ: TempBQ,
 
     _phantom: PhantomData<T>,

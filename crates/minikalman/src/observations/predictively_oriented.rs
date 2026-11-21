@@ -46,8 +46,8 @@ pub(crate) mod vector;
 /// [`BufferBuilder::temp_S_inv`](crate::buffers::builder::BufferBuilder::temp_S_inv) or the
 /// `impl_buffer_temp_S_inv!` macro. Their contents on entry do not matter, and after a correction
 /// they hold intermediate values only. A workspace can be shared by all observations of the
-/// same size. The three buffers MUST NOT be aliased with each other or with any buffer of the
-/// observation or the filter.
+/// same size. The three buffers are distinct from each other and from the buffers of the
+/// observation and the filter: Rust forbids two live `&mut` to one buffer.
 ///
 /// ## Example
 /// Without allocation, the buffers come from the `impl_buffer_temp_S_inv!` macro:
@@ -106,8 +106,7 @@ impl<W> PredictivelyOrientedWorkspace<W> {
 /// `g = H×P×Hᵀ` and `R` are strictly positive (this also rejects NaN).
 ///
 /// ## Buffers
-/// `temp_PHt` may be aliased with `temp_KHP`, so it is copied into `K` before `temp_KHP` is
-/// written. The covariance term is formed before `K` is scaled to the gain, which keeps every
+/// `temp_PHt` is copied into `K` before `temp_KHP` is written. The covariance term is formed before `K` is scaled to the gain, which keeps every
 /// intermediate of the order of the inputs even for huge outliers.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 pub(crate) fn update_scalar<const STATES: usize, T>(
@@ -147,7 +146,7 @@ where
 
     let c = solve_stationarity(g, r, v, max_iterations);
 
-    // P -= (g−c)/g² · (P*Hᵀ)(P*Hᵀ)ᵀ, from a copy in K since temp_PHt may alias temp_KHP.
+    // P -= (g−c)/g² · (P*Hᵀ)(P*Hᵀ)ᵀ, from the copy in K.
     K.copy_from(temp_PHt);
     K.multscale_transb(K, (g - c) / g / g, temp_KHP);
     P.sub_inplace_a(temp_KHP);

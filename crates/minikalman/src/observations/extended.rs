@@ -4,6 +4,7 @@ use core::marker::PhantomData;
 
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut};
+use crate::observations::scratch::CorrectionScratch;
 use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
 /// A builder for a Kalman filter [`ExtendedObservation`] instances.
@@ -139,6 +140,72 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     }
 }
 
+impl<H, Z, R, Y, S, K> ExtendedObservationBuilder<H, Z, R, Y, S, K, (), (), (), ()> {
+    /// Initializes a lean measurement: one that holds only `H`, `z`, `R`, `y`, `S` and `K`, and
+    /// borrows its temporaries per call from a [`CorrectionScratch`].
+    ///
+    /// The arguments are those of [`new`](ExtendedObservationBuilder::new) without the four
+    /// temporaries. Correct with [`ExtendedKalman::correct_nonlinear_in`](crate::extended::ExtendedKalman::correct_nonlinear_in)
+    /// or [`ExtendedObservation::correct_nonlinear_in`]; the owning corrections such as `correct_nonlinear` need
+    /// the temporaries and are not available. See [`CorrectionScratch`] for the memory saved.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # #![allow(non_snake_case)]
+    /// # use minikalman::*;
+    /// use minikalman::extended::ExtendedObservationBuilder;
+    /// # const NUM_STATES: usize = 3;
+    /// # const NUM_OBSERVATIONS: usize = 1;
+    /// impl_buffer_z!(mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_H!(mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
+    /// impl_buffer_R!(mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_y!(mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_S!(mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
+    /// impl_buffer_K!(mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
+    ///
+    /// let mut measurement = ExtendedObservationBuilder::new_lean::<NUM_STATES, NUM_OBSERVATIONS, f32>(
+    ///     gravity_H, gravity_z, gravity_R, gravity_y, gravity_S, gravity_K,
+    /// );
+    /// ```
+    #[allow(non_snake_case, clippy::new_ret_no_self)]
+    pub fn new_lean<const STATES: usize, const OBSERVATIONS: usize, T>(
+        H: H,
+        z: Z,
+        R: R,
+        y: Y,
+        S: S,
+        K: K,
+    ) -> ExtendedObservation<STATES, OBSERVATIONS, T, H, Z, R, Y, S, K, (), (), (), ()>
+    where
+        T: MatrixDataType,
+        Z: MeasurementVector<OBSERVATIONS, T>,
+        H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+        R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+        Y: InnovationVector<OBSERVATIONS, T>,
+        S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+        K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    {
+        ExtendedObservation::<STATES, OBSERVATIONS, T, _, _, _, _, _, _, _, _, _, _> {
+            z,
+            H,
+            R,
+            y,
+            S,
+            K,
+            temp_S_inv: (),
+            temp_HP: (),
+            temp_PHt: (),
+            temp_KHP: (),
+            nis: T::zero(),
+            gate: None,
+            noise_adaptation: None,
+            covariance_update: CovarianceUpdate::Joseph,
+            robust_weight: T::one(),
+        }
+    }
+}
+
 /// Kalman Filter measurement structure. See [`ExtendedObservationBuilder`] for construction.
 ///
 #[doc = diagram!("extended-correct.mmd")]
@@ -182,30 +249,30 @@ pub struct ExtendedObservation<
 
     /// S-Sized temporary matrix  (number of measurements × number of measurements).
     ///
-    /// - The backing field for this temporary MAY be aliased with temporary [`temp_KHP`].
-    /// - The backing field for this temporary MAY be aliased with temporary [`tmp_HP`] (if it is not aliased with [`temp_PHt`]).
-    /// - The backing field for this temporary MUST NOT be aliased with temporary [`temp_PHt`].
+    /// A buffer of its own: Rust forbids two live `&mut` to one buffer, so the temporaries
+    /// never share memory. To share them between observations, build a lean observation and
+    /// correct with a [`CorrectionScratch`](crate::regular::CorrectionScratch).
     pub(crate) temp_S_inv: TempSInv,
 
     /// H-Sized temporary matrix  (number of measurements × number of states).
     ///
-    /// - The backing field for this temporary MAY be aliased with temporary [`temp_S_inv`].
-    /// - The backing field for this temporary MAY be aliased with temporary [`temp_PHt`].
-    /// - The backing field for this temporary MUST NOT be aliased with temporary [`temp_KHP`].
+    /// A buffer of its own: Rust forbids two live `&mut` to one buffer, so the temporaries
+    /// never share memory. To share them between observations, build a lean observation and
+    /// correct with a [`CorrectionScratch`](crate::regular::CorrectionScratch).
     pub(crate) temp_HP: TempHP,
 
     /// P×H'-Sized (H'-Sized) temporary matrix  (number of states × number of measurements).
     ///
-    /// - The backing field for this temporary MAY be aliased with temporary [`tmp_HP`].
-    /// - The backing field for this temporary MAY be aliased with temporary [`temp_KHP`].
-    /// - The backing field for this temporary MUST NOT be aliased with temporary [`temp_S_inv`].
+    /// A buffer of its own: Rust forbids two live `&mut` to one buffer, so the temporaries
+    /// never share memory. To share them between observations, build a lean observation and
+    /// correct with a [`CorrectionScratch`](crate::regular::CorrectionScratch).
     pub(crate) temp_PHt: TempPHt,
 
     /// P-Sized temporary matrix  (number of states × number of states).
     ///
-    /// - The backing field for this temporary MAY be aliased with temporary [`temp_S_inv`].
-    /// - The backing field for this temporary MAY be aliased with temporary [`temp_PHt`].
-    /// - The backing field for this temporary MUST NOT be aliased with temporary [`tmp_HP`].
+    /// A buffer of its own: Rust forbids two live `&mut` to one buffer, so the temporaries
+    /// never share memory. To share them between observations, build a lean observation and
+    /// correct with a [`CorrectionScratch`](crate::regular::CorrectionScratch).
     pub(crate) temp_KHP: TempKHP,
 
     /// Normalized innovation squared `yᵀ×S⁻¹×y` of the last correction.
@@ -876,6 +943,131 @@ where
             self.temp_HP.as_matrix_mut(),
             self.temp_PHt.as_matrix_mut(),
             self.temp_KHP.as_matrix_mut(),
+            &mut self.nis,
+            self.gate,
+            self.noise_adaptation,
+            self.covariance_update,
+        )
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+    ExtendedObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+where
+    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    T: MatrixDataType,
+{
+    /// Applies a nonlinear correction step with the temporaries borrowed from `scratch`
+    /// instead of the observation's own.
+    ///
+    /// Computes exactly what [`correct_nonlinear`](Self::correct_nonlinear) computes, with the
+    /// same gate, NIS, noise adaptation and covariance update, and leaves `y`, `S`, `K` and the
+    /// NIS in the observation as `correct_nonlinear` does. Works for lean observations (see
+    /// [`ExtendedObservationBuilder::new_lean`]) and for observations that own their
+    /// temporaries, which it then leaves untouched.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `scratch` - The temporaries, for any `MAX_OBSERVATIONS ≥ OBSERVATIONS`.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_in<X, P, F, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        scratch: &mut CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        observation: F,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+    {
+        self.correct_nonlinear_with_in(x, P, scratch, observation, |_| {})
+    }
+
+    /// Applies a nonlinear correction step with the temporaries borrowed from `scratch`,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_in`](Self::correct_nonlinear_in) and
+    /// [`correct_nonlinear_with`](Self::correct_nonlinear_with).
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `scratch` - The temporaries, for any `MAX_OBSERVATIONS ≥ OBSERVATIONS`.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `fix` - Normalizes the innovation `y = z - h(x)` in place, e.g. by wrapping angles.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_with_in<X, P, F, N, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        scratch: &mut CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        mut observation: F,
+        mut fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        N: FnMut(&mut [T]),
+    {
+        // y = z - h(x)
+        observation(x, &mut self.y);
+        let y = self.y.as_matrix_mut();
+        self.z.as_matrix().sub_inplace_b(y);
+        fix(y.as_mut_slice());
+
+        let mut temps = scratch.views::<OBSERVATIONS>();
+        crate::observations::update_with_innovation(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix_mut(),
+            self.y.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            &mut temps.S_inv,
+            &mut temps.HP,
+            &mut temps.PHt,
+            &mut temps.KHP,
             &mut self.nis,
             self.gate,
             self.noise_adaptation,
@@ -1652,6 +1844,67 @@ where
         N: FnMut(&mut [T]),
     {
         self.correct_nonlinear_with(x, P, observation, fix)
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterNonlinearObservationCorrectIn<STATES, OBSERVATIONS, T>
+    for ExtendedObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+where
+    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    T: MatrixDataType,
+{
+    type ObservationVector = Y;
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_with_in<X, P, F, N, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        scratch: &mut CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]),
+    {
+        self.correct_nonlinear_with_in(x, P, scratch, observation, fix)
     }
 }
 

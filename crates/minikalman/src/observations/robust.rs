@@ -289,9 +289,8 @@ where
 /// `P − K×H×P − (K×H×P)ᵀ + K×(H×P×Hᵀ + R/w)×Kᵀ` without forming `R/w`.
 ///
 /// ## Buffers
-/// The aliasing rules are those of the regular update: `G` is the caller's scratch and aliases
-/// nothing; `temp_PHt` keeps `P⁻×Hᵀ` while the weight is iterated, since `S` and `S_inv` never
-/// alias it, and `temp_HP` and `temp_KHP` are only written once `K` is formed.
+/// All buffers are distinct. `G` is the caller's scratch; `temp_PHt` keeps `P⁻×Hᵀ` while the
+/// weight is iterated, and `temp_HP` and `temp_KHP` are only written once `K` is formed.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 pub(crate) fn update_linear<const STATES: usize, const OBSERVATIONS: usize, T>(
     x: &mut impl MatrixMut<STATES, 1, T>,
@@ -337,7 +336,7 @@ where
         CovarianceUpdate::Joseph => {
             subtract_scaled_with_transpose(P, temp_KHP, w);
             write_scaled_covariance(G, R, w, S);
-            // temp_PHt MAY alias temp_KHP, so it is only written once temp_KHP is consumed.
+            // temp_PHt is only written once temp_KHP is consumed.
             K.mult(S, temp_PHt); // temp_PHt = K̃*S_w
             add_scaled_lower_product_mirrored(P, temp_PHt, K, w);
         }

@@ -7,6 +7,21 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added a per-call correction scratch, so several observations share their temporaries soundly.
+  `CorrectionScratch<STATES, MAX_OBSERVATIONS, T>` (in `regular`, `extended` and the prelude, a
+  `const fn new`) holds `S⁻¹`, `H×P`, `P×Hᵀ` and `K×H×P` for any observation with up to
+  `MAX_OBSERVATIONS` measurements; a larger one fails to compile. Lean observations hold only `H`,
+  `z`, `R`, `y`, `S` and `K` (`RegularObservationBuilder::new_lean`,
+  `ExtendedObservationBuilder::new_lean`, or `regular::LeanObservationStorage` /
+  `extended::LeanObservationStorage`) and correct with `RegularKalman::correct_in` /
+  `correct_with_in` and `ExtendedKalman::correct_nonlinear_in` / `correct_nonlinear_with_in` (also
+  on the observations, and through the traits `KalmanFilterObservationCorrectIn` and
+  `KalmanFilterNonlinearObservationCorrectIn`). Each takes the scratch as `&mut`, so the borrow
+  checker allows one correction at a time; the results are bit-identical to the owning
+  observations. For the radar EKF (4 states, 3 measurements, `f32`) each further observation
+  stores 48 instead of 97 values. Owning observations and every existing method are unchanged.
+  The inherited "MAY be aliased" buffer docs now say that each temporary is a buffer of its own
+  and that sharing goes through the scratch ([#123]).
 - With the opt-in `nalgebra` feature, every matrix and buffer gets `to_nalgebra()` (a stack copy
   into `SMatrix`, trait `ToNalgebra`), and mutable ones also get `copy_from_nalgebra()` (trait
   `CopyFromNalgebra`). They do not need the `unsafe` feature, and nalgebra stays out of the
@@ -242,6 +257,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
 [#138]: https://github.com/sunsided/minikalman-rs/issues/138
+[#123]: https://github.com/sunsided/minikalman-rs/issues/123
 [#135]: https://github.com/sunsided/minikalman-rs/issues/135
 [#112]: https://github.com/sunsided/minikalman-rs/issues/112
 [#111]: https://github.com/sunsided/minikalman-rs/issues/111
