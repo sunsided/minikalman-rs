@@ -21,8 +21,11 @@ fn expected_nis(z: f64) -> f64 {
     z * z / 2.0
 }
 
-/// Runs one correction of a scalar regular filter and returns `(x, P, NIS)`.
-fn regular_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
+/// The state, the variance, the NIS and the status after one correction.
+type Outcome = (f64, f64, f64, CorrectionStatus);
+
+/// Runs one correction of a scalar regular filter and returns its [`Outcome`].
+fn regular_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     let builder = RegularBuilder::<1, f64>::default();
     let mut filter = builder.build();
     let mut measurement = builder.observations().build::<1>();
@@ -34,17 +37,18 @@ fn regular_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
     measurement.measurement_vector_mut().set_at(0, 0, z);
     measurement.set_gate(gate);
 
-    filter.correct(&mut measurement);
+    let status = filter.correct(&mut measurement);
 
     (
         filter.state_vector().get_at(0, 0),
         filter.estimate_covariance().get_at(0, 0),
         measurement.nis(),
+        status,
     )
 }
 
-/// Runs one correction of a scalar extended filter and returns `(x, P, NIS)`.
-fn extended_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
+/// Runs one correction of a scalar extended filter and returns its [`Outcome`].
+fn extended_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     let builder = ExtendedBuilder::<1, f64>::default();
     let mut filter = builder.build();
     let mut measurement = builder.observations().build::<1>();
@@ -58,7 +62,7 @@ fn extended_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
     measurement.measurement_vector_mut().set_at(0, 0, z);
     measurement.set_gate(gate);
 
-    filter.correct_nonlinear(&mut measurement, |state, observation| {
+    let status = filter.correct_nonlinear(&mut measurement, |state, observation| {
         observation.set_at(0, 0, state.get_at(0, 0));
     });
 
@@ -66,11 +70,12 @@ fn extended_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
         filter.state_vector().get_at(0, 0),
         filter.estimate_covariance().get_at(0, 0),
         measurement.nis(),
+        status,
     )
 }
 
-/// Runs one correction of a scalar unscented filter and returns `(x, P, NIS)`.
-fn unscented_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
+/// Runs one correction of a scalar unscented filter and returns its [`Outcome`].
+fn unscented_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     let builder = UnscentedBuilder::<1, f64>::default();
     let mut filter = builder.build::<3>();
     let mut measurement = builder.observations().build::<1, 3>();
@@ -81,7 +86,7 @@ fn unscented_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
     measurement.measurement_vector_mut().set_at(0, 0, z);
     measurement.set_gate(gate);
 
-    filter.correct_sigma_point(&mut measurement, |sigma, observed| {
+    let status = filter.correct_sigma_point(&mut measurement, |sigma, observed| {
         for j in 0..3 {
             observed.set_at(0, j, sigma.get_at(0, j));
         }
@@ -91,23 +96,27 @@ fn unscented_after_one_reading(z: f64, gate: Option<f64>) -> (f64, f64, f64) {
         filter.state_vector().get_at(0, 0),
         filter.estimate_covariance().get_at(0, 0),
         measurement.nis(),
+        status,
     )
 }
 
 /// Checks that an outlier is rejected by the gate and an inlier is applied, for one filter.
-fn check_gating(correct: fn(f64, Option<f64>) -> (f64, f64, f64)) {
+fn check_gating(correct: fn(f64, Option<f64>) -> Outcome) {
     // An outlier is rejected: x and P stay as they were, the NIS is still reported.
-    let (x, p, nis) = correct(100.0, Some(GATE));
+    let (x, p, nis, status) = correct(100.0, Some(GATE));
+    assert_eq!(status, CorrectionStatus::Gated);
     assert_eq!((x, p), (0.0, 1.0));
     assert!((nis - expected_nis(100.0)).abs() < 1e-9, "NIS = {nis}");
 
     // Without a gate, the same measurement is applied.
-    let (x, p, _) = correct(100.0, None);
+    let (x, p, _, status) = correct(100.0, None);
+    assert_eq!(status, CorrectionStatus::Applied);
     assert!((x - 50.0).abs() < 1e-9, "x = {x}");
     assert!((p - 0.5).abs() < 1e-9, "P = {p}");
 
     // A measurement within the gate is applied.
-    let (x, p, nis) = correct(1.0, Some(GATE));
+    let (x, p, nis, status) = correct(1.0, Some(GATE));
+    assert_eq!(status, CorrectionStatus::Applied);
     assert!((x - 0.5).abs() < 1e-9, "x = {x}");
     assert!((p - 0.5).abs() < 1e-9, "P = {p}");
     assert!((nis - expected_nis(1.0)).abs() < 1e-9, "NIS = {nis}");
@@ -203,4 +212,53 @@ fn nis_averages_to_number_of_observations_for_a_tuned_filter() {
 
     let mean = sum / (STEPS - BURN_IN) as f64;
     assert!((mean - 2.0).abs() < 0.1, "mean NIS = {mean}");
+}
+
+/// Calls `correct` through the [`KalmanFilterUpdate`] trait, as generic code would.
+fn correct_via_trait<F, M>(filter: &mut F, measurement: &mut M) -> CorrectionStatus
+where
+    F: KalmanFilterUpdate<1, f64>,
+    M: KalmanFilterObservationCorrectFilter<1, f64>,
+{
+    filter.correct(measurement)
+}
+
+/// The status is also returned through the filter traits and the observations' own
+/// `correct` / `correct_nonlinear`, which take the state and covariance directly.
+#[test]
+fn status_is_returned_through_traits_and_observations() {
+    let builder = RegularBuilder::<1, f64>::default();
+    let mut filter = builder.build();
+    let mut measurement = builder.observations().build::<1>();
+    filter.estimate_covariance_mut().make_scalar(1.0);
+    measurement.observation_matrix_mut().make_identity();
+    measurement
+        .measurement_noise_covariance_mut()
+        .make_scalar(1.0);
+    measurement.measurement_vector_mut().set_at(0, 0, 1.0);
+    assert_eq!(
+        correct_via_trait(&mut filter, &mut measurement),
+        CorrectionStatus::Applied
+    );
+
+    let mut x = BufferBuilder::state_vector_x::<1>().new();
+    let mut p = BufferBuilder::estimate_covariance_P::<1>().new();
+    p.make_scalar(1.0);
+    measurement.set_gate(Some(GATE));
+    measurement.measurement_vector_mut().set_at(0, 0, 100.0);
+    assert_eq!(measurement.correct(&mut x, &mut p), CorrectionStatus::Gated);
+    assert_eq!(x.get_at(0, 0), 0.0);
+
+    let mut extended = ExtendedBuilder::<1, f64>::default()
+        .observations()
+        .build::<1>();
+    extended.observation_jacobian_matrix_mut().make_identity();
+    extended.measurement_noise_covariance_mut().make_scalar(1.0);
+    extended.measurement_vector_mut().set_at(0, 0, 1.0);
+    let status = extended.correct_nonlinear(&mut x, &mut p, |state, observation| {
+        observation.set_at(0, 0, state.get_at(0, 0));
+    });
+    assert_eq!(status, CorrectionStatus::Applied);
+    assert!((x.get_at(0, 0) - 0.5).abs() < 1e-9);
+    assert!(status.is_applied());
 }

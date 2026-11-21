@@ -5,7 +5,7 @@ use crate::matrix::{
     AsMatrix, AsMatrixMut, Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut,
     SquareMatrix,
 };
-use crate::observations::{normalized_innovation_squared, Correction};
+use crate::observations::normalized_innovation_squared;
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
 #[allow(non_snake_case)]
@@ -330,7 +330,8 @@ where
         sigma_propagated: &SP,
         weights: &W,
         lambda: T,
-    ) where
+    ) -> CorrectionStatus
+    where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrix<STATES, NUM_SIGMA, T>,
@@ -359,7 +360,8 @@ where
         lambda: T,
         mut fix_state: NX,
         mut fix_measurement: NZ,
-    ) where
+    ) -> CorrectionStatus
+    where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrix<STATES, NUM_SIGMA, T>,
@@ -387,9 +389,11 @@ where
         self.compute_innovation(&z_pred, &mut fix_measurement);
         // Skip the update, leaving x and P unchanged, if S cannot be inverted or the
         // innovation is gated.
-        if self.compute_kalman_gain() == Correction::Applied {
+        let status = self.compute_kalman_gain();
+        if status.is_applied() {
             self.apply_correction(x, P);
         }
+        status
     }
 
     /// Computes the innovation `y = fix(z - ẑ)`.
@@ -488,24 +492,24 @@ where
     /// Computes `K = Pxz × S⁻¹` and the normalized innovation squared.
     ///
     /// Leaves `K` unchanged if `S` is not positive definite or the innovation is gated.
-    fn compute_kalman_gain(&mut self) -> Correction {
+    fn compute_kalman_gain(&mut self) -> CorrectionStatus {
         let S = self.S.as_matrix_mut();
         let S_inv = self.temp_S_inv.as_matrix_mut();
         let cross_cov = self.cross_covariance.as_matrix();
         let K = self.K.as_matrix_mut();
 
         if !S.cholesky_decompose_lower() {
-            return Correction::NotPositiveDefinite;
+            return CorrectionStatus::NotPositiveDefinite;
         }
         S.invert_l_cholesky(S_inv);
 
         self.nis = normalized_innovation_squared(self.y.as_matrix(), S_inv);
         if self.gate.is_some_and(|gate| self.nis > gate) {
-            return Correction::Gated;
+            return CorrectionStatus::Gated;
         }
 
         cross_cov.mult_transb(S_inv, K);
-        Correction::Applied
+        CorrectionStatus::Applied
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
@@ -831,7 +835,8 @@ where
         mut observation: F,
         fix_state: NX,
         fix_measurement: NZ,
-    ) where
+    ) -> CorrectionStatus
+    where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrix<STATES, NUM_SIGMA, T>,
@@ -849,7 +854,7 @@ where
             lambda,
             fix_state,
             fix_measurement,
-        );
+        )
     }
 }
 
@@ -1032,14 +1037,14 @@ mod tests {
                 observe_sum,
                 |_| {},
                 |_| {},
-            )
+            );
         });
         let observed = correct_once(|m, x, P| {
-            m.correct_with_observed(x, P, &sigma, &weights, 0.0, observe_sum)
+            m.correct_with_observed(x, P, &sigma, &weights, 0.0, observe_sum);
         });
         let weighted = correct_once(|m, x, P| {
             observe_sum(&sigma, &mut m.sigma_observed);
-            m.correct_with_weights(x, P, &sigma, &weights, 0.0)
+            m.correct_with_weights(x, P, &sigma, &weights, 0.0);
         });
 
         assert_eq!(residuals, observed);

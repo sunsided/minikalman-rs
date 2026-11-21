@@ -568,14 +568,14 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///     filter.correct(&mut measurement);
     /// }
     /// ```
-    pub fn correct<M>(&mut self, measurement: &mut M)
+    pub fn correct<M>(&mut self, measurement: &mut M) -> CorrectionStatus
     where
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
     {
-        measurement.correct(&mut self.x, &mut self.P);
+        measurement.correct(&mut self.x, &mut self.P)
     }
 
     /// Performs the measurement update step, normalizing the innovation before it is applied.
@@ -611,7 +611,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Arguments
     /// * `measurement` - The measurement.
     /// * `fix` - Normalizes the innovation vector in place.
-    pub fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N)
+    pub fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N) -> CorrectionStatus
     where
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
@@ -619,7 +619,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
         N: FnMut(&mut [T]),
     {
-        measurement.correct_with(&mut self.x, &mut self.P, fix);
+        measurement.correct_with(&mut self.x, &mut self.P, fix)
     }
 }
 
@@ -763,7 +763,7 @@ where
     T: MatrixDataType,
 {
     #[inline(always)]
-    fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N)
+    fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N) -> CorrectionStatus
     where
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
         N: FnMut(&mut [T]),

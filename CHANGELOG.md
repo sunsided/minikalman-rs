@@ -22,6 +22,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `set_gate` to the regular, extended and unscented observations. A correction whose NIS
   exceeds the gate, e.g. a chi-square quantile, is skipped and leaves `x` and `P` unchanged.
   The gate is off by default ([#59]).
+- Added `CorrectionStatus` (`Applied`, `NotPositiveDefinite`, `Gated`; `#[non_exhaustive]`), returned by `correct`,
+  `correct_with`, `correct_nonlinear`, `correct_nonlinear_with`, `correct_sigma_point` and
+  `correct_sigma_point_with`, so callers can tell whether a measurement was skipped ([#65]).
 
 ### Fixed
 
@@ -38,6 +41,15 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - With the `nalgebra` and `unsafe` features, a `MatrixDataArray` smaller than `ROWS × COLS` now panics
   when nalgebra accesses it, instead of reading past the array.
 
+### Changed
+
+- **Breaking** for custom implementations of the update and observation traits
+  (`KalmanFilterUpdate`, `KalmanFilterNonlinearUpdate`, `KalmanFilterSigmaPointCorrect`,
+  `KalmanFilterObservationCorrectFilter`, `KalmanFilterNonlinearObservationCorrectFilter` and
+  `KalmanFilterUnscentedObservationCorrectFilter`): their `correct*` methods now return
+  `CorrectionStatus` instead of `()`. Calling code is unaffected unless it passed the result on as
+  `()`, e.g. as the last expression of a closure that must return `()` ([#65]).
+
 ### Removed
 
 - Removed `UnscentedObservation::correct_nonlinear`. It averaged the sigma points with equal weights,
@@ -47,6 +59,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
 [#59]: https://github.com/sunsided/minikalman-rs/issues/59
+[#65]: https://github.com/sunsided/minikalman-rs/issues/65
 
 ## [0.8.1] - 2026-10-30
 

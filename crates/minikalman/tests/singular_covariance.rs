@@ -60,8 +60,9 @@ proptest! {
             v.set_at(1, 0, z[1]);
         });
 
-        filter.correct(&mut measurement);
+        let status = filter.correct(&mut measurement);
 
+        prop_assert_eq!(status, CorrectionStatus::NotPositiveDefinite);
         let (after, p) = snapshot!(filter);
         prop_assert_eq!(after, x);
         prop_assert!(p.iter().all(|&v| v == 0.0));
@@ -110,10 +111,11 @@ fn extended_update_with_zero_innovation_covariance_keeps_state() {
         .set_at(0, 0, 1.0);
     measurement.measurement_vector_mut().set_at(0, 0, 1.0);
 
-    filter.correct_nonlinear(&mut measurement, |state, observation| {
+    let status = filter.correct_nonlinear(&mut measurement, |state, observation| {
         observation.set_at(0, 0, state.get_at(0, 0));
     });
 
+    assert_eq!(status, CorrectionStatus::NotPositiveDefinite);
     let (x, p) = snapshot!(filter);
     assert_eq!(x, [5.0, 0.0, 0.0]);
     assert!(p.iter().all(|&v| v == 0.0));
@@ -131,13 +133,14 @@ fn unscented_update_with_zero_innovation_covariance_keeps_state() {
 
     // P = 0 and R = 0: all sigma points coincide, so S = 0.
     filter.predict_nonlinear(|_| {});
-    filter.correct_sigma_point(&mut measurement, |sigma, observed| {
+    let status = filter.correct_sigma_point(&mut measurement, |sigma, observed| {
         for j in 0..NUM_SIGMA {
             observed.set_at(0, j, sigma.get_at(0, j));
             observed.set_at(1, j, sigma.get_at(1, j));
         }
     });
 
+    assert_eq!(status, CorrectionStatus::NotPositiveDefinite);
     let (x, p) = snapshot!(filter);
     assert_eq!(x, [5.0, 0.0, 0.0]);
     assert!(p.iter().all(|v| v.is_finite()));

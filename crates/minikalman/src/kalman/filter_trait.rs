@@ -1,6 +1,31 @@
 use crate::kalman::*;
 use crate::prelude::{AsMatrix, AsMatrixMut};
 
+/// The outcome of a correction step.
+///
+/// A correction that is not [`Applied`](Self::Applied) leaves the state vector and the
+/// estimate covariance unchanged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CorrectionStatus {
+    /// The measurement was applied to the state and the estimate covariance.
+    Applied,
+    /// The innovation covariance `S` was not positive definite, so it could not be inverted
+    /// and the measurement was skipped.
+    NotPositiveDefinite,
+    /// The normalized innovation squared exceeded the observation's gate, so the measurement
+    /// was rejected as an outlier.
+    Gated,
+}
+
+impl CorrectionStatus {
+    /// Returns `true` if the measurement was applied.
+    #[inline(always)]
+    pub const fn is_applied(self) -> bool {
+        matches!(self, Self::Applied)
+    }
+}
+
 /// A Kalman Filter.
 pub trait KalmanFilter<const STATES: usize, T>:
     KalmanFilterNumStates<STATES>
@@ -201,8 +226,10 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[inline(always)]
-    fn correct<M>(&mut self, measurement: &mut M)
+    fn correct<M>(&mut self, measurement: &mut M) -> CorrectionStatus
     where
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
     {
@@ -216,7 +243,9 @@ pub trait KalmanFilterUpdate<const STATES: usize, T> {
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
     /// * `fix` - Normalizes the innovation `y = z - H×x`, e.g. by wrapping angles.
-    fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N)
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N) -> CorrectionStatus
     where
         M: KalmanFilterObservationCorrectFilter<STATES, T>,
         N: FnMut(&mut [T]);
@@ -229,12 +258,15 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
     ///
     /// ## Arguments
     /// * `measurement` - The measurement to update the state prediction with.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[inline(always)]
     fn correct_nonlinear<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
-    ) where
+    ) -> CorrectionStatus
+    where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
         F: FnMut(
             &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
@@ -252,12 +284,15 @@ pub trait KalmanFilterNonlinearUpdate<const STATES: usize, T>:
     /// * `measurement` - The measurement to update the state prediction with.
     /// * `observation` - The nonlinear observation function.
     /// * `fix` - Normalizes the innovation `y = z - h(x)`, e.g. by wrapping angles.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     fn correct_nonlinear_with<M, F, N, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
         fix: N,
-    ) where
+    ) -> CorrectionStatus
+    where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
         F: FnMut(
             &<Self as KalmanFilterStateVectorMut<STATES, T>>::StateVectorMut,
@@ -537,9 +572,11 @@ pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
     /// ## Arguments
     /// * `x` - The state vector.
     /// * `P` - The system covariance matrix.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[allow(non_snake_case)]
     #[inline(always)]
-    fn correct<X, P>(&mut self, x: &mut X, P: &mut P)
+    fn correct<X, P>(&mut self, x: &mut X, P: &mut P) -> CorrectionStatus
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
@@ -558,8 +595,10 @@ pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
     /// * `x` - The state vector.
     /// * `P` - The system covariance matrix.
     /// * `fix` - Normalizes the innovation vector in place.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[allow(non_snake_case)]
-    fn correct_with<X, P, N>(&mut self, x: &mut X, P: &mut P, fix: N)
+    fn correct_with<X, P, N>(&mut self, x: &mut X, P: &mut P, fix: N) -> CorrectionStatus
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
@@ -586,9 +625,16 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
     /// * `x` - The state vector.
     /// * `P` - The system covariance matrix.
     /// * `observations` - The nonlinear observation function.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[allow(non_snake_case)]
     #[inline(always)]
-    fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
+    fn correct_nonlinear<X, P, F>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+    ) -> CorrectionStatus
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
@@ -610,8 +656,16 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
     /// * `P` - The system covariance matrix.
     /// * `observation` - The nonlinear observation function.
     /// * `fix` - Normalizes the innovation vector in place.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[allow(non_snake_case)]
-    fn correct_nonlinear_with<X, P, F, N>(&mut self, x: &mut X, P: &mut P, observation: F, fix: N)
+    fn correct_nonlinear_with<X, P, F, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
@@ -796,12 +850,15 @@ pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: us
     type SigmaPropagated: AsMatrix<STATES, NUM_SIGMA, T>;
 
     /// Performs the nonlinear correction step using sigma points.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[inline(always)]
     fn correct_sigma_point<M, F, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
-    ) where
+    ) -> CorrectionStatus
+    where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>,
         F: FnMut(&Self::SigmaPropagated, &mut M::ObservedSigmaPoints),
     {
@@ -817,12 +874,15 @@ pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: us
     /// [`angles::wrap_pi`](crate::angles::wrap_pi) for a bearing. The predicted measurement is
     /// averaged relative to the centre sigma point, so values on either side of the wrap point
     /// average correctly.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     fn correct_sigma_point_with<M, F, N, const OBSERVATIONS: usize>(
         &mut self,
         measurement: &mut M,
         observation: F,
         fix: N,
-    ) where
+    ) -> CorrectionStatus
+    where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>,
         F: FnMut(&Self::SigmaPropagated, &mut M::ObservedSigmaPoints),
         N: FnMut(&mut [T]);
@@ -843,6 +903,8 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
     ///
     /// The closure receives predicted sigma points and is responsible for
     /// populating the observed sigma points before correction proceeds.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[allow(non_snake_case, clippy::too_many_arguments)]
     #[inline(always)]
     fn correct_with_observed<X, P, SP, F, W>(
@@ -853,7 +915,8 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
         weights: &W,
         lambda: T,
         observation: F,
-    ) where
+    ) -> CorrectionStatus
+    where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrix<STATES, NUM_SIGMA, T>,
@@ -881,6 +944,8 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
     ///
     /// Means are taken relative to the centre sigma point, so values on either side of a
     /// wrap point average correctly.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[allow(non_snake_case, clippy::too_many_arguments)]
     fn correct_with_observed_residuals<X, P, SP, F, W, NX, NZ>(
         &mut self,
@@ -892,7 +957,8 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
         observation: F,
         fix_state: NX,
         fix_measurement: NZ,
-    ) where
+    ) -> CorrectionStatus
+    where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrix<STATES, NUM_SIGMA, T>,
