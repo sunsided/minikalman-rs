@@ -232,7 +232,7 @@ where
 /// The damped measurement-space iteration for the PrO weight `W` on borrowed `m×m` row-major
 /// views (see the module docs).
 struct Solver<'a, const M: usize, T> {
-    /// `G = H×P̃×Hᵀ` on entry; its lower Cholesky factor `L` after [`prepare`](Self::prepare).
+    /// `G = H×P̃×Hᵀ` on entry; its lower Cholesky factor `L` after the free function `prepare`.
     l: MatrixDataMut<'a, M, M, T>,
     /// The accepted iterate `W`. Holds `M⁻¹` after [`finish`](Self::finish).
     w: MatrixDataMut<'a, M, M, T>,

@@ -618,7 +618,9 @@ where
     /// [`correct_predictively_oriented`](RegularObservation::correct_predictively_oriented). A
     /// [gated](CorrectionStatus::Gated) or
     /// [not positive definite](CorrectionStatus::NotPositiveDefinite) correction leaves `K`
-    /// unchanged, while `S` may hold intermediate values.
+    /// unchanged, while `S` may hold intermediate values. The exception is a vector solver that
+    /// cannot evaluate its start or finish after the checks passed, which happens only through
+    /// rounding: it returns `NotPositiveDefinite` with `K` holding `P̃×Hᵀ`.
     ///
     /// With fixed-point types, large innovations can overflow intermediate values; choose a
     /// type with enough integer bits for the expected outliers.
