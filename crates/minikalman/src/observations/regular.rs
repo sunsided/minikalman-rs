@@ -41,7 +41,10 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// * `y` - The innovation (`num_measurements` × `1`).
     /// * `S` - The residual covariance (`num_measurements` × `num_measurements`).
     /// * `K` - The Kalman gain (`num_states` × `num_measurements`).
-    /// * `S_inv` - The temporary vector for predicted states (`num_states` × `1`).
+    /// * `S_inv` - A temporary matrix (`num_measurements` × `num_measurements`). The gain
+    ///   factors a copy of `S` here (so that `S` stays unfactored); it is also scratch for noise
+    ///   adaptation, `settle_gain`, the robust, predictively oriented, UD and information
+    ///   corrections.
     /// * `temp_HP` - The temporary matrix for H×P calculation (`num_measurements` × `num_states`).
     /// * `temp_PHt` - The temporary matrix for P×H' calculation (`num_states` × `num_measurements`).
     /// * `temp_KHP` - The temporary matrix for K×H×P calculation (`num_states` × `num_states`).
@@ -515,9 +518,9 @@ impl<
     ///
     /// What it holds depends on the last operation: after
     /// [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain), the
-    /// unfactored steady-state innovation covariance `S∞ = H·P⁻∞·Hᵀ + R`; after a Joseph-form
-    /// or external-gain correction, `H×P⁻×Hᵀ + R` of the prior; after a standard-form
-    /// correction, its lower Cholesky factor.
+    /// unfactored steady-state innovation covariance `S∞ = H·P⁻∞·Hᵀ + R`; after a regular or
+    /// external-gain correction (either covariance form, applied, gated or rejected),
+    /// `H×P⁻×Hᵀ + R` of the prior.
     #[inline(always)]
     pub fn innovation_covariance(&self) -> &S {
         &self.S
@@ -885,8 +888,8 @@ where
     /// `R/w` in place of `R` in the Joseph form (evaluated without forming `R/w`).
     ///
     /// `R` should be positive definite. After the correction, `K` holds the applied gain,
-    /// `temp_S_inv` holds `(w×H×P×Hᵀ + R)⁻¹`, and `S` and `workspace` hold intermediate
-    /// values.
+    /// `temp_S_inv` holds `(w×H×P×Hᵀ + R)⁻¹`, `S` holds `H×P⁻×Hᵀ + R` of the prior (whatever
+    /// the status), and `workspace` holds `H×P⁻×Hᵀ`.
     ///
     /// With fixed-point types, the prior NIS can overflow as in [`correct`](Self::correct);
     /// the weight itself is computed without forming the squared outlier size.
