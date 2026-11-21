@@ -1,12 +1,11 @@
 //! # Observations for Unscented Kalman Filters.
 
-use core::marker::PhantomData;
-
 use crate::kalman::*;
 use crate::matrix::{
     AsMatrix, AsMatrixMut, Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut,
     SquareMatrix,
 };
+use crate::observations::{normalized_innovation_squared, Correction};
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
 #[allow(non_snake_case)]
@@ -34,7 +33,10 @@ pub struct UnscentedObservation<
     sigma_observed: SigmaObserved,
     cross_covariance: CrossCov,
     temp_P: TempP,
-    _phantom: PhantomData<T>,
+    /// Normalized innovation squared `yᵀ×S⁻¹×y` of the last correction.
+    nis: T,
+    /// Upper bound on the normalized innovation squared above which a correction is skipped.
+    gate: Option<T>,
 }
 
 impl<
@@ -67,6 +69,8 @@ impl<
         TempSInv,
         TempP,
     >
+where
+    T: MatrixDataType,
 {
     pub const fn states(&self) -> usize {
         STATES
@@ -74,6 +78,37 @@ impl<
 
     pub const fn observations(&self) -> usize {
         OBSERVATIONS
+    }
+
+    /// Returns the normalized innovation squared `NIS = yᵀ×S⁻¹×y` of the last correction.
+    ///
+    /// For a consistent filter, the NIS averages to `OBSERVATIONS` over time; a larger average
+    /// indicates an overconfident filter. The value is updated by every correction whose
+    /// innovation covariance `S` is positive definite, including corrections rejected by the
+    /// [gate](Self::set_gate), and is `0` before the first such correction.
+    ///
+    /// With fixed-point types, large innovations can overflow `yᵀ×S⁻¹×y`; choose a type with
+    /// enough integer bits for the expected outliers.
+    #[inline(always)]
+    pub fn nis(&self) -> T {
+        self.nis
+    }
+
+    /// Returns the gate set by [`set_gate`](Self::set_gate).
+    #[inline(always)]
+    pub fn gate(&self) -> Option<T> {
+        self.gate
+    }
+
+    /// Sets an innovation gate: a correction whose [normalized innovation squared](Self::nis)
+    /// exceeds `threshold` is skipped and leaves the state and covariance unchanged.
+    ///
+    /// A common choice is a chi-square quantile for `OBSERVATIONS` degrees of freedom,
+    /// e.g. `6.63` (one measurement) or `9.21` (two measurements) to reject about 1% of
+    /// measurements of a consistent filter. `None` (the default) disables the gate.
+    #[inline(always)]
+    pub fn set_gate(&mut self, threshold: Option<T>) {
+        self.gate = threshold;
     }
 
     #[allow(clippy::too_many_arguments, non_snake_case)]
@@ -104,7 +139,8 @@ impl<
             sigma_observed,
             cross_covariance,
             temp_P,
-            _phantom: PhantomData,
+            nis: T::zero(),
+            gate: None,
         }
     }
 }
@@ -343,10 +379,25 @@ where
             &mut fix_state,
             &mut fix_measurement,
         );
-        // Skip the update, leaving x and P unchanged, if S cannot be inverted.
-        if self.compute_kalman_gain() {
-            self.apply_correction(x, P, &z_pred, &mut fix_measurement);
+        self.compute_innovation(&z_pred, &mut fix_measurement);
+        // Skip the update, leaving x and P unchanged, if S cannot be inverted or the
+        // innovation is gated.
+        if self.compute_kalman_gain() == Correction::Applied {
+            self.apply_correction(x, P);
         }
+    }
+
+    /// Computes the innovation `y = fix(z - ẑ)`.
+    fn compute_innovation<NZ>(&mut self, z_pred: &[T; OBSERVATIONS], fix_measurement: &mut NZ)
+    where
+        NZ: FnMut(&mut [T]),
+    {
+        let z = self.z.as_matrix();
+        let y = self.y.as_matrix_mut();
+        for i in 0..OBSERVATIONS {
+            y.set(i, 0, z.get(i, 0) - z_pred[i]);
+        }
+        fix_measurement(y.as_mut_slice());
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
@@ -428,42 +479,37 @@ where
     }
 
     #[allow(non_snake_case)]
-    /// Computes `K = Pxz × S⁻¹`. Returns `false` if `S` is not positive definite.
-    fn compute_kalman_gain(&mut self) -> bool {
+    /// Computes `K = Pxz × S⁻¹` and the normalized innovation squared.
+    ///
+    /// Leaves `K` unchanged if `S` is not positive definite or the innovation is gated.
+    fn compute_kalman_gain(&mut self) -> Correction {
         let S = self.S.as_matrix_mut();
         let S_inv = self.temp_S_inv.as_matrix_mut();
         let cross_cov = self.cross_covariance.as_matrix();
         let K = self.K.as_matrix_mut();
 
         if !S.cholesky_decompose_lower() {
-            return false;
+            return Correction::NotPositiveDefinite;
         }
         S.invert_l_cholesky(S_inv);
 
+        self.nis = normalized_innovation_squared(self.y.as_matrix(), S_inv);
+        if self.gate.is_some_and(|gate| self.nis > gate) {
+            return Correction::Gated;
+        }
+
         cross_cov.mult_transb(S_inv, K);
-        true
+        Correction::Applied
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn apply_correction<XVec, PCov, NZ>(
-        &mut self,
-        x: &mut XVec,
-        P: &mut PCov,
-        z_pred: &[T; OBSERVATIONS],
-        fix_measurement: &mut NZ,
-    ) where
+    fn apply_correction<XVec, PCov>(&mut self, x: &mut XVec, P: &mut PCov)
+    where
         XVec: StateVectorMut<STATES, T>,
         PCov: EstimateCovarianceMatrix<STATES, T>,
-        NZ: FnMut(&mut [T]),
     {
-        let z = self.z.as_matrix();
-        let y = self.y.as_matrix_mut();
+        let y = self.y.as_matrix();
         let K = self.K.as_matrix();
-
-        for i in 0..OBSERVATIONS {
-            y.set(i, 0, z.get(i, 0) - z_pred[i]);
-        }
-        fix_measurement(y.as_mut_slice());
 
         let x_mat = x.as_matrix_mut();
         for i in 0..STATES {
