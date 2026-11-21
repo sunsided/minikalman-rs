@@ -9,5 +9,8 @@ mod row_major;
 
 pub use data::*;
 pub use data_type::*;
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+#[cfg(feature = "nalgebra")]
+pub use nalgebra_support::*;
 pub use row_major::*;
 pub use traits::*;

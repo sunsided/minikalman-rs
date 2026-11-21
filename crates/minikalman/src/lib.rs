@@ -55,8 +55,40 @@
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!   compiles the crate as `#![forbid(unsafe)]`.
-//! * `nalgebra` - Enables [nalgebra](https://crates.io/crates/nalgebra) support. For major parts,
-//!   must be used in conjunction with `unsafe`.
+//! * `nalgebra` - Disabled by default. Enables views and copies between minikalman's matrices and
+//!   [nalgebra](https://crates.io/crates/nalgebra) matrices; see [nalgebra interop](#nalgebra-interop).
+//!   Together with `unsafe`, a `MatrixDataArray` can also back an owned nalgebra matrix.
+//!
+//! ## nalgebra Interop
+//!
+//! minikalman does not depend on nalgebra, and no filter uses it. nalgebra's dependency tree adds
+//! to binary size, which matters on small microcontrollers ([#13](https://github.com/sunsided/minikalman-rs/issues/13)),
+//! so the `nalgebra` feature is opt-in; without it, nalgebra is not even downloaded.
+//!
+//! With the feature, every matrix and buffer gets [`as_nalgebra`](matrix::AsNalgebra::as_nalgebra)
+//! and [`as_nalgebra_mut`](matrix::AsNalgebraMut::as_nalgebra_mut), zero-copy views with
+//! row-major strides, plus [`to_nalgebra`](matrix::AsNalgebra::to_nalgebra) and
+//! [`copy_from_nalgebra`](matrix::AsNalgebraMut::copy_from_nalgebra), which copy on the stack.
+//! None of them need the `unsafe` feature or allocate. Do arithmetic on the copies; see
+//! [`AsNalgebra`](matrix::AsNalgebra) for why. The matching nalgebra version is re-exported as
+//! `minikalman::nalgebra`.
+//!
+//! ```
+//! # #[cfg(feature = "nalgebra")] {
+//! use minikalman::buffers::types::KalmanGainMatrixBuffer;
+//! use minikalman::nalgebra::SMatrix;
+//! use minikalman::prelude::*;
+//!
+//! // A 3×2 Kalman gain, stored row by row.
+//! let mut k = KalmanGainMatrixBuffer::<3, 2, f32, _>::from([0.0; 6]);
+//!
+//! k.copy_from_nalgebra(&SMatrix::<f32, 3, 2>::new(1.0, 2.0, 3.0, 4.0, 5.0, 6.0));
+//! assert_eq!(k.as_nalgebra()[(2, 0)], 5.0);
+//!
+//! let kt = k.to_nalgebra().transpose();
+//! assert_eq!(kt[(0, 2)], 5.0);
+//! # }
+//! ```
 //!
 //! ## Example
 //!
@@ -279,6 +311,11 @@ pub use crate::buffers::builder::BufferBuilder;
 
 /// Re-export `num_traits`.
 pub use num_traits;
+
+/// Re-export `nalgebra`, so the views and copies use the same version as your code.
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+#[cfg(feature = "nalgebra")]
+pub use nalgebra;
 
 /// Compiles and runs the code examples in the README as doctests.
 #[cfg(doctest)]

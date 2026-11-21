@@ -82,6 +82,8 @@ jobs:
         run: cargo nextest run --no-default-features --features=libm,alloc
       - name: Test using micromath
         run: cargo nextest run --no-default-features --features=micromath,alloc
+      - name: Test nalgebra interop without std or unsafe
+        run: cargo nextest run --package minikalman --no-default-features --features=nalgebra,libm
       - name: Check micromath with default features
         run: cargo check --features=micromath
       - name: Upload coverage to Codecov

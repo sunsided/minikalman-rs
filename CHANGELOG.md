@@ -7,6 +7,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- With the opt-in `nalgebra` feature, every matrix and buffer gets `as_nalgebra()`/`as_nalgebra_mut()`
+  (zero-copy nalgebra views with row-major strides), `to_nalgebra()` (a stack copy into `SMatrix`) and
+  `copy_from_nalgebra()`, through the new `AsNalgebra`/`AsNalgebraMut` traits. They do not need the
+  `unsafe` feature, and nalgebra stays out of the dependency tree unless the feature is enabled.
+  nalgebra is re-exported as `minikalman::nalgebra` ([#135]).
 - Added the UD filter `ud::UdKalman` (built with `KalmanFilterBuilder::build_ud`), which keeps the
   estimate covariance factored as `P = U·D·Uᵀ` and predicts with Thornton's MWGS and corrects with
   Bierman's sequential update. `P` stays positive semi-definite by construction, and no step takes a
@@ -149,6 +154,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `nalgebra` together with `unsafe` now builds without `std` ([#135]).
 - The Cholesky decomposition now fails on a `NaN` or infinite pivot, e.g. from overflowing entries,
   instead of reporting success and producing a non-finite factor. Corrections then skip the update
   as for any other covariance that is not positive definite.
@@ -167,6 +173,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Breaking:** the `nalgebra` feature now uses nalgebra 0.33 (was 0.32), the newest release that
+  builds on the MSRV 1.80. The commented-out `nalgebra_std`/`nalgebra_alloc`/`nalgebra_libm` features
+  are gone ([#135]).
 - **Breaking** for custom implementations of the update and observation traits
   (`KalmanFilterUpdate`, `KalmanFilterNonlinearUpdate`, `KalmanFilterSigmaPointCorrect`,
   `KalmanFilterObservationCorrectFilter`, `KalmanFilterNonlinearObservationCorrectFilter` and
@@ -189,6 +198,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+[#135]: https://github.com/sunsided/minikalman-rs/issues/135
 [#112]: https://github.com/sunsided/minikalman-rs/issues/112
 [#111]: https://github.com/sunsided/minikalman-rs/issues/111
 [#108]: https://github.com/sunsided/minikalman-rs/issues/108
