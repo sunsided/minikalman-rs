@@ -55,6 +55,7 @@
 //! ([`ln`]) that needs only arithmetic.
 
 use crate::kalman::CorrectionStatus;
+use crate::matrix::triangular::{solve_triangular, Transpose, Triangle};
 use crate::matrix::{
     Matrix, MatrixDataMut, MatrixDataRef, MatrixDataType, MatrixMut, RowMajorSequentialData,
     RowMajorSequentialDataMut, SquareMatrix,
@@ -664,33 +665,21 @@ where
 }
 
 /// Replaces the row-major `M×cols` matrix `b` by `L⁻¹×b`, with `L` the lower triangular `M×M`
-/// Cholesky factor.
+/// Cholesky factor, whose diagonal is positive by construction.
 fn forward_substitute<const M: usize, T>(l: &[T], b: &mut [T], cols: usize)
 where
     T: MatrixDataType,
 {
-    for col in 0..cols {
-        for i in 0..M {
-            let sum = (0..i).map(|k| l[i * M + k] * b[k * cols + col]).sum::<T>();
-            b[i * cols + col] = (b[i * cols + col] - sum) / l[i * M + i];
-        }
-    }
+    solve_triangular(l, M, Triangle::Lower, Transpose::No, b, cols);
 }
 
 /// Replaces the row-major `M×cols` matrix `b` by `L⁻ᵀ×b`, with `L` the lower triangular `M×M`
-/// Cholesky factor.
+/// Cholesky factor, whose diagonal is positive by construction.
 fn back_substitute_transposed<const M: usize, T>(l: &[T], b: &mut [T], cols: usize)
 where
     T: MatrixDataType,
 {
-    for col in 0..cols {
-        for i in (0..M).rev() {
-            let sum = ((i + 1)..M)
-                .map(|k| l[k * M + i] * b[k * cols + col])
-                .sum::<T>();
-            b[i * cols + col] = (b[i * cols + col] - sum) / l[i * M + i];
-        }
-    }
+    solve_triangular(l, M, Triangle::Lower, Transpose::Yes, b, cols);
 }
 
 /// Solves `(L×Lᵀ)×a = b` in place, with `L` the lower triangular `M×M` Cholesky factor and the

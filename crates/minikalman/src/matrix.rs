@@ -1,6 +1,7 @@
 mod data;
 mod data_type;
 mod traits;
+pub(crate) mod triangular;
 
 #[cfg(feature = "nalgebra")]
 mod nalgebra_support;

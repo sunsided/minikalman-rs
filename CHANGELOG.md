@@ -104,6 +104,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in the iterated EKF. `P` is written once, so it stays positive definite. Both have `_with`
   variants, and the observation side is exposed as the trait
   `KalmanFilterNonlinearObservationCorrectPredictivelyOriented` ([#93]).
+- Added `triangularize_upper` on `MatrixMut`, a Householder QR that leaves the upper triangular `R`
+  with `Mᵀ×M = Rᵀ×R` in place without forming `Mᵀ×M`. It scales each reflector by its column's
+  largest entry, so `I16F16` handles entries whose squares overflow, and skips zero columns instead of
+  dividing by zero. Added the triangular solves `solve_lower_triangular_inplace`,
+  `solve_lower_triangular_transposed_inplace`, `solve_upper_triangular_inplace` and
+  `solve_upper_triangular_transposed_inplace` on `SquareMatrix`, which return `false` on a zero
+  diagonal; the predictively oriented correction now uses them ([#109]).
 
 ### Fixed
 
@@ -159,6 +166,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#88]: https://github.com/sunsided/minikalman-rs/issues/88
 [#66]: https://github.com/sunsided/minikalman-rs/issues/66
 [#89]: https://github.com/sunsided/minikalman-rs/issues/89
+[#109]: https://github.com/sunsided/minikalman-rs/issues/109
 
 ## [0.8.1] - 2026-10-30
 
