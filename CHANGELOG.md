@@ -90,6 +90,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `KalmanFilterUnscentedObservationCorrectFilter`): their `correct*` methods now return
   `CorrectionStatus` instead of `()`. Calling code is unaffected unless it passed the result on as
   `()`, e.g. as the last expression of a closure that must return `()` ([#65]).
+- Raised the MSRV to `1.71.0` and the minimum `fixed` version to `1.24.0`. The `fixed` feature uses
+  `sqrt`, which `fixed` only provides since `1.24.0`, and that release requires Rust `1.71`. CI now
+  checks the library on the MSRV ([#91]).
 
 ### Removed
 
@@ -97,6 +100,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+[#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#69]: https://github.com/sunsided/minikalman-rs/issues/69
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
