@@ -321,6 +321,50 @@ pub mod information {
 /// corrects with one or more [`ExtendedObservation`](extended::ExtendedObservation)s via
 /// [`ExtendedKalman::correct_nonlinear`](extended::ExtendedKalman::correct_nonlinear):
 #[doc = diagram!("extended-loop.mmd")]
+///
+/// ## Filtering on manifolds: error-state and invariant EKF
+///
+/// Attitudes and poses live on a Lie group such as SO(3) or SE(2), not in a vector space, so
+/// `x̂ ← x̂ + K·y` on Euler angles or raw quaternion entries breaks the group structure. The
+/// error-state (multiplicative) EKF and the invariant EKF (Barrau and Bonnabel, "The
+/// Invariant Extended Kalman Filter as a Stable Observer", IEEE TAC 62(4), 2017,
+/// [arXiv:1410.1465](https://arxiv.org/abs/1410.1465)) avoid this: the caller keeps the
+/// *nominal state* `X̂` on the group, and the filter estimates only a small error `ξ` in the
+/// Lie algebra, with `X = X̂·Exp(ξ)` (or `Exp(ξ)·X̂`). [`ExtendedKalman`](extended::ExtendedKalman)
+/// runs this without a Lie-group library, with `ξ` as its state `x`:
+#[doc = diagram!("extended-error-state.mmd", "nominal", "inject")]
+/// 1. **Predict.** Move `X̂` on the group in caller code, write the Jacobian of the error
+///    dynamics with [`state_transition_jacobian_mut`](extended::ExtendedKalman::state_transition_jacobian_mut),
+///    then call [`predict_nonlinear`](extended::ExtendedKalman::predict_nonlinear) with a
+///    closure that writes `ξ = 0`. Only `P ← A·P·Aᵀ + Q` matters.
+/// 2. **Correct.** Write the error Jacobian with `observation_jacobian_matrix_mut` and call
+///    [`correct_nonlinear_with`](extended::ExtendedKalman::correct_nonlinear_with). The
+///    observation closure ignores `x` and writes the prediction from `X̂`; the `fix` closure
+///    can turn `z − h(X̂)` into an invariant innovation, e.g. rotate it into the body frame.
+///    Both closures may borrow `X̂` from a field next to the filter. The gate and the NIS see
+///    the innovation after `fix`.
+/// 3. **Inject.** Read `ξ` from [`state_vector`](extended::ExtendedKalman::state_vector),
+///    set `X̂ ← X̂·Exp(ξ)`, reset `ξ` to zero via
+///    [`state_vector_mut`](extended::ExtendedKalman::state_vector_mut), and optionally move
+///    `P` to the new error with the reset Jacobian, `P ← J·P·Jᵀ`, via
+///    [`estimate_covariance_mut`](extended::ExtendedKalman::estimate_covariance_mut). For
+///    `X̂·Exp(ξ)` that Jacobian is the right Jacobian `J_r(ξ)`; it is close to `I` for small `ξ`.
+///
+/// **When the invariant form pays off.** For dynamics with
+/// `f(a·b) = a·f(b) + f(a)·b − a·f(I)·b` ("group affine", which includes odometry and gyro
+/// integration `X̂ ← X̂·Exp(u)`), the invariant error evolves independently of the estimate,
+/// so `A` depends only on the input, e.g. `A = Ad_Exp(u)⁻¹`. If the observation is invariant
+/// too, e.g. a world-frame position fix `Y = X·d` paired with the body-frame error, `H` is
+/// constant. Neither Jacobian is then evaluated at a wrong estimate, and Barrau and Bonnabel
+/// prove local stability around any trajectory under the conditions of the linear Kalman
+/// filter (Theorems 1 and 4 and eq. (7) in arXiv:1410.1465v4). The guarantee is local, and the
+/// correction is still first order. Without that structure the error-state EKF still keeps
+/// the state on the group, but `A` and `H` depend on `X̂` as in any EKF.
+///
+/// The `se2-iekf` example (`examples/se2_iekf.rs`) runs this on SE(2) with odometry and
+/// position fixes, next to a plain EKF on `(x, y, θ)` started with the same 170° heading
+/// error. Both converge there; with the default seed the invariant filter keeps its heading
+/// within 5° after about 21 s, the plain EKF after about 46 s.
 pub mod extended {
     pub use crate::kalman::extended::*;
     pub use crate::observations::extended::*;
