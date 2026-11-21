@@ -114,8 +114,9 @@ fn extended_update_with_zero_innovation_covariance_keeps_state() {
         observation.set_at(0, 0, state.get_at(0, 0));
     });
 
-    let (x, _) = snapshot!(filter);
+    let (x, p) = snapshot!(filter);
     assert_eq!(x, [5.0, 0.0, 0.0]);
+    assert!(p.iter().all(|&v| v == 0.0));
 }
 
 #[test]
