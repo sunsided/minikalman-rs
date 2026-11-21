@@ -1,46 +1,7 @@
 //! The [`filter!`](crate::filter) macro: a declaration language for states, observations,
 //! controls, scratch, filters and systems of them, over the storage types.
 
-/// Support items for the code [`filter!`](crate::filter) generates. Not part of the public API.
-pub mod support {
-    /// The scalar type of a named vector declared in a [`filter!`](crate::filter) block.
-    ///
-    /// Implemented by the generated `state`, observation and control value types, so items
-    /// declared `for` a state find its scalar without the user repeating it.
-    pub trait Named {
-        /// The scalar of every entry, e.g. `f32`.
-        type Scalar;
-    }
-
-    /// The largest value of a list, `0` for an empty one: the `MAX_OBSERVATIONS` of a
-    /// `scratch` item.
-    #[must_use]
-    pub const fn max(values: &[usize]) -> usize {
-        let mut max = 0;
-        let mut i = 0;
-        while i < values.len() {
-            if values[i] > max {
-                max = values[i];
-            }
-
-            i += 1;
-        }
-
-        max
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::max;
-
-        #[test]
-        fn max_of_a_list() {
-            assert_eq!(max(&[]), 0);
-            assert_eq!(max(&[3]), 3);
-            assert_eq!(max(&[1, 4, 2]), 4);
-        }
-    }
-}
+pub mod support;
 
 /// Declares named states, observations, controls, scratch, filters and systems of them, and
 /// generates their storage and wiring.
@@ -273,7 +234,8 @@ pub mod support {
 ///
 /// ## Placement: on the stack or in a `static`
 ///
-/// `filter!` creates no `static` and allocates nothing. You place one value, and `new()` is a
+/// `filter!` creates no `static` and, unless an item says `storage = boxed;`, allocates
+/// nothing. You place one value, and `new()` is a
 /// `const fn` that zeroes it, so a `static` of it lands in `.bss`. For a local, write
 /// `let mut storage = tracking::new();` as above. A `static` can be initialized directly:
 ///
@@ -290,6 +252,7 @@ pub mod support {
 /// fn main() {
 ///     // 20 + 17 f32: FilterStorage<2> and ObservationStorage<2, 1>, nothing else.
 ///     assert_eq!(core::mem::size_of_val(&STORAGE), 37 * 4);
+///     assert_eq!(tracking::BYTES, 37 * 4);
 /// }
 /// ```
 ///
@@ -326,6 +289,169 @@ pub mod support {
 /// An RTIC `#[local]` resource and a `Box::new(tracking::new())` work the same way. You can
 /// also place each item's `Storage` on its own, e.g. the scratch on the stack and the filters
 /// in a separate RAM section.
+///
+/// ## An owned filter as a struct field
+///
+/// On the desktop, a handle that borrows its storage is awkward: it has a lifetime, so it
+/// cannot simply be a field of your own type. `storage = owned;` gives a `kalman`,
+/// `observation` or `control` item an `Owned` type that holds its buffers by value. It has
+/// no lifetime, it moves like any value, and `model` works on it:
+///
+/// ```
+/// use minikalman::prelude::*;
+///
+/// minikalman::filter! {
+///     state Track(f32) { pos, vel }
+///     observation gps: Gps for Track { pos } { storage = owned; H = [pos]; R = diag(0.01); }
+///     kalman tracker for Track {
+///         storage = owned;
+///         A = identity;
+///         A[pos, vel] = 0.1;
+///         Q[vel, vel] = 0.01;
+///         P = diag(10.0);
+///     }
+/// }
+///
+/// /// Your own type: the filter and its observation are plain fields.
+/// struct Tracker {
+///     filter: tracker::Owned,
+///     gps: gps::Owned,
+/// }
+///
+/// impl Tracker {
+///     fn new() -> Self {
+///         let mut tracker = Self { filter: tracker::new_owned(), gps: gps::new_owned() };
+///         tracker::model(&mut tracker.filter);
+///         gps::model(&mut tracker.gps);
+///         tracker
+///     }
+///
+///     fn update(&mut self, pos: f32) -> Track {
+///         self.filter.predict();
+///         Gps { pos }.write(self.gps.measurement_vector_mut().as_mut_slice());
+///         self.filter.correct(&mut self.gps);
+///         Track::read(self.filter.state_vector().as_slice())
+///     }
+/// }
+///
+/// fn main() {
+///     let mut tracker = Tracker::new();
+///     let mut track = Track { pos: 0.0, vel: 0.0 };
+///     for pos in [0.1, 0.2, 0.32, 0.4, 0.49, 0.61, 0.7, 0.79] {
+///         track = tracker.update(pos);
+///     }
+///
+///     assert!(track.vel > 0.5 && track.vel < 1.5);
+///     assert!(tracker::BYTES >= 20 * 4); // the buffers plus the filter's bookkeeping
+/// }
+/// ```
+///
+/// `new_owned()` returns the value, so it passes through the stack (`BYTES`) on its way into
+/// your struct. It is not a `const fn`, so an `Owned` cannot initialize a `static`; for a
+/// `static`, use the inline `Storage`. For a large filter, `storage = boxed;` (with the `alloc` feature) gives a
+/// `Boxed` type and `new_boxed()`, which allocates each matrix directly on the heap; only the
+/// handle, a few pointers, is on the stack:
+///
+/// ```
+/// # fn main() {
+/// #     #[cfg(feature = "alloc")]
+/// #     boxed::run();
+/// # }
+/// # #[cfg(feature = "alloc")]
+/// # mod boxed {
+/// use minikalman::prelude::*;
+///
+/// minikalman::filter! {
+///     state Big(f64) { a, b, c, d, e, f, g, h }
+///     kalman big for Big { storage = boxed; A = identity; P = identity; }
+/// }
+///
+/// pub fn run() {
+///     let mut filter = big::new_boxed();
+///     big::model(&mut filter);
+///     filter.predict();
+///     assert_eq!(big::BYTES, (4 * 64 + 2 * 8) * 8); // on the heap
+/// }
+/// # }
+/// ```
+///
+/// ## Squeezing RAM: `extern` buffers, lean observations, one scratch
+///
+/// On a small target you may already own the memory for some matrices: a DMA region, an arena
+/// shared with another task, a section in faster RAM. `M = extern;` leaves `M` out of
+/// `Storage`, and `build` takes it as `&mut [Scalar; N]`, with `N` derived from the declared
+/// shape. The filter reads and writes your buffer in place; nothing is copied.
+///
+/// Placement and value are independent. `P = extern; P = diag(10.0);` still makes `model`
+/// write `10·I` into your buffer; an extern matrix without a declared value keeps whatever
+/// your buffer holds.
+///
+/// With a lean observation and one shared scratch, the filter below keeps 56 bytes inline and
+/// borrows 24 bytes of `P` and `x` from the application. `BYTES` and `EXTERN_BYTES` are
+/// constants, so the footprint can be checked at compile time:
+///
+/// ```
+/// use minikalman::prelude::*;
+/// use static_cell::ConstStaticCell;
+///
+/// minikalman::filter! {
+///     state Track(f32) { pos, vel }
+///     observation lean gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+///     scratch shared for [gps];
+///     kalman tracker for Track {
+///         x = extern; // placement statements come first
+///         P = extern;
+///         A = identity;
+///         A[pos, vel] = 0.1;
+///         Q = diag(0.01);
+///         P = diag(10.0); // written into the caller's buffer by `model`
+///     }
+/// }
+///
+/// // A, Q and two temporaries inline; P and x lent by the application.
+/// const _: () = assert!(tracker::BYTES == 14 * 4 && tracker::EXTERN_BYTES == 6 * 4);
+///
+/// /// Memory the application owns, e.g. shared with a logger task or placed by the linker.
+/// static P: ConstStaticCell<[f32; 4]> = ConstStaticCell::new([0.0; 4]);
+/// static X: ConstStaticCell<[f32; 2]> = ConstStaticCell::new([0.0; 2]);
+/// static FILTER: ConstStaticCell<tracker::Storage> = ConstStaticCell::new(tracker::new());
+///
+/// fn main() {
+///     let (p, x) = (P.take(), X.take());
+///     let (mut gps_storage, mut scratch) = (gps::new(), shared::new());
+///     let mut gps = gps::build(&mut gps_storage);
+///     gps::model(&mut gps);
+///
+///     {
+///         let mut filter = tracker::build(FILTER.take(), &mut *x, &mut *p);
+///         tracker::model(&mut filter); // writes A, Q and P = 10·I
+///         for pos in [0.1, 0.2, 0.32, 0.4, 0.49, 0.61, 0.7, 0.79] {
+///             filter.predict();
+///             Gps { pos }.write(gps.measurement_vector_mut().as_mut_slice());
+///             filter.correct_in(&mut gps, &mut scratch);
+///         }
+///     }
+///
+///     // The estimate is in the application's buffers.
+///     let track = Track::read(x);
+///     assert!(track.vel > 0.5 && track.vel < 1.5);
+///     assert!(p[0] < 10.0);
+/// }
+/// ```
+///
+/// What goes through the stack, so you can budget for it:
+///
+/// * `new()` is a `const fn`. In a `static` it costs nothing at run time. As a local it is
+///   `BYTES` on the stack, and `Box::new(module::new())` may build it on the stack before
+///   moving it.
+/// * `new_owned()` returns `BYTES` by value; `new_boxed()` allocates each matrix directly.
+/// * `build()` copies nothing: the handle holds slices into the storage and your buffers.
+/// * `model()` writes in place, with two exceptions. A vector statement `x = Track { .. }`
+///   builds the `Track` value (`N` scalars) before writing it. A `luenberger` gain block builds
+///   its `STATES × OBSERVATIONS` gain on the stack and copies it in with `set_gain`, because
+///   the fixed-gain observation has no mutable gain accessor.
+/// * There are no hidden temporaries: the correction temporaries are in a full observation's
+///   `Storage` or in the shared `scratch`, and both count in `BYTES`.
 ///
 /// ## Fixed point
 ///
@@ -450,6 +576,51 @@ pub mod support {
 ///   Syntax errors point at the whole block, not at the bad token; the `found:` text shows
 ///   where parsing stopped.
 ///
+/// * An `extern` buffer of the wrong length is a type error at the call: "expected an array
+///   with a size of 4, found one with a size of 3":
+///
+///   ```compile_fail
+///   minikalman::filter! {
+///       state Track(f32) { pos, vel }
+///       kalman k for Track { P = extern; }
+///   }
+///
+///   fn main() {
+///       let (mut storage, mut p) = (k::new(), [0.0_f32; 3]);
+///       let _filter = k::build(&mut storage, &mut p);
+///   }
+///   ```
+///
+/// * `extern` together with `storage = owned` (or `boxed`) fails with "filter!: `extern`
+///   buffers need `storage = inline`: an owned value borrowing external memory would carry a
+///   lifetime again":
+///
+///   ```compile_fail
+///   minikalman::filter! {
+///       state Track(f32) { pos, vel }
+///       kalman k for Track { storage = owned; P = extern; }
+///   }
+///   fn main() {}
+///   ```
+///
+/// * The other placement mistakes are compile errors too:
+///   * `observation lean` with `storage = owned` or `boxed`;
+///   * a placement statement after a model statement, or inside a `luenberger` block;
+///   * an unknown `storage` mode;
+///   * an `extern` matrix the block does not have (`R = extern;` in a `kalman`);
+///   * an owned, boxed or extern item as a `system` member ("filter!: `k` cannot be a system
+///     member: only inline items without `extern` buffers can", next to rustc's own errors).
+///
+///   ```compile_fail
+///   minikalman::filter! {
+///       state Track(f32) { pos, vel }
+///       observation gps: Gps for Track { pos } { H = [pos]; }
+///       kalman k for Track { storage = owned; }
+///       system s { k, gps }
+///   }
+///   fn main() {}
+///   ```
+///
 /// ## How it works
 ///
 /// ### `build()` wires, `model()` writes
@@ -467,7 +638,30 @@ pub mod support {
 ///   (`fill_h`). It writes the gain only when the gain block is non-empty.
 ///
 /// The declared values are code that runs at start-up, not data. The storage stays zeroed, so
-/// a `static` of it lands in `.bss`.
+/// a `static` of it lands in `.bss`. Whole-matrix statements (`identity`, `diag`, `[..]`)
+/// overwrite the entire matrix, `extern` buffers included.
+///
+/// ### Placement modes
+///
+/// A `kalman`, `observation` or `control` block may start with placement statements, before
+/// any model statement:
+///
+/// * `storage = inline;` is the default: `Storage`, `new()`, `build(&mut Storage) ->
+///   Handle<'_>`.
+/// * `storage = owned;` generates `Owned` and `new_owned()`: the buffers held by value, no
+///   lifetime, no allocation.
+/// * `storage = boxed;` (needs the `alloc` feature) generates `Boxed` and `new_boxed()`: each
+///   buffer in its own heap allocation.
+/// * `M = extern;` leaves `M` out of `Storage`; `build` then takes it after the storage, as
+///   `&mut [Scalar; N]`, in the order `A, x, P, Q` (kalman), `H, z, R` (observation) or
+///   `B, u, Q` (control), whatever order you declared them in. `extern` needs
+///   `storage = inline`. Only the length is type-checked, so buffers of the same length can
+///   be swapped silently: `A`, `P` and `Q` always, `H` and `R` when there are as many
+///   measurements as states, `B` and `Q` when there are as many controls as states.
+///
+/// `model` works in every mode. Only inline items without `extern` buffers can be `system`
+/// members, since a system is one placed value wired in one `build`; wire the others
+/// yourself, or keep the owned values in your own struct.
 ///
 /// ### Sharing declarations
 ///
@@ -485,11 +679,17 @@ pub mod support {
 ///
 /// ### Memory
 ///
-/// Every `Storage` is the library storage type or a plain struct of them. A `luenberger` and a
+/// Every module exports `BYTES`, the bytes of the value you place (`size_of` of its `Storage`
+/// or `Owned`; for `Boxed`, the heap bytes of its matrices), and `EXTERN_BYTES`, the bytes of
+/// the `extern` buffers it borrows. A `system` exports both for all its members.
+///
+/// Every `Storage` is the library storage type, a plain struct of them, or (with `extern`
+/// buffers) a struct of the inline matrices, checked at compile time to be exactly `BYTES`. A `luenberger` and a
 /// `system` storage carry a compile-time assert that their size is exactly the sum of their
 /// parts. The assert can fail for a `system` whose members mix scalars of different alignment,
 /// e.g. `f32` and `f64`, when the struct needs padding; use one `system` per scalar. The
-/// generated code contains no `unsafe`, no `static` and no allocation, only paths you could
+/// generated code contains no `unsafe`, no `static` and no allocation (except for
+/// `storage = boxed;`), only paths you could
 /// write by hand; `cargo expand` shows it.
 ///
 /// ## Reference
@@ -502,16 +702,18 @@ pub mod support {
 ///                           | kalman | luenberger | system )
 ///
 /// state       := 'state' Name '(' Scalar ')' '{' field,* '}'
-/// observation := 'observation' 'lean'? mod ':' Name 'for' StatePath
-///                '{' field,* '}' '{' stmt* '}'
-/// control     := 'control' mod ':' Name 'for' StatePath '{' field,* '}' '{' stmt* '}'
+/// observation := 'observation' 'lean'? mod ':' Name 'for' StatePath '{' field,* '}' block
+/// control     := 'control' mod ':' Name 'for' StatePath '{' field,* '}' block
 /// scratch     := 'scratch' mod 'for' '[' obsmod,+ ']' ';'
-/// kalman      := 'kalman' mod 'for' StatePath '{' stmt* '}'
+/// kalman      := 'kalman' mod 'for' StatePath block
 /// luenberger  := 'luenberger' 'predictor'? mod 'for' StatePath '{' stmt* '}'
 ///                'gains' '{' ( obsmod '{' stmt* '}' )* '}'
 /// system      := 'system' mod '{' member,+ '}'
 ///
 /// field       := attr* ident                    -- doc comments allowed, as in state!
+/// block       := '{' placement* stmt* '}'       -- kalman, observation, control
+/// placement   := 'storage' '=' ( 'inline' | 'owned' | 'boxed' ) ';'
+///              | M '=' 'extern' ';'
 /// stmt        := M '=' 'identity' ';'
 ///              | M '=' 'diag' '(' expr ')' ';'
 ///              | M '[' row ',' col ']' '=' expr ';'
@@ -547,9 +749,13 @@ pub mod support {
 /// | `luenberger steady for Track { … } gains { gps { … } }` | struct `Storage { observer, gps }` of [`ObserverStorage`](crate::regular::ObserverStorage) and [`FixedGainObservationStorage`](crate::regular::FixedGainObservationStorage), struct `Handle { observer, gps }`, `Form` |
 /// | `luenberger predictor steady …` | the same over [`PredictorObserverStorage`](crate::regular::PredictorObserverStorage) and [`Predictor`](crate::prelude::Predictor)-form observations |
 /// | `system tracking { fast, gps, … }` | struct `Storage` of the members' `Storage`, struct `Handle` of their `Handle` |
+/// | `kalman fast for Track { P = extern; … }` (also `observation`, `control`) | struct `Storage` of the inline matrices, `new()`, `build(&mut Storage, P: &mut [Scalar; N]) -> Handle<'_>`; `Handle` as without `extern` |
+/// | `kalman fast for Track { storage = owned; … }` (also `observation`, `control`) | `Owned` (buffers by value, no lifetime), `new_owned()` |
+/// | `kalman fast for Track { storage = boxed; … }` (also `observation`, `control`) | `Boxed` (the `alloc` builder types), `new_boxed()` |
 ///
-/// Every module (all items but `state`) has `Scalar`, `STATES`, `pub const fn new() ->
-/// Storage`, `pub fn build(&mut Storage) -> Handle<'_>` and `pub fn model(&mut Handle<'_>)`.
+/// Every module (all items but `state`) has `BYTES`, `EXTERN_BYTES` and `model`, and all but
+/// `system` also have `Scalar` and `STATES`. Inline modules have `pub const fn new() -> Storage` and `pub fn build(&mut
+/// Storage, …) -> Handle<'_>`; `model` takes `&mut Handle<'_>`, `&mut Owned` or `&mut Boxed`.
 ///
 /// ### Limits
 ///
@@ -564,8 +770,10 @@ pub mod support {
 ///   * The module's own names (`Storage`, `Handle`, `Scalar`, `STATES`, `new`, `build`,
 ///     `model`, `fill_h`, …) shadow parent items of the same name.
 /// * Put `#[cfg]` on the `filter!` invocation, not on an item inside it.
-/// * The statements of one item expand recursively, about 120 per item at the default
+/// * The statements of one item expand recursively, about 119 per item at the default
 ///   `recursion_limit`.
+/// * `storage =` and `extern` apply to `kalman`, `observation` (`extern` also when lean) and
+///   `control` items; `luenberger` and `scratch` are always inline.
 #[macro_export]
 macro_rules! filter {
     () => {};
@@ -590,11 +798,10 @@ macro_rules! filter {
             { $($fields:tt)* } { $($model:tt)* }
         $($rest:tt)*
     ) => {
-        $crate::__filter_observation! {
-            [$(# $attr)*] $vis $module $value $state
-            [LeanObservationStorage BorrowedLeanObservation]
-            "`H`, `z`, `R`, `y`, `S` and `K`; correct it with `correct_in` and a `scratch`."
-            { $($fields)* } { $($model)* }
+        $crate::__filter_value! { [$(# $attr)*] $vis $value $state { $($fields)* } }
+        $crate::__filter_scan! {
+            observation { $vis $module $value lean $state }
+            inline [inline inline inline] ; $($model)*
         }
 
         $crate::filter! { $($rest)* }
@@ -606,11 +813,10 @@ macro_rules! filter {
             { $($fields:tt)* } { $($model:tt)* }
         $($rest:tt)*
     ) => {
-        $crate::__filter_observation! {
-            [$(# $attr)*] $vis $module $value $state
-            [ObservationStorage BorrowedObservation]
-            "`H`, `z`, `R`, `y`, `S`, `K` and the correction temporaries."
-            { $($fields)* } { $($model)* }
+        $crate::__filter_value! { [$(# $attr)*] $vis $value $state { $($fields)* } }
+        $crate::__filter_scan! {
+            observation { $vis $module $value full $state }
+            inline [inline inline inline] ; $($model)*
         }
 
         $crate::filter! { $($rest)* }
@@ -622,50 +828,10 @@ macro_rules! filter {
             { $($fields:tt)* } { $($model:tt)* }
         $($rest:tt)*
     ) => {
-        $crate::state! {
-            $(# $attr)*
-            $vis struct $value(<$state as $crate::__dsl::Named>::Scalar) { $($fields)* }
-        }
-
-        impl $crate::__dsl::Named for $value {
-            type Scalar = <$state as $crate::__dsl::Named>::Scalar;
-        }
-
-        #[doc = ::core::concat!("Storage and model of the `", ::core::stringify!($value), "` control.")]
-        $vis mod $module {
-            #[allow(unused_imports)]
-            use super::*;
-            #[allow(unused_imports)]
-            use $crate::matrix::{MatrixMut as _, RowMajorSequentialDataMut as _, SquareMatrixMut as _};
-
-            /// The named control vector.
-            pub type Value = $value;
-            /// The scalar type, that of the state.
-            pub type Scalar = <$state as $crate::__dsl::Named>::Scalar;
-            /// The number of states.
-            pub const STATES: usize = <$state>::N;
-            /// The number of control inputs.
-            pub const CONTROLS: usize = <$value>::N;
-            /// The library storage: `B`, `u`, `Q` and `B×Q`.
-            pub type Storage = $crate::regular::ControlStorage<STATES, CONTROLS, Scalar>;
-            /// The control [`build`] returns.
-            pub type Handle<'a> = $crate::regular::BorrowedControl<'a, STATES, CONTROLS, Scalar>;
-
-            /// Creates zeroed storage; `const`, so it can initialize a `static`.
-            pub const fn new() -> Storage {
-                Storage::new(<Scalar as $crate::num_traits::ConstZero>::ZERO)
-            }
-
-            /// Wires the control over `storage`. Writes nothing; see [`model`].
-            pub fn build(storage: &mut Storage) -> Handle<'_> {
-                storage.build()
-            }
-
-            /// Writes the declared `B`, `Q` and `u` into the control.
-            pub fn model(control: &mut Handle<'_>) {
-                let _ = &control;
-                $crate::__filter_stmts!(control [control $state, $value]; $($model)*);
-            }
+        $crate::__filter_value! { [$(# $attr)*] $vis $value $state { $($fields)* } }
+        $crate::__filter_scan! {
+            control { $vis $module $value $state }
+            inline [inline inline inline] ; $($model)*
         }
 
         $crate::filter! { $($rest)* }
@@ -692,6 +858,12 @@ macro_rules! filter {
             pub type Storage = $crate::regular::CorrectionScratch<STATES, MAX_OBSERVATIONS, Scalar>;
             /// A borrow of the scratch, passed to `correct_in`.
             pub type Handle<'a> = &'a mut Storage;
+            /// The bytes of [`Storage`], the value you place.
+            pub const BYTES: usize = ::core::mem::size_of::<Storage>();
+            /// A scratch has no `extern` buffers.
+            pub const EXTERN_BYTES: usize = 0;
+            #[doc(hidden)]
+            pub const SYSTEM_MEMBER: bool = true;
 
             const _: () = {
                 $( ::core::assert!(
@@ -723,37 +895,9 @@ macro_rules! filter {
         $vis:vis kalman $module:ident for $state:path { $($model:tt)* }
         $($rest:tt)*
     ) => {
-        $(# $attr)*
-        $vis mod $module {
-            #[allow(unused_imports)]
-            use super::*;
-            #[allow(unused_imports)]
-            use $crate::matrix::{MatrixMut as _, RowMajorSequentialDataMut as _, SquareMatrixMut as _};
-
-            /// The scalar type, that of the state.
-            pub type Scalar = <$state as $crate::__dsl::Named>::Scalar;
-            /// The number of states.
-            pub const STATES: usize = <$state>::N;
-            /// The library storage: `A`, `x`, `P`, `Q` and two temporaries.
-            pub type Storage = $crate::regular::FilterStorage<STATES, Scalar>;
-            /// The filter [`build`] returns.
-            pub type Handle<'a> = $crate::regular::BorrowedKalman<'a, STATES, Scalar>;
-
-            /// Creates zeroed storage; `const`, so it can initialize a `static`.
-            pub const fn new() -> Storage {
-                Storage::new(<Scalar as $crate::num_traits::ConstZero>::ZERO)
-            }
-
-            /// Wires the filter over `storage`. Writes nothing; see [`model`].
-            pub fn build(storage: &mut Storage) -> Handle<'_> {
-                storage.build()
-            }
-
-            /// Writes the declared `A`, `Q`, `P` and `x` into the filter, e.g. to reset it.
-            pub fn model(filter: &mut Handle<'_>) {
-                let _ = &filter;
-                $crate::__filter_stmts!(kalman [filter $state]; $($model)*);
-            }
+        $crate::__filter_scan! {
+            kalman { [$(# $attr)*] $vis $module $state }
+            inline [inline inline inline inline] ; $($model)*
         }
 
         $crate::filter! { $($rest)* }
@@ -808,6 +952,24 @@ macro_rules! filter {
                 )+
             }
 
+            const _: () = {
+                $( ::core::assert!(
+                    $member::SYSTEM_MEMBER,
+                    ::core::concat!(
+                        "filter!: `", ::core::stringify!($member), "` cannot be a system member: ",
+                        "only inline items without `extern` buffers can"
+                    )
+                ); )+
+            };
+
+            /// The bytes of [`Storage`], the value you place: the sum of the members' `BYTES`.
+            pub const BYTES: usize = ::core::mem::size_of::<Storage>();
+            /// The bytes of the members' `extern` buffers; `0`, since a member with `extern`
+            /// buffers cannot be part of a system.
+            pub const EXTERN_BYTES: usize = 0 $(+ $member::EXTERN_BYTES)+;
+            #[doc(hidden)]
+            pub const SYSTEM_MEMBER: bool = true;
+
             const _: () = ::core::assert!(
                 ::core::mem::size_of::<Storage>()
                     == 0 $(+ ::core::mem::size_of::<$member::Storage>())+,
@@ -851,16 +1013,12 @@ macro_rules! filter {
     };
 }
 
-/// Expands an `observation` item of [`filter!`](crate::filter) over the given storage and
-/// handle types (full or lean).
+/// Declares the named value type of an `observation` or `control` item: a `state!` struct
+/// whose scalar is that of the state.
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __filter_observation {
-    (
-        [$(# $attr:tt)*] $vis:vis $module:ident $value:ident $state:path
-        [$storage:ident $handle:ident] $contents:literal
-        { $($fields:tt)* } { $($model:tt)* }
-    ) => {
+macro_rules! __filter_value {
+    ([$(# $attr:tt)*] $vis:vis $value:ident $state:path { $($fields:tt)* }) => {
         $crate::state! {
             $(# $attr)*
             $vis struct $value(<$state as $crate::__dsl::Named>::Scalar) { $($fields)* }
@@ -869,7 +1027,92 @@ macro_rules! __filter_observation {
         impl $crate::__dsl::Named for $value {
             type Scalar = <$state as $crate::__dsl::Named>::Scalar;
         }
+    };
+}
 
+/// Reads the leading placement statements of a model block, `storage = …;` and
+/// `M = extern;`, then expands the item with the remaining model statements. The slots record,
+/// per matrix in builder order, whether it is `inline` or `extern`. Only the leading
+/// statements are scanned, so the scan costs one recursion step per placement statement.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_scan {
+    ($kind:ident $info:tt $mode:ident $slots:tt ; storage = $new:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { $kind $info $new $slots ; $($rest)* }
+    };
+    ($kind:ident $info:tt $mode:ident $slots:tt ; $m:ident = extern ; $($rest:tt)*) => {
+        $crate::__filter_mark! { $kind $m $slots $info $mode ; $($rest)* }
+    };
+    ($kind:ident $info:tt $mode:ident $slots:tt ; $($model:tt)*) => {
+        $crate::__filter_item! { $kind $mode $slots $info { $($model)* } }
+    };
+}
+
+/// Marks one matrix of a slot list as `extern`, then continues the scan.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_mark {
+    (kalman A [$a:ident $x:ident $p:ident $q:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { kalman $info $mode [extern $x $p $q] ; $($rest)* }
+    };
+    (kalman x [$a:ident $x:ident $p:ident $q:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { kalman $info $mode [$a extern $p $q] ; $($rest)* }
+    };
+    (kalman P [$a:ident $x:ident $p:ident $q:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { kalman $info $mode [$a $x extern $q] ; $($rest)* }
+    };
+    (kalman Q [$a:ident $x:ident $p:ident $q:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { kalman $info $mode [$a $x $p extern] ; $($rest)* }
+    };
+    (observation H [$h:ident $z:ident $r:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { observation $info $mode [extern $z $r] ; $($rest)* }
+    };
+    (observation z [$h:ident $z:ident $r:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { observation $info $mode [$h extern $r] ; $($rest)* }
+    };
+    (observation R [$h:ident $z:ident $r:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { observation $info $mode [$h $z extern] ; $($rest)* }
+    };
+    (control B [$b:ident $u:ident $q:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { control $info $mode [extern $u $q] ; $($rest)* }
+    };
+    (control u [$b:ident $u:ident $q:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { control $info $mode [$b extern $q] ; $($rest)* }
+    };
+    (control Q [$b:ident $u:ident $q:ident] $info:tt $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_scan! { control $info $mode [$b $u extern] ; $($rest)* }
+    };
+    ($kind:ident $m:ident $slots:tt $info:tt $mode:ident ; $($rest:tt)*) => {
+        ::core::compile_error!(::core::concat!(
+            "filter!: `", ::core::stringify!($m), "` cannot be `extern` in a `",
+            ::core::stringify!($kind), "` block"
+        ));
+    };
+}
+
+/// Expands a `kalman`, `observation` or `control` item once its placement is known: the
+/// parts every placement shares, then [`__filter_place`] for the storage.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_item {
+    (kalman $mode:ident $slots:tt { [$(# $attr:tt)*] $vis:vis $module:ident $state:path } { $($model:tt)* }) => {
+        $(# $attr)*
+        $vis mod $module {
+            #[allow(unused_imports)]
+            use super::*;
+            #[allow(unused_imports)]
+            use $crate::matrix::{MatrixMut as _, RowMajorSequentialDataMut as _, SquareMatrixMut as _};
+
+            /// The scalar type, that of the state.
+            pub type Scalar = <$state as $crate::__dsl::Named>::Scalar;
+            /// The number of states.
+            pub const STATES: usize = <$state>::N;
+
+            $crate::__filter_place! { kalman $mode $slots [$state] { $($model)* } }
+        }
+    };
+
+    (observation $mode:ident $slots:tt { $vis:vis $module:ident $value:ident $flavour:ident $state:path } { $($model:tt)* }) => {
         #[doc = ::core::concat!("Storage and model of the `", ::core::stringify!($value), "` observation.")]
         $vis mod $module {
             #[allow(unused_imports)]
@@ -885,28 +1128,8 @@ macro_rules! __filter_observation {
             pub const STATES: usize = <$state>::N;
             /// The number of measurements.
             pub const OBSERVATIONS: usize = <$value>::N;
-            #[doc = ::core::concat!("The library storage: ", $contents)]
-            pub type Storage = $crate::regular::$storage<STATES, OBSERVATIONS, Scalar>;
-            /// The observation [`build`] returns.
-            pub type Handle<'a> = $crate::regular::$handle<'a, STATES, OBSERVATIONS, Scalar>;
-
-            /// Creates zeroed storage; `const`, so it can initialize a `static`.
-            pub const fn new() -> Storage {
-                Storage::new(<Scalar as $crate::num_traits::ConstZero>::ZERO)
-            }
-
-            /// Wires the observation over `storage`. Writes nothing; see [`model`].
-            pub fn build(storage: &mut Storage) -> Handle<'_> {
-                storage.build()
-            }
 
             $crate::__filter_stmts!(hcheck [$state, $value]; $($model)*);
-
-            /// Writes the declared `H`, `R` and `z` into the observation.
-            pub fn model(observation: &mut Handle<'_>) {
-                let _ = &observation;
-                $crate::__filter_stmts!(observation [observation $state, $value]; $($model)*);
-            }
 
             /// Writes the declared `H` into any `OBSERVATIONS × STATES` matrix, e.g. the `H` of
             /// a fixed-gain observation of the same sensor.
@@ -917,7 +1140,471 @@ macro_rules! __filter_observation {
                 let _ = &h;
                 $crate::__filter_stmts!(hmodel [h $state, $value]; $($model)*);
             }
+
+            $crate::__filter_place! { observation $mode $slots [$state, $value, $flavour] { $($model)* } }
         }
+    };
+
+    (control $mode:ident $slots:tt { $vis:vis $module:ident $value:ident $state:path } { $($model:tt)* }) => {
+        #[doc = ::core::concat!("Storage and model of the `", ::core::stringify!($value), "` control.")]
+        $vis mod $module {
+            #[allow(unused_imports)]
+            use super::*;
+            #[allow(unused_imports)]
+            use $crate::matrix::{MatrixMut as _, RowMajorSequentialDataMut as _, SquareMatrixMut as _};
+
+            /// The named control vector.
+            pub type Value = $value;
+            /// The scalar type, that of the state.
+            pub type Scalar = <$state as $crate::__dsl::Named>::Scalar;
+            /// The number of states.
+            pub const STATES: usize = <$state>::N;
+            /// The number of control inputs.
+            pub const CONTROLS: usize = <$value>::N;
+
+            $crate::__filter_place! { control $mode $slots [$state, $value] { $($model)* } }
+        }
+    };
+}
+
+/// The storage, handle, constructors and `model` of an item in its placement mode.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_place {
+    // Kalman filters.
+    (kalman inline [inline inline inline inline] $ctx:tt $model:tt) => {
+        /// The library storage: `A`, `x`, `P`, `Q` and two temporaries.
+        pub type Storage = $crate::regular::FilterStorage<STATES, Scalar>;
+        $crate::__filter_inline_alias!();
+        $crate::__filter_kalman_handle!($ctx $model);
+    };
+    (kalman inline [$a:ident $x:ident $p:ident $q:ident] $ctx:tt $model:tt) => {
+        $crate::__filter_lower! {
+            [storage 'a [$crate::regular::RegularKalmanBuilder::new::<STATES, Scalar>] "`A`, `x`, `P`, `Q`"]
+            {} {} {} {} {} {} ;
+            ($a A a_buffer { STATES * STATES }) ($x x x_buffer { STATES }) ($p P p_buffer { STATES * STATES })
+            ($q Q q_buffer { STATES * STATES }) (inline predicted_x predicted_x { STATES })
+            (inline temp_P temp_P { STATES * STATES })
+        }
+        $crate::__filter_kalman_handle!($ctx $model);
+    };
+    (kalman owned [inline inline inline inline] $ctx:tt $model:tt) => {
+        /// The filter with its buffers held by value: movable, no lifetime, no allocation.
+        pub type Owned = $crate::__dsl::OwnedKalman<STATES, { STATES * STATES }, Scalar>;
+        /// The bytes of an [`Owned`] filter, buffers and bookkeeping.
+        pub const BYTES: usize = ::core::mem::size_of::<Owned>();
+        /// No buffer is `extern`.
+        pub const EXTERN_BYTES: usize = 0;
+
+        #[doc(hidden)]
+        pub const SYSTEM_MEMBER: bool = false;
+
+        /// Creates a zeroed filter by value (`BYTES` on the stack until you move it).
+        pub fn new_owned() -> Owned {
+            $crate::__dsl::owned_kalman(<Scalar as $crate::num_traits::ConstZero>::ZERO)
+        }
+
+        $crate::__filter_model!(kalman $ctx (Owned) $model);
+    };
+    (kalman boxed [inline inline inline inline] $ctx:tt $model:tt) => {
+        $crate::__filter_if_alloc! {
+            /// The filter with each buffer in its own heap allocation.
+            pub type Boxed = $crate::regular::builder::KalmanFilterType<STATES, Scalar>;
+            /// The heap bytes of the matrix data of a [`Boxed`] filter.
+            pub const BYTES: usize = (4 * STATES * STATES + 2 * STATES) * ::core::mem::size_of::<Scalar>();
+            /// No buffer is `extern`.
+            pub const EXTERN_BYTES: usize = 0;
+
+            #[doc(hidden)]
+            pub const SYSTEM_MEMBER: bool = false;
+
+            /// Allocates a zeroed filter, each matrix directly on the heap.
+            pub fn new_boxed() -> Boxed {
+                $crate::regular::builder::KalmanFilterBuilder::<STATES, Scalar>::new().build()
+            }
+
+            $crate::__filter_model!(kalman $ctx (Boxed) $model);
+        }
+    };
+
+    // Observations.
+    (observation inline [inline inline inline] [$state:path, $value:ident, full] $model:tt) => {
+        /// The library storage: `H`, `z`, `R`, `y`, `S`, `K` and the correction temporaries.
+        pub type Storage = $crate::regular::ObservationStorage<STATES, OBSERVATIONS, Scalar>;
+        $crate::__filter_inline_alias!();
+        /// The observation [`build`] returns.
+        pub type Handle<'a> = $crate::regular::BorrowedObservation<'a, STATES, OBSERVATIONS, Scalar>;
+        $crate::__filter_model!(observation [$state, $value] (Handle<'_>) $model);
+    };
+    (observation inline [inline inline inline] [$state:path, $value:ident, lean] $model:tt) => {
+        /// The library storage: `H`, `z`, `R`, `y`, `S` and `K`; correct it with `correct_in`
+        /// and a `scratch`.
+        pub type Storage = $crate::regular::LeanObservationStorage<STATES, OBSERVATIONS, Scalar>;
+        $crate::__filter_inline_alias!();
+        /// The observation [`build`] returns.
+        pub type Handle<'a> = $crate::regular::BorrowedLeanObservation<'a, STATES, OBSERVATIONS, Scalar>;
+        $crate::__filter_model!(observation [$state, $value] (Handle<'_>) $model);
+    };
+    (observation inline [$h:ident $z:ident $r:ident] [$state:path, $value:ident, full] $model:tt) => {
+        $crate::__filter_lower! {
+            [storage 'a [$crate::regular::RegularObservationBuilder::new::<STATES, OBSERVATIONS, Scalar>] "`H`, `z`, `R`"]
+            {} {} {} {} {} {} ;
+            ($h H h_buffer { OBSERVATIONS * STATES }) ($z z z_buffer { OBSERVATIONS })
+            ($r R r_buffer { OBSERVATIONS * OBSERVATIONS }) (inline y y { OBSERVATIONS })
+            (inline S S { OBSERVATIONS * OBSERVATIONS }) (inline K K { STATES * OBSERVATIONS })
+            (inline temp_S_inv temp_S_inv { OBSERVATIONS * OBSERVATIONS })
+            (inline temp_HP temp_HP { OBSERVATIONS * STATES }) (inline temp_PHt temp_PHt { STATES * OBSERVATIONS })
+            (inline temp_KHP temp_KHP { STATES * STATES })
+        }
+        /// The observation [`build`] returns.
+        pub type Handle<'a> = $crate::regular::BorrowedObservation<'a, STATES, OBSERVATIONS, Scalar>;
+        $crate::__filter_model!(observation [$state, $value] (Handle<'_>) $model);
+    };
+    (observation inline [$h:ident $z:ident $r:ident] [$state:path, $value:ident, lean] $model:tt) => {
+        $crate::__filter_lower! {
+            [storage 'a [$crate::regular::RegularObservationBuilder::new_lean::<STATES, OBSERVATIONS, Scalar>] "`H`, `z`, `R`"]
+            {} {} {} {} {} {} ;
+            ($h H h_buffer { OBSERVATIONS * STATES }) ($z z z_buffer { OBSERVATIONS })
+            ($r R r_buffer { OBSERVATIONS * OBSERVATIONS }) (inline y y { OBSERVATIONS })
+            (inline S S { OBSERVATIONS * OBSERVATIONS }) (inline K K { STATES * OBSERVATIONS })
+        }
+        /// The observation [`build`] returns; correct it with `correct_in` and a `scratch`.
+        pub type Handle<'a> = $crate::regular::BorrowedLeanObservation<'a, STATES, OBSERVATIONS, Scalar>;
+        $crate::__filter_model!(observation [$state, $value] (Handle<'_>) $model);
+    };
+    (observation owned [inline inline inline] [$state:path, $value:ident, full] $model:tt) => {
+        /// The observation with its buffers held by value: movable, no lifetime, no allocation.
+        pub type Owned = $crate::__dsl::OwnedObservation<
+            STATES,
+            OBSERVATIONS,
+            { OBSERVATIONS * STATES },
+            { OBSERVATIONS * OBSERVATIONS },
+            { STATES * STATES },
+            Scalar,
+        >;
+        /// The bytes of an [`Owned`] observation, buffers and bookkeeping.
+        pub const BYTES: usize = ::core::mem::size_of::<Owned>();
+        /// No buffer is `extern`.
+        pub const EXTERN_BYTES: usize = 0;
+
+        #[doc(hidden)]
+        pub const SYSTEM_MEMBER: bool = false;
+
+        /// Creates a zeroed observation by value (`BYTES` on the stack until you move it).
+        pub fn new_owned() -> Owned {
+            $crate::__dsl::owned_observation(<Scalar as $crate::num_traits::ConstZero>::ZERO)
+        }
+
+        $crate::__filter_model!(observation [$state, $value] (Owned) $model);
+    };
+    (observation boxed [inline inline inline] [$state:path, $value:ident, full] $model:tt) => {
+        $crate::__filter_if_alloc! {
+            /// The observation with each buffer in its own heap allocation.
+            pub type Boxed =
+                $crate::regular::builder::KalmanFilterObservationType<STATES, OBSERVATIONS, Scalar>;
+            /// The heap bytes of the matrix data of a [`Boxed`] observation.
+            pub const BYTES: usize = (4 * OBSERVATIONS * STATES
+                + 3 * OBSERVATIONS * OBSERVATIONS
+                + 2 * OBSERVATIONS
+                + STATES * STATES)
+                * ::core::mem::size_of::<Scalar>();
+            /// No buffer is `extern`.
+            pub const EXTERN_BYTES: usize = 0;
+
+            #[doc(hidden)]
+            pub const SYSTEM_MEMBER: bool = false;
+
+            /// Allocates a zeroed observation, each matrix directly on the heap.
+            pub fn new_boxed() -> Boxed {
+                $crate::regular::builder::KalmanFilterObservationBuilder::<STATES, Scalar>::new()
+                    .build::<OBSERVATIONS>()
+            }
+
+            $crate::__filter_model!(observation [$state, $value] (Boxed) $model);
+        }
+    };
+    (observation $mode:ident [inline inline inline] [$state:path, $value:ident, lean] $model:tt) => {
+        ::core::compile_error!(::core::concat!(
+            "filter!: `observation lean` needs `storage = inline`, not `",
+            ::core::stringify!($mode), "`: it corrects through a borrowed `scratch` anyway"
+        ));
+    };
+
+    // Controls.
+    (control inline [inline inline inline] [$state:path, $value:ident] $model:tt) => {
+        /// The library storage: `B`, `u`, `Q` and `B×Q`.
+        pub type Storage = $crate::regular::ControlStorage<STATES, CONTROLS, Scalar>;
+        $crate::__filter_inline_alias!();
+        $crate::__filter_control_handle!([$state, $value] $model);
+    };
+    (control inline [$b:ident $u:ident $q:ident] [$state:path, $value:ident] $model:tt) => {
+        $crate::__filter_lower! {
+            [storage 'a [$crate::regular::ControlBuilder::new::<STATES, CONTROLS, Scalar>] "`B`, `u`, `Q`"]
+            {} {} {} {} {} {} ;
+            ($b B b_buffer { STATES * CONTROLS }) ($u u u_buffer { CONTROLS }) ($q Q q_buffer { CONTROLS * CONTROLS })
+            (inline temp_BQ temp_BQ { STATES * CONTROLS })
+        }
+        $crate::__filter_control_handle!([$state, $value] $model);
+    };
+    (control owned [inline inline inline] [$state:path, $value:ident] $model:tt) => {
+        /// The control with its buffers held by value: movable, no lifetime, no allocation.
+        pub type Owned = $crate::__dsl::OwnedControl<
+            STATES,
+            CONTROLS,
+            { STATES * CONTROLS },
+            { CONTROLS * CONTROLS },
+            Scalar,
+        >;
+        /// The bytes of an [`Owned`] control, buffers and bookkeeping.
+        pub const BYTES: usize = ::core::mem::size_of::<Owned>();
+        /// No buffer is `extern`.
+        pub const EXTERN_BYTES: usize = 0;
+
+        #[doc(hidden)]
+        pub const SYSTEM_MEMBER: bool = false;
+
+        /// Creates a zeroed control by value (`BYTES` on the stack until you move it).
+        pub fn new_owned() -> Owned {
+            $crate::__dsl::owned_control(<Scalar as $crate::num_traits::ConstZero>::ZERO)
+        }
+
+        $crate::__filter_model!(control [$state, $value] (Owned) $model);
+    };
+    (control boxed [inline inline inline] [$state:path, $value:ident] $model:tt) => {
+        $crate::__filter_if_alloc! {
+            /// The control with each buffer in its own heap allocation.
+            pub type Boxed = $crate::regular::builder::KalmanFilterControlType<STATES, CONTROLS, Scalar>;
+            /// The heap bytes of the matrix data of a [`Boxed`] control.
+            pub const BYTES: usize = (2 * STATES * CONTROLS + CONTROLS * CONTROLS + CONTROLS)
+                * ::core::mem::size_of::<Scalar>();
+            /// No buffer is `extern`.
+            pub const EXTERN_BYTES: usize = 0;
+
+            #[doc(hidden)]
+            pub const SYSTEM_MEMBER: bool = false;
+
+            /// Allocates a zeroed control, each matrix directly on the heap.
+            pub fn new_boxed() -> Boxed {
+                $crate::regular::builder::KalmanFilterControlBuilder::<STATES, Scalar>::new()
+                    .build::<CONTROLS>()
+            }
+
+            $crate::__filter_model!(control [$state, $value] (Boxed) $model);
+        }
+    };
+
+    // Unsupported combinations.
+    ($kind:ident inline $slots:tt $ctx:tt $model:tt) => {
+        ::core::compile_error!("filter!: unsupported placement");
+    };
+    ($kind:ident owned $slots:tt $ctx:tt $model:tt) => {
+        ::core::compile_error!(
+            "filter!: `extern` buffers need `storage = inline`: an owned value borrowing external memory would carry a lifetime again"
+        );
+    };
+    ($kind:ident boxed $slots:tt $ctx:tt $model:tt) => {
+        ::core::compile_error!(
+            "filter!: `extern` buffers need `storage = inline`: a boxed value borrowing external memory would carry a lifetime again"
+        );
+    };
+    ($kind:ident $mode:ident $slots:tt $ctx:tt $model:tt) => {
+        ::core::compile_error!(::core::concat!(
+            "filter!: `storage` is `inline`, `owned` or `boxed`, found `",
+            ::core::stringify!($mode), "`"
+        ));
+    };
+}
+
+/// The footprint constants, `new` and `build` of an item whose `Storage` is the library type.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_inline_alias {
+    () => {
+        /// The bytes of [`Storage`], the value you place.
+        pub const BYTES: usize = ::core::mem::size_of::<Storage>();
+        /// No buffer is `extern`.
+        pub const EXTERN_BYTES: usize = 0;
+
+        #[doc(hidden)]
+        pub const SYSTEM_MEMBER: bool = true;
+
+        /// Creates zeroed storage; `const`, so it can initialize a `static`.
+        pub const fn new() -> Storage {
+            Storage::new(<Scalar as $crate::num_traits::ConstZero>::ZERO)
+        }
+
+        /// Wires the item over `storage`. Writes nothing; see [`model`].
+        pub fn build(storage: &mut Storage) -> Handle<'_> {
+            storage.build()
+        }
+    };
+}
+
+/// The borrowed handle and `model` of an inline `kalman` item.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_kalman_handle {
+    ($ctx:tt $model:tt) => {
+        /// The filter [`build`] returns.
+        pub type Handle<'a> = $crate::regular::BorrowedKalman<'a, STATES, Scalar>;
+        $crate::__filter_model!(kalman $ctx (Handle<'_>) $model);
+    };
+}
+
+/// The borrowed handle and `model` of an inline `control` item.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_control_handle {
+    ($ctx:tt $model:tt) => {
+        /// The control [`build`] returns.
+        pub type Handle<'a> = $crate::regular::BorrowedControl<'a, STATES, CONTROLS, Scalar>;
+        $crate::__filter_model!(control $ctx (Handle<'_>) $model);
+    };
+}
+
+/// The `model` function of an item, over the given handle type.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_model {
+    (kalman [$state:path] ($target:ty) { $($model:tt)* }) => {
+        /// Writes the declared `A`, `Q`, `P` and `x` into the filter, e.g. to reset it.
+        pub fn model(filter: &mut $target) {
+            let _ = &filter;
+            $crate::__filter_stmts!(kalman [filter $state]; $($model)*);
+        }
+    };
+    (observation [$state:path, $value:ident] ($target:ty) { $($model:tt)* }) => {
+        /// Writes the declared `H`, `R` and `z` into the observation.
+        pub fn model(observation: &mut $target) {
+            let _ = &observation;
+            $crate::__filter_stmts!(observation [observation $state, $value]; $($model)*);
+        }
+    };
+    (control [$state:path, $value:ident] ($target:ty) { $($model:tt)* }) => {
+        /// Writes the declared `B`, `Q` and `u` into the control.
+        pub fn model(control: &mut $target) {
+            let _ = &control;
+            $crate::__filter_stmts!(control [control $state, $value]; $($model)*);
+        }
+    };
+}
+
+/// Lowers a slot list into the inline `Storage` struct, `new`, and a `build` that takes each
+/// `extern` matrix as a `&mut [Scalar; N]`. Fields and parameters cannot come from macro
+/// calls, so they are accumulated as tokens and emitted in one step.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_lower {
+    (
+        $ctx:tt {$($fields:tt)*} {$($inits:tt)*} {$($params:tt)*} {$($args:tt)*}
+        {$($inline:tt)*} {$($extern:tt)*} ;
+    ) => {
+        $crate::__filter_lowered! {
+            $ctx {$($fields)*} {$($inits)*} {$($params)*} {$($args)*} {$($inline)*} {$($extern)*}
+        }
+    };
+    (
+        [$st:ident $lt:lifetime $ctor:tt $names:literal]
+        {$($fields:tt)*} {$($inits:tt)*} {$($params:tt)*} {$($args:tt)*}
+        {$($inline:tt)*} {$($extern:tt)*} ;
+        (inline $name:ident $param:ident $len:tt) $($rest:tt)*
+    ) => {
+        $crate::__filter_lower! {
+            [$st $lt $ctor $names]
+            {
+                $($fields)*
+                #[doc = ::core::concat!("`", ::core::stringify!($name), "`, held inline.")]
+                pub $name: [Scalar; $len],
+            }
+            { $($inits)* $name: [<Scalar as $crate::num_traits::ConstZero>::ZERO; $len], }
+            { $($params)* }
+            { $($args)* $st.$name.as_mut_slice().into(), }
+            { $($inline)* + $len }
+            { $($extern)* }
+            ; $($rest)*
+        }
+    };
+    (
+        [$st:ident $lt:lifetime $ctor:tt $names:literal]
+        {$($fields:tt)*} {$($inits:tt)*} {$($params:tt)*} {$($args:tt)*}
+        {$($inline:tt)*} {$($extern:tt)*} ;
+        (extern $name:ident $param:ident $len:tt) $($rest:tt)*
+    ) => {
+        $crate::__filter_lower! {
+            [$st $lt $ctor $names]
+            { $($fields)* }
+            { $($inits)* }
+            { $($params)* $param: &$lt mut [Scalar; $len], }
+            { $($args)* $param.as_mut_slice().into(), }
+            { $($inline)* }
+            { $($extern)* + $len }
+            ; $($rest)*
+        }
+    };
+}
+
+/// Emits the lowered `Storage`, footprint constants, `new` and `build`.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_lowered {
+    (
+        [$st:ident $lt:lifetime [$($ctor:tt)*] $names:literal]
+        {$($fields:tt)*} {$($inits:tt)*} {$($params:tt)*} {$($args:tt)*}
+        {$($inline:tt)*} {$($extern:tt)*}
+    ) => {
+        /// The inline part of the storage: every matrix not declared `extern`, and the
+        /// temporaries. Exactly [`BYTES`], checked at compile time.
+        #[allow(non_snake_case)]
+        pub struct Storage {
+            $($fields)*
+        }
+
+        /// The bytes of [`Storage`], the value you place.
+        pub const BYTES: usize = (0 $($inline)*) * ::core::mem::size_of::<Scalar>();
+        /// The bytes of the `extern` buffers [`build`] borrows.
+        pub const EXTERN_BYTES: usize = (0 $($extern)*) * ::core::mem::size_of::<Scalar>();
+
+        const _: () = ::core::assert!(
+            ::core::mem::size_of::<Storage>() == BYTES,
+            "the inline storage must be exactly its matrices"
+        );
+
+        #[doc(hidden)]
+        pub const SYSTEM_MEMBER: bool = false;
+
+        /// Creates zeroed storage; `const`, so it can initialize a `static`.
+        pub const fn new() -> Storage {
+            Storage { $($inits)* }
+        }
+
+        #[doc = ::core::concat!(
+            "Wires the item over `storage` and the `extern` buffers, which come after it in the order ",
+            $names, " (those declared `extern`), whatever order they were declared in. Only the ",
+            "length is type-checked, so pass same-length buffers in the right order. ",
+            "Writes nothing; see [`model`]."
+        )]
+        #[allow(non_snake_case)]
+        pub fn build<$lt>($st: &$lt mut Storage, $($params)*) -> Handle<$lt> {
+            $($ctor)*($($args)*)
+        }
+    };
+}
+
+/// Expands its input when minikalman has the `alloc` feature, for `storage = boxed`.
+#[cfg(feature = "alloc")]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_if_alloc {
+    ($($items:tt)*) => { $($items)* };
+}
+
+/// Rejects `storage = boxed` when minikalman lacks the `alloc` feature.
+#[cfg(not(feature = "alloc"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __filter_if_alloc {
+    ($($items:tt)*) => {
+        ::core::compile_error!("filter!: `storage = boxed;` needs minikalman's `alloc` feature");
     };
 }
 
@@ -962,6 +1649,13 @@ macro_rules! __filter_luenberger {
                     >())*,
                 "the observer storage must be exactly the sum of its parts"
             );
+
+            /// The bytes of [`Storage`], the value you place.
+            pub const BYTES: usize = ::core::mem::size_of::<Storage>();
+            /// An observer has no `extern` buffers.
+            pub const EXTERN_BYTES: usize = 0;
+            #[doc(hidden)]
+            pub const SYSTEM_MEMBER: bool = true;
 
             /// The observer and its fixed-gain observations.
             pub struct Handle<'a> {
@@ -1028,6 +1722,15 @@ macro_rules! __filter_gain {
 #[macro_export]
 macro_rules! __filter_stmts {
     ($kind:ident $ctx:tt ;) => {};
+    // Placement statements: read by `__filter_scan`, nothing to write here.
+    ($kind:ident $ctx:tt ; storage = $mode:ident ; $($rest:tt)*) => {
+        $crate::__filter_route!($kind $ctx storage (placement));
+        $crate::__filter_stmts!($kind $ctx ; $($rest)*);
+    };
+    ($kind:ident $ctx:tt ; $m:ident = extern ; $($rest:tt)*) => {
+        $crate::__filter_route!($kind $ctx $m (placement));
+        $crate::__filter_stmts!($kind $ctx ; $($rest)*);
+    };
     ($kind:ident $ctx:tt ; $m:ident = identity ; $($rest:tt)*) => {
         $crate::__filter_route!($kind $ctx $m (identity));
         $crate::__filter_stmts!($kind $ctx ; $($rest)*);
@@ -1065,6 +1768,12 @@ macro_rules! __filter_stmts {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __filter_route {
+    ($kind:ident $ctx:tt $m:ident (placement)) => {
+        ::core::compile_error!(
+            "filter!: `storage = …;` and `M = extern;` come first in a `kalman`, `observation` or `control` block, before the model statements; a `luenberger` block and its gains take neither"
+        );
+    };
+
     (kalman [$f:ident $s:path] A $op:tt) => { $crate::__filter_mat!(($f.state_transition_mut()) [$s] [$s] $op) };
     (kalman [$f:ident $s:path] Q $op:tt) => { $crate::__filter_mat!(($f.direct_process_noise_mut()) [$s] [$s] $op) };
     (kalman [$f:ident $s:path] P $op:tt) => { $crate::__filter_mat!(($f.estimate_covariance_mut()) [$s] [$s] $op) };
