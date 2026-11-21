@@ -89,8 +89,9 @@ pub enum CovarianceForm {
 /// Since an update never increases the trace, `tr(P) ≤ max(c, tr(P₀))` for all `k`. While
 /// `tr(P) ≤ μ·c`, forgetting runs at the full rate `μ`; above that it slows down, and it stops
 /// at `c`. This is variable-rate forgetting with `μ ≤ μₖ ≤ 1`, the class of eqs. (42)–(44) of
-/// Lai and Bernstein. The bound defaults to `tr(P₀) = N·p0`, so the first updates run without
-/// forgetting until the data has brought the trace below `μ·c`. Change it with
+/// Lai and Bernstein. The bound defaults to `tr(P₀) = N·p0`, so the first update runs without
+/// forgetting; once the data has brought the trace below `c`, forgetting resumes at a reduced
+/// rate, and at the full rate `μ` below `μ·c`. Change it with
 /// [`set_trace_bound`](Self::set_trace_bound), or pass `None` to disable the guard.
 ///
 /// **Trade-off.** The bound is on the trace, not per direction. While one direction is not
@@ -314,8 +315,11 @@ where
 
     /// Sets the measurement noise variance `r > 0` (default `1`).
     ///
-    /// For a constant `r` it only scales `P`, not `θ`; it matters for the [NIS](Self::nis), the
-    /// gate, and when `r` changes between samples (weighted least squares).
+    /// `r` weighs the data against the prior `P₀`: from a fixed `p0` it also changes `θ` (with
+    /// `N = 1`, `p0 = 1`, `φ = 1`, `y = 1`, `μ = 1`, `r = 1` gives `θ = 0.5` and `r = 4` gives
+    /// `θ = 0.2`). For a constant `r`, it only rescales `P` once `P` has settled, i.e. the prior
+    /// has faded. It also scales the [NIS](Self::nis) and thus the gate, and weighs the samples
+    /// against each other when it changes between them (weighted least squares).
     pub fn set_measurement_variance(&mut self, r: T) {
         self.r = r;
     }

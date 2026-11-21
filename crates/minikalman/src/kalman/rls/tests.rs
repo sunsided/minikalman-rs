@@ -431,6 +431,27 @@ fn factored_form_stays_definite_in_f32() {
     assert!((fit - 0.55).abs() < 1e-3, "{fit}");
 }
 
+/// From a fixed `p0`, `r` weighs the data against the prior and so changes `θ`, not only `P`:
+/// one sample `φ = 1`, `y = 1` from `p0 = 1` gives `θ = p0/(p0 + r)`.
+#[test]
+fn measurement_variance_weighs_data_against_the_prior() {
+    for form in FORMS {
+        for (r, expected) in [(1.0, 0.5), (4.0, 0.2)] {
+            let mut storage = EstimatorStorage::<1, f64>::new(0.0);
+            let mut rls = storage.build(1.0);
+            rls.reset_with_form(form, 1.0);
+            rls.set_measurement_variance(r);
+            assert!(rls.update(&[1.0], 1.0).is_applied());
+
+            let theta = rls.parameters().get(0, 0);
+            assert!(
+                (theta - expected).abs() < 1e-15,
+                "{form:?} r = {r}: θ = {theta}"
+            );
+        }
+    }
+}
+
 /// In `I16F16`, the factored form identifies a gain and an offset with forgetting, and keeps
 /// `D ≥ 0`.
 #[cfg(feature = "fixed")]
