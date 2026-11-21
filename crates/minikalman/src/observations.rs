@@ -11,7 +11,9 @@ pub mod unscented;
 /// Online adaptation of the measurement noise covariance `R` from the residuals of the
 /// corrections, enabled per observation with `set_noise_adaptation`.
 ///
-/// After every applied correction, `R` is replaced by an exponentially weighted average
+/// After every applied regular or extended correction (`correct*` and `correct_nonlinear*`, not
+/// the gain, predictively oriented or recalibrated variants), `R` is replaced by an
+/// exponentially weighted average
 ///
 /// ```text
 /// ε = z − H×x⁺ = y − H×K×y
