@@ -2,7 +2,7 @@
 
 use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
-use crate::observations::innovation_factor::InnovationFactor;
+use crate::observations::innovation_factor::{InnovationFactor, is_number};
 
 pub mod extended;
 pub mod fixed_gain;
@@ -249,9 +249,10 @@ pub struct NoiseAdaptation<T> {
 ///
 /// [`Joseph`](Self::Joseph) needs no extra buffer. For `N` states and `m` measurements it adds
 /// about `N×m² + N²×m/2` multiply-adds per correction: `K×S` and the lower triangle of
-/// `K×S×Kᵀ`. Both forms reuse the `H×P` the gain needed. The gain never overwrites `S`: up to
-/// three measurements it factors `S` square-root free in local storage, beyond that it factors
-/// a copy (`m²` values, in the `S⁻¹` temporary), so the Joseph form reads `S` as formed.
+/// `K×S×Kᵀ`. Both forms reuse the `H×P` the gain needed. The gain never overwrites `S`: for
+/// floating-point types with up to three measurements it factors `S` square-root free in local
+/// storage, otherwise (fixed point, or more measurements) it factors a copy (`m²` values, in the
+/// `S⁻¹` temporary), so the Joseph form reads `S` as formed.
 ///
 /// ## What it buys
 ///
@@ -322,7 +323,8 @@ where
 ///
 /// Stores the normalized innovation squared in `nis` whenever `S` can be inverted.
 /// Leaves `x` and `P` unchanged if the innovation covariance `S = H×P×Hᵀ + R` is not
-/// positive definite, or if `nis` exceeds `gate`. Updates `P` as `covariance_update` says;
+/// positive definite or the NIS is `NaN` (both [`CorrectionStatus::NotPositiveDefinite`]), or if
+/// `nis` exceeds `gate`. Updates `P` as `covariance_update` says;
 /// see [`CovarianceUpdate`]. After an applied correction, adapts `R` if `adaptation` is set;
 /// see [`NoiseAdaptation`].
 #[allow(non_snake_case, clippy::too_many_arguments)]
@@ -635,8 +637,9 @@ fn adapt_measurement_noise<const STATES: usize, const OBSERVATIONS: usize, T>(
 ///
 /// Stores the normalized innovation squared in `nis` whenever `S = H×P×Hᵀ + R` is positive
 /// definite, and leaves `K` unchanged if `S` is not positive definite or `nis` exceeds
-/// `gate`. Neither `x` nor `P` is written. `S` keeps `H×P×Hᵀ + R`; for more than three
-/// measurements, `temp_factor` receives its Cholesky factor.
+/// `gate`. Neither `x` nor `P` is written. `S` keeps `H×P×Hᵀ + R`; on the Cholesky path
+/// (fixed-point types, or more than three measurements) `temp_factor` receives its Cholesky
+/// factor.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 fn compute_kalman_gain<const STATES: usize, const OBSERVATIONS: usize, T>(
     P: &impl Matrix<STATES, STATES, T>,
@@ -661,13 +664,13 @@ where
 /// [`form_innovation_covariance`] formed, gates on the NIS and solves `K×S = P×Hᵀ` for `K`.
 ///
 /// With a triangular factorization of `S` ([`InnovationFactor`]: `L×D×Lᵀ` without square
-/// roots up to three measurements, `L×Lᵀ` beyond), the NIS `yᵀ×S⁻¹×y` takes one forward
+/// roots for floating-point types with up to three measurements, `L×Lᵀ` otherwise), the NIS `yᵀ×S⁻¹×y` takes one forward
 /// substitution, and every row `k` of the gain solves `S×kᵀ = (P×Hᵀ)ᵀ` with one forward and
 /// one back substitution in place. `S⁻¹` is never formed.
 ///
-/// `S` itself keeps `H×P×Hᵀ + R` whatever the outcome: up to three measurements the factor
-/// lives in local storage, beyond that `S` is copied into `temp_factor` (`OBSERVATIONS²`
-/// values) and factored there. Neither `x` nor `P` is written, and `K` only once
+/// `S` itself keeps `H×P×Hᵀ + R` whatever the outcome: on the square-root free path the factor
+/// lives in local storage, otherwise `S` is copied into `temp_factor` (`OBSERVATIONS²` values)
+/// and factored there. Neither `x` nor `P` is written, and `K` only once
 /// the correction is known to apply.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 fn gain_from_innovation_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
@@ -689,6 +692,11 @@ where
 
     // Gate on the normalized innovation squared before anything else is written.
     *nis = factor.nis(y);
+    if !is_number(*nis) {
+        // A NaN would pass the gate; S is not usable as a covariance then.
+        return CorrectionStatus::NotPositiveDefinite;
+    }
+
     if gate.is_some_and(|gate| *nis > gate) {
         return CorrectionStatus::Gated;
     }
@@ -1388,5 +1396,46 @@ mod tests {
             "NIS {nis}"
         );
         assert!((x[0].to_num::<f64>() - 153.6).abs() < 0.01, "x {}", x[0]);
+    }
+
+    /// A `NaN` NIS, which every gate comparison lets through, never applies a correction, on
+    /// either factorization path.
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm"))]
+    fn nan_nis_is_not_applied() {
+        nan_innovation_is_not_applied::<2, 1>();
+        nan_innovation_is_not_applied::<6, 4>();
+    }
+
+    /// Runs one correction of the [`case`] with a `NaN` in `y` and asserts that it is rejected
+    /// with `x`, `P` and `K` untouched.
+    fn nan_innovation_is_not_applied<const N: usize, const M: usize>() {
+        let initial = case::<N, M, f64>(3, 1.0);
+        let mut b = initial;
+        b.y[0] = f64::NAN;
+        let mut nis = 0.0;
+        let status = update_with_innovation(
+            &mut MatrixData::new_mut::<N, 1, f64>(&mut b.x),
+            &mut MatrixData::new_mut::<N, N, f64>(&mut b.P),
+            &MatrixData::new_ref::<M, N, f64>(&b.H),
+            &mut MatrixData::new_mut::<M, M, f64>(&mut b.R),
+            &MatrixData::new_ref::<M, 1, f64>(&b.y),
+            &mut MatrixData::new_mut::<N, M, f64>(&mut b.K),
+            &mut MatrixData::new_mut::<M, M, f64>(&mut b.S),
+            &mut MatrixData::new_mut::<M, M, f64>(&mut b.S_inv),
+            &mut MatrixData::new_mut::<M, N, f64>(&mut b.HP),
+            &mut MatrixData::new_mut::<N, M, f64>(&mut b.PHt),
+            &mut MatrixData::new_mut::<N, N, f64>(&mut b.KHP),
+            &mut nis,
+            Some(1e9),
+            None,
+            CovarianceUpdate::Joseph,
+        );
+
+        assert_eq!(status, CorrectionStatus::NotPositiveDefinite);
+        assert!(nis.is_nan());
+        assert_bits_eq(&b.x[..N], &initial.x[..N], "x");
+        assert_bits_eq(&b.P[..N * N], &initial.P[..N * N], "P");
+        assert_bits_eq(&b.K[..N * M], &initial.K[..N * M], "K");
     }
 }

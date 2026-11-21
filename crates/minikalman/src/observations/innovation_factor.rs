@@ -3,7 +3,7 @@
 //!
 //! For floating-point types with up to [`SQUARE_ROOT_FREE_MAX`] measurements, `S` is factored
 //! as `L×D×Lᵀ` with a unit lower triangular `L` and a diagonal `D` ([`LdlFactor`]), which needs
-//! no square root and lives in local storage. For a single measurement this is `K = P×Hᵀ/s`
+//! no square root and lives in local storage of a fixed size. For a single measurement this is `K = P×Hᵀ/s`
 //! and `NIS = y²/s`. Otherwise, `S` is copied into a scratch matrix (`OBSERVATIONS²` values)
 //! and takes the Cholesky factor `S = L×Lᵀ` there ([`CholeskyFactor`]). Either way `S` is never
 //! overwritten, and the choice depends only on the element type and the const `OBSERVATIONS`,
@@ -17,8 +17,8 @@
 //! Both factors apply a pivot by multiplying with its reciprocal, formed once per pivot: the
 //! gain then costs `OBSERVATIONS` divisions, fewer than the explicit inverse did, which matters
 //! where a division is expensive (fixed point, soft float). The one exception is the
-//! single-measurement `L×D×Lᵀ`, which divides by `s` (`OBSERVATIONS + 1` divisions per gain) so
-//! that `K = P×Hᵀ/s` is correctly rounded.
+//! single-measurement `L×D×Lᵀ`, which divides by `s` (`STATES + 1` divisions per gain, one per
+//! gain entry and one for the NIS) so that `K = P×Hᵀ/s` is correctly rounded.
 
 use crate::matrix::triangular::{Transpose, Triangle, substitute};
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
@@ -27,8 +27,8 @@ use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
 /// ([`LdlFactor`]) for types with [`MatrixDataType::SQUARE_ROOT_FREE_GAIN`]; larger ones, and
 /// all other types, use the Cholesky factor of a copy ([`CholeskyFactor`]).
 ///
-/// The `L×D×Lᵀ` factor lives in an `OBSERVATIONS × OBSERVATIONS` local array, so the bound
-/// keeps the stack use small (nine values).
+/// The `L×D×Lᵀ` factor lives in local arrays sized by this bound, at most fifteen values for any
+/// `OBSERVATIONS`, so its stack use stays fixed.
 pub(crate) const SQUARE_ROOT_FREE_MAX: usize = 3;
 
 /// Returns `true` if innovation covariances of `OBSERVATIONS` measurements with elements `T`
@@ -41,6 +41,10 @@ where
 }
 
 /// A factorization of a symmetric positive definite innovation covariance `S`.
+///
+/// The square-root free variant stores at most [`SQUARE_ROOT_FREE_MAX`]² + 2×
+/// [`SQUARE_ROOT_FREE_MAX`] values whatever `OBSERVATIONS` is, so the stack use of the enum is
+/// bounded by that plus the Cholesky variant (a reference and `OBSERVATIONS` reciprocals).
 pub(crate) enum InnovationFactor<'a, const OBSERVATIONS: usize, T> {
     /// `S = L×D×Lᵀ`, in local storage.
     SquareRootFree(LdlFactor<OBSERVATIONS, T>),
@@ -54,22 +58,26 @@ where
 {
     /// Factors `S`, square-root free where [`is_square_root_free`] says so, and otherwise with
     /// [`cholesky_decompose_lower`](MatrixMut::cholesky_decompose_lower) on a copy in
-    /// `scratch`. `S` is never written, and `scratch` only on the Cholesky path.
+    /// `scratch`. `S` is never written.
     ///
-    /// Returns `None` if `S` is not positive definite: a pivot is not positive or not finite
-    /// (the rule of `cholesky_decompose_lower`).
+    /// If the square-root free factorization rejects a pivot (also one whose reciprocal is not
+    /// finite, e.g. a subnormal `f32`), the Cholesky factorization of the copy decides, so
+    /// `None` means exactly what it means for `cholesky_decompose_lower`: a pivot is not
+    /// positive or not finite.
     #[inline]
     #[allow(non_snake_case)]
     pub(crate) fn new(
         S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
         scratch: &'a mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
     ) -> Option<Self> {
+        let s = &S.as_slice()[..OBSERVATIONS * OBSERVATIONS];
         if is_square_root_free::<OBSERVATIONS, T>() {
-            return LdlFactor::new(S.as_slice()).map(Self::SquareRootFree);
+            if let Some(factor) = LdlFactor::from_entries(|i, j| s[i * OBSERVATIONS + j]) {
+                return Some(Self::SquareRootFree(factor));
+            }
         }
 
-        let len = OBSERVATIONS * OBSERVATIONS;
-        scratch.as_mut_slice()[..len].copy_from_slice(&S.as_slice()[..len]);
+        scratch.as_mut_slice()[..s.len()].copy_from_slice(s);
         if !scratch.cholesky_decompose_lower() {
             return None;
         }
@@ -100,65 +108,75 @@ where
 /// factor `cholesky` of `G + R` that the robust correction has already computed.
 ///
 /// On the Cholesky path this reads `cholesky` and adds no factorization. On the square-root
-/// free path it factors `G + R` as `L×D×Lᵀ` in local storage (at most nine values), as the
-/// plain correction does; `None` if that rejects a pivot.
+/// free path it factors `G + R` as `L×D×Lᵀ` in local storage, as the plain correction does,
+/// and falls back to `cholesky` where that rejects a pivot, as [`InnovationFactor::new`] does.
 #[allow(non_snake_case)]
 pub(crate) fn prior_nis<const OBSERVATIONS: usize, T>(
     G: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
     R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
     cholesky: &[T],
     y: &impl Matrix<OBSERVATIONS, 1, T>,
-) -> Option<T>
+) -> T
 where
     T: MatrixDataType,
 {
-    if !is_square_root_free::<OBSERVATIONS, T>() {
-        return Some(CholeskyFactor::<OBSERVATIONS, T>::new(cholesky).nis(y));
-    }
-
-    let mut s = [[T::zero(); OBSERVATIONS]; OBSERVATIONS];
-    for (i, row) in s.iter_mut().enumerate() {
-        for (j, value) in row.iter_mut().enumerate() {
-            *value = G.get(i, j) + R.get(i, j);
+    if is_square_root_free::<OBSERVATIONS, T>() {
+        if let Some(factor) = LdlFactor::from_entries(|i, j| G.get(i, j) + R.get(i, j)) {
+            return factor.nis(y);
         }
     }
 
-    LdlFactor::<OBSERVATIONS, T>::new(s.as_flattened()).map(|factor| factor.nis(y))
+    CholeskyFactor::<OBSERVATIONS, T>::new(cholesky).nis(y)
 }
 
 /// The square-root free factorization `S = L×D×Lᵀ` of a small innovation covariance, with a
 /// unit lower triangular `L` and the diagonal `D`.
+///
+/// The arrays are sized by [`SQUARE_ROOT_FREE_MAX`], not by `OBSERVATIONS`, so the factor never
+/// takes more than fifteen values; only the leading `OBSERVATIONS` are used. It is only built
+/// for `OBSERVATIONS ≤ SQUARE_ROOT_FREE_MAX`.
 pub(crate) struct LdlFactor<const OBSERVATIONS: usize, T> {
     /// `L` below the diagonal; the diagonal (ones) and the upper triangle are never read.
-    l: [[T; OBSERVATIONS]; OBSERVATIONS],
+    l: [[T; SQUARE_ROOT_FREE_MAX]; SQUARE_ROOT_FREE_MAX],
     /// The pivots `Dᵢ`, all positive and finite.
-    d: [T; OBSERVATIONS],
-    /// `1 / Dᵢ` for more than one measurement; unused (zero) for one, which divides by `D₀`.
-    inverse_d: [T; OBSERVATIONS],
+    d: [T; SQUARE_ROOT_FREE_MAX],
+    /// `1 / Dᵢ` (finite) for more than one measurement; unused (zero) for one, which divides by
+    /// `D₀`.
+    inverse_d: [T; SQUARE_ROOT_FREE_MAX],
 }
 
 impl<const OBSERVATIONS: usize, T> LdlFactor<OBSERVATIONS, T>
 where
     T: MatrixDataType,
 {
-    /// Factors the row-major `s`, reading its upper triangle as
+    /// Factors the row-major `s`; see [`from_entries`](Self::from_entries).
+    #[cfg(test)]
+    fn new(s: &[T]) -> Option<Self> {
+        Self::from_entries(|i, j| s[i * OBSERVATIONS + j])
+    }
+
+    /// Factors the matrix with entries `s(i, j)`, reading its upper triangle as
     /// [`cholesky_decompose_lower`](MatrixMut::cholesky_decompose_lower) does.
     ///
     /// The pivot `Dⱼ = Sⱼⱼ − Σₖ Lⱼₖ²×Dₖ` is the square of the Cholesky pivot in exact
-    /// arithmetic, and is rejected by the same rule: `None` if it is not positive or not finite.
-    fn new(s: &[T]) -> Option<Self> {
-        let s = &s[..OBSERVATIONS * OBSERVATIONS];
-        let mut l = [[T::zero(); OBSERVATIONS]; OBSERVATIONS];
-        let mut d = [T::zero(); OBSERVATIONS];
-        let mut inverse_d = [T::zero(); OBSERVATIONS];
+    /// arithmetic, and is rejected by the same rule (`None` if it is not positive or not
+    /// finite), and also if its reciprocal is not finite (a subnormal `f32` or `f64`), which
+    /// would turn `L`, the NIS or the gain into `NaN`. [`InnovationFactor::new`] then falls back
+    /// to the Cholesky factorization, whose pivot `√Dⱼ` is normal.
+    #[allow(clippy::needless_range_loop)]
+    fn from_entries(s: impl Fn(usize, usize) -> T) -> Option<Self> {
+        debug_assert!(OBSERVATIONS <= SQUARE_ROOT_FREE_MAX);
+        let mut l = [[T::zero(); SQUARE_ROOT_FREE_MAX]; SQUARE_ROOT_FREE_MAX];
+        let mut d = [T::zero(); SQUARE_ROOT_FREE_MAX];
+        let mut inverse_d = [T::zero(); SQUARE_ROOT_FREE_MAX];
         for j in 0..OBSERVATIONS {
             // Lⱼₖ×Dₖ for the columns already done; reused for the pivot and the column below.
-            let mut scaled = [T::zero(); OBSERVATIONS];
+            let mut scaled = [T::zero(); SQUARE_ROOT_FREE_MAX];
             for k in 0..j {
                 scaled[k] = l[j][k] * d[k];
             }
 
-            let pivot = s[j * OBSERVATIONS + j] - (0..j).map(|k| l[j][k] * scaled[k]).sum::<T>();
+            let pivot = s(j, j) - (0..j).map(|k| l[j][k] * scaled[k]).sum::<T>();
             if !is_valid_pivot(pivot) {
                 return None;
             }
@@ -166,11 +184,14 @@ where
             d[j] = pivot;
             if OBSERVATIONS > 1 {
                 inverse_d[j] = pivot.recip();
+                if !is_finite(inverse_d[j]) {
+                    return None;
+                }
             }
 
             for i in (j + 1)..OBSERVATIONS {
                 let sum = (0..j).map(|k| l[i][k] * scaled[k]).sum::<T>();
-                l[i][j] = (s[j * OBSERVATIONS + i] - sum) * inverse_d[j];
+                l[i][j] = (s(j, i) - sum) * inverse_d[j];
             }
         }
 
@@ -179,20 +200,21 @@ where
 
     /// Returns `yᵀ×S⁻¹×y = wᵀ×D⁻¹×w` with `w = L⁻¹×y`, summed as `Σ wᵢ×(wᵢ/Dᵢ)`.
     fn nis(&self, y: &impl Matrix<OBSERVATIONS, 1, T>) -> T {
-        let mut w = [T::zero(); OBSERVATIONS];
-        w.copy_from_slice(&y.as_slice()[..OBSERVATIONS]);
-        self.substitute(Transpose::No, &mut w);
+        let mut w = [T::zero(); SQUARE_ROOT_FREE_MAX];
+        w[..OBSERVATIONS].copy_from_slice(&y.as_slice()[..OBSERVATIONS]);
+        self.forward(&mut w[..OBSERVATIONS]);
         (0..OBSERVATIONS).map(|i| w[i] * self.scale(i, w[i])).sum()
     }
 
     /// Replaces the row `b` by `S⁻¹×b = L⁻ᵀ×(D⁻¹×(L⁻¹×b))`.
     fn solve_row(&self, b: &mut [T]) {
-        self.substitute(Transpose::No, b);
+        let b = &mut b[..OBSERVATIONS];
+        self.forward(b);
         for (i, value) in b.iter_mut().enumerate() {
             *value = self.scale(i, *value);
         }
 
-        self.substitute(Transpose::Yes, b);
+        self.backward(b);
     }
 
     /// Returns `value / Dᵢ`: a division for one measurement (correctly rounded), a
@@ -207,19 +229,43 @@ where
         }
     }
 
-    /// Replaces `b` by `L⁻¹×b` or `L⁻ᵀ×b`; the unit diagonal needs no pivot step.
+    /// Replaces `b` by `L⁻¹×b` (forward substitution; the unit diagonal needs no pivot step).
     #[inline]
-    fn substitute(&self, transpose: Transpose, b: &mut [T]) {
-        substitute(
-            self.l.as_flattened(),
-            OBSERVATIONS,
-            Triangle::Lower,
-            transpose,
-            b,
-            1,
-            |_, rest| rest,
-        );
+    fn forward(&self, b: &mut [T]) {
+        for i in 0..OBSERVATIONS {
+            let sum = (0..i).map(|k| self.l[i][k] * b[k]).sum::<T>();
+            b[i] -= sum;
+        }
     }
+
+    /// Replaces `b` by `L⁻ᵀ×b` (back substitution).
+    #[inline]
+    fn backward(&self, b: &mut [T]) {
+        for i in (0..OBSERVATIONS).rev() {
+            let sum = ((i + 1)..OBSERVATIONS)
+                .map(|k| self.l[k][i] * b[k])
+                .sum::<T>();
+            b[i] -= sum;
+        }
+    }
+}
+
+/// Returns `true` if `x` is not `NaN`; always `true` for fixed-point types.
+#[allow(clippy::eq_op)]
+pub(crate) fn is_number<T>(x: T) -> bool
+where
+    T: MatrixDataType,
+{
+    x == x
+}
+
+/// Returns `true` if `x` is neither `NaN` nor infinite; always `true` for fixed-point types.
+#[allow(clippy::eq_op)]
+fn is_finite<T>(x: T) -> bool
+where
+    T: MatrixDataType,
+{
+    x - x == T::zero()
 }
 
 /// The lower Cholesky factor `L` of an innovation covariance `S = L×Lᵀ`, for applying `S⁻¹`
@@ -343,6 +389,39 @@ mod tests {
         assert_applies_the_inverse::<1, 1>(&[4.0], &y);
         assert_applies_the_inverse::<2, 4>(&[4.0, 1.0, 1.0, 3.0], &y);
         assert_applies_the_inverse::<3, 9>(&s, &y);
+    }
+
+    /// The square-root free factor takes the same space for any `OBSERVATIONS`, so the enum's
+    /// size grows only with the Cholesky variant's `OBSERVATIONS` reciprocals.
+    #[test]
+    fn factor_storage_is_bounded() {
+        use core::mem::size_of;
+        assert_eq!(size_of::<LdlFactor<1, f32>>(), 15 * size_of::<f32>());
+        assert_eq!(size_of::<LdlFactor<8, f64>>(), 15 * size_of::<f64>());
+        let bound = |m: usize| (15 + m) * size_of::<f64>() + 2 * size_of::<usize>() + 8;
+        assert!(size_of::<InnovationFactor<'static, 6, f64>>() <= bound(6));
+        assert!(size_of::<InnovationFactor<'static, 12, f64>>() <= bound(12));
+    }
+
+    /// A subnormal pivot whose reciprocal overflows falls back to Cholesky (whose pivot `√D` is
+    /// normal) instead of producing `NaN`, and is accepted wherever Cholesky accepts it.
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm"))]
+    fn subnormal_pivots_fall_back_to_cholesky() {
+        let tiny = f32::from_bits(1); // 2⁻¹⁴⁹
+        for s in [[1.0, 0.0, 0.0, tiny], [tiny, 0.0, 0.0, 1.0]] {
+            assert!(LdlFactor::<2, f32>::new(&s).is_none(), "S = {s:?}");
+            let mut buffer = [0.0f32; 4];
+            let mut scratch = MatrixData::new_mut::<2, 2, f32>(&mut buffer);
+            let factor = InnovationFactor::<2, f32>::new(
+                &MatrixData::new_ref::<2, 2, f32>(&s),
+                &mut scratch,
+            )
+            .expect("Cholesky accepts S");
+            assert!(matches!(factor, InnovationFactor::Cholesky(_)));
+            let nis = factor.nis(&MatrixData::new_ref::<2, 1, f32>(&[1.0, 0.0]));
+            assert!(!nis.is_nan(), "NIS {nis} for S = {s:?}");
+        }
     }
 
     /// Fixed-point types never take the square-root free path; floating-point types do up to

@@ -388,8 +388,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   near its resolution. A pivot that is not positive or not finite is rejected as
   `NotPositiveDefinite`, as before; near-singular `S` can flip between accepted and rejected at
   the level of rounding. `D⁻¹` is applied with one reciprocal per pivot, except for a single
-  measurement, which divides by `s` to keep `K` correctly rounded. The robust corrections take
-  their prior NIS from the same factorization, without an extra Cholesky factorization. A 4×2
+  measurement, which divides by `s` to keep `K` correctly rounded. Where the square-root free
+  factorization rejects a pivot (also a subnormal one, whose reciprocal overflows), the
+  Cholesky factorization of a copy decides, so `NotPositiveDefinite` is returned exactly where
+  Cholesky rejects `S`. The factor's local storage is fixed at fifteen values for any
+  `OBSERVATIONS`. A correction whose NIS is `NaN`, which every gate lets through, now returns
+  `NotPositiveDefinite` without applying. The robust corrections take their prior NIS from the
+  same factorization, falling back to the Cholesky factor they already have. A 4×2
   `f32` Joseph step on `thumbv7em-none-eabihf` (`opt-level = "s"`) shrinks from 2218 to
   1958 bytes of `.text` and links no `sqrt`.
 - **Breaking:** the `nalgebra` feature now uses nalgebra 0.33 (was 0.32), the newest release that
