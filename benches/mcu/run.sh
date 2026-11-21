@@ -12,7 +12,7 @@
 #
 # Outputs go to benches/mcu/results/ (git-ignored): one raw log per binary in head/ (and
 # base/), and tables.md. Needs Renode (`renode` on PATH, tested with 1.17), the rustup
-# targets, llvm-nm (or rust-nm) and python3.
+# targets, python3, and for COUNT_CALLS=1 llvm-nm (or rust-nm).
 set -euo pipefail
 cd "$(dirname "$0")"
 here="$(pwd)"
@@ -21,7 +21,9 @@ TARGETS="${TARGETS:-thumbv7em-none-eabihf thumbv6m-none-eabi}"
 PROFILES="${PROFILES:-release o3}"
 TYPES="${TYPES:-f32 i16f16 i32f32}"
 COUNT_CALLS="${COUNT_CALLS:-0}"
-nm_tool="$(command -v llvm-nm || command -v rust-nm)"
+if [ "$COUNT_CALLS" = 1 ]; then
+  nm_tool="$(command -v llvm-nm || command -v rust-nm)" || { echo "COUNT_CALLS=1 needs llvm-nm or rust-nm" >&2; exit 1; }
+fi
 if [ -n "${CARGO_TARGET_DIR:-}" ] && [ "${CARGO_TARGET_DIR#/}" = "$CARGO_TARGET_DIR" ]; then
   export CARGO_TARGET_DIR="$here/$CARGO_TARGET_DIR"
 fi

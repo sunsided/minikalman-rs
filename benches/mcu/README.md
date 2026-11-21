@@ -71,8 +71,8 @@ produce your own (see [Reproducing](#reproducing)).
 ## Reproducing
 
 Requirements: Renode on `PATH` (tested with 1.17.0), a stable Rust toolchain with
-`rustup target add thumbv7em-none-eabihf thumbv6m-none-eabi`, `llvm-nm` (or `rust-nm` from
-`cargo-binutils`) and `python3`.
+`rustup target add thumbv7em-none-eabihf thumbv6m-none-eabi`, and `python3`. `COUNT_CALLS=1`
+also needs `llvm-nm` (or `rust-nm` from `cargo-binutils`).
 
 ```sh
 benches/mcu/run.sh                                   # both cores, both profiles, all types
