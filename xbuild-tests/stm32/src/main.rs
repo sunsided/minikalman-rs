@@ -17,11 +17,13 @@ use hal::{pac, prelude::*};
 fn main() -> ! {
     #[cfg(feature = "kalman-fixed")]
     {
+        // `None` only if the storage was already taken; this is the only call.
         let _gravity = kalman_fixed_example::predict_gravity();
     }
 
     #[cfg(feature = "kalman-float")]
     {
+        // `None` only if the storage was already taken; this is the only call.
         let _gravity = kalman_float_example::predict_gravity();
     }
 

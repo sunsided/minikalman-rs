@@ -1,10 +1,46 @@
-use minikalman::buffers::types::*;
-use minikalman::prelude::*;
-use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
+//! Estimates the gravity constant from position observations of a falling object, with
+//! `f32` and all filter buffers in one `static`.
 
-/// Observations.
-const NUM_STATES: usize = 3;
+use minikalman::prelude::*;
+use minikalman::regular::{FilterStorage, ObservationStorage};
+use static_cell::ConstStaticCell;
+
+minikalman::state! {
+    /// The state of the falling object.
+    struct Fall(f32) {
+        /// Position, in meters.
+        s,
+        /// Velocity, in meters per second.
+        v,
+        /// Acceleration, in meters per second squared.
+        g,
+    }
+}
+
+/// The number of states.
+const NUM_STATES: usize = Fall::N;
+
+/// The number of observations: the position.
 const NUM_OBSERVATIONS: usize = 1;
+
+/// All buffers of the filter and its observation.
+struct Storage {
+    /// The filter buffers: `A`, `x`, `P`, `Q` and the temporaries.
+    filter: FilterStorage<NUM_STATES, f32>,
+    /// The observation buffers: `H`, `z`, `R`, `y`, `S`, `K` and the temporaries.
+    measurement: ObservationStorage<NUM_STATES, NUM_OBSERVATIONS, f32>,
+}
+
+/// The filter's memory, fixed at compile time.
+///
+/// The initializer is a constant of zeros, so the storage lands in `.bss` and is never built
+/// on the stack or moved. [`ConstStaticCell::try_take`] hands out its only `&'static mut`,
+/// which replaces the `static mut` references this example used before: a second or
+/// re-entrant call, e.g. from an interrupt, gets `None` instead of a second mutable alias.
+static STORAGE: ConstStaticCell<Storage> = ConstStaticCell::new(Storage {
+    filter: FilterStorage::new(0.0),
+    measurement: ObservationStorage::new(0.0),
+});
 
 /// Observations.
 ///
@@ -29,58 +65,13 @@ const OBSERVATION_ERROR: [f32; 15] = [
     -0.33747, 0.75873, 0.18135, -0.015764, 0.17869,
 ];
 
-#[allow(non_snake_case)]
-#[allow(non_upper_case_globals)]
-pub fn predict_gravity() -> f32 {
-    // System buffers.
-    impl_buffer_x!(static mut gravity_x, NUM_STATES, f32, 0.0);
-    impl_buffer_A!(static mut gravity_A, NUM_STATES, f32, 0.0);
-    impl_buffer_P!(static mut gravity_P, NUM_STATES, f32, 0.0);
-    impl_buffer_Q_direct!(static mut gravity_Q, NUM_STATES, f32, 0.0);
-
-    // Observation buffers.
-    impl_buffer_z!(static mut gravity_z, NUM_OBSERVATIONS, f32, 0.0);
-    impl_buffer_H!(static mut gravity_H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    impl_buffer_R!(static mut gravity_R, NUM_OBSERVATIONS, f32, 0.0);
-    impl_buffer_y!(static mut gravity_y, NUM_OBSERVATIONS, f32, 0.0);
-    impl_buffer_S!(static mut gravity_S, NUM_OBSERVATIONS, f32, 0.0);
-    impl_buffer_K!(static mut gravity_K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-
-    // Filter temporaries.
-    impl_buffer_temp_x!(static mut gravity_temp_x, NUM_STATES, f32, 0.0);
-    impl_buffer_temp_P!(static mut gravity_temp_P, NUM_STATES, f32, 0.0);
-
-    // Observation temporaries.
-    impl_buffer_temp_S_inv!(static mut gravity_temp_S_inv, NUM_OBSERVATIONS, f32, 0.0);
-
-    // Observation temporaries.
-    impl_buffer_temp_HP!(static mut gravity_temp_HP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
-    impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
-    impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
-
-    let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
-        StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
-        StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
-        EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
-        DirectProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_Q.as_mut_slice() }),
-        PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
-        TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
-    );
-
-    let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-        ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
-        MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
-        MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),
-        InnovationVectorBuffer::from(unsafe { gravity_y.as_mut_slice() }),
-        InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut_slice() }),
-        KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut_slice() }),
-        TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
-            gravity_temp_S_inv.as_mut_slice()
-        }),
-        TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut_slice() }),
-        TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut_slice() }),
-        TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut_slice() }),
-    );
+/// Runs the filter over the recorded observations and returns the estimated gravity constant.
+///
+/// Returns `None` if the storage was already taken, i.e. on every call after the first.
+pub fn predict_gravity() -> Option<f32> {
+    let storage = STORAGE.try_take()?;
+    let mut filter = storage.filter.build();
+    let mut measurement = storage.measurement.build();
 
     // Set initial state.
     initialize_state_vector(filter.state_vector_mut());
@@ -92,28 +83,26 @@ pub fn predict_gravity() -> f32 {
     );
 
     // Filter!
-    for t in 0..REAL_DISTANCE.len() {
-        // Prediction.
+    for (real, error) in REAL_DISTANCE.iter().zip(OBSERVATION_ERROR) {
         filter.predict();
-
-        // Measure ...
-        let m = REAL_DISTANCE[t] + OBSERVATION_ERROR[t];
-        measurement.measurement_vector_mut().apply(|z| z[0] = m);
-
-        // Update.
+        measurement
+            .measurement_vector_mut()
+            .apply(|z| z[0] = real + error);
         filter.correct(&mut measurement);
     }
 
-    // Fetch estimated gravity constant.
-    unsafe { gravity_x[2] }
+    Some(Fall::read(filter.state_vector().as_slice()).g)
 }
 
 /// Initializes the state vector with initial assumptions.
 fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
     filter.as_matrix_mut().apply(|state| {
-        state[0] = 0.0; // position
-        state[1] = 0.0; // velocity
-        state[2] = 6.0; // acceleration
+        Fall {
+            s: 0.0,
+            v: 0.0,
+            g: 6.0,
+        }
+        .write(state.as_mut_slice());
     });
 }
 
@@ -121,29 +110,19 @@ fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
 ///
 /// This sets up the differential equations for
 /// ```math
-/// s₁ = 1×s₀ + T×v₀ + 0.5×T²×a₀
-/// v₁ = 1×v₀ + T×a₀
-/// a₁ = 1×a₀
+/// s₁ = 1×s₀ + T×v₀ + 0.5×T²×g₀
+/// v₁ = 1×v₀ + T×g₀
+/// g₁ = 1×g₀
 /// ```
 fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut<NUM_STATES, f32>) {
     filter.as_matrix_mut().apply(|a| {
         // Time constant.
         const T: f32 = 1.0;
 
-        // Transition of x to s.
-        a.set_at(0, 0, 1.0); // 1
-        a.set_at(0, 1, T as _); // T
-        a.set_at(0, 2, 0.5 * T * T); // 0.5 × T²
-
-        // Transition of x to v.
-        a.set_at(1, 0, 0.0); // 0
-        a.set_at(1, 1, 1.0); // 1
-        a.set_at(1, 2, T as _); // T
-
-        // Transition of b to g.
-        a.set_at(2, 0, 0.0); // 0
-        a.set_at(2, 1, 0.0); // 0
-        a.set_at(2, 2, 1.0); // 1
+        a.make_identity();
+        a.set_at(Fall::s, Fall::v, T);
+        a.set_at(Fall::s, Fall::g, 0.5 * T * T);
+        a.set_at(Fall::v, Fall::g, T);
     });
 }
 
@@ -154,14 +133,9 @@ fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut
 /// are linearly independent.
 fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f32>) {
     filter.as_matrix_mut().apply(|p| {
-        p.set_at(0, 0, 0.1); // var(s)
-        p.set_at(0, 1, 0.0); // cov(s, v)
-        p.set_at(0, 2, 0.0); // cov(s, g)
-
-        p.set_at(1, 1, 1.0); // var(v)
-        p.set_at(1, 2, 0.0); // cov(v, g)
-
-        p.set_at(2, 2, 1.0); // var(g)
+        p.set_at(Fall::s, Fall::s, 0.1);
+        p.set_at(Fall::v, Fall::v, 1.0);
+        p.set_at(Fall::g, Fall::g, 1.0);
     });
 }
 
@@ -170,16 +144,14 @@ fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix
 /// This matrix describes how a single measurement is obtained from the
 /// state vector. In our case, we directly observe one of the states, namely position.
 /// ```math
-/// z = 1×s + 0×v + 0×a
+/// z = 1×s + 0×v + 0×g
 /// ```
 fn initialize_position_measurement_transformation_matrix(
     measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
 ) {
-    measurement.as_matrix_mut().apply(|h| {
-        h.set_at(0, 0, 1.0); // z = 1*s
-        h.set_at(0, 1, 0.0); //   + 0*v
-        h.set_at(0, 2, 0.0); //   + 0*g
-    });
+    measurement
+        .as_matrix_mut()
+        .apply(|h| h.set_at(0, Fall::s, 1.0));
 }
 
 /// Initializes the measurement noise / uncertainty matrix.
@@ -190,7 +162,5 @@ fn initialize_position_measurement_transformation_matrix(
 fn initialize_position_measurement_process_noise_matrix(
     measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
 ) {
-    measurement.as_matrix_mut().apply(|r| {
-        r.set_at(0, 0, 0.5); // var(s)
-    });
+    measurement.as_matrix_mut().apply(|r| r.set_at(0, 0, 0.5));
 }
