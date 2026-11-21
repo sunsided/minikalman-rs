@@ -1113,6 +1113,19 @@ pub trait KalmanFilterObservationCorrectFixedGain<const STATES: usize, T> {
         X: Matrix<STATES, 1, T>,
         N: FnMut(&mut [T]);
 
+    /// Evaluates the innovation gate on the last innovation and returns `true` if the
+    /// measurement is to be rejected.
+    ///
+    /// Called after [`compute_innovation`](Self::compute_innovation) and before the gain is
+    /// applied. The default has no gate and returns `false`;
+    /// [`FixedGainObservation`](crate::regular::FixedGainObservation) with a
+    /// [`FixedGainGate`](crate::regular::FixedGainGate) computes `NIS = yᵀ·S∞⁻¹·y` here and
+    /// compares it with its threshold.
+    #[inline(always)]
+    fn is_gated(&mut self) -> bool {
+        false
+    }
+
     /// Adds the gain times the last innovation to `target`: `target ← target + K·y`.
     ///
     /// ## Arguments

@@ -523,6 +523,17 @@ impl<
         &self.S
     }
 
+    /// Gets a mutable reference to the innovation covariance matrix S.
+    ///
+    /// Every correction recomputes `S` before it reads it, so writing here only changes what
+    /// [`innovation_covariance`](Self::innovation_covariance) shows until the next correction.
+    /// Its use is to factor the settled `S∞` in place for a fixed-gain gate, with
+    /// [`FixedGainObservation::set_innovation_covariance`](crate::regular::FixedGainObservation::set_innovation_covariance).
+    #[inline(always)]
+    pub fn innovation_covariance_mut(&mut self) -> &mut S {
+        &mut self.S
+    }
+
     /// Gets a reference to the innovation vector y.
     ///
     /// Every correction writes the innovation `z − H×x` of the prior state here (after the

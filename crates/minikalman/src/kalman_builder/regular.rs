@@ -7,8 +7,8 @@ use crate::buffers::builder::*;
 use crate::information::InformationFilter;
 use crate::kalman::GainForm;
 use crate::regular::{
-    Control, ControlBuilder, FixedGainObservation, LuenbergerObserver, RegularKalman,
-    RegularKalmanBuilder, RegularObservation, RegularObservationBuilder,
+    Control, ControlBuilder, FixedGainGate, FixedGainObservation, LuenbergerObserver,
+    RegularKalman, RegularKalmanBuilder, RegularObservation, RegularObservationBuilder,
 };
 use crate::square_root::SquareRootKalman;
 use crate::ud::UdKalman;
@@ -112,6 +112,25 @@ pub type FixedGainObservationType<const STATES: usize, const OBSERVATIONS: usize
         ObservationVectorBufferOwnedType<OBSERVATIONS, T>,
         InnovationVectorBufferOwnedType<OBSERVATIONS, T>,
         KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>,
+    >;
+
+/// The type of gated fixed-gain observations with owned buffers.
+///
+/// See also [`KalmanFilterObservationBuilder::build_fixed_gain_gated`].
+pub type GatedFixedGainObservationType<const STATES: usize, const OBSERVATIONS: usize, T> =
+    FixedGainObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        ObservationMatrixBufferOwnedType<OBSERVATIONS, STATES, T>,
+        ObservationVectorBufferOwnedType<OBSERVATIONS, T>,
+        InnovationVectorBufferOwnedType<OBSERVATIONS, T>,
+        KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>,
+        FixedGainGate<
+            OBSERVATIONS,
+            T,
+            InnovationResidualCovarianceMatrixBufferOwnedType<OBSERVATIONS, T>,
+        >,
     >;
 
 impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
@@ -431,6 +450,31 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
             BufferBuilder::kalman_gain_K::<STATES, OBSERVATIONS>().new(),
             GainForm::Current,
         )
+    }
+
+    /// Builds a new fixed-gain observation with an innovation gate, using heap allocated
+    /// buffers.
+    ///
+    /// Like [`build_fixed_gain`](Self::build_fixed_gain), plus a zeroed `S∞⁻¹`; fill it with
+    /// [`set_innovation_covariance`](FixedGainObservation::set_innovation_covariance) and set
+    /// a threshold with [`set_gate`](FixedGainObservation::set_gate).
+    ///
+    /// ## Example
+    /// ```rust
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
+    ///
+    /// let builder = KalmanFilterBuilder::<2, f32>::default();
+    /// let mut position = builder.observations().build_fixed_gain_gated::<1>();
+    /// position.set_gate(Some(6.63));
+    /// ```
+    pub fn build_fixed_gain_gated<const OBSERVATIONS: usize>(
+        &self,
+    ) -> GatedFixedGainObservationType<STATES, OBSERVATIONS, T>
+    where
+        T: MatrixDataType + Default,
+    {
+        self.build_fixed_gain()
+            .with_gate(BufferBuilder::innovation_covariance_S::<OBSERVATIONS>().new())
     }
 }
 

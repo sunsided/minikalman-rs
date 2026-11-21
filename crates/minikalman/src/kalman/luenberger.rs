@@ -31,14 +31,19 @@ use core::marker::PhantomData;
 /// Use a fixed gain when the model and the sample rate are fixed, the start-up transient does
 /// not matter (or a few Kalman steps can be afforded before switching), and the CPU, RAM or
 /// fixed-point budget is tight. Keep the Kalman filter when `dt` varies, sensors drop out
-/// irregularly, `Q` or `R` change, or `P` is needed for gating, smoothing or fusion decisions.
-/// A fixed gain is optimal only for the measurement schedule it was designed for.
+/// irregularly, `Q` or `R` change, or `P` is needed for smoothing or fusion decisions. A
+/// fixed gain is optimal only for the measurement schedule it was designed for. Outliers can
+/// still be gated with the stored steady-state `S∞⁻¹` of a
+/// [`FixedGainGate`](crate::regular::FixedGainGate), which matches the Kalman filter's gate
+/// near steady state only; see
+/// [`set_gate`](crate::regular::FixedGainObservation::set_gate).
 ///
 /// ## Cost
 ///
 /// Per step with `n` states and `m` measurements: `n²` multiply-adds to predict and `2·n·m`
 /// to correct, with no square root, no division and no data-dependent branch, so every step
-/// takes the same time. The regular filter adds `2·n³` for `P` in the prediction, and a
+/// takes the same time. An innovation [gate](crate::regular::FixedGainGate) adds `m² + m`
+/// multiply-adds and one comparison. The regular filter adds `2·n³` for `P` in the prediction, and a
 /// Cholesky factorization with `m` square roots and reciprocals, the gain and the covariance
 /// update in the correction.
 ///
@@ -262,9 +267,11 @@ where
     /// Several observations can be applied in sequence, each with the gain designed for that
     /// schedule.
     ///
-    /// Returns [`CorrectionStatus::Applied`], or [`CorrectionStatus::GainFormMismatch`] (state
-    /// unchanged) if the observation holds a [predictor-form](GainForm::Predictor) gain.
-    #[must_use = "a gain-form mismatch skips the measurement"]
+    /// Returns [`CorrectionStatus::Applied`], [`CorrectionStatus::Gated`] (state unchanged) if
+    /// the observation's [gate](crate::regular::FixedGainObservation::set_gate) rejects the
+    /// innovation, or [`CorrectionStatus::GainFormMismatch`] (state unchanged) if the
+    /// observation holds a [predictor-form](GainForm::Predictor) gain.
+    #[must_use = "a gated measurement or a gain-form mismatch skips the measurement"]
     pub fn correct<M>(&mut self, measurement: &mut M) -> CorrectionStatus
     where
         M: KalmanFilterObservationCorrectFixedGain<STATES, T>,
@@ -280,7 +287,7 @@ where
     /// ## Arguments
     /// * `measurement` - The observation with a current-form gain.
     /// * `fix` - Normalizes the innovation `y = z − H·x̂` in place.
-    #[must_use = "a gain-form mismatch skips the measurement"]
+    #[must_use = "a gated measurement or a gain-form mismatch skips the measurement"]
     pub fn correct_with<M, N>(&mut self, measurement: &mut M, fix: N) -> CorrectionStatus
     where
         M: KalmanFilterObservationCorrectFixedGain<STATES, T>,
@@ -292,6 +299,10 @@ where
 
         let x = self.x.as_matrix_mut();
         measurement.compute_innovation(&*x, fix);
+        if measurement.is_gated() {
+            return CorrectionStatus::Gated;
+        }
+
         measurement.add_gain_times_innovation(x);
         CorrectionStatus::Applied
     }
@@ -305,9 +316,13 @@ where
     /// prediction `x̂ₖ₊₁|ₖ`, which equals `A·x̂⁺ₖ` of a current-form run with `K = A⁻¹·L`.
     /// Costs `STATES² + 2·STATES·OBSERVATIONS` multiply-adds.
     ///
-    /// Returns [`CorrectionStatus::Applied`], or [`CorrectionStatus::GainFormMismatch`] (state
-    /// unchanged) if the observation holds a [current-form](GainForm::Current) gain.
-    #[must_use = "a gain-form mismatch skips the measurement"]
+    /// Returns [`CorrectionStatus::Applied`], [`CorrectionStatus::Gated`] if the observation's
+    /// [gate](crate::regular::FixedGainObservation::set_gate) rejects the innovation, or
+    /// [`CorrectionStatus::GainFormMismatch`] if the observation holds a
+    /// [current-form](GainForm::Current) gain. In both rejections the state is unchanged and
+    /// the time update has not run; call [`predict`](Self::predict) to advance the step
+    /// without the measurement.
+    #[must_use = "a gated measurement or a gain-form mismatch skips the measurement"]
     pub fn predict_from_measurement<M>(&mut self, measurement: &mut M) -> CorrectionStatus
     where
         M: KalmanFilterObservationCorrectFixedGain<STATES, T>,
@@ -322,7 +337,7 @@ where
     /// ## Arguments
     /// * `measurement` - The observation with a predictor-form gain.
     /// * `fix` - Normalizes the innovation `y = z − H·x̂` in place.
-    #[must_use = "a gain-form mismatch skips the measurement"]
+    #[must_use = "a gated measurement or a gain-form mismatch skips the measurement"]
     pub fn predict_from_measurement_with<M, N>(
         &mut self,
         measurement: &mut M,
@@ -339,6 +354,10 @@ where
         let x = self.x.as_matrix_mut();
         let x_predicted = self.predicted_x.as_matrix_mut();
         measurement.compute_innovation(&*x, fix);
+        if measurement.is_gated() {
+            return CorrectionStatus::Gated;
+        }
+
         self.A.as_matrix().mult_rowvector(x, x_predicted);
         measurement.add_gain_times_innovation(x_predicted);
         x_predicted.copy_to(x);
