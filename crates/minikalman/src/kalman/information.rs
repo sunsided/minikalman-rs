@@ -69,7 +69,9 @@ use core::marker::PhantomData;
 /// when the `alloc` feature is enabled.
 ///
 /// Every step that inverts a matrix returns `false` and leaves the filter unchanged if that
-/// matrix is not positive definite, instead of producing NaN.
+/// matrix is not positive definite, instead of producing NaN. The matrices must also be
+/// finite: as for the other filters, the Cholesky decomposition does not detect `NaN` or
+/// infinite entries, which then propagate into `Y` and `ŷ`.
 #[allow(non_snake_case)]
 pub struct InformationFilter<const STATES: usize, T, A, Y, YH, Q, TempX, TempP, TempL> {
     /// State transition matrix (`STATES` × `STATES`).
