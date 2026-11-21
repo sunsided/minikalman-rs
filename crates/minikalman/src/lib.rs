@@ -271,7 +271,8 @@ pub mod unscented {
     pub use crate::kalman::unscented::*;
     pub use crate::kalman::{
         CrossCovarianceMatrix, KalmanFilterSigmaPointCorrect, KalmanFilterSigmaPointPredict,
-        KalmanFilterUnscentedObservationCorrectFilter, KalmanFilterUnscentedParams,
+        KalmanFilterUnscentedObservationCorrectFilter,
+        KalmanFilterUnscentedObservationCorrectRecalibrated, KalmanFilterUnscentedParams,
         KalmanFilterUnscentedParamsMut, SigmaObservedMatrix, SigmaPointMatrix,
         SigmaPropagatedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
         UnscentedKalmanFilter,

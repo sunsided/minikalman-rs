@@ -302,9 +302,12 @@ impl<
     /// Enables online adaptation of the measurement noise covariance `R` from the residuals
     /// of the corrections; `None` (the default) disables it.
     ///
-    /// After every applied correction, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual
+    /// After every correction applied by `correct` and `correct_with`, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual
     /// `ε = z − H×x⁺`; gated and skipped corrections leave `R` unchanged. See
     /// [`NoiseAdaptation`] for the method, the choice of `α` and when the estimate diverges.
+    ///
+    /// Only those corrections adapt `R`: `correct_with_gain*` and `correct_predictively_oriented` leave `R` and its floor untouched, also when
+    /// they return [`CorrectionStatus::Applied`].
     #[inline(always)]
     pub fn set_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>) {
         self.noise_adaptation = adaptation;

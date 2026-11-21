@@ -6,7 +6,7 @@
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
 use crate::observations::unscented::anchored_mean;
-use crate::prelude::AsMatrix;
+use crate::prelude::{AsMatrix, AsMatrixMut};
 use core::marker::PhantomData;
 
 /// Kalman Filter structure for Unscented Kalman Filter.
@@ -647,6 +647,68 @@ where
         self.predict_sigma_points(state_transition);
         self.reconstruct_prediction();
         self.sigma_points_stale = false;
+    }
+
+    /// Performs the nonlinear correction step using sigma points, with covariance
+    /// recalibration.
+    ///
+    /// The gain and the state update are the same as in
+    /// [`correct_sigma_point`](KalmanFilterSigmaPointCorrect::correct_sigma_point). The
+    /// covariance is then recalibrated from the sigma points shifted to the updated state,
+    /// which keeps the filter from becoming overconfident when the prior is poor; if that
+    /// would increase the trace of `P`, the measurement is backed out and
+    /// [`CorrectionStatus::BackedOut`] is returned. See
+    /// [`KalmanFilterUnscentedObservationCorrectRecalibrated`] for the algorithm and the
+    /// reference (Jiang, Shi and Moura, Automatica 2026,
+    /// [arXiv:2407.05717](https://arxiv.org/abs/2407.05717)).
+    ///
+    /// `observation` is called twice when the first pass is applied, once per set of sigma
+    /// points.
+    pub fn correct_sigma_point_recalibrated<M, F, const OBS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) -> CorrectionStatus
+    where
+        M: KalmanFilterUnscentedObservationCorrectRecalibrated<STATES, OBS, NUM_SIGMA, T>,
+        F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
+        SigmaPropagated: AsMatrixMut<STATES, NUM_SIGMA, T>,
+    {
+        self.correct_sigma_point_recalibrated_with(measurement, observation, |_| {})
+    }
+
+    /// Performs the nonlinear correction step using sigma points, with covariance
+    /// recalibration, normalizing differences between measurements before they are used.
+    ///
+    /// See [`correct_sigma_point_recalibrated`](Self::correct_sigma_point_recalibrated) and
+    /// [`correct_sigma_point_with`](KalmanFilterSigmaPointCorrect::correct_sigma_point_with).
+    pub fn correct_sigma_point_recalibrated_with<M, F, N, const OBS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        M: KalmanFilterUnscentedObservationCorrectRecalibrated<STATES, OBS, NUM_SIGMA, T>,
+        F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
+        N: FnMut(&mut [T]),
+        SigmaPropagated: AsMatrixMut<STATES, NUM_SIGMA, T>,
+    {
+        self.refresh_sigma_points();
+        let lambda = self.lambda();
+        let status = measurement.correct_with_observed_recalibrated_residuals(
+            &mut self.x,
+            &mut self.P,
+            &mut self.sigma_propagated,
+            &self.sigma_weights,
+            lambda,
+            observation,
+            Self::fix_state(self.state_residual),
+            fix,
+        );
+        // Also after a back-out: the second pass leaves the sigma points shifted.
+        self.sigma_points_stale = true;
+        status
     }
 
     /// Redraws the sigma points from the current state and covariance, without

@@ -584,6 +584,106 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     {
         measurement.correct_nonlinear_with_gain_with(&mut self.x, &mut self.P, observation, fix)
     }
+
+    /// Performs the nonlinear measurement update step with covariance recalibration.
+    ///
+    /// The gain and the state update are the same as in
+    /// [`correct_nonlinear`](Self::correct_nonlinear). The covariance is then recalibrated
+    /// with the observation Jacobian at the updated state, which keeps the filter from
+    /// becoming overconfident when the prior is poor; if that would increase the trace of
+    /// `P`, the measurement is backed out and [`CorrectionStatus::BackedOut`] is returned.
+    /// See [`KalmanFilterNonlinearObservationCorrectRecalibrated`] for the algorithm and the
+    /// reference (Jiang, Shi and Moura, Automatica 2026,
+    /// [arXiv:2407.05717](https://arxiv.org/abs/2407.05717)).
+    ///
+    /// ## Extended Kalman Filters
+    /// The Jacobian of the observation function must be set up at the current state, as for
+    /// [`correct_nonlinear`](Self::correct_nonlinear). `jacobian` is called with the updated
+    /// state and overwrites it, so set it up again before the next correction.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - The observation function.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # #[cfg(feature = "alloc")] {
+    /// use minikalman::extended::builder::KalmanFilterBuilder;
+    /// use minikalman::prelude::*;
+    ///
+    /// let builder = KalmanFilterBuilder::<1, f64>::default();
+    /// let mut filter = builder.build();
+    /// let mut measurement = builder.observations().build::<1>();
+    /// filter.estimate_covariance_mut().make_scalar(1.0);
+    /// measurement.measurement_noise_covariance_mut().make_scalar(0.01);
+    /// measurement.measurement_vector_mut().set_at(0, 0, 0.5);
+    ///
+    /// // h(x) = x², linearized at the prior x = 1.
+    /// filter.state_vector_mut().set_at(0, 0, 1.0);
+    /// measurement.observation_jacobian_matrix_mut().set_at(0, 0, 2.0);
+    ///
+    /// let status = filter.correct_nonlinear_recalibrated(
+    ///     &mut measurement,
+    ///     |x, z| z.set_at(0, 0, x.get_at(0, 0).powi(2)),
+    ///     |x, h| h.set_at(0, 0, 2.0 * x.get_at(0, 0)),
+    /// );
+    /// assert_eq!(status, CorrectionStatus::Applied);
+    /// # }
+    /// ```
+    pub fn correct_nonlinear_recalibrated<M, F, J, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        jacobian: J,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectRecalibrated<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+        J: FnMut(&X, &mut M::ObservationJacobian),
+    {
+        measurement.correct_nonlinear_recalibrated(&mut self.x, &mut self.P, observation, jacobian)
+    }
+
+    /// Performs the nonlinear measurement update step with covariance recalibration,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_recalibrated`](Self::correct_nonlinear_recalibrated) and
+    /// [`correct_nonlinear_with`](Self::correct_nonlinear_with).
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - The observation function.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    /// * `fix` - Normalizes the innovation vector in place.
+    pub fn correct_nonlinear_recalibrated_with<M, F, J, N, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        jacobian: J,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectRecalibrated<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+        J: FnMut(&X, &mut M::ObservationJacobian),
+        N: FnMut(&mut [T]),
+    {
+        measurement.correct_nonlinear_recalibrated_with(
+            &mut self.x,
+            &mut self.P,
+            observation,
+            jacobian,
+            fix,
+        )
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>

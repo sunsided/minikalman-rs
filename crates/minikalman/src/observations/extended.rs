@@ -302,9 +302,12 @@ impl<
     /// Enables online adaptation of the measurement noise covariance `R` from the residuals
     /// of the corrections; `None` (the default) disables it.
     ///
-    /// After every applied correction, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual
+    /// After every correction applied by `correct_nonlinear` and `correct_nonlinear_with`, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual
     /// `ε = z − H×x⁺`; gated and skipped corrections leave `R` unchanged. See
     /// [`NoiseAdaptation`] for the method, the choice of `α` and when the estimate diverges.
+    ///
+    /// Only those corrections adapt `R`: `correct_nonlinear_with_gain*` and `correct_nonlinear_recalibrated*` leave `R` and its floor untouched, also when
+    /// they return [`CorrectionStatus::Applied`].
     #[inline(always)]
     pub fn set_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>) {
         self.noise_adaptation = adaptation;
@@ -564,6 +567,108 @@ where
             self.S.as_matrix_mut(),
             self.temp_HP.as_matrix_mut(),
             self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+        )
+    }
+
+    /// Applies a recalibrated nonlinear correction step to the provided state vector and
+    /// covariance matrix.
+    ///
+    /// See [`KalmanFilterNonlinearObservationCorrectRecalibrated`] for the algorithm. The
+    /// observation Jacobian must be set up at the prior `x`; `jacobian` overwrites it with the
+    /// Jacobian at the updated state, so it holds that one on return.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `jacobian` - Writes the observation Jacobian at the given (updated) state.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_recalibrated<X, P, F, J>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        J: FnMut(&X, &mut H),
+        H: ObservationMatrixMut<OBSERVATIONS, STATES, T>,
+    {
+        self.correct_nonlinear_recalibrated_with(x, P, observation, jacobian, |_| {})
+    }
+
+    /// Applies a recalibrated nonlinear correction step to the provided state vector and
+    /// covariance matrix, normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_recalibrated`](Self::correct_nonlinear_recalibrated) and
+    /// [`correct_nonlinear_with`](Self::correct_nonlinear_with).
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `jacobian` - Writes the observation Jacobian at the given (updated) state.
+    /// * `fix` - Normalizes the innovation `y = z - h(x)` in place, e.g. by wrapping angles.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_recalibrated_with<X, P, F, J, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        mut observation: F,
+        mut jacobian: J,
+        mut fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        J: FnMut(&X, &mut H),
+        N: FnMut(&mut [T]),
+        H: ObservationMatrixMut<OBSERVATIONS, STATES, T>,
+    {
+        // y = z - h(x)
+        observation(x, &mut self.y);
+        self.z.as_matrix().sub_inplace_b(self.y.as_matrix_mut());
+        fix(self.y.as_matrix_mut().as_mut_slice());
+
+        // The update is skipped, leaving x and P unchanged, if S cannot be inverted or
+        // the innovation is gated.
+        let status = crate::observations::update_state_for_recalibration(
+            x.as_matrix_mut(),
+            P.as_matrix(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.y.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            self.temp_S_inv.as_matrix_mut(),
+            self.temp_HP.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+            &mut self.nis,
+            self.gate,
+        );
+        if !status.is_applied() {
+            return status;
+        }
+
+        // H₂ = ∂h/∂x at x⁺
+        jacobian(x, &mut self.H);
+
+        crate::observations::recalibrate_covariance(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.K.as_matrix(),
+            self.S.as_matrix_mut(),
+            self.temp_HP.as_matrix_mut(),
             self.temp_KHP.as_matrix_mut(),
         )
     }
@@ -1088,6 +1193,72 @@ where
         N: FnMut(&mut [T]),
     {
         self.correct_nonlinear_with_gain_with(x, P, observation, fix)
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterNonlinearObservationCorrectRecalibrated<STATES, OBSERVATIONS, T>
+    for ExtendedObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+where
+    H: ObservationMatrixMut<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    type ObservationJacobian = H;
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_recalibrated_with<X, P, F, J, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        J: FnMut(&X, &mut Self::ObservationJacobian),
+        N: FnMut(&mut [T]),
+    {
+        self.correct_nonlinear_recalibrated_with(x, P, observation, jacobian, fix)
     }
 }
 
