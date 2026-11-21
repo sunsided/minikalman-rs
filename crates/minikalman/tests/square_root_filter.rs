@@ -525,6 +525,8 @@ where
     let mut regular = builder.build();
     let mut square_root = builder.build_square_root::<4>();
     let mut sensor = builder.observations().build::<1>();
+    // The short-form update shows the cancellation; the default Joseph form would hide it.
+    sensor.set_covariance_update(CovarianceUpdate::Standard);
 
     let transition = [T::one(), T::one(), T::zero(), T::one()];
     regular
@@ -568,8 +570,9 @@ fn is_positive_definite(P: &[f32]) -> bool {
     MatrixData::new_mut::<2, 2, f32>(&mut copy).cholesky_decompose_lower()
 }
 
-/// In `f32`, `P − K×H×P` cancels catastrophically when `R ≪ H×P×Hᵀ`: the regular filter's
-/// position variance becomes negative in the first correction. The square-root filter keeps
+/// In `f32`, `P − K×H×P` cancels catastrophically when `R ≪ H×P×Hᵀ`: with the short-form
+/// update ([`CovarianceUpdate::Standard`]), the regular filter's position variance becomes
+/// negative in the first correction. The square-root filter keeps
 /// `P` positive definite in every step and close to the `f64` result.
 #[test]
 #[cfg_attr(
