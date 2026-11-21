@@ -56,14 +56,35 @@ fn covariance_stays_symmetric_positive_semidefinite_f32() {
     covariances_stay_valid::<f32>();
 }
 
-/// Every covariance of every scenario stays symmetric positive semidefinite in `I16F16` and `I32F32`.
+/// The KF covariances on `cv` and `gravity` (`I16F16`, `I32F32`) and the RTS covariances on
+/// `cv` (`I32F32`) stay symmetric positive semidefinite.
 #[test]
 #[cfg(feature = "fixed")]
 fn covariance_stays_symmetric_positive_semidefinite_fixed() {
-    let cv_run = scenarios::run_regular::<2, 1, fixed::types::I16F16>(&CV);
-    assert_covariances::<fixed::types::I16F16>("kf cv", &cv_run, 2);
-    let cv_run = scenarios::run_regular::<2, 1, fixed::types::I32F32>(&CV);
-    assert_covariances::<fixed::types::I32F32>("kf cv", &cv_run, 2);
+    use fixed::types::{I16F16, I32F32};
+
+    let cv_run = scenarios::run_regular::<2, 1, I16F16>(&CV);
+    assert_covariances::<I16F16>("kf cv", &cv_run, 2);
+    assert_covariances::<I16F16>(
+        "kf gravity",
+        &scenarios::run_regular::<3, 1, I16F16>(&GRAVITY),
+        3,
+    );
+
+    let cv_run = scenarios::run_regular::<2, 1, I32F32>(&CV);
+    assert_covariances::<I32F32>("kf cv", &cv_run, 2);
+    assert_covariances::<I32F32>(
+        "kf gravity",
+        &scenarios::run_regular::<3, 1, I32F32>(&GRAVITY),
+        3,
+    );
+
+    let (_, smoothed) = scenarios::smooth::<2, I32F32>(&CV, &cv_run);
+    let smoothed = History {
+        p_post: smoothed,
+        ..History::default()
+    };
+    assert_covariances::<I32F32>("rts cv", &smoothed, 2);
 }
 
 /// The bit patterns of a state and covariance, to prove they did not change.

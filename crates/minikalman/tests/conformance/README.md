@@ -143,8 +143,10 @@ model. The bounds come from `scipy.stats.chi2` and live in `reference.rs` (`chi2
 
 ### 4. Invariants (`invariants.rs`)
 
-- Every filtered (and smoothed) `P` of every scenario and number type is symmetric within
-  `ε × max(1, max Pᵢᵢ)`, and `P + ε·I` has a Cholesky factor, with `ε` a few units of the
+- Every filtered (and smoothed) `P` of every scenario in `f64` and `f32`, and of the KF on
+  `cv` and `gravity` and the RTS smoother on `cv` in fixed point (`I16F16`, `I32F32`; RTS
+  only `I32F32`), is symmetric within `ε × max(1, max Pᵢᵢ)`, and `P + ε·I` has a
+  Cholesky factor, with `ε` a few units of the
   type's resolution: `1e-12` (`f64`), `1e-5` (`f32`), `1e-7` (`I32F32`), `1e-3` (`I16F16`).
   `ε` does not depend on the math backend, so micromath gets no extra slack here, and it
   passes.
