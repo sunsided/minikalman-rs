@@ -204,40 +204,7 @@ pub struct LuenbergerObserver<const STATES: usize, T, A, X, PX, F = Current> {
 /// Holds one `STATES × 1` vector; zero after every prediction.
 pub struct PendingCorrection<C>(C);
 
-/// The time update of a [`LuenbergerObserver`] step, through which control inputs are applied.
-///
-/// Returned by [`LuenbergerObserver::predict`]. It borrows the observer, so controls can only be
-/// applied right after the prediction and before any correction:
-///
-/// ```compile_fail
-/// # #[cfg(feature = "alloc")] {
-/// use minikalman::prelude::*;
-/// use minikalman::regular::builder::KalmanFilterBuilder;
-///
-/// let builder = KalmanFilterBuilder::<2, f32>::default();
-/// let mut observer = builder.build_observer();
-/// let mut position = builder.observations().build_fixed_gain::<1, Current>();
-/// let mut throttle = builder.controls().build::<1>();
-///
-/// let step = observer.predict();
-/// let _ = observer.correct(&mut position);
-/// step.control(&mut throttle); // too late: the step has been corrected
-/// # }
-/// # #[cfg(not(feature = "alloc"))]
-/// # compile_error!("the example needs alloc");
-/// ```
-///
-/// Dropping it without a control, as in a plain `observer.predict();`, is a step without
-/// input.
-pub struct TimeUpdate<'a, const STATES: usize, T, X> {
-    /// The state estimate the controls move.
-    x: &'a mut X,
-
-    /// Marks the scalar type.
-    _phantom: PhantomData<T>,
-}
-
-impl<const STATES: usize, T, X> TimeUpdate<'_, STATES, T, X>
+impl<const STATES: usize, T, A, X, PX, F> TimeUpdate<'_, LuenbergerObserver<STATES, T, A, X, PX, F>>
 where
     X: StateVectorMut<STATES, T>,
 {
@@ -246,7 +213,7 @@ where
     #[doc = diagram!("luenberger-loop.mmd", "control")]
     ///
     /// Takes the regular [`Control`](crate::regular::Control); its process noise `Q` and its
-    /// temporary are not used. Chain several distinct controls, e.g. throttle and steering, for
+    /// temporary are not used. Chain one call per distinct control, e.g. throttle and wind, for
     /// `x̂ ← A·x̂ + B₁·u₁ + B₂·u₂`, as several observations correct one step. Applying the same
     /// control twice in one step adds `B·u` twice, which is a misuse.
     ///
@@ -276,11 +243,32 @@ where
     /// assert!((observer.state_vector().get_at(1, 0) - 0.15).abs() < 1e-6);
     /// # }
     /// ```
-    pub fn control<I>(self, control: &mut I) -> Self
+    ///
+    /// The handle borrows the observer, so a control after a correction does not compile:
+    ///
+    /// ```compile_fail,E0499
+    /// # #[cfg(feature = "alloc")] {
+    /// use minikalman::prelude::*;
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
+    ///
+    /// let builder = KalmanFilterBuilder::<2, f32>::default();
+    /// let mut observer = builder.build_observer();
+    /// let mut position = builder.observations().build_fixed_gain::<1, Current>();
+    /// let mut throttle = builder.controls().build::<1>();
+    ///
+    /// let mut step = observer.predict();
+    /// let _ = observer.correct(&mut position);
+    /// step.control(&mut throttle); // too late: the step has been corrected
+    /// # }
+    /// # #[cfg(not(feature = "alloc"))]
+    /// # compile_error!("the example needs alloc");
+    /// ```
+    #[inline(always)]
+    pub fn control<I>(&mut self, control: &mut I) -> &mut Self
     where
         I: KalmanFilterControlApplyToState<STATES, T>,
     {
-        control.apply_to_state(self.x);
+        control.apply_to_state(&mut self.filter.x);
         self
     }
 }
@@ -417,12 +405,9 @@ where
     }
 
     /// Copies the temporary into `x̂` and returns the control handle for this step.
-    fn finish_prediction(&mut self) -> TimeUpdate<'_, STATES, T, X> {
+    fn finish_prediction(&mut self) -> TimeUpdate<'_, Self> {
         self.predicted_x.as_matrix().copy_to(self.x.as_matrix_mut());
-        TimeUpdate {
-            x: &mut self.x,
-            _phantom: PhantomData,
-        }
+        TimeUpdate::new(self)
     }
 
     /// Forms the innovation of `measurement` at the current state and gates it; returns
@@ -451,7 +436,7 @@ where
     /// Every step starts with it; it is the whole step when no measurement arrives. Apply
     /// control inputs through the returned [`TimeUpdate`], e.g.
     /// `observer.predict().control(&mut throttle);`. Costs `STATES²` multiply-adds.
-    pub fn predict(&mut self) -> TimeUpdate<'_, STATES, T, X> {
+    pub fn predict(&mut self) -> TimeUpdate<'_, Self> {
         self.propagate();
         self.finish_prediction()
     }
@@ -517,7 +502,7 @@ where
     /// since the last prediction; without any, this is the pure model step `x̂ ← A·x̂`. Apply
     /// `B·uₖ` through the returned [`TimeUpdate`]. Costs `STATES²` multiply-adds and
     /// `STATES` additions.
-    pub fn predict(&mut self) -> TimeUpdate<'_, STATES, T, X> {
+    pub fn predict(&mut self) -> TimeUpdate<'_, Self> {
         self.propagate();
         let pending = self.form.0.as_matrix_mut();
         self.predicted_x.as_matrix_mut().add_inplace_a(&*pending);

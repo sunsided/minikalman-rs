@@ -469,10 +469,7 @@ fn time_update_applies_two_controls() {
         .control(&mut throttle)
         .control(&mut wind);
 
-    let expected = [
-        3.0 - DT + 0.25 * DT * DT + 0.3,
-        -1.0 + 0.5 * DT - 0.8,
-    ];
+    let expected = [3.0 - DT + 0.25 * DT * DT + 0.3, -1.0 + 0.5 * DT - 0.8];
     assert!(gap(state(observer.state_vector()), expected) < 1e-15);
     assert!(gap(state(predictor.state_vector()), expected) < 1e-15);
 }

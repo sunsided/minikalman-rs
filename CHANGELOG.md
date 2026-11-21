@@ -62,10 +62,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   predict-then-correct gain `K`, `FixedGainObservation<…, Predictor>` the textbook gain `L` of
   `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)` that `place` and python-control `dlqe` return, and an
   observer of one form does not compile with an observation of the other. The time and the
-  measurement update stay separate calls in both forms: `predict()` returns a `TimeUpdate`
-  handle through which any number of distinct controls are applied
-  (`observer.predict().control(&mut throttle).control(&mut steering)`), only before the
-  corrections of the step, and `correct` updates. In the predictor form (`new_predictor`,
+  measurement update stay separate calls in both forms: `predict()` returns the same
+  `regular::TimeUpdate` handle as `RegularKalman::predict`, through which any number of distinct
+  controls are applied (`observer.predict().control(&mut throttle).control(&mut steering)`), only
+  before the corrections of the step, and `correct` updates. In the predictor form (`new_predictor`,
   `KalmanFilterBuilder::build_predictor_observer`, `PredictorObserverStorage`), `correct` defers
   `L·y` into a pending correction (one extra `n`-vector) without touching `x̂`, and the next
   `predict` applies `x̂ ← A·x̂ + Σ L·y`, bit-for-bit the fused recursion.
