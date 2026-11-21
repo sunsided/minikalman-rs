@@ -1,0 +1,20 @@
+flowchart LR
+    %% One step of the unscented Kalman filter. Style: see docs/diagrams/README.md.
+    %% Node IDs: sigma (sigma points and weights), propagate (callback f), predict (mean and
+    %% covariance), observe (callback h), correct. χᵢ are sigma points, γᵢ observed sigma points.
+    prior(["estimate<br/>x̂ₖ₋₁, Pₖ₋₁"])
+    sigma["sigma points<br/>λ = α²·(n + κ) − n<br/>χ₀ = x̂<br/>χᵢ = x̂ ± √(n + λ)·[√P]ᵢ<br/>weights Wᵢᵐ, Wᵢᶜ"]
+    propagate["propagate<br/>χᵢ ← f(χᵢ)"]
+    predict["predict<br/>x̂ ← Σ Wᵢᵐ·χᵢ<br/>P ← Σ Wᵢᶜ·(χᵢ − x̂)·(χᵢ − x̂)ᵀ<br/>+ Q"]
+    observe["observe<br/>γᵢ = h(χᵢ)"]
+    correct["correct<br/>ẑ = Σ Wᵢᵐ·γᵢ<br/>S = Pzz + R, Pxz<br/>y = z − ẑ, K = Pxz·S⁻¹<br/>x̂ ← x̂ + K·y<br/>P ← P − Pxz·Kᵀ"]
+    posterior(["estimate<br/>x̂ₖ, Pₖ"])
+    f[/"state transition f"/]
+    h[/"observation h"/]
+    z[/"measurement z"/]
+    prior --> sigma --> propagate --> predict --> observe --> correct --> posterior
+    f --> propagate
+    h --> observe
+    z --> correct
+    predict -.->|"next correction:<br/>χᵢ redrawn, not propagated"| observe
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

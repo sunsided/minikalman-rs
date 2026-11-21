@@ -10,6 +10,8 @@ use crate::observations::{
 };
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
+///
+#[doc = diagram!("unscented-correct.mmd")]
 #[allow(non_snake_case)]
 pub struct UnscentedObservation<
     const STATES: usize,
@@ -107,6 +109,8 @@ where
     /// Sets an innovation gate: a correction whose [normalized innovation squared](Self::nis)
     /// exceeds `threshold` is skipped and leaves the state and covariance unchanged.
     ///
+    #[doc = diagram!("unscented-correct.mmd", "gate")]
+    ///
     /// A common choice is a chi-square quantile for `OBSERVATIONS` degrees of freedom,
     /// e.g. `6.63` (one measurement) or `9.21` (two measurements) to reject about 1% of
     /// measurements of a consistent filter. `None` (the default) disables the gate.
@@ -128,6 +132,8 @@ where
     }
 
     /// Enables or disables the online adaptation of the measurement noise covariance `R`.
+    ///
+    #[doc = diagram!("unscented-correct.mmd", "adapt")]
     ///
     /// With `Some`, every applied sigma point correction, including the recalibrated one,
     /// updates `R` from the innovation, with the predicted measurement covariance in place of

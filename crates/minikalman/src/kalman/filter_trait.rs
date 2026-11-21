@@ -1212,6 +1212,10 @@ pub trait KalmanFilterMeasurementNoiseCovarianceMut<const OBSERVATIONS: usize, T
 
 /// UKF parameters (alpha, beta, kappa).
 ///
+/// They set the spread of the sigma points and their weights, which the prediction and the
+/// correction both use:
+#[doc = diagram!("unscented-loop.mmd", "sigma")]
+///
 /// See [Choosing α, β and κ](crate::unscented::UnscentedKalman#choosing-α-β-and-κ).
 pub trait KalmanFilterUnscentedParams<T> {
     /// Spread parameter α (builder default 1.0).
@@ -1251,6 +1255,9 @@ pub trait KalmanFilterSigmaPointPredict<const STATES: usize, T>:
     type NextStateVector: AsMatrixMut<STATES, 1, T>;
 
     /// Performs the nonlinear time update / prediction step.
+    ///
+    #[doc = diagram!("unscented-loop.mmd", "sigma", "propagate", "predict")]
+    ///
     /// The closure receives each sigma point and should modify it in-place
     /// to produce the predicted sigma point.
     fn predict_sigma_point<F>(&mut self, state_transition: F)
@@ -1266,6 +1273,12 @@ pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: us
     type SigmaPropagated: AsMatrix<STATES, NUM_SIGMA, T>;
 
     /// Performs the nonlinear correction step using sigma points.
+    ///
+    #[doc = diagram!("unscented-correct.mmd")]
+    ///
+    /// The sigma points of the last prediction are passed to `observation`, which writes
+    /// their images under `h`. A second correction before the next prediction redraws them
+    /// from the corrected estimate instead.
     ///
     /// Returns whether the measurement was applied; see [`CorrectionStatus`].
     #[inline(always)]
@@ -1283,6 +1296,8 @@ pub trait KalmanFilterSigmaPointCorrect<const STATES: usize, const NUM_SIGMA: us
 
     /// Performs the nonlinear correction step using sigma points, normalizing differences
     /// between measurements before they are used.
+    ///
+    #[doc = diagram!("unscented-loop.mmd", "observe", "correct")]
     ///
     /// `fix` receives each measurement difference (observed sigma point minus predicted
     /// measurement, and measurement minus predicted measurement) as a slice, one entry per
@@ -1385,6 +1400,8 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
 }
 
 /// Recalibrated sigma point correction for Unscented Kalman Filters.
+///
+#[doc = diagram!("unscented-correct.mmd", "recalibrate")]
 ///
 /// Implements the covariance recalibration of Jiang, Shi and Moura, "Mitigating
 /// Overconfidence in Nonlinear Kalman Filters via Covariance Recalibration", Automatica 194
