@@ -7,6 +7,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added the UD filter `ud::UdKalman` (built with `KalmanFilterBuilder::build_ud`), which keeps the
+  estimate covariance factored as `P = U·D·Uᵀ` and predicts with Thornton's MWGS and corrects with
+  Bierman's sequential update. `P` stays positive semi-definite by construction, and no step takes a
+  square root, which suits fixed-point targets: in an `I16F16` test where the plain filter's `P` turns
+  indefinite, the UD filter's `P` stays positive semi-definite over 10⁴ steps. Correlated `R`, rank-deficient `Q`, the gate
+  and the NIS are supported. New buffer macros `impl_buffer_ud_W` and `impl_buffer_ud_D` ([#111]).
 - Added a `compass` example: a heading filter whose heading crosses north, corrected with
   `correct_with` and `angles::wrap_180`, next to an unwrapped filter that swings the long way
   around. See [#40].
@@ -156,6 +162,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
 [#112]: https://github.com/sunsided/minikalman-rs/issues/112
+[#111]: https://github.com/sunsided/minikalman-rs/issues/111
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92
 [#86]: https://github.com/sunsided/minikalman-rs/issues/86

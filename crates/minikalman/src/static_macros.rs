@@ -1643,3 +1643,101 @@ macro_rules! impl_buffer_temp_KHP {
         ));
     };
 }
+
+/// Creates a static buffer for the prediction workspace `W` of a
+/// [`UdKalman`](crate::ud::UdKalman) (`num_states` × `2·num_states`).
+///
+/// This will create a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// ## Arguments
+/// * `num_states` - The number of states.
+/// * `t` - The data type.
+/// * `init` - The default value to initialize the buffer with.
+///
+/// ## Example
+/// ```
+/// # use minikalman::prelude::*;
+/// const NUM_STATES: usize = 3;
+/// impl_buffer_ud_W!(mut w, NUM_STATES, f32, 0.0);
+/// assert_eq!(w.get(2, 5), 0.0_f32);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! impl_buffer_ud_W {
+    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_W!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_W!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_W!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_W!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_W!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_W!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::matrix::MatrixDataArray<
+            $num_states,
+            { 2 * $num_states },
+            { 2 * $num_states * $num_states },
+            $t,
+        > = $crate::matrix::MatrixDataArray::new_unchecked(
+            [$init; { 2 * $num_states * $num_states }],
+        );
+    };
+}
+
+/// Creates a static buffer for the prediction weights `D̆` of a
+/// [`UdKalman`](crate::ud::UdKalman) (`2·num_states` × `1`).
+///
+/// This will create a [`MatrixDataArray`](crate::matrix::MatrixDataArray).
+///
+/// ## Arguments
+/// * `num_states` - The number of states.
+/// * `t` - The data type.
+/// * `init` - The default value to initialize the buffer with.
+///
+/// ## Example
+/// ```
+/// # use minikalman::prelude::*;
+/// const NUM_STATES: usize = 3;
+/// impl_buffer_ud_D!(mut d, NUM_STATES, f32, 0.0);
+/// assert_eq!(d.get(5, 0), 0.0_f32);
+/// ```
+#[macro_export]
+#[allow(non_snake_case)]
+macro_rules! impl_buffer_ud_D {
+    (mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_D!($vec_name, $num_states, $t, $init, let mut)
+    };
+    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_D!($vec_name, $num_states, $t, $init, let)
+    };
+    (let mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_D!($vec_name, $num_states, $t, $init, let mut)
+    };
+    (let $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_D!($vec_name, $num_states, $t, $init, let)
+    };
+    (static mut $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_D!($vec_name, $num_states, $t, $init, static mut)
+    };
+    (static $vec_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_ud_D!($vec_name, $num_states, $t, $init, static)
+    };
+    ($vec_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $vec_name: $crate::matrix::MatrixDataArray<
+            { 2 * $num_states },
+            1,
+            { 2 * $num_states },
+            $t,
+        > = $crate::matrix::MatrixDataArray::new_unchecked([$init; { 2 * $num_states }]);
+    };
+}
