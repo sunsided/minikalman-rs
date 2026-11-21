@@ -149,8 +149,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = target.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &mut target.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..=(count - 1)).rev() {
             bdata[idx!(index)] = adata[idx![index]];
@@ -239,8 +239,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(baux.len(), brows);
         }
 
-        let adata = self.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
         for j in (0..bcols).rev() {
             // create a copy of the column in B to avoid cache issues
@@ -317,9 +317,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(bcols, ccols);
         }
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..COLS * U];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
         for j in (0..bcols).rev() {
             let mut index_a: usize = 0;
@@ -367,9 +367,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(ccols, 1);
         }
 
-        let adata = self.as_slice();
-        let xdata = x.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let xdata = &x.as_slice()[..COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS];
 
         let mut index_a: usize = 0;
         let b0 = xdata[0];
@@ -419,9 +419,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(ccols, 1);
         }
 
-        let adata = self.as_slice();
-        let xdata = x.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let xdata = &x.as_slice()[..COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS];
 
         let mut index_a: usize = 0;
         let b0 = xdata[0];
@@ -471,9 +471,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(b.rows(), ccols);
         }
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..U * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
         let mut c_index: usize = 0;
         let mut a_index_start: usize = 0;
@@ -531,9 +531,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(brows, ccols);
         }
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..U * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
         let mut c_index: usize = 0;
         let mut a_index_start: usize = 0;
@@ -588,9 +588,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(brows, ccols);
         }
 
-        let adata = &self.as_slice();
-        let bdata = &b.as_slice();
-        let cdata = &mut c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..U * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
         // test dimensions of a and b
         #[cfg(not(feature = "no_assert"))]
@@ -644,9 +644,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..ROWS * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             cdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
@@ -673,8 +673,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = b.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &mut b.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             bdata[idx!(index)] += adata[idx!(index)];
@@ -701,8 +701,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = b.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &mut b.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
@@ -773,8 +773,8 @@ pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T>
         T: MatrixDataType,
     {
         let n = N;
-        let mat = self.as_slice(); // t
-        let inv = inverse.as_mut_slice(); // a
+        let mat = &self.as_slice()[..N * N]; // t
+        let inv = &mut inverse.as_mut_slice()[..N * N]; // a
 
         // Inverts the lower triangular system and saves the result
         // in the upper triangle to minimize cache misses.
@@ -943,7 +943,7 @@ pub trait SquareMatrixMut<const N: usize, T = f32>:
     where
         T: Copy,
     {
-        let data = self.as_mut_slice();
+        let data = &mut self.as_mut_slice()[..N * N];
         for i in 0..N {
             data[i * N + i] = value;
         }
@@ -959,7 +959,7 @@ pub trait SquareMatrixMut<const N: usize, T = f32>:
     where
         T: Copy,
     {
-        let data = self.as_mut_slice();
+        let data = &mut self.as_mut_slice()[..N * N];
         for i in 0..N {
             for j in 0..N {
                 data[i * N + j] = if i == j { diagonal } else { off_diagonal };
@@ -1136,8 +1136,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_mut_slice();
-        let bdata = b.as_slice();
+        let adata = &mut self.as_mut_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             adata[idx!(index)] += bdata[idx![index]];
@@ -1164,8 +1164,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_mut_slice();
-        let bdata = b.as_slice();
+        let adata = &mut self.as_mut_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             adata[idx!(index)] -= bdata[idx![index]];
@@ -1216,7 +1216,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
         T: MatrixDataType,
     {
         let n = self.rows();
-        let t: &mut [T] = self.as_mut_slice();
+        let t: &mut [T] = &mut self.as_mut_slice()[..ROWS * COLS];
 
         let mut div_el_ii = T::zero();
 

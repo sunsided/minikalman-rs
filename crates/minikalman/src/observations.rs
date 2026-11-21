@@ -296,13 +296,16 @@ pub(crate) fn normalized_innovation_squared<const OBSERVATIONS: usize, T>(
 where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let s_inv = &S_inv.as_slice()[..OBSERVATIONS * OBSERVATIONS];
+    let y = &y.as_slice()[..OBSERVATIONS];
     let mut nis = T::zero();
     for i in 0..OBSERVATIONS {
         let mut row = T::zero();
         for j in 0..OBSERVATIONS {
-            row += S_inv.get(i, j) * y.get(j, 0);
+            row += s_inv[i * OBSERVATIONS + j] * y[j];
         }
-        nis += y.get(i, 0) * row;
+        nis += y[i] * row;
     }
     nis
 }
@@ -505,12 +508,18 @@ fn add_lower_product_mirrored<const STATES: usize, const OBSERVATIONS: usize, T>
 ) where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let p = &mut P.as_mut_slice()[..STATES * STATES];
+    let a = &A.as_slice()[..STATES * OBSERVATIONS];
+    let b = &B.as_slice()[..STATES * OBSERVATIONS];
     for i in 0..STATES {
         for j in 0..=i {
-            let product: T = (0..OBSERVATIONS).map(|l| A.get(i, l) * B.get(j, l)).sum();
-            let value = P.get(i, j) + product;
-            P.set(i, j, value);
-            P.set(j, i, value);
+            let product: T = (0..OBSERVATIONS)
+                .map(|l| a[i * OBSERVATIONS + l] * b[j * OBSERVATIONS + l])
+                .sum();
+            let value = p[i * STATES + j] + product;
+            p[i * STATES + j] = value;
+            p[j * STATES + i] = value;
         }
     }
 }
@@ -585,10 +594,12 @@ fn subtract_with_transpose<const STATES: usize, T>(
 ) where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let p = &mut P.as_mut_slice()[..STATES * STATES];
+    let a = &A.as_slice()[..STATES * STATES];
     for i in 0..STATES {
         for j in 0..STATES {
-            let value = P.get(i, j) - A.get(i, j) - A.get(j, i);
-            P.set(i, j, value);
+            p[i * STATES + j] = p[i * STATES + j] - a[i * STATES + j] - a[j * STATES + i];
         }
     }
 }
