@@ -133,11 +133,12 @@ fn hardware_sqrtf(x: f32) -> f32 {
     unsafe {
         core::arch::asm!(
             "vmov {saved}, s0",
-            "vmov s0, {bits}",
+            "vmov s0, {x}",
             "vsqrt.f32 s0, s0",
-            "vmov {bits}, s0",
+            "vmov {root}, s0",
             "vmov s0, {saved}",
-            bits = inout(reg) x.to_bits() => bits,
+            x = in(reg) x.to_bits(),
+            root = lateout(reg) bits,
             saved = out(reg) _,
             options(pure, nomem, nostack)
         );
