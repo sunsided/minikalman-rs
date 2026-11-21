@@ -533,6 +533,57 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     {
         measurement.correct_nonlinear_with(&mut self.x, &mut self.P, observation, fix)
     }
+
+    /// Performs the nonlinear measurement update step with the externally supplied Kalman
+    /// gain stored in the measurement, instead of computing it.
+    ///
+    /// See [`KalmanFilterNonlinearObservationCorrectWithGain`]: the observation matrix must
+    /// hold the Jacobian of `observation`, `P` is updated with the Joseph form, the gate is
+    /// not evaluated and the NIS is not updated.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement, with its gain set via `kalman_gain_mut`.
+    /// * `observation` - The observation function.
+    pub fn correct_nonlinear_with_gain<M, F, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectWithGain<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+    {
+        measurement.correct_nonlinear_with_gain(&mut self.x, &mut self.P, observation)
+    }
+
+    /// Performs the nonlinear measurement update step with the externally supplied Kalman
+    /// gain stored in the measurement, normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_with_gain`](Self::correct_nonlinear_with_gain).
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement, with its gain set via `kalman_gain_mut`.
+    /// * `observation` - The observation function.
+    /// * `fix` - Normalizes the innovation vector `y = z - h(x)` in place.
+    pub fn correct_nonlinear_with_gain_with<M, F, N, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectWithGain<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+        N: FnMut(&mut [T]),
+    {
+        measurement.correct_nonlinear_with_gain_with(&mut self.x, &mut self.P, observation, fix)
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>

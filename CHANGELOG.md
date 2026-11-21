@@ -37,6 +37,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `smoother::RtsSmoother`, a Rauch-Tung-Striebel backward pass that refines a recorded filter
   history of `x`, `P` and their predictions in place, using the measurements that came later ([#62]).
   It does not allocate and skips steps whose predicted covariance is not positive definite.
+- Added `correct_with_gain` / `correct_with_gain_with` (regular) and `correct_nonlinear_with_gain` /
+  `correct_nonlinear_with_gain_with` (extended) to apply an externally supplied Kalman gain, e.g. a
+  precomputed steady-state gain, set via the new `kalman_gain_mut` accessor. They skip the inversion
+  of `S` and update `P` with the Joseph form, so it stays symmetric and positive semi-definite for
+  any gain. The gate is not evaluated and the NIS is not updated ([#66]).
 
 ### Fixed
 
@@ -78,6 +83,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#64]: https://github.com/sunsided/minikalman-rs/issues/64
 [#67]: https://github.com/sunsided/minikalman-rs/issues/67
 [#62]: https://github.com/sunsided/minikalman-rs/issues/62
+[#66]: https://github.com/sunsided/minikalman-rs/issues/66
 
 ## [0.8.1] - 2026-10-30
 

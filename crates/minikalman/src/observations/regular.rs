@@ -246,6 +246,8 @@ impl<
     /// indicates an overconfident filter. The value is updated by every correction whose
     /// innovation covariance `S` is positive definite, including corrections rejected by the
     /// [gate](Self::set_gate), and is `0` before the first such correction.
+    /// Corrections with an external gain ([`correct_with_gain`](Self::correct_with_gain)) do not invert `S` and leave
+    /// the NIS unchanged.
     ///
     /// With fixed-point types, large innovations can overflow `yᵀ×S⁻¹×y`; choose a type with
     /// enough integer bits for the expected outliers.
@@ -335,6 +337,23 @@ impl<
     pub fn measurement_noise_covariance_mut(&mut self) -> &mut R {
         &mut self.R
     }
+
+    /// Gets a reference to the Kalman gain matrix K.
+    ///
+    /// After a regular correction, this holds the gain `K = P×Hᵀ×S⁻¹` that was applied.
+    #[inline(always)]
+    pub fn kalman_gain(&self) -> &K {
+        &self.K
+    }
+
+    /// Gets a mutable reference to the Kalman gain matrix K.
+    ///
+    /// Set the gain here before calling [`correct_with_gain`](Self::correct_with_gain). Note that a regular
+    /// correction overwrites K with the gain it computes.
+    #[inline(always)]
+    pub fn kalman_gain_mut(&mut self) -> &mut K {
+        &mut self.K
+    }
 }
 
 impl<
@@ -419,6 +438,72 @@ where
 
         // Perform the remaining update.
         self.update_with_innovation(x, P)
+    }
+
+    /// Applies a correction step with the externally supplied Kalman gain stored in K.
+    ///
+    /// Set the gain with [`kalman_gain_mut`](Self::kalman_gain_mut) first, e.g. a precomputed
+    /// steady-state gain. `P` is updated with the Joseph form, so it stays symmetric and
+    /// positive semi-definite for any gain. `S` is not inverted: the [gate](Self::set_gate) is
+    /// not evaluated and the [NIS](Self::nis) is not updated.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    ///
+    /// Always returns [`CorrectionStatus::Applied`].
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_with_gain<X, P>(&mut self, x: &mut X, P: &mut P) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        self.correct_with_gain_with(x, P, |_| {})
+    }
+
+    /// Applies a correction step with the externally supplied Kalman gain stored in K,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_with_gain`](Self::correct_with_gain).
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `fix` - Normalizes the innovation `y = z - H×x` in place, e.g. by wrapping angles.
+    ///
+    /// Always returns [`CorrectionStatus::Applied`].
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_with_gain_with<X, P, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        mut fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        N: FnMut(&mut [T]),
+    {
+        // y = z - H*x
+        let y = self.y.as_matrix_mut();
+        self.H.as_matrix().mult_rowvector(x.as_matrix(), y);
+        self.z.as_matrix().sub_inplace_b(y);
+        fix(y.as_mut_slice());
+
+        crate::observations::update_with_gain(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.y.as_matrix(),
+            self.K.as_matrix(),
+            self.S.as_matrix_mut(),
+            self.temp_HP.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+        )
     }
 
     /// Performs the update step. Assumes that the innovation vector is already calculated correctly,
@@ -864,6 +949,61 @@ where
         N: FnMut(&mut [T]),
     {
         self.correct_with(x, P, fix)
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterObservationCorrectWithGain<STATES, T>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+where
+    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_with_gain_with<X, P, N>(&mut self, x: &mut X, P: &mut P, fix: N) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        N: FnMut(&mut [T]),
+    {
+        self.correct_with_gain_with(x, P, fix)
     }
 }
 

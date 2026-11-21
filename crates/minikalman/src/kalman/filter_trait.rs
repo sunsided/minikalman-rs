@@ -673,6 +673,112 @@ pub trait KalmanFilterNonlinearObservationCorrectFilter<
         N: FnMut(&mut [T]);
 }
 
+/// A linear observation that can be applied with an externally supplied Kalman gain.
+///
+/// Instead of computing `K = P×Hᵀ×S⁻¹`, the correction uses the gain already stored in the
+/// observation's `K` buffer, e.g. a precomputed steady-state gain or a learned one. `P` is
+/// updated with the Joseph form, so it stays symmetric and positive semi-definite for any `K`.
+///
+/// Since `S` is never inverted, the [gate](crate::regular::RegularObservation::set_gate) is not
+/// evaluated and the [NIS](crate::regular::RegularObservation::nis) is not updated.
+///
+/// See [`KalmanFilterNonlinearObservationCorrectWithGain`] for the nonlinear variant.
+pub trait KalmanFilterObservationCorrectWithGain<const STATES: usize, T> {
+    /// Performs the measurement update step with the gain stored in the observation.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    ///
+    /// Always returns [`CorrectionStatus::Applied`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_with_gain<X, P>(&mut self, x: &mut X, P: &mut P) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        self.correct_with_gain_with(x, P, |_| {})
+    }
+
+    /// Performs the measurement update step with the gain stored in the observation,
+    /// normalizing the innovation `y = z - H×x` before it is applied.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `fix` - Normalizes the innovation vector in place, e.g. by wrapping angles.
+    ///
+    /// Always returns [`CorrectionStatus::Applied`].
+    #[allow(non_snake_case)]
+    fn correct_with_gain_with<X, P, N>(&mut self, x: &mut X, P: &mut P, fix: N) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        N: FnMut(&mut [T]);
+}
+
+/// A nonlinear (Extended Kalman Filter) observation that can be applied with an externally
+/// supplied Kalman gain.
+///
+/// Like [`KalmanFilterObservationCorrectWithGain`], but the innovation is `y = z - h(x)` and
+/// the observation matrix `H` holds the Jacobian of `h`, which is used for the Joseph-form
+/// covariance update.
+pub trait KalmanFilterNonlinearObservationCorrectWithGain<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    T,
+>: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
+{
+    /// Performs the nonlinear measurement update step with the gain stored in the observation.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    ///
+    /// Always returns [`CorrectionStatus::Applied`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_nonlinear_with_gain<X, P, F>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+    {
+        self.correct_nonlinear_with_gain_with(x, P, observation, |_| {})
+    }
+
+    /// Performs the nonlinear measurement update step with the gain stored in the observation,
+    /// normalizing the innovation `y = z - h(x)` before it is applied.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `fix` - Normalizes the innovation vector in place, e.g. by wrapping angles.
+    ///
+    /// Always returns [`CorrectionStatus::Applied`].
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_with_gain_with<X, P, F, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]);
+}
+
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
     type MeasurementVector: MeasurementVector<OBSERVATIONS, T>;
 
