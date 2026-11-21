@@ -335,3 +335,28 @@ fn radar_views_match_copies() {
 fn short_slices_panic() {
     let _ = <RadarView as NamedVector<f32>>::from_vector(&[0.0; 3]);
 }
+
+#[test]
+#[cfg(feature = "fixed")]
+fn fixed_point_scalars_work() {
+    use fixed::types::I16F16;
+
+    /// A fixed-point falling object.
+    #[derive(UniformArray)]
+    #[repr(C)]
+    struct FixedFall {
+        /// Height, in meters.
+        s: I16F16,
+        /// Velocity, in meters per second.
+        v: I16F16,
+    }
+
+    minikalman::named_vector!(FixedFall);
+
+    let mut storage = regular::FilterStorage::<2, I16F16>::new(I16F16::ZERO);
+    let mut filter = storage.build();
+    filter.state_vector_mut().view_mut::<FixedFall>().v = I16F16::from_num(2);
+
+    assert_eq!(filter.state_vector()[1], I16F16::from_num(2));
+    assert_eq!(filter.state_vector().view::<FixedFall>().s, I16F16::ZERO);
+}

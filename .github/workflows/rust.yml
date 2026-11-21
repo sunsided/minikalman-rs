@@ -204,6 +204,8 @@ jobs:
       # The opt-in `derive` feature pulls proc-macro crates that need Rust 1.88.
       - name: Check (derive) on Rust 1.88
         run: cargo +1.88 check --locked --package minikalman --lib --features=derive
+      - name: Test (derive, unsafe) on Rust 1.88
+        run: cargo +1.88 test --locked --package minikalman --features=derive,unsafe --test named_vector
 
   dependencies:
     name: Dependency Submission
