@@ -131,14 +131,86 @@ pub mod unscented;
 ///   adapting.
 /// - With fixed-point types, `ε×εᵀ` can overflow for large residuals, like the NIS.
 ///
-/// Only `R` is adapted; the process noise `Q` is not.
+/// ## Unscented observations
+///
+/// The unscented observation adapts `R` after every applied `correct_sigma_point*`
+/// correction, including the recalibrated one, with the predicted measurement covariance
+/// `Pzz` in place of `H×P⁻×Hᵀ`. After the gain, only `S = Pzz + R`, `S⁻¹` and `y` are left,
+/// so the update is written in terms of them: substituting `Pzz = S − R` and `H×K = Pzz×S⁻¹`
+/// into the update above gives
+///
+/// ```text
+/// ε = R×S⁻¹×y
+/// R ← R + (1−α)×(ε×εᵀ − R×S⁻¹×R)
+/// ```
+///
+/// which is the same update for a linear observation, so the true `R` stays a fixed point.
+/// The recalibrated correction adapts `R` from the first pass, i.e. the `y` and `S` at the
+/// prior: the second pass only recalibrates `P`, and `H×P⁺×Hᵀ` has no closed form in its
+/// sigma points. With a measurement residual function, `ε` is computed from the normalized
+/// `y`. The update overwrites the inverted innovation covariance temporary.
+///
+/// ## Process noise `Q`
+///
+/// The regular, extended and unscented filters adapt their process noise covariance `Q`
+/// with the same settings, enabled with their `set_process_noise_adaptation`. After every
+/// applied `correct`, `correct_with`, `correct_nonlinear`, `correct_nonlinear_with` or
+/// `correct_sigma_point*` correction,
+///
+/// ```text
+/// Δx = x⁺ − x⁻ = K×y
+/// Q ← α×Q + (1−α)×Δx×Δxᵀ
+/// ```
+///
+/// then every diagonal entry of `Q` is raised to at least the floor. The external gain,
+/// predictively oriented and extended recalibrated corrections do not adapt `Q`, and neither
+/// does the information filter.
+///
+/// ### Background
+///
+/// This is the innovation-based estimate of Mohamed and Schwarz, "Adaptive Kalman Filtering
+/// for INS/GPS" (Journal of Geodesy 73, 1999), `Q̂ = K×Ĉᵥ×Kᵀ` with the innovation covariance
+/// `Ĉᵥ` estimated from the innovations `y`. Akhlaghi, Zhou and Huang, "Adaptive Adjustment of
+/// Noise Covariance in Kalman Filter for Dynamic State Estimation" (arXiv:1702.00884, 2017),
+/// replace the moving window by the forgetting factor `α`, as for `R` above.
+///
+/// In expectation, `Δx×Δxᵀ` is `K×S×Kᵀ = P⁻ − P⁺`, the covariance the correction removes. The
+/// true `Q` is a fixed point only where the steady state has `A×P⁺×Aᵀ = P⁺`, e.g. a random
+/// walk (`A = I`). Otherwise the estimate is biased. Once the gain `K` has settled, every
+/// `Δx` points along `K`, so with a single measurement the estimate has rank one along `K`
+/// rather than the shape of the true `Q`; e.g. for a constant velocity model with a position
+/// sensor, the noise ends up mostly on the position instead of the velocity. The filter can
+/// still be consistent, i.e. its NIS averages to the number of measurements. The full Sage-Husa estimate adds
+/// `P⁺ − A×P⁺ₖ₋₁×Aᵀ` to remove this bias, but that term is indefinite and would need an
+/// eigenvalue projection to keep `Q` positive semi-definite, so it is not used.
+///
+/// ### Keeping `Q` symmetric positive semi-definite
+///
+/// No projection is needed: for `0 ≤ α ≤ 1`, `α×Q` is positive semi-definite (PSD) and
+/// `Δx×Δxᵀ` is a PSD rank-one term, so their sum is PSD. Only the lower triangle is computed
+/// and mirrored, so `Q` stays exactly symmetric under rounding. Raising a diagonal entry adds
+/// a non-negative diagonal matrix, which keeps `Q` PSD; the floor may be `0`.
+///
+/// ### Limits
+///
+/// - `Δx` lies in the span of the gain `K`, so `Q` only learns the directions the
+///   corrections move the state in. In all other directions, `Q` decays by `α` per
+///   correction towards the floor.
+/// - Every correction adds one `Δx`. With several observations per prediction, each takes
+///   part of the correction, and `Q` comes out too small.
+/// - `Q = 0` with a zero floor is absorbing: `P` collapses, the gain goes to zero, and so
+///   does `Δx`.
+/// - Adapting `R` at the same time is poorly identifiable: both explain the same innovations.
+///   Adapt one of them at a time, or keep `α` for `Q` closer to `1`.
+/// - Gated, not positive definite and backed-out corrections leave `Q` unchanged.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NoiseAdaptation<T> {
-    /// The forgetting factor `α` in `(0, 1)`: the weight of the previous `R`. The new
-    /// residual is weighted with `1 − α`.
+    /// The forgetting factor `α` in `(0, 1)`: the weight of the previous `R` or `Q`. The new
+    /// residual or state correction is weighted with `1 − α`.
     pub forgetting: T,
 
-    /// Lower bound for every diagonal entry of the adapted `R`. Should be positive.
+    /// Lower bound for every diagonal entry of the adapted `R` or `Q`. Should be positive for
+    /// `R`; may be `0` for `Q`.
     pub floor: T,
 }
 

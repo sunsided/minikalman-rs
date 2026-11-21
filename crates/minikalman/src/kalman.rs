@@ -5,6 +5,7 @@ pub mod extended;
 mod filter_trait;
 pub mod information;
 mod matrix_types;
+pub(crate) mod process_noise;
 pub mod regular;
 pub mod unscented;
 
