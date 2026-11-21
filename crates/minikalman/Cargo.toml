@@ -90,6 +90,10 @@ name = "simple"
 required-features = ["alloc"]
 
 [[test]]
+name = "named_vector"
+required-features = ["derive", "unsafe"]
+
+[[test]]
 name = "proptest_matrix"
 required-features = ["std"]
 
@@ -107,6 +111,8 @@ alloc = []
 no_assert = []
 micromath = ["dep:micromath"]
 nalgebra = ["dep:nalgebra"]
+# Needs Rust 1.88, above the crate MSRV.
+derive = ["dep:uniform-array-derive", "dep:ensure-uniform-type"]
 
 [dependencies]
 fixed = { version = "1.24.0", optional = true }
@@ -114,6 +120,8 @@ libm = { version = "0.2.8", optional = true }
 micromath = { version = "2.1.0", optional = true, features = ["num-traits"] }
 nalgebra = { version = "0.33.2", optional = true, default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
+uniform-array-derive = { version = "1", optional = true }
+ensure-uniform-type = { version = "1", optional = true }
 
 [dev-dependencies]
 assert_float_eq = "1.1.3"

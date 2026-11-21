@@ -318,6 +318,37 @@ filter.predict_nonlinear(|x, next| {
 });
 ```
 
+With the opt-in `derive` feature (Rust 1.88), a `#[repr(C)]` struct derived with `UniformArray`
+views the vector in place instead of copying. The derive emits the cast only when your crate
+declares *and enables* its own `unsafe` feature:
+
+```toml
+[dependencies]
+minikalman = { version = "0.8", features = ["derive"] }
+
+[features]
+default = ["unsafe"] # or build with `--features unsafe`
+unsafe = []
+```
+
+```rust,ignore
+#[derive(minikalman::UniformArray)]
+#[repr(C)]
+struct TrackView { position: f32, velocity: f32 }
+
+minikalman::named_vector!(TrackView);
+
+filter.predict_nonlinear(|x, next| {
+    let (s, n) = (x.view::<TrackView>(), next.view_mut::<TrackView>());
+    n.position = s.position + 0.1 * s.velocity;
+    n.velocity = s.velocity;
+});
+let velocity = filter.state_vector().view::<TrackView>().velocity;
+```
+
+A struct whose field count differs from the vector length fails to build. See the
+`named_vector` module docs for the setup.
+
 ### Targets with allocations (`std` or `alloc`)
 
 When the `alloc` crate feature is enabled either directly or implicitly via `std`,

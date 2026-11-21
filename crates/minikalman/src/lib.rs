@@ -60,6 +60,21 @@
 //! * `nalgebra` - Disabled by default. Enables copies between minikalman's matrices and
 //!   [nalgebra](https://crates.io/crates/nalgebra) matrices; see [nalgebra interop](#nalgebra-interop).
 //!   Together with `unsafe`, a `MatrixDataArray` can also back an owned nalgebra matrix.
+//! * `derive` - Disabled by default; needs Rust 1.88. Re-exports the `UniformArray` derive and
+//!   `ensure_uniform_type` and adds zero-copy views of vectors as `#[repr(C)]` structs; see
+//!   [named vectors](#named-vectors).
+//!
+//! ## Named Vectors
+//!
+//! [`state!`](crate::state) declares a struct with one field per entry plus index constants, and copies
+//! entries in and out of a vector. It is safe, needs no feature and builds on the MSRV.
+//!
+//! With the `derive` feature, a `#[repr(C)]` struct derived with `UniformArray` can instead view
+//! a state or measurement vector in place: `filter.state_vector().view::<Radar>()` borrows the
+//! vector as a `&Radar`, and `view_mut` as a `&mut Radar` whose field writes go to the filter.
+//! A length mismatch fails to build. The cast is generated in *your* crate and only when it
+//! enables its own `unsafe` feature; minikalman adds no `unsafe` code. The `named_vector`
+//! module documents the setup.
 //!
 //! ## nalgebra Interop
 //!
@@ -325,6 +340,9 @@ mod controls;
 mod kalman;
 pub mod matrix;
 pub mod models;
+#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
+#[cfg(feature = "derive")]
+pub mod named_vector;
 mod observations;
 pub mod smoother;
 mod state_macro;
@@ -348,6 +366,10 @@ pub use num_traits;
 #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
 #[cfg(feature = "nalgebra")]
 pub use nalgebra;
+
+#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
+#[cfg(feature = "derive")]
+pub use crate::named_vector::{NamedVector, UniformArray, ensure_uniform_type};
 
 /// Compiles and runs the code examples in the README as doctests.
 // Gated on `alloc` here because GitHub shows rustdoc's hidden `#` lines, so the README
@@ -561,6 +583,10 @@ pub mod prelude {
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::scratch::CorrectionScratch;
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
+    #[cfg(feature = "derive")]
+    pub use crate::named_vector::{NamedVector, VectorView, VectorViewMut};
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P,
