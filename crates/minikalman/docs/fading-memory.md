@@ -32,8 +32,8 @@ measurements are noisier: the measurement noise of a sample `j` steps back is in
 ### Relation to recursive least squares (RLS)
 
 With `A = I`, `Q = 0` and a time-varying observation row `H = φₖᵀ` (the regressor), the state is a
-parameter vector and the filter is exactly the exponentially weighted RLS estimator: calling
-`predict_tuned(λ)` before each correction minimizes `Σ μᵏ⁻ⁱ·(yᵢ − φᵢᵀ·θ)²` with the classic RLS
+parameter vector and the filter is exactly the exponentially weighted RLS estimator: running the
+tuned prediction with `λ` before each correction minimizes `Σ μᵏ⁻ⁱ·(yᵢ − φᵢᵀ·θ)²` with the classic RLS
 forgetting factor
 
 ```text
