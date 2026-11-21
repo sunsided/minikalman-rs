@@ -6,6 +6,7 @@ use crate::prelude::{AsMatrix, AsMatrixMut};
 /// A correction that is not [`Applied`](Self::Applied) leaves the state vector and the
 /// estimate covariance unchanged.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum CorrectionStatus {
     /// The measurement was applied to the state and the estimate covariance.
     Applied,

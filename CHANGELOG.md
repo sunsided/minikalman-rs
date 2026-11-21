@@ -22,7 +22,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `set_gate` to the regular, extended and unscented observations. A correction whose NIS
   exceeds the gate, e.g. a chi-square quantile, is skipped and leaves `x` and `P` unchanged.
   The gate is off by default ([#59]).
-- Added `CorrectionStatus` (`Applied`, `NotPositiveDefinite`, `Gated`), returned by `correct`,
+- Added `CorrectionStatus` (`Applied`, `NotPositiveDefinite`, `Gated`; `#[non_exhaustive]`), returned by `correct`,
   `correct_with`, `correct_nonlinear`, `correct_nonlinear_with`, `correct_sigma_point` and
   `correct_sigma_point_with`, so callers can tell whether a measurement was skipped ([#65]).
 
