@@ -585,6 +585,94 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let _ = (arows, acols, bcols, brows);
     }
 
+    /// Computes the symmetric product `C = A * B'` from its lower triangle.
+    ///
+    /// Use this instead of [`mult_transb`](Matrix::mult_transb) when `A×Bᵀ` is symmetric in
+    /// exact arithmetic, e.g. `(A×P)×Aᵀ` or `(K×S)×Kᵀ`. Only the entries on and below the
+    /// diagonal are computed; each is mirrored into the upper triangle, so `C` comes out exactly
+    /// symmetric for about half the multiplications. The lower triangle is bit-identical to
+    /// the one [`mult_transb`](Matrix::mult_transb) computes.
+    ///
+    /// ## Arguments
+    /// * `self` - Matrix A
+    /// * `b` - Matrix B, with as many rows as A
+    /// * `c` - Resulting square matrix C (will be overwritten)
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::matrix::{MatrixData, Matrix};
+    ///
+    /// let a_buf = [
+    ///     1.0, 2.0,
+    ///     3.0, 4.0];
+    /// let a = MatrixData::new_ref::<2, 2, f32>(&a_buf);
+    ///
+    /// let mut c_buf = [0f32; 2 * 2];
+    /// let mut c = MatrixData::new_mut::<2, 2, f32>(&mut c_buf);
+    ///
+    /// // C = A×Aᵀ
+    /// a.mult_symmetric_transb(&a, &mut c);
+    /// assert_eq!(c_buf, [5.0, 11.0, 11.0, 25.0]);
+    /// ```
+    #[doc(alias = "matrix_mult_symmetric_transb")]
+    fn mult_symmetric_transb<B, C>(&self, b: &B, c: &mut C)
+    where
+        B: Matrix<ROWS, COLS, T>,
+        C: MatrixMut<ROWS, ROWS, T>,
+        T: MatrixDataType,
+    {
+        let (adata, bdata, cdata) = symmetric_transb_operands(self, b, c);
+        products_symmetric_transb::<ROWS, COLS, T>(adata, bdata, cdata, |c, total| *c = total);
+    }
+
+    /// Adds the symmetric product `A * B'` to `C`, from its lower triangle: `C = C + A * B'`.
+    ///
+    /// Use this instead of [`multadd_transb`](Matrix::multadd_transb) when `A×Bᵀ` is symmetric
+    /// in exact arithmetic. Only the entries of `C` on and below the diagonal are updated; each
+    /// result is mirrored into the upper triangle, whose previous values are ignored. The lower
+    /// triangle is bit-identical to the one [`multadd_transb`](Matrix::multadd_transb)
+    /// computes.
+    ///
+    /// ## Arguments
+    /// * `self` - Matrix A
+    /// * `b` - Matrix B, with as many rows as A
+    /// * `c` - Square matrix C (its lower triangle is added to, its upper one overwritten)
+    #[doc(alias = "matrix_multadd_symmetric_transb")]
+    fn multadd_symmetric_transb<B, C>(&self, b: &B, c: &mut C)
+    where
+        B: Matrix<ROWS, COLS, T>,
+        C: MatrixMut<ROWS, ROWS, T>,
+        T: MatrixDataType,
+    {
+        let (adata, bdata, cdata) = symmetric_transb_operands(self, b, c);
+        products_symmetric_transb::<ROWS, COLS, T>(adata, bdata, cdata, |c, total| *c += total);
+    }
+
+    /// Computes the scaled symmetric product `C = A * B' * scale` from its lower triangle.
+    ///
+    /// Use this instead of [`multscale_transb`](Matrix::multscale_transb) when `A×Bᵀ` is
+    /// symmetric in exact arithmetic. Only the entries on and below the diagonal are computed
+    /// and mirrored into the upper triangle. The lower triangle is bit-identical to the one
+    /// [`multscale_transb`](Matrix::multscale_transb) computes.
+    ///
+    /// ## Arguments
+    /// * `self` - Matrix A
+    /// * `b` - Matrix B, with as many rows as A
+    /// * `scale` - Scaling factor
+    /// * `c` - Resulting square matrix C (will be overwritten)
+    #[doc(alias = "matrix_multscale_symmetric_transb")]
+    fn multscale_symmetric_transb<B, C>(&self, b: &B, scale: T, c: &mut C)
+    where
+        B: Matrix<ROWS, COLS, T>,
+        C: MatrixMut<ROWS, ROWS, T>,
+        T: MatrixDataType,
+    {
+        let (adata, bdata, cdata) = symmetric_transb_operands(self, b, c);
+        products_symmetric_transb::<ROWS, COLS, T>(adata, bdata, cdata, |c, total| {
+            *c = total * scale;
+        });
+    }
+
     /// Subtracts two matrices, using `C = A - B`.
     ///
     /// ## Arguments
@@ -720,6 +808,69 @@ fn products_transb<const R: usize, const K: usize, const U: usize, T>(
         }
         for (c_ij, &total) in c[i * U..(i + 1) * U].iter_mut().zip(&row) {
             store(c_ij, total);
+        }
+    }
+}
+
+/// Checks the shapes of `C = A×Bᵀ` with a square `C` and returns the operands as slices of
+/// their static lengths, so that the kernel needs no bounds checks.
+#[inline(always)]
+fn symmetric_transb_operands<'a, const N: usize, const K: usize, T, A, B, C>(
+    a: &'a A,
+    b: &'a B,
+    c: &'a mut C,
+) -> (&'a [T], &'a [T], &'a mut [T])
+where
+    A: Matrix<N, K, T> + ?Sized,
+    B: Matrix<N, K, T>,
+    C: MatrixMut<N, N, T>,
+    T: MatrixDataType,
+{
+    #[cfg(not(feature = "no_assert"))]
+    {
+        debug_assert_eq!(N, b.rows());
+        debug_assert_eq!(K, b.cols());
+        debug_assert_eq!(N, c.rows());
+        debug_assert_eq!(N, c.cols());
+    }
+
+    (
+        &a.as_slice()[..N * K],
+        &b.as_slice()[..N * K],
+        &mut c.as_mut_slice()[..N * N],
+    )
+}
+
+/// Computes the lower triangle of `C = A×Bᵀ` for `A`, `B` (`N`×`K`) and a square `C`, passes
+/// each entry to `store` and mirrors the stored value into the upper triangle.
+///
+/// Every entry sums its `K` terms in ascending order from zero, as in [`products_transb`], so
+/// the lower triangle is the same bit for bit. Unlike [`products_transb`], every size keeps one
+/// dot product per entry. Measured with `benches/compare` on x86-64: a row accumulator over
+/// only the lower part of a row has a varying length and vectorizes poorly (6 states: about
+/// 80 ns instead of 62 ns for the prediction). A full-length one wastes the upper half; it was
+/// about 1 ns faster for 4 states in `f32`, slower for 6, and added 60 to 80 bytes of `.text`
+/// to a `thumbv7em` step.
+#[inline(always)]
+fn products_symmetric_transb<const N: usize, const K: usize, T>(
+    a: &[T],
+    b: &[T],
+    c: &mut [T],
+    mut store: impl FnMut(&mut T, T),
+) where
+    T: MatrixDataType,
+{
+    // Row i writes only C[i][..=i] and C[..=i][i]; earlier rows never touch C[i][..i], so
+    // `store` always reads the caller's lower-triangle value.
+    for i in 0..N {
+        for j in 0..=i {
+            let mut total = T::zero();
+            for k in 0..K {
+                total += a[i * K + k] * b[j * K + k];
+            }
+
+            store(&mut c[i * N + j], total);
+            c[j * N + i] = c[i * N + j];
         }
     }
 }
@@ -1954,6 +2105,51 @@ mod kernel_bit_identity {
         assert_bits_eq(&got, &want, "multscale_transb");
     }
 
+    /// Asserts that the `N`×`N` result `got` holds the lower triangle of `want` bit for bit,
+    /// mirrors it exactly into the upper one, and leaves the entries past `N×N` as in `want`.
+    fn assert_mirrored_lower<const N: usize, T: ToBits>(got: &[T], want: &[T], what: &str) {
+        for i in 0..N {
+            for j in 0..=i {
+                assert_bits_eq(&[got[i * N + j]], &[want[i * N + j]], what);
+                assert_bits_eq(&[got[j * N + i]], &[got[i * N + j]], what);
+            }
+        }
+
+        assert_bits_eq(&got[N * N..], &want[N * N..], what);
+    }
+
+    fn check_symmetric_transb<const N: usize, const K: usize, T>(scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, b, c0) = (
+            values::<T>(10, scale),
+            values::<T>(11, scale),
+            values::<T>(12, scale),
+        );
+        let s = T::from_f64(0.75).unwrap();
+        let shape = (N, K, N);
+        let am = MatrixData::new_ref::<N, K, T>(&a);
+        let bm = MatrixData::new_ref::<N, K, T>(&b);
+
+        // A and B are unrelated, so the full product is not symmetric: the upper triangle
+        // must come from the mirror, not from computing it.
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c = t);
+        am.mult_symmetric_transb(&bm, &mut MatrixData::new_mut::<N, N, T>(&mut got));
+        assert_mirrored_lower::<N, T>(&got, &want, "mult_symmetric_transb");
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c += t);
+        am.multadd_symmetric_transb(&bm, &mut MatrixData::new_mut::<N, N, T>(&mut got));
+        assert_mirrored_lower::<N, T>(&got, &want, "multadd_symmetric_transb");
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c = t * s);
+        am.multscale_symmetric_transb(&bm, s, &mut MatrixData::new_mut::<N, N, T>(&mut got));
+        assert_mirrored_lower::<N, T>(&got, &want, "multscale_symmetric_transb");
+    }
+
     fn check_rowvector<const R: usize, const K: usize, T>(scale: f64)
     where
         T: MatrixDataType + ToBits,
@@ -1997,6 +2193,16 @@ mod kernel_bit_identity {
         check_transb::<3, 5, 3, T>(scale);
         check_transb::<6, 6, 6, T>(scale);
         check_transb::<5, 1, 2, T>(scale);
+
+        check_symmetric_transb::<1, 1, T>(scale);
+        check_symmetric_transb::<2, 1, T>(scale);
+        check_symmetric_transb::<2, 2, T>(scale);
+        check_symmetric_transb::<3, 5, T>(scale);
+        check_symmetric_transb::<4, 2, T>(scale);
+        check_symmetric_transb::<4, 4, T>(scale);
+        check_symmetric_transb::<5, 3, T>(scale);
+        check_symmetric_transb::<6, 6, T>(scale);
+        check_symmetric_transb::<7, 1, T>(scale);
 
         check_rowvector::<1, 1, T>(scale);
         check_rowvector::<4, 2, T>(scale);

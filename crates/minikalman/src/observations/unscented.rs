@@ -538,7 +538,7 @@ where
         cross_cov.mult_transb(K, temp_P);
         sub_symmetric_part(P_mat, temp_P);
         K.mult(S, cross_cov); // cross_cov = K*S₂
-        cross_cov.mult_transb(K, temp_P);
+        cross_cov.mult_symmetric_transb(K, temp_P);
         P_mat.add_inplace_a(temp_P);
         CorrectionStatus::Applied
     }
@@ -734,7 +734,8 @@ where
         let P_mat = P.as_matrix_mut();
         let temp_P = self.temp_P.as_matrix_mut();
 
-        cross_cov.mult_transb(K, temp_P);
+        // Pxz×Kᵀ = Pxz×S⁻¹×Pxzᵀ is symmetric; only its lower triangle is computed.
+        cross_cov.mult_symmetric_transb(K, temp_P);
         P_mat.sub_inplace_a(temp_P);
     }
 }

@@ -220,7 +220,7 @@ where
         // P += C × (P_next − P_pred) × Cᵀ
         p_next.sub(p_pred, &mut self.temp);
         self.gain.mult(&self.temp, &mut self.inverse);
-        self.inverse.multadd_transb(&self.gain, p);
+        self.inverse.multadd_symmetric_transb(&self.gain, p);
         true
     }
 }

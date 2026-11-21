@@ -148,7 +148,7 @@ where
 
     // P -= (g−c)/g² · (P*Hᵀ)(P*Hᵀ)ᵀ, from the copy in K.
     K.copy_from(temp_PHt);
-    K.multscale_transb(K, (g - c) / g / g, temp_KHP);
+    K.multscale_symmetric_transb(K, (g - c) / g / g, temp_KHP);
     P.sub_inplace_a(temp_KHP);
 
     // K = P*Hᵀ / (c+r+g); x += K*y

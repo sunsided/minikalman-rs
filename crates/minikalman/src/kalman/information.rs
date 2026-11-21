@@ -296,9 +296,9 @@ where
         transpose(H, Ht);
         Ht.mult(R_inv, HtRinv);
 
-        // Y = Y + HtRinv×H
+        // Y = Y + HtRinv×H; Hᵀ×R⁻¹×H is symmetric, so only its lower triangle is computed.
         let HtRinvH = self.temp_P.as_matrix_mut();
-        HtRinv.mult(H, HtRinvH);
+        HtRinv.mult_symmetric_transb(&*Ht, HtRinvH);
         self.Y.as_matrix_mut().add_inplace_a(HtRinvH);
 
         // ŷ = ŷ + HtRinv×z
