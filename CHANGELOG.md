@@ -5,6 +5,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Documentation
+
+- Documented the `λ` of `predict_tuned` / `predict_tuned_nonlinear` as a fading-memory (forgetting)
+  factor: what it does, why it works (exponential data weighting), its exact relation to recursive
+  least squares (`μ = λ²`), when to prefer it over `Q`, and its windup caveat.
+
 ### Added
 
 - With the opt-in `nalgebra` feature, every matrix and buffer gets `to_nalgebra()` (a stack copy

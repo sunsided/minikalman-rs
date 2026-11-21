@@ -16,7 +16,8 @@ use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
 /// Predicts the estimate covariance, `P = A×P×Aᵀ + Q`, shared by the linear and extended filters.
 ///
 /// With `Some(lambda)`, the propagated covariance is scaled by `1/λ²` before `Q` is added,
-/// with `0 < λ ≤ 1` (smaller values mean larger uncertainty).
+/// with `0 < λ ≤ 1`: the fading-memory prediction, see `docs/fading-memory.md` (rendered on
+/// `RegularKalman::predict_tuned`).
 #[allow(non_snake_case)]
 pub(crate) fn predict_covariance<const STATES: usize, T>(
     A: &impl Matrix<STATES, STATES, T>,
