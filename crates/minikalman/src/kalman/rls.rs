@@ -4,8 +4,8 @@
 //! `yₖ = φₖᵀ·θ + vₖ`, with exponential forgetting and a covariance windup guard. See
 //! [`RecursiveLeastSquares`] for the math.
 
-use crate::kalman::ud::{bierman_update, reconstruct_ud};
 use crate::kalman::CorrectionStatus;
+use crate::kalman::ud::{bierman_update, reconstruct_ud};
 use crate::matrix::{MatrixData, MatrixDataType, MatrixMut};
 use core::marker::PhantomData;
 
@@ -400,11 +400,7 @@ where
         }
 
         let ratio = trace / bound;
-        if ratio > mu {
-            ratio
-        } else {
-            mu
-        }
+        if ratio > mu { ratio } else { mu }
     }
 
     /// Returns `φᵀ·P·φ` of the current (not yet forgotten) `P`, and leaves `Uᵀ·φ` (factored)
