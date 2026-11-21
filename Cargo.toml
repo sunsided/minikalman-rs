@@ -2,7 +2,7 @@
 resolver = "3"
 members = ["crates/minikalman", "xbuild-tests/stm32", "xbuild-tests/wasm"]
 default-members = ["crates/minikalman"]
-exclude = ["crates/minikalman/fuzz", "benches/compare"]
+exclude = ["crates/minikalman/fuzz", "benches/compare", "benches/mcu"]
 
 [workspace.package]
 version = "0.8.1"

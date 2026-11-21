@@ -1,0 +1,10 @@
+// Renode's STM32L071 (Cortex-M0+) with more flash and RAM than the chip has, so that the
+// opt-level 3 builds and the I32F32 stacks fit. Only the instruction stream is measured, and
+// that depends on the core, not on the memory sizes. build.rs links for these sizes.
+using "platforms/cpus/stm32l071.repl"
+
+flash:
+    size: 0x60000
+
+sram:
+    size: 0x10000
