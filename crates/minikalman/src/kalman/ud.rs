@@ -766,7 +766,7 @@ where
     let f0 = f.get(0, 0);
     let g0 = UD.get(0, 0) * f0;
     let mut alpha = r + g0 * f0;
-    UD.set(0, 0, UD.get(0, 0) * (r / alpha));
+    UD.set(0, 0, scale_pivot(UD.get(0, 0), r, g0 * f0, alpha));
     k.set(0, 0, g0);
 
     for j in 1..STATES {
@@ -775,12 +775,13 @@ where
         let gj = dj * fj;
         let alpha_prev = alpha;
         alpha += gj * fj;
-        UD.set(j, j, dj * (alpha_prev / alpha));
+        UD.set(j, j, scale_pivot(dj, alpha_prev, gj * fj, alpha));
 
-        let lambda = -fj / alpha_prev;
+        // U[i][j] − fⱼ·(k[i]/αⱼ₋₁): k/αⱼ₋₁ is the gain of the first j states and well scaled,
+        // while fⱼ/αⱼ₋₁ or fⱼ·k[i] alone can fall below the resolution of a fixed-point type.
         for i in 0..j {
             let u = UD.get(i, j);
-            UD.set(i, j, u + lambda * k.get(i, 0));
+            UD.set(i, j, u - fj * (k.get(i, 0) / alpha_prev));
             k.set(i, 0, k.get(i, 0) + gj * u);
         }
 
@@ -795,6 +796,24 @@ where
     }
 
     alpha
+}
+
+/// Returns the updated pivot `d·num/α`, where `α = num + part` with `num > 0` and `part ≥ 0`.
+///
+/// Divides the larger of `num` and `part` by `α` first, so that the ratio is at least `1/2`:
+/// `d·(num/α)` if `num` dominates, else `num·(d/α)`. In a fixed-point type, the ratio of the
+/// smaller part to `α` (e.g. `r/α` for a precise sensor) can fall below the resolution and
+/// zero the pivot; `d/α ≤ 1/f²` for the `part = d·f²` of the caller stays in range unless `f`
+/// is very small while `part` still dominates.
+fn scale_pivot<T>(d: T, num: T, part: T, alpha: T) -> T
+where
+    T: MatrixDataType,
+{
+    if num >= part {
+        d * (num / alpha)
+    } else {
+        num * (d / alpha)
+    }
 }
 
 /// Moves the decorrelated residuals of the rows after `row` (first column of `residuals`)
