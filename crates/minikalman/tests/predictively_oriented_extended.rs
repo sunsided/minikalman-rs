@@ -23,6 +23,10 @@ enum Mode {
     Pro,
     /// The PrO update with the given number of relinearization rounds.
     Iterated(usize),
+    /// [`Mode::Pro`] through the `_with` variant, whose `fix` subtracts the given shift.
+    ProWith(f64),
+    /// [`Mode::Iterated`] through the `_with` variant, whose `fix` subtracts the given shift.
+    IteratedWith(usize, f64),
 }
 
 /// A scalar observation `z = h(x) + noise` with its Jacobian.
@@ -88,6 +92,11 @@ fn correct<const N: usize>(
 
     let mut jacobian_calls = 0;
     let observation = |x: &_, y: &mut _| set_scalar(y, (sensor.h)(&to_array(x)));
+    let jacobian = |x: &_, h: &mut _| {
+        jacobian_calls += 1;
+        set_row(h, &(sensor.jacobian)(&to_array(x)));
+    };
+    let shift = |by: f64| move |y: &mut [f64]| y[0] -= by;
     let status = match mode {
         Mode::Ekf => filter.correct_nonlinear(&mut measurement, observation),
         Mode::Pro => {
@@ -96,16 +105,25 @@ fn correct<const N: usize>(
         Mode::Iterated(rounds) => filter.correct_nonlinear_predictively_oriented_iterated(
             &mut measurement,
             observation,
-            |x, h| {
-                jacobian_calls += 1;
-                let row = (sensor.jacobian)(&to_array(x));
-                for (i, &value) in row.iter().enumerate() {
-                    h.set_at(0, i, value);
-                }
-            },
+            jacobian,
             rounds,
             BUDGET,
         ),
+        Mode::ProWith(by) => filter.correct_nonlinear_predictively_oriented_with(
+            &mut measurement,
+            observation,
+            shift(by),
+            BUDGET,
+        ),
+        Mode::IteratedWith(rounds, by) => filter
+            .correct_nonlinear_predictively_oriented_iterated_with(
+                &mut measurement,
+                observation,
+                jacobian,
+                shift(by),
+                rounds,
+                BUDGET,
+            ),
     };
 
     Posterior {
@@ -123,6 +141,13 @@ fn correct<const N: usize>(
 /// Writes `value` into a `1 × 1` observation vector.
 fn set_scalar(y: &mut impl AsMatrixMut<1, 1, f64>, value: f64) {
     y.as_matrix_mut().set(0, 0, value);
+}
+
+/// Writes `row` into a `1 × N` observation Jacobian.
+fn set_row<const N: usize>(h: &mut impl ObservationMatrixMut<1, N, f64>, row: &[f64; N]) {
+    for (i, &value) in row.iter().enumerate() {
+        h.set_at(0, i, value);
+    }
 }
 
 /// Returns `a·b`.
@@ -533,4 +558,146 @@ fn uninformative_relinearization_is_rejected() {
 
     assert_eq!(pro.status, CorrectionStatus::NotPositiveDefinite);
     assert_eq!((pro.x, pro.p), ([1.0], [[1.0]]));
+}
+
+/// Asserts that two posteriors agree to an absolute tolerance of `1e-12`.
+fn assert_close<const N: usize>(a: &Posterior<N>, b: &Posterior<N>, what: &str) {
+    assert_eq!(a.status, b.status, "{what}");
+    assert!((a.nis - b.nis).abs() < 1e-12, "{what}: NIS");
+    for i in 0..N {
+        assert!((a.x[i] - b.x[i]).abs() < 1e-12, "{what}: x[{i}]");
+        for j in 0..N {
+            assert!((a.p[i][j] - b.p[i][j]).abs() < 1e-12, "{what}: P[{i}][{j}]");
+        }
+    }
+}
+
+/// The `_with` variants apply `fix` to every innovation `z − h(m)`: subtracting a constant
+/// there is the same as measuring `z` minus that constant.
+#[test]
+fn fix_applies_to_every_innovation() {
+    let shifted = correct(&PRIOR_X, &PRIOR_P, &range_sensor(5.0), Mode::Pro, None);
+    let fixed = correct(
+        &PRIOR_X,
+        &PRIOR_P,
+        &range_sensor(6.0),
+        Mode::ProWith(1.0),
+        None,
+    );
+    assert_close(&fixed, &shifted, "Pro");
+
+    let shifted = correct(
+        &PRIOR_X,
+        &PRIOR_P,
+        &range_sensor(5.0),
+        Mode::Iterated(4),
+        None,
+    );
+    let fixed = correct(
+        &PRIOR_X,
+        &PRIOR_P,
+        &range_sensor(6.0),
+        Mode::IteratedWith(4, 1.0),
+        None,
+    );
+    assert_close(&fixed, &shifted, "Iterated");
+    assert_eq!(fixed.jacobian_calls, 4);
+}
+
+/// Zero relinearization rounds are the single linearization, and never call `jacobian`.
+#[test]
+fn zero_rounds_are_the_single_linearization() {
+    let sensor = range_sensor(6.0);
+    let single = correct(&PRIOR_X, &PRIOR_P, &sensor, Mode::Pro, None);
+    let iterated = correct(&PRIOR_X, &PRIOR_P, &sensor, Mode::Iterated(0), None);
+
+    assert_same(&iterated, &single, "zero rounds");
+    assert_eq!(iterated.jacobian_calls, 0);
+}
+
+/// Without measurement noise, or with noise that is not a number, both variants skip the
+/// correction before any relinearization and leave the state and covariance unchanged.
+#[test]
+fn non_positive_noise_is_rejected() {
+    for r in [0.0, -1.0, f64::NAN] {
+        for mode in [Mode::Pro, Mode::Iterated(3)] {
+            let sensor = Sensor {
+                r,
+                ..range_sensor(6.0)
+            };
+            let pro = correct(&PRIOR_X, &PRIOR_P, &sensor, mode, None);
+
+            assert_eq!(
+                pro.status,
+                CorrectionStatus::NotPositiveDefinite,
+                "{mode:?} r={r}"
+            );
+            assert_eq!((pro.x, pro.p), (PRIOR_X, PRIOR_P), "{mode:?} r={r}");
+            assert_eq!(pro.jacobian_calls, 0, "{mode:?} r={r}");
+        }
+    }
+}
+
+/// The observation can be corrected directly, without going through the filter, and gives the
+/// same result as the filter-level methods.
+#[test]
+fn observation_level_calls() {
+    let builder = ExtendedBuilder::<2, f64>::default();
+    let sensor = range_sensor(6.0);
+    let observation = |x: &_, y: &mut _| set_scalar(y, range(&to_array(x)));
+    let jacobian = |x: &_, h: &mut _| set_row(h, &range_jacobian(&to_array(x)));
+
+    for rounds in [None, Some(3)] {
+        let mut measurement = builder.observations().build::<1>();
+        let mut x = BufferBuilder::state_vector_x::<2>().new();
+        let mut p = BufferBuilder::estimate_covariance_P::<2>().new();
+        for i in 0..2 {
+            x.set_at(i, 0, PRIOR_X[i]);
+            for (j, &value) in PRIOR_P[i].iter().enumerate() {
+                p.set_at(i, j, value);
+            }
+        }
+
+        set_row(
+            measurement.observation_jacobian_matrix_mut(),
+            &range_jacobian(&PRIOR_X),
+        );
+        measurement
+            .measurement_noise_covariance_mut()
+            .set_at(0, 0, sensor.r);
+        measurement.measurement_vector_mut().set_at(0, 0, sensor.z);
+
+        let (status, expected) = match rounds {
+            None => (
+                measurement.correct_nonlinear_predictively_oriented(
+                    &mut x,
+                    &mut p,
+                    observation,
+                    BUDGET,
+                ),
+                correct(&PRIOR_X, &PRIOR_P, &sensor, Mode::Pro, None),
+            ),
+            Some(rounds) => (
+                measurement.correct_nonlinear_predictively_oriented_iterated(
+                    &mut x,
+                    &mut p,
+                    observation,
+                    jacobian,
+                    rounds,
+                    BUDGET,
+                ),
+                correct(&PRIOR_X, &PRIOR_P, &sensor, Mode::Iterated(rounds), None),
+            ),
+        };
+
+        let direct = Posterior {
+            x: to_array(x.as_matrix()),
+            p: core::array::from_fn(|i| core::array::from_fn(|j| p.get_at(i, j))),
+            h: [0.0; 2],
+            nis: measurement.nis(),
+            jacobian_calls: 0,
+            status,
+        };
+        assert_same(&direct, &expected, "observation level");
+    }
 }
