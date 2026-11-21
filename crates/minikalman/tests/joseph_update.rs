@@ -14,8 +14,10 @@ use minikalman::regular::builder::KalmanFilterBuilder as RegularBuilder;
 const DT: f64 = 0.1;
 
 /// Relative tolerance between the standard and the Joseph update in `f64`: both are exact
-/// for the optimal gain, so they differ by rounding only: about five ULP of 1.
-const REL: f64 = 1e-15;
+/// for the optimal gain, so they differ by rounding only. The standard form is first order in
+/// the rounding error of the gain, which the reciprocal pivots of the solved gain raise to
+/// about twenty ULP of 1 after 200 steps.
+const REL: f64 = 5e-15;
 
 /// Asserts that `a` and `b` agree to [`REL`], relative to the larger magnitude (at least 1).
 fn assert_close(a: f64, b: f64, what: &str) {

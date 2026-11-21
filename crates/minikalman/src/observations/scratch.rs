@@ -5,7 +5,9 @@ use crate::matrix::MatrixDataMut;
 /// The temporaries of one regular or extended correction, borrowed per call so that several
 /// observations share one set.
 ///
-/// A correction needs four temporaries: `S⁻¹` (`OBSERVATIONS × OBSERVATIONS`), `H×P`
+/// A correction needs four temporaries: an `OBSERVATIONS × OBSERVATIONS` one (the Cholesky
+/// factor of `S` for the gain, `S⁻¹` for the robust and predictively oriented corrections and
+/// `settle_gain`, scratch for noise adaptation), `H×P`
 /// (`OBSERVATIONS × STATES`), `P×Hᵀ` (`STATES × OBSERVATIONS`) and `K×H×P`
 /// (`STATES × STATES`). They hold nothing between two corrections, yet the observations built
 /// with [`RegularObservationBuilder::new`](crate::regular::RegularObservationBuilder::new) own

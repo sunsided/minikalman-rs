@@ -571,8 +571,9 @@ fn is_positive_definite(P: &[f32]) -> bool {
 }
 
 /// In `f32`, `P − K×H×P` cancels catastrophically when `R ≪ H×P×Hᵀ`: with the short-form
-/// update ([`CovarianceUpdate::Standard`]), the regular filter's position variance becomes
-/// negative in the first correction. The square-root filter keeps
+/// update ([`CovarianceUpdate::Standard`]), the regular filter's position variance drops to zero
+/// or below in the first correction (exactly zero with the solved gain, negative with the
+/// explicit `S⁻¹`), where it should be about `R`. The square-root filter keeps
 /// `P` positive definite in every step and close to the `f64` result.
 #[test]
 #[cfg_attr(
@@ -583,7 +584,12 @@ fn keeps_the_covariance_positive_definite_where_the_regular_filter_fails() {
     let (regular, square_root) = run_tiny_measurement_noise::<f32>(50);
     let (reference, _) = run_tiny_measurement_noise::<f64>(50);
 
-    assert!(regular[0][0] < 0.0, "regular P = {:?}", regular[0]);
+    assert!(regular[0][0] <= 0.0, "regular P = {:?}", regular[0]);
+    assert!(
+        !is_positive_definite(&regular[0]),
+        "regular P = {:?}",
+        regular[0]
+    );
     for (k, P) in square_root.iter().enumerate() {
         assert!(is_positive_definite(P), "step {k}: P = {P:?}");
     }

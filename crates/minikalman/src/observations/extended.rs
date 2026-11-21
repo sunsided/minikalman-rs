@@ -38,7 +38,9 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// * `y` - The innovation (`num_measurements` × `1`).
     /// * `S` - The residual covariance (`num_measurements` × `num_measurements`).
     /// * `K` - The Kalman gain (`num_states` × `num_measurements`).
-    /// * `S_inv` - The temporary vector for predicted states (`num_states` × `1`).
+    /// * `S_inv` - A temporary matrix (`num_measurements` × `num_measurements`). The gain
+    ///   factors a copy of `S` here (so that `S` stays unfactored); it is also scratch for noise
+    ///   adaptation and for the robust corrections.
     /// * `temp_HP` - The temporary matrix for H×P calculation (`num_measurements` × `num_states`).
     /// * `temp_PHt` - The temporary matrix for P×H' calculation (`num_states` × `num_measurements`).
     /// * `temp_KHP` - The temporary matrix for K×H×P calculation (`num_states` × `num_states`).
@@ -776,7 +778,6 @@ where
             self.S.as_matrix_mut(),
             self.temp_S_inv.as_matrix_mut(),
             self.temp_HP.as_matrix_mut(),
-            self.temp_PHt.as_matrix_mut(),
             self.temp_KHP.as_matrix_mut(),
             &mut self.nis,
             self.gate,

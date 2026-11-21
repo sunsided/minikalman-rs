@@ -66,6 +66,43 @@ where
     true
 }
 
+/// Replaces the vector `b` of length `n`, with entry `i` at `b[i * stride]`, by `T⁻¹×b` (or
+/// `T⁻ᵀ×b`) for the triangular row-major `n×n` factor `T` stored in `t`.
+///
+/// This is the substitution of [`solve_triangular`] for one right-hand side, which keeps its
+/// own copy of the loop so that its code generation does not change. A stride of 1
+/// solves a contiguous row, e.g. one row of a Kalman gain. Entry `i` becomes
+/// `pivot(i, bᵢ − Σₖ Tᵢₖ×xₖ)` over the entries `k` already solved; the diagonal of `t` itself is
+/// never read. Dividing by `Tᵢᵢ` gives the plain substitution, multiplying by precomputed
+/// reciprocals saves a division per entry, and the identity solves a unit-diagonal factor.
+#[inline]
+pub(crate) fn substitute<T>(
+    t: &[T],
+    n: usize,
+    triangle: Triangle,
+    transpose: Transpose,
+    b: &mut [T],
+    stride: usize,
+    pivot: impl Fn(usize, T) -> T,
+) where
+    T: MatrixDataType,
+{
+    // Element (i, k) of the effective factor, i.e. of `T` or `Tᵀ`.
+    let at = |i: usize, k: usize| match transpose {
+        Transpose::No => t[i * n + k],
+        Transpose::Yes => t[k * n + i],
+    };
+
+    // `L` and `Uᵀ` are lower triangular and solved forwards; `U` and `Lᵀ` backwards.
+    let forward = (triangle == Triangle::Lower) == (transpose == Transpose::No);
+    for step in 0..n {
+        let i = if forward { step } else { n - 1 - step };
+        let known = if forward { 0..i } else { (i + 1)..n };
+        let sum = known.map(|k| at(i, k) * b[k * stride]).sum::<T>();
+        b[i * stride] = pivot(i, b[i * stride] - sum);
+    }
+}
+
 /// Triangularizes the row-major `rows×cols` matrix `m` in place with Householder reflections.
 ///
 /// Afterwards the first `cols` rows hold the upper triangular `R` with `Mᵀ×M = Rᵀ×R` and a

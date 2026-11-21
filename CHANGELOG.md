@@ -362,6 +362,23 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `f32` Joseph step on `thumbv7em-none-eabihf` grows from 2198 to 2218 bytes of `.text`
   (`opt-level = "s"`). New kernels `mult_symmetric_transb`, `multadd_symmetric_transb` and
   `multscale_symmetric_transb`.
+- The regular and extended corrections with the Kalman gain (`correct`, `correct_with`,
+  `correct_nonlinear` and `correct_nonlinear_with`, including the first pass of the
+  recalibrated ones) solve the Kalman gain from the Cholesky factor of `S` instead
+  of forming `S⁻¹` ([#165]). Each row of `K = P×Hᵀ×S⁻¹` takes one forward and one back
+  substitution, and the NIS is `‖L⁻¹×y‖²` from one forward substitution. The substitutions
+  multiply with one reciprocal per pivot, so a correction needs fewer divisions than the
+  explicit inverse (`2m` instead of `3m`). Results change at the
+  level of rounding and are more accurate where `S` is ill-conditioned: in the
+  `numerical_robustness` sweep, the corrected `f32` state stays within `10⁻⁴` of the `f64` one
+  instead of `0.4`, and `I16F16` no longer overflows. Gating and `NotPositiveDefinite`
+  (nothing written) are unchanged. `S⁻¹` is never formed: the gain factors a copy of `S` in the
+  `temp_S_inv` temporary (an `m×m` copy per correction), so the observation's `S` now holds
+  `H×P⁻×Hᵀ + R` after every regular, extended or robust correction, also in the standard form
+  (where it used to hold its Cholesky factor) and when gated or rejected. The Joseph form
+  therefore no longer copies `S` into the `K×H×P` temporary or forms it again. The robust
+  corrections take their prior NIS from the Cholesky factor the same way, so it agrees with the
+  plain correction's (bit for bit where `G + R` rounds like `H×P×Hᵀ + R`, as in the tests).
 - **Breaking:** the `nalgebra` feature now uses nalgebra 0.33 (was 0.32), the newest release that
   builds on the MSRV 1.80. The commented-out `nalgebra_std`/`nalgebra_alloc`/`nalgebra_libm` features
   are gone ([#135]).
@@ -404,6 +421,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#161]: https://github.com/sunsided/minikalman-rs/issues/161
 [#163]: https://github.com/sunsided/minikalman-rs/issues/163
 [#167]: https://github.com/sunsided/minikalman-rs/issues/167
+[#165]: https://github.com/sunsided/minikalman-rs/issues/165
 [#159]: https://github.com/sunsided/minikalman-rs/issues/159
 [#157]: https://github.com/sunsided/minikalman-rs/issues/157
 [#153]: https://github.com/sunsided/minikalman-rs/issues/153

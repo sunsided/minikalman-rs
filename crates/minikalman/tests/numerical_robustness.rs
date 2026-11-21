@@ -265,11 +265,16 @@ impl Sweep {
 
 /// Scenario 1 over 48 values of `δ` per type.
 ///
-/// Found: the standard update leaves `P` indefinite for more values of `δ` than the Joseph
-/// form, in `f32` (from `δ ≈ 9×10⁻³`) and `f64` (from `δ ≈ 10⁻⁴`), but the Joseph form fails
-/// too once `δ` is small enough. From `δ ≈ 3×10⁻⁴` in `f32`, `S` is rejected as not positive
-/// definite and neither form applies the correction. In `I32F32`, the Joseph form fails for
-/// one `δ` and the standard update for none. `I16F16` overflows `S⁻¹ ~ 1/δ²` first.
+/// Found: the exact `P⁺` has two eigenvalues of order `δ²`, so once `δ²` approaches the
+/// roundoff of `T`, whether the computed `P⁺` passes a Cholesky decomposition is a matter of
+/// rounding, and both forms leave it indefinite for some `δ` in every type. From `δ ≈ 3×10⁻⁴`
+/// in `f32`, `S` is rejected as not positive definite and neither form applies the correction.
+/// The gain is solved from the Cholesky factor of `S` rather than formed with `S⁻¹ ~ 1/δ²`,
+/// so `I16F16` no longer overflows, and the corrected state stays close to the `f64` one
+/// (`|Δx|` below `10⁻⁴` in `f32`, against about `0.4` with the explicit inverse). With that
+/// gain, in `f32` and `f64` the standard update is indefinite for fewer `δ` than the Joseph
+/// form (6 and 9 of 48 in `f32`, 3 and 10 in `f64`); with the explicit inverse it was 16 and
+/// 7, 11 and 9. The fixed-point types are not ordered that way (`I32F32`: 27 and 11).
 #[test]
 fn ill_conditioned_measurement() {
     let deltas = deltas(48);
@@ -290,27 +295,29 @@ fn ill_conditioned_measurement() {
     }
 
     let [standard, joseph] = [&sweeps[0], &sweeps[1]];
-    for (standard, joseph) in standard.iter().zip(joseph).take(2) {
+    for (standard, joseph) in standard.iter().zip(joseph) {
         let (s, j) = (&standard.summary, &joseph.summary);
         assert!(
             s.not_positive_definite > 0,
             "standard keeps P positive definite"
         );
-        assert!(j.not_positive_definite < s.not_positive_definite);
-        assert!(joseph.largest_not_positive_definite < standard.largest_not_positive_definite);
+        assert!(
+            j.not_positive_definite > 0,
+            "Joseph keeps P positive definite"
+        );
     }
 
     assert!(joseph.iter().all(|run| run.summary.max_asymmetry == 0.0));
-    // Release builds wrap instead of panicking, so the overflow is only caught with debug assertions.
-    if cfg!(debug_assertions) {
-        assert!(standard[2].overflowed > 0, "I16F16 overflows for small δ");
-    }
+    assert!(
+        standard.iter().chain(joseph).all(|run| run.overflowed == 0),
+        "no type overflows"
+    );
 }
 
 /// Scenario 2 for `10⁴` steps per type.
 ///
 /// Found: no type loses positive definiteness with either form. The standard update leaves
-/// `P` slightly asymmetric (relative `10⁻⁵` in `f32`, `10⁻³` in `I16F16`); the Joseph form
+/// `P` slightly asymmetric (relative `10⁻⁷` in `f32`, `10⁻²` in `I16F16`); the Joseph form
 /// keeps it exactly symmetric.
 #[test]
 fn long_fixed_point_run() {
@@ -344,7 +351,8 @@ fn long_fixed_point_run() {
 /// Scenario 3 for `10³` predictions with [`SENSORS`] corrections each, per type.
 ///
 /// Found: in `I16F16`, the standard update leaves `P` indefinite in some steps, and the
-/// Joseph form does not fix it: it overflows while computing the gain (debug builds).
+/// Joseph form does not fix it: it diverges (`P` indefinite from the second step on; with the
+/// explicit `S⁻¹` it overflowed while computing the gain, in debug builds).
 /// The cause is the resolution, not the form: the steady-state variance is below one LSB.
 /// The floating-point types and `I32F32` stay positive definite with both forms.
 #[test]

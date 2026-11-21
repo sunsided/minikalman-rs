@@ -43,7 +43,7 @@
 use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 use crate::observations::predictively_oriented::vector::machine_epsilon;
-use crate::observations::{CovarianceUpdate, normalized_innovation_squared};
+use crate::observations::{CholeskyFactor, CovarianceUpdate};
 
 /// The relative change of the weight below which the iteration counts as converged.
 const RELATIVE_TOLERANCE: f64 = 1e-6;
@@ -145,7 +145,8 @@ where
     for iteration in 0..=robust.iterations {
         invert_scaled(G, R, solution.weight, S, S_inv)?;
         if iteration == 0 {
-            *nis = normalized_innovation_squared(y, S_inv);
+            // The prior NIS as the plain update forms it, from the Cholesky factor of `G + R`.
+            *nis = CholeskyFactor::<M, T>::new(S.as_slice()).nis(y);
             if gate.is_some_and(|gate| *nis > gate) {
                 return Err(CorrectionStatus::Gated);
             }
@@ -280,6 +281,9 @@ where
 /// `P − w×(K̃×H×P + (K̃×H×P)ᵀ) + w×K̃×S_w×K̃ᵀ`, which equals
 /// `P − K×H×P − (K×H×P)ᵀ + K×(H×P×Hᵀ + R/w)×Kᵀ` without forming `R/w`.
 ///
+/// On return, whatever the status, `S` holds `G + R = H×P⁻×Hᵀ + R` of the prior, as after the
+/// plain correction; the iteration's factors only live in it in between.
+///
 /// ## Buffers
 /// All buffers are distinct. `G` is the caller's scratch; `temp_PHt` keeps `P⁻×Hᵀ` while the
 /// weight is iterated, and `temp_HP` and `temp_KHP` are only written once `K` is formed.
@@ -312,7 +316,10 @@ where
 
     let solution = match solve_weight(&*G, R, y, S, S_inv, nis, gate, robust) {
         Ok(solution) => solution,
-        Err(status) => return status,
+        Err(status) => {
+            write_scaled_covariance(G, R, T::one(), S);
+            return status;
+        }
     };
 
     // K̃ = P*Hᵀ*S_w⁻¹; the gain is K = w*K̃.
@@ -337,6 +344,7 @@ where
     scale(K, w);
     K.multadd_rowvector(y, x);
     *weight = w;
+    write_scaled_covariance(G, R, T::one(), S);
     solution.status()
 }
 
