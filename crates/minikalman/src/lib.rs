@@ -242,6 +242,7 @@ pub struct ReadmeDoctests;
 pub mod regular {
     pub use crate::controls::*;
     pub use crate::kalman::regular::*;
+    pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
     pub use crate::observations::regular::*;
     pub use crate::observations::NoiseAdaptation;
 
@@ -296,6 +297,7 @@ pub mod prelude {
 
     pub use crate::kalman::*;
     pub use crate::matrix::*;
+    pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
     pub use crate::observations::NoiseAdaptation;
 
     pub use crate::{

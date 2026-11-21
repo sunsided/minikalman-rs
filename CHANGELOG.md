@@ -67,6 +67,17 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is larger than predicted. This makes the filter robust to heavy-tailed noise and outliers, at a
   small accuracy cost under Gaussian noise. It costs a few scalar Newton steps on top of a regular
   correction and needs no extra buffers ([#69]).
+- Added `correct_predictively_oriented_vector` to `RegularKalman` and `RegularObservation`, with
+  the trait `KalmanFilterObservationCorrectPredictivelyOrientedVector`: the PrO update for
+  observations with any number of measurements. It solves for the `m×m` measurement-space weight
+  with a damped fixed-point iteration (positive-definiteness guard, Armijo backtracking, and step
+  doubling for badly scaled priors), not by applying the scalar update row by row, which is not
+  the joint update. Single measurements still use the scalar Newton solver. The iteration needs
+  three caller-provided `m×m` scratch matrices, bundled in the new
+  `PredictivelyOrientedWorkspace`; the observation buffers are unchanged. A correction that runs
+  out of its iteration budget, or whose line search stalls at the working precision, is still
+  applied and returns the new `CorrectionStatus::NotConverged`, for which `is_applied()` is
+  `true` ([#87]).
 - Added covariance recalibration after Jiang, Shi and Moura, "Mitigating Overconfidence in Nonlinear
   Kalman Filters via Covariance Recalibration" (Automatica, 2026, arXiv:2407.05717):
   `ExtendedKalman::correct_nonlinear_recalibrated` re-linearizes the observation at the updated
@@ -134,6 +145,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92
 [#86]: https://github.com/sunsided/minikalman-rs/issues/86
 [#93]: https://github.com/sunsided/minikalman-rs/issues/93
+[#87]: https://github.com/sunsided/minikalman-rs/issues/87
 [#69]: https://github.com/sunsided/minikalman-rs/issues/69
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63

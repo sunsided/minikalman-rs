@@ -3,7 +3,10 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{Matrix, MatrixDataType, RowMajorSequentialDataMut};
+use crate::matrix::{
+    Matrix, MatrixDataMut, MatrixDataRef, MatrixDataType, RowMajorSequentialData,
+    RowMajorSequentialDataMut,
+};
 use crate::observations::NoiseAdaptation;
 
 /// A builder for a Kalman filter [`RegularObservation`] instances.
@@ -556,6 +559,158 @@ where
         )
     }
 
+    /// Applies a predictively oriented (PrO) correction step for an observation with any number
+    /// of measurements.
+    ///
+    /// This is the vector form of
+    /// [`correct_predictively_oriented`](RegularObservation::correct_predictively_oriented);
+    /// see there for the objective and when it helps. With `OBSERVATIONS = 1` it runs that
+    /// scalar Newton solver and does not touch `workspace`. Otherwise the posterior is still
+    /// Kalman-shaped, `P⁻¹ = P̃⁻¹ + Hᵀ×W×H`, and the `OBSERVATIONS × OBSERVATIONS` weight `W`
+    /// is found by a damped fixed-point iteration in measurement space: each step moves `W`
+    /// towards the stationarity map `F(W)` and halves the step until the covariance stays
+    /// positive definite and the PrO objective decreases sufficiently (Armijo backtracking).
+    ///
+    /// The joint update is **not** the scalar update applied row by row: the PrO update does
+    /// not compose over measurements, not even for a diagonal `R`.
+    ///
+    /// ## Cost and convergence
+    /// Each evaluation of the iteration costs a few `OBSERVATIONS³` operations (three Cholesky
+    /// factorizations, one inversion and some products); it does not depend on the number of
+    /// states. A step needs one evaluation if the full step is accepted, plus one per halving
+    /// or doubling of the step. An outlier of `k` standard deviations needs about `2·log₂ k`
+    /// halvings in its first steps. The start costs two evaluations and the end one more, and
+    /// the final update costs about as much as a regular correction.
+    ///
+    /// The iteration converges linearly. Moderate innovations (up to about two standard
+    /// deviations) typically converge in 5 to 50 steps; large outliers make the steps small
+    /// and can need hundreds. In a 2-D tracking simulation (`H = I`), a budget of 20 left 2%
+    /// of the corrections unconverged under Gaussian noise and 16% under Student-t noise with
+    /// 2.01 degrees of freedom, yet the mean squared error was within 0.2% of a budget of
+    /// 2000. Running out of `max_iterations` is not an error: every accepted iterate is a
+    /// valid posterior with a positive definite covariance and no higher PrO objective than
+    /// the start, so the last one is applied and [`CorrectionStatus::NotConverged`] is
+    /// returned. [`is_applied`](CorrectionStatus::is_applied) is `true` for it. The start is
+    /// whichever of `W = 0` (the prior covariance) and `W = R⁻¹` (the Kalman filter's
+    /// covariance) has the lower objective; `max_iterations = 0` applies it.
+    ///
+    /// ## Precision
+    /// Convergence is judged by the stationarity residual, to about `10⁻⁵` relative in `f64`
+    /// and to the machine epsilon in `f32` and fixed-point types. In `f32`, results with
+    /// `H×P̃×Hᵀ` and `R` more than about `10⁴` apart are inaccurate by percents, and beyond
+    /// about `10⁶` the residual can no longer detect it. For huge outliers, the weight
+    /// approaches `−(H×P̃×Hᵀ)⁻¹`, which limits the covariance inflation to about `1/ε` times
+    /// `H×P̃×Hᵀ` with the machine epsilon `ε`: in `f32`, outliers beyond about `10⁷` standard
+    /// deviations are inflated less than the exact solution (still damped, and reported as
+    /// not converged). Use `f64` for badly scaled problems.
+    ///
+    /// ## Status
+    /// Like the scalar method, this updates the [NIS](Self::nis) (of the prior innovation),
+    /// honors the [gate](Self::set_gate) and does not adapt `R`. It requires both `H×P×Hᵀ` and
+    /// `R` to be positive definite (in particular `OBSERVATIONS ≤ STATES`, and `H` of full
+    /// row rank); otherwise it returns [`CorrectionStatus::NotPositiveDefinite`] and leaves
+    /// `x` and `P` unchanged.
+    ///
+    /// After an applied correction (including [`CorrectionStatus::NotConverged`]), `K` holds
+    /// the gain that moved the state, `P̃×Hᵀ×(H×P×Hᵀ + R + H×P̃×Hᵀ)⁻¹`. `S` then holds
+    /// `H×P×Hᵀ + R` of the posterior for vector observations, and the prior `H×P̃×Hᵀ` for a
+    /// scalar observation, as in
+    /// [`correct_predictively_oriented`](RegularObservation::correct_predictively_oriented). A
+    /// [gated](CorrectionStatus::Gated) or
+    /// [not positive definite](CorrectionStatus::NotPositiveDefinite) correction leaves `K`
+    /// unchanged, while `S` may hold intermediate values. The exception is a vector solver that
+    /// cannot evaluate its start or finish after the checks passed, which happens only through
+    /// rounding: it returns `NotPositiveDefinite` with `K` holding `P̃×Hᵀ`.
+    ///
+    /// With fixed-point types, large innovations can overflow intermediate values; choose a
+    /// type with enough integer bits for the expected outliers.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `workspace` - Three `OBSERVATIONS × OBSERVATIONS` scratch matrices; see
+    ///   [`PredictivelyOrientedWorkspace`](crate::regular::PredictivelyOrientedWorkspace).
+    /// * `max_iterations` - The budget of accepted steps (or Newton steps, for a scalar
+    ///   observation).
+    #[allow(non_snake_case)]
+    pub fn correct_predictively_oriented_vector<X, P, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        workspace: &mut crate::regular::PredictivelyOrientedWorkspace<W>,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        // y = z - H*x
+        let y = self.y.as_matrix_mut();
+        self.H.as_matrix().mult_rowvector(x.as_matrix(), y);
+        self.z.as_matrix().sub_inplace_b(y);
+
+        if OBSERVATIONS == 1 {
+            return self.update_scalar_predictively_oriented(x, P, max_iterations);
+        }
+
+        crate::observations::predictively_oriented::vector::update_vector(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.y.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            self.temp_S_inv.as_matrix_mut(),
+            self.temp_HP.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+            workspace.factor.as_matrix_mut(),
+            workspace.iterate.as_matrix_mut(),
+            workspace.trial.as_matrix_mut(),
+            &mut self.nis,
+            self.gate,
+            max_iterations,
+        )
+    }
+
+    /// Runs the scalar PrO update of an observation with `OBSERVATIONS = 1` through 1-wide
+    /// views of its buffers, so that the scalar solver keeps its `1`-sized signature.
+    ///
+    /// Must only be called with `OBSERVATIONS = 1`; the views would otherwise cover only the
+    /// first measurement.
+    #[allow(non_snake_case)]
+    fn update_scalar_predictively_oriented<X, P>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        assert_eq!(
+            OBSERVATIONS, 1,
+            "the scalar PrO update needs one measurement"
+        );
+        crate::observations::predictively_oriented::update_scalar(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            &MatrixDataRef::<1, STATES, T>::from(self.H.as_matrix().as_slice()),
+            &MatrixDataRef::<1, 1, T>::from(self.R.as_matrix().as_slice()),
+            &MatrixDataRef::<1, 1, T>::from(self.y.as_matrix().as_slice()),
+            &mut MatrixDataMut::<STATES, 1, T>::from(self.K.as_matrix_mut().as_mut_slice()),
+            &mut MatrixDataMut::<1, 1, T>::from(self.S.as_matrix_mut().as_mut_slice()),
+            &mut MatrixDataMut::<STATES, 1, T>::from(self.temp_PHt.as_matrix_mut().as_mut_slice()),
+            self.temp_KHP.as_matrix_mut(),
+            &mut self.nis,
+            self.gate,
+            max_iterations,
+        )
+    }
+
     /// Performs the update step. Assumes that the innovation vector is already calculated correctly,
     /// either by means of [`correct`](Self::correct) or [`correct_nonlinear`](Self::correct_nonlinear).
     ///
@@ -683,9 +838,11 @@ where
     /// badly scaled problems may need a larger budget.
     ///
     /// ## Scalar observations only
-    /// This method exists for observations with a single measurement. Applying it row by row
-    /// to a vector observation is **not** the joint PrO update: the update does not compose
-    /// over measurements.
+    /// This method exists for observations with a single measurement. For vector
+    /// observations, use
+    /// [`correct_predictively_oriented_vector`](RegularObservation::correct_predictively_oriented_vector).
+    /// Applying this method row by row to a vector observation is **not** the joint PrO
+    /// update: the update does not compose over measurements.
     ///
     /// ## Status
     /// Like [`correct`](Self::correct), this updates the [NIS](Self::nis) (of the prior
@@ -761,6 +918,67 @@ where
         P: EstimateCovarianceMatrix<STATES, T>,
     {
         self.correct_predictively_oriented(x, P, max_iterations)
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterObservationCorrectPredictivelyOrientedVector<STATES, OBSERVATIONS, T>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+where
+    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_predictively_oriented_vector<X, P, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        workspace: &mut crate::regular::PredictivelyOrientedWorkspace<W>,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        self.correct_predictively_oriented_vector(x, P, workspace, max_iterations)
     }
 }
 

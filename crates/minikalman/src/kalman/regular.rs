@@ -682,7 +682,9 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// More conservative than [`correct`](Self::correct) under large innovations, which makes
     /// it robust to heavy-tailed noise and outliers at a small cost under Gaussian noise. See
     /// [`RegularObservation::correct_predictively_oriented`](crate::regular::RegularObservation::correct_predictively_oriented)
-    /// for the objective, its cost, and when it helps. Only scalar observations support it.
+    /// for the objective, its cost, and when it helps. Only scalar observations support it;
+    /// use [`correct_predictively_oriented_vector`](Self::correct_predictively_oriented_vector)
+    /// for vector observations.
     ///
     /// ## Arguments
     /// * `measurement` - The measurement.
@@ -699,6 +701,64 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         M: KalmanFilterObservationCorrectPredictivelyOriented<STATES, T>,
     {
         measurement.correct_predictively_oriented(&mut self.x, &mut self.P, max_iterations)
+    }
+
+    /// Performs a predictively oriented (PrO) measurement update step for an observation with
+    /// any number of measurements.
+    ///
+    /// See
+    /// [`RegularObservation::correct_predictively_oriented_vector`](crate::regular::RegularObservation::correct_predictively_oriented_vector)
+    /// for the iteration, its cost and its convergence.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `workspace` - Three `OBSERVATIONS × OBSERVATIONS` scratch matrices; see
+    ///   [`PredictivelyOrientedWorkspace`](crate::regular::PredictivelyOrientedWorkspace).
+    /// * `max_iterations` - The budget of accepted steps of the iteration, e.g. `50`.
+    ///
+    /// ## Example
+    /// ```
+    /// # #[cfg(feature = "alloc")] {
+    /// use minikalman::prelude::*;
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
+    ///
+    /// let builder = KalmanFilterBuilder::<2, f64>::default();
+    /// let mut filter = builder.build();
+    /// let mut measurement = builder.observations().build::<2>();
+    /// let mut workspace = PredictivelyOrientedWorkspace::new(
+    ///     BufferBuilder::temp_S_inv::<2>().new(),
+    ///     BufferBuilder::temp_S_inv::<2>().new(),
+    ///     BufferBuilder::temp_S_inv::<2>().new(),
+    /// );
+    ///
+    /// filter.estimate_covariance_mut().make_identity();
+    /// measurement.observation_matrix_mut().make_identity();
+    /// measurement.measurement_noise_covariance_mut().make_identity();
+    /// measurement.measurement_vector_mut().set_at(0, 0, 3.0);
+    ///
+    /// let status = filter.correct_predictively_oriented_vector(&mut measurement, &mut workspace, 50);
+    /// assert!(status.is_applied());
+    /// # }
+    /// ```
+    pub fn correct_predictively_oriented_vector<const OBSERVATIONS: usize, M, W>(
+        &mut self,
+        measurement: &mut M,
+        workspace: &mut crate::regular::PredictivelyOrientedWorkspace<W>,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectPredictivelyOrientedVector<STATES, OBSERVATIONS, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        measurement.correct_predictively_oriented_vector(
+            &mut self.x,
+            &mut self.P,
+            workspace,
+            max_iterations,
+        )
     }
 }
 

@@ -1,4 +1,7 @@
-//! # Predictively oriented (PrO) correction for scalar linear observations.
+//! # Predictively oriented (PrO) correction for linear observations.
+//!
+//! This module solves the scalar case (`OBSERVATIONS = 1`) by Newton's method; see below.
+//! Vector observations are solved by a damped iteration in measurement space, see [`vector`].
 //!
 //! The PrO update (Shen, Duran-Martin, Oates, [arXiv:2606.03230](https://arxiv.org/abs/2606.03230);
 //! Kean, Shen, Oates, [arXiv:2610.14773](https://arxiv.org/abs/2610.14773)) replaces the Bayesian
@@ -32,6 +35,67 @@
 
 use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
+
+pub(crate) mod vector;
+
+/// Caller-provided scratch matrices for the predictively oriented correction of vector
+/// observations, see
+/// [`RegularObservation::correct_predictively_oriented_vector`](crate::regular::RegularObservation::correct_predictively_oriented_vector).
+///
+/// Holds three `OBSERVATIONS × OBSERVATIONS` matrices, e.g. built with
+/// [`BufferBuilder::temp_S_inv`](crate::buffers::builder::BufferBuilder::temp_S_inv) or the
+/// `impl_buffer_temp_S_inv!` macro. Their contents on entry do not matter, and after a correction
+/// they hold intermediate values only. A workspace can be shared by all observations of the
+/// same size. The three buffers MUST NOT be aliased with each other or with any buffer of the
+/// observation or the filter.
+///
+/// ## Example
+/// Without allocation, the buffers come from the `impl_buffer_temp_S_inv!` macro:
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman::regular::PredictivelyOrientedWorkspace;
+///
+/// const NUM_OBSERVATIONS: usize = 2;
+///
+/// impl_buffer_temp_S_inv!(mut pro_factor, NUM_OBSERVATIONS, f32, 0.0);
+/// impl_buffer_temp_S_inv!(mut pro_iterate, NUM_OBSERVATIONS, f32, 0.0);
+/// impl_buffer_temp_S_inv!(mut pro_trial, NUM_OBSERVATIONS, f32, 0.0);
+///
+/// let workspace = PredictivelyOrientedWorkspace::new(pro_factor, pro_iterate, pro_trial);
+/// ```
+///
+/// With `alloc`, from the [`BufferBuilder`](crate::buffers::builder::BufferBuilder):
+/// ```
+/// # #[cfg(feature = "alloc")] {
+/// use minikalman::prelude::*;
+///
+/// let workspace = PredictivelyOrientedWorkspace::new(
+///     BufferBuilder::temp_S_inv::<2>().new::<f32>(),
+///     BufferBuilder::temp_S_inv::<2>().new::<f32>(),
+///     BufferBuilder::temp_S_inv::<2>().new::<f32>(),
+/// );
+/// # }
+/// ```
+#[derive(Debug, Clone)]
+pub struct PredictivelyOrientedWorkspace<W> {
+    /// Holds `G = H×P̃×Hᵀ` and then its lower Cholesky factor during a correction.
+    pub(crate) factor: W,
+    /// Holds the accepted iterate of the measurement-space weight `W`.
+    pub(crate) iterate: W,
+    /// Holds the trial iterate of the line search, and the covariance update at the end.
+    pub(crate) trial: W,
+}
+
+impl<W> PredictivelyOrientedWorkspace<W> {
+    /// Creates a workspace from three distinct `OBSERVATIONS × OBSERVATIONS` buffers.
+    pub fn new(factor: W, iterate: W, trial: W) -> Self {
+        Self {
+            factor,
+            iterate,
+            trial,
+        }
+    }
+}
 
 /// Performs the PrO update of a scalar linear observation from the prior innovation `y = z − H×x`.
 ///
