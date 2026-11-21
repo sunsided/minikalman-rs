@@ -6,6 +6,7 @@ flowchart LR
     h[/"observation h(x̂)"/]
     hjac[/"Jacobian H = ∂h/∂x at x̂"/]
     hjac2[/"jacobian(x̂⁺)<br/>H₂ = ∂h/∂x at x̂⁺"/]
+    fix[/"fix(y)"/]
     innovation["innovation<br/>y = z − h(x̂)"]
     covariance["innovation covariance<br/>S = H·P·Hᵀ + R"]
     gate{{"gate<br/>NIS = yᵀ·S⁻¹·y"}}
@@ -20,6 +21,7 @@ flowchart LR
     backedout("BackedOut")
     z --> innovation
     h --> innovation
+    fix -.->|"_with variants"| innovation
     hjac --> covariance
     hjac2 --> relinearize
     innovation --> covariance --> gate --> gain --> relinearize --> trace --> recalibrate --> adapt --> applied
