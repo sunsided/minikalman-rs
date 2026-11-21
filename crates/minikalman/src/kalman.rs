@@ -1,5 +1,6 @@
 pub use filter_trait::*;
 pub use matrix_types::*;
+pub use time_update::TimeUpdate;
 
 pub mod extended;
 mod filter_trait;
@@ -10,6 +11,7 @@ pub(crate) mod process_noise;
 pub mod regular;
 pub mod rls;
 pub mod square_root;
+mod time_update;
 pub mod ud;
 pub mod unscented;
 

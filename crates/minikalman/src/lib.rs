@@ -368,9 +368,10 @@ pub struct ReadmeNoAllocDoctest;
 /// Regular Kalman Filters
 ///
 /// A linear Kalman filter for `x̂ₖ = A·x̂ₖ₋₁ + B·u` and `z = H·x̂ + v`. Each step predicts with
-/// [`RegularKalman::predict`](regular::RegularKalman::predict), optionally applies a
-/// [`Control`](regular::Control), and corrects with one or more
-/// [`RegularObservation`](regular::RegularObservation)s:
+/// [`RegularKalman::predict`](regular::RegularKalman::predict), optionally applies one or more
+/// [`Control`](regular::Control)s through the returned [`TimeUpdate`](regular::TimeUpdate)
+/// (`filter.predict().control(&mut throttle).control(&mut steering)`), and corrects with one
+/// or more [`RegularObservation`](regular::RegularObservation)s:
 #[doc = diagram!("regular-loop.mmd")]
 ///
 /// For a time-invariant model, the [`LuenbergerObserver`](regular::LuenbergerObserver) runs a
@@ -378,6 +379,7 @@ pub struct ReadmeNoAllocDoctest;
 /// [`RegularKalman::settle_gain`](regular::RegularKalman::settle_gain) computes from `Q` and `R`.
 pub mod regular {
     pub use crate::controls::*;
+    pub use crate::kalman::TimeUpdate;
     pub use crate::kalman::luenberger::*;
     pub use crate::kalman::regular::*;
     pub use crate::observations::fixed_gain::*;

@@ -218,7 +218,9 @@ pub trait KalmanFilterNumStates<const STATES: usize> {
 pub trait KalmanFilterPredict<const STATES: usize, T> {
     /// Performs the time update / prediction step.
     ///
-    /// This call assumes that the control covariance and variables are already set in the filter structure.
+    /// Apply control inputs afterwards, before any correction, with
+    /// [`KalmanFilterApplyControl::control`]. The inherent `RegularKalman::predict` returns a
+    /// [`TimeUpdate`](crate::regular::TimeUpdate) handle that enforces this order.
     #[doc(alias = "kalman_predict")]
     fn predict(&mut self);
 }
@@ -243,14 +245,18 @@ pub trait KalmanFilterNonlinearPredict<const STATES: usize, T>:
 }
 
 pub trait KalmanFilterApplyControl<const STATES: usize, T> {
-    /// Performs the measurement update step.
+    /// Applies a control input: `x ← x + B·u`, `P ← P + B·Qᵤ·Bᵀ`.
+    ///
+    /// Call it after [`predict`](KalmanFilterPredict::predict) and before any correction, once
+    /// per input. The [`TimeUpdate`](crate::regular::TimeUpdate) handle of the inherent
+    /// `RegularKalman::predict` enforces this order.
     ///
     /// ## Extended Kalman Filters
     /// In an Extended Kalman Filter, this method is meaningless. Use the
     /// [`predict_nonlinear`](KalmanFilterNonlinearPredict::predict_nonlinear) function set instead.
     ///
     /// ## Arguments
-    /// * `measurement` - The measurement to update the state prediction with.
+    /// * `control` - The control input to apply to the state prediction.
     fn control<I>(&mut self, control: &mut I)
     where
         I: KalmanFilterControlApplyToFilter<STATES, T>;

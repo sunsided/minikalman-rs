@@ -201,8 +201,7 @@ impl SpeedFilter {
         control.control_vector_mut().set(0, 0, u);
         measurement.measurement_vector_mut().set(0, 0, z);
 
-        filter.predict();
-        filter.control(&mut control);
+        filter.predict().control(&mut control);
         filter.correct(&mut measurement);
     }
 }

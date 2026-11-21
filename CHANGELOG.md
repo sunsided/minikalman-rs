@@ -26,6 +26,18 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   steady state the NIS equals the Kalman filter's to `3e-11`; the docs explain the start-up
   over-rejection and the lock-out of a fixed `S∞`, and how to avoid them. The trait
   `KalmanFilterObservationCorrectFixedGain` gains a defaulted `is_gated` method ([#144]).
+- Added the time-step handle `regular::TimeUpdate`: `RegularKalman::predict` and `predict_tuned`
+  now return it, and controls go through it, one `control` per distinct `Control`:
+  `filter.predict().control(&mut throttle).control(&mut steering)`. The handle borrows the filter,
+  so a control can no longer follow a correction, and no handle exists without a prediction.
+  Results are bit-identical to `predict()` followed by `control()` per input. Plain
+  `filter.predict();` still compiles, the `KalmanFilterPredict` and `KalmanFilterApplyControl`
+  traits are unchanged, and the standalone `filter.control(&mut c)` stays, documented as "after
+  `predict`, once per input". Applying the same control twice in one step is still not prevented.
+  Only the regular filter has control inputs; the extended, unscented, information, UD and
+  square-root filters have none and return no handle. Calling code breaks only where it used the
+  `()` of the inherent `predict` / `predict_tuned`, e.g. as the tail expression of a function or
+  closure that returns `()`; add a `;` ([#153]).
 - Added a per-call correction scratch, so several observations share their temporaries soundly.
   `CorrectionScratch<STATES, MAX_OBSERVATIONS, T>` (in `regular`, `extended` and the prelude, a
   `const fn new`) holds `S⁻¹`, `H×P`, `P×Hᵀ` and `K×H×P` for any observation with up to
@@ -307,6 +319,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+[#153]: https://github.com/sunsided/minikalman-rs/issues/153
 [#144]: https://github.com/sunsided/minikalman-rs/issues/144
 [#143]: https://github.com/sunsided/minikalman-rs/issues/143
 [#145]: https://github.com/sunsided/minikalman-rs/issues/145
