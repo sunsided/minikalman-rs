@@ -1085,7 +1085,9 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// * `mat` - The matrix to decompose in place into a lower triangular matrix.
     ///
     /// ## Returns
-    /// `true` in case of success, `false` if the matrix is not positive semi-definite.
+    /// `true` in case of success, `false` if the matrix is not positive definite, or if a pivot
+    /// is not finite (`NaN` or infinite, e.g. because the entries overflow). On success, every
+    /// entry of the factor is finite.
     ///
     /// ## Example
     /// ```
@@ -1147,8 +1149,11 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 
                 t[idx!(j * n + i)] = sum * div_el_ii;
                 if i == j {
-                    // is it positive-definite?
-                    if sum <= T::zero() {
+                    // Is it positive definite? Written as `!(sum > 0)` so that a NaN pivot,
+                    // e.g. from `inf - inf` with overflowing entries, is rejected as well.
+                    // `sum - sum` is zero only for finite values, which rejects `+inf`.
+                    #[allow(clippy::eq_op, clippy::neg_cmp_op_on_partial_ord)]
+                    if !(sum > T::zero()) || sum - sum != T::zero() {
                         return false;
                     }
 
@@ -1175,6 +1180,42 @@ mod tests {
     use super::*;
     use crate::matrix::MatrixData;
     use assert_float_eq::*;
+
+    /// Symmetrizes `data` and adds 1 to the diagonal, as the `matrix_cholesky` fuzz target does.
+    fn regularized_4x4(data: [f32; 16]) -> [f32; 16] {
+        let mut m = [0.0f32; 16];
+        for i in 0..4 {
+            for j in 0..4 {
+                m[i * 4 + j] = (data[i * 4 + j] + data[j * 4 + i]) * 0.5;
+            }
+            m[i * 4 + i] += 1.0;
+        }
+        m
+    }
+
+    /// Overflowing entries turn a pivot into `inf - inf = NaN`, which `sum <= 0` let through.
+    /// This input was found by the `matrix_cholesky` fuzz target.
+    #[test]
+    #[rustfmt::skip]
+    fn cholesky_rejects_overflowing_entries() {
+        let mut data = regularized_4x4([
+            5.786e-39, 1.794e-43, 0.0, -1.701e38,
+            2.351e-38, 0.0, 0.0, -1.701e38,
+            2.351e-38, 0.0, 0.0, 0.0,
+            0.0, -2.545e38, 2.351e-38, 0.0,
+        ]);
+        let mut m = MatrixData::new_mut::<4, 4, f32>(&mut data);
+        assert!(!m.cholesky_decompose_lower());
+    }
+
+    #[test]
+    fn cholesky_rejects_non_finite_pivots() {
+        for value in [f32::NAN, f32::INFINITY] {
+            let mut data = [1.0, 0.0, 0.0, value];
+            let mut m = MatrixData::new_mut::<2, 2, f32>(&mut data);
+            assert!(!m.cholesky_decompose_lower(), "pivot {value}");
+        }
+    }
 
     #[test]
     #[rustfmt::skip]

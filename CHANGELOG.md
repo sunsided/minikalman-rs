@@ -40,6 +40,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The Cholesky decomposition now fails on a `NaN` or infinite pivot, e.g. from overflowing entries,
+  instead of reporting success and producing a non-finite factor. Corrections then skip the update
+  as for any other covariance that is not positive definite.
 - A correction no longer turns the state into NaN when the innovation covariance `S = H×P×Hᵀ + R`
   is not positive definite, e.g. with `P = 0` and `R = 0`. The regular, extended and unscented
   filters now skip such an update and leave `x` and `P` unchanged.
