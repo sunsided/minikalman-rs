@@ -103,6 +103,9 @@ where
 ///
 /// Writes the lower triangle and mirrors it, so `Q` stays symmetric. See the
 /// [module documentation](self).
+///
+/// With fixed-point types, `Δx×Δxᵀ` can overflow for large corrections; that panics in debug
+/// builds and wraps in release builds, as for `ε×εᵀ` in the update of `R`.
 #[allow(non_snake_case)]
 fn adapt_process_noise<const STATES: usize, T, Q>(
     Q: &mut Q,

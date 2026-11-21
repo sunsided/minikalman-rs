@@ -134,10 +134,17 @@ pub mod unscented;
 /// ## Unscented observations
 ///
 /// The unscented observation adapts `R` after every applied `correct_sigma_point*`
-/// correction, including the recalibrated one, with the predicted measurement covariance
-/// `Pzz` in place of `H×P⁻×Hᵀ`. After the gain, only `S = Pzz + R`, `S⁻¹` and `y` are left,
-/// so the update is written in terms of them: substituting `Pzz = S − R` and `H×K = Pzz×S⁻¹`
-/// into the update above gives
+/// correction, including the recalibrated one. Its predicted measurement covariance `Pzz`
+/// takes the place of `H×P⁻×Hᵀ`, and `H×K = Pzz×S⁻¹`. After the gain, only `S = Pzz + R`,
+/// `S⁻¹` and `y` are left, so both terms of the residual form above are written in terms of
+/// them with `Pzz = S − R`:
+///
+/// ```text
+/// ε = y − H×K×y = y − Pzz×S⁻¹×y = R×S⁻¹×y
+/// H×P⁺×Hᵀ = Pzz − Pzz×S⁻¹×Pzz = R − R×S⁻¹×R
+/// ```
+///
+/// Substituting them into `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` gives
 ///
 /// ```text
 /// ε = R×S⁻¹×y
@@ -198,10 +205,13 @@ pub mod unscented;
 ///   correction towards the floor.
 /// - Every correction adds one `Δx`. With several observations per prediction, each takes
 ///   part of the correction, and `Q` comes out too small.
-/// - `Q = 0` with a zero floor is absorbing: `P` collapses, the gain goes to zero, and so
-///   does `Δx`.
+/// - Unlike `R = 0`, `Q = 0` is not absorbing: the first non-zero correction makes it
+///   `(1−α)×Δx×Δxᵀ`. A `Q` that is far too small still shrinks `P` and the gain, and with
+///   them `Δx`, so it can take many corrections to recover; raise the floor if that matters.
 /// - Adapting `R` at the same time is poorly identifiable: both explain the same innovations.
 ///   Adapt one of them at a time, or keep `α` for `Q` closer to `1`.
+/// - With fixed-point types, `Δx×Δxᵀ` can overflow for large corrections, like `ε×εᵀ`
+///   for `R`.
 /// - Gated, not positive definite and backed-out corrections leave `Q` unchanged.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NoiseAdaptation<T> {

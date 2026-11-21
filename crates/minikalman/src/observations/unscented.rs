@@ -1099,8 +1099,9 @@ where
 /// `R ← R + (1−α)×(ε×εᵀ − R×S⁻¹×R)` with `ε = R×S⁻¹×y`, then raises every diagonal entry of
 /// `R` to at least the floor. See [`NoiseAdaptation`].
 ///
-/// This is the update of the linear observations, `α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)`, with
-/// `Pzz = S − R` in place of `H×P⁻×Hᵀ`, so it needs only `R`, `S⁻¹` and `y`. `S_inv` is
+/// This is the update of the linear observations, `α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)`, with `Pzz`
+/// in place of `H×P⁻×Hᵀ`. For `Pzz = S − R`, `ε = R×S⁻¹×y` and
+/// `H×P⁺×Hᵀ = Pzz − Pzz×S⁻¹×Pzz = R − R×S⁻¹×R`, so it needs only `R`, `S⁻¹` and `y`. `S_inv` is
 /// overwritten with `S⁻¹×R`. The result is written to the lower triangle and mirrored, so `R`
 /// stays symmetric.
 #[allow(non_snake_case, clippy::needless_range_loop)]
