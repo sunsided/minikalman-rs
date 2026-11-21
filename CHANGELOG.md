@@ -13,6 +13,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added a `battery-soc` example: an Extended Kalman Filter that estimates a battery cell's state of
   charge from its terminal voltage with a first-order RC equivalent-circuit model and a nonlinear
   open-circuit voltage curve. It runs in CI and fails if the estimate does not converge ([#68]).
+- Added `models::gauss_markov::first_order` to fill the state transition and process noise entries of a
+  first-order Gauss-Markov state, e.g. for sensor bias drift or colored noise, from its time constant and
+  steady-state variance. Fixed-point types use `models::gauss_markov::from_coefficient` with a precomputed
+  `exp(−∆t/τ)` ([#63]).
 
 ### Fixed
 
@@ -36,6 +40,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
+[#63]: https://github.com/sunsided/minikalman-rs/issues/63
 
 ## [0.8.1] - 2026-10-30
 
