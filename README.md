@@ -159,7 +159,12 @@ flowchart LR
 
 This example works without `std` and without `alloc`. The `impl_buffer_*!` macros create
 each matrix as a fixed-size local array (`mut name`), or as a `static` with `static mut name`,
-and the filter and observation builders take ownership of them:
+and the filter and observation builders take ownership of them.
+
+It is verbose on purpose: every buffer the filter will ever use is declared up front, with its
+size and its placement (stack or static memory), so the memory a filter needs is visible in the
+source and fixed at compile time. Nothing is allocated behind your back, and no buffer grows at
+runtime.
 
 ```rust
 use minikalman::prelude::*;
