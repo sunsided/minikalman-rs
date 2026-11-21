@@ -29,7 +29,8 @@ Unscented Kalman filters, compiled to WebAssembly, side by side on a radar track
 Pick the filter from the model, then add what the measurements need: an innovation gate, the
 Student-t robust correction or the predictively oriented correction against outliers, noise
 adaptation when `R` is unknown, and a smoother when the estimate may lag behind the
-measurements.
+measurements. When model parameters themselves are unknown or drift, recursive least squares
+identifies them online and feeds them into the filter's model.
 
 ```mermaid
 flowchart LR
@@ -55,10 +56,15 @@ flowchart LR
     adapt["set_noise_adaptation"]
     offline{{"offline or<br/>lagged estimate?"}}
     smoother["smoother<br/>RtsSmoother, FixedLagSmoother"]
+    params{{"model parameters<br/>unknown or drifting?"}}
+    rls["rls<br/>RecursiveLeastSquares<br/>(feeds A, B or H)"]
     model --> linear
     linear -- yes --> steady
     steady -- yes --> luenberger
     steady -- no --> fusion
+    model -.-> params
+    params -. "yes, y linear in θ" .-> rls
+    rls -.->|"θ̂ into A, B each step"| regular
     fusion -- no --> definite
     definite -- no --> regular
     definite -- yes --> square_root
@@ -519,6 +525,74 @@ observer then stays within about `LSB / (1 − ρ)` of the float one (6 LSB in t
 [`luenberger`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/luenberger.rs) test), with the closed-loop spectral
 radius `ρ`. The `ObserverStorage` and `FixedGainObservationStorage` types hold the buffers
 without allocation; see the [`luenberger` example](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/luenberger.rs).
+
+### Recursive least squares: identifying model parameters online
+
+`rls::RecursiveLeastSquares` estimates parameters `θ` of a model whose output is linear in
+them, `y = φᵀ·θ + v`, one sample at a time in `O(N²)`, without allocation or matrix
+inversion. It is the Kalman filter with `A = I`, `Q = 0` and `H = φᵀ`, and its forgetting factor
+`μ` is the fading memory of
+[`predict_tuned(λ)`](https://docs.rs/minikalman/latest/minikalman/regular/struct.RegularKalman.html#method.predict_tuned)
+with `μ = λ²` (while the windup guard is inactive). By default it keeps `P = U·D·Uᵀ`
+(Bierman's update, positive semi-definite in `f32` and `I16F16`) and bounds `tr(P)` against
+covariance windup when the input stops exciting the system:
+
+```rust
+use minikalman::prelude::*;
+use minikalman::rls::EstimatorStorage;
+
+// First-order plant xₖ₊₁ = a·xₖ + b·uₖ: θ = [a, b], φ = [xₖ, uₖ], y = xₖ₊₁.
+let mut storage = EstimatorStorage::<2, f32>::new(0.0);
+let mut rls = storage.build(100.0);
+rls.set_forgetting_factor(0.98);
+
+let (a, b) = (0.9, 0.5);
+let mut x = 0.0;
+for k in 0..200 {
+    let u = if (k / 10) % 2 == 0 { 1.0 } else { -1.0 };
+    let next = a * x + b * u;
+    assert!(rls.update(&[x, u], next).is_applied());
+    x = next;
+}
+
+assert!((rls.parameters().get_row(0) - a).abs() < 1e-3);
+assert!((rls.parameters().get_row(1) - b).abs() < 1e-3);
+```
+
+The [`rls-adaptive`] example uses this for dual estimation. A motor's speed follows
+`xₖ₊₁ = a·xₖ + b·uₖ + w`, measured with σ = 0.2. At step 400 the load changes, and the true
+`(a, b)` jump from `(0.9, 0.5)` to `(0.7, 1.0)`. A Kalman filter with the fixed nominal model
+runs next to one whose `A` and `B` come from the RLS estimate each step:
+
+```shell
+cargo run --example rls-adaptive --features=std
+```
+
+```text
+  speed RMSE            fixed   adaptive   (sensor σ = 0.2)
+  before the change     0.084   0.105
+  first 50 steps after  0.840   0.351
+  settled after         0.701   0.090
+```
+
+Before the change, the fixed filter has the exact model; the adaptive one pays a little for
+learning it from noisy data. After the change, the fixed model is wrong and its error grows
+about eightfold, while the adaptive filter re-identifies the plant within a few dozen steps.
+Rolling RMSE per 25 steps, fixed model (red) and RLS-adaptive (blue):
+
+```mermaid
+%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#dc2626, #2563eb"}}}}%%
+xychart-beta
+    title "Speed RMSE per 25 steps: fixed model vs. RLS-adaptive"
+    x-axis "step" ["25", "50", "75", "100", "125", "150", "175", "200", "225", "250", "275", "300", "325", "350", "375", "400", "425", "450", "475", "500", "525", "550", "575", "600", "625", "650", "675", "700", "725", "750", "775", "800"]
+    y-axis "RMSE" 0 --> 1
+    line [0.04, 0.07, 0.13, 0.11, 0.07, 0.08, 0.06, 0.10, 0.08, 0.05, 0.10, 0.08, 0.05, 0.08, 0.07, 0.08, 0.85, 0.83, 0.48, 0.81, 0.82, 0.86, 0.58, 0.60, 0.84, 0.47, 0.81, 0.56, 0.78, 0.55, 0.88, 0.55]
+    line [0.14, 0.08, 0.15, 0.14, 0.08, 0.11, 0.09, 0.11, 0.12, 0.05, 0.13, 0.08, 0.06, 0.08, 0.08, 0.11, 0.42, 0.26, 0.11, 0.14, 0.07, 0.05, 0.12, 0.07, 0.08, 0.06, 0.11, 0.07, 0.10, 0.07, 0.09, 0.06]
+```
+
+The noise is seeded; regenerate the chart with `-- --chart`.
+
+[`rls-adaptive`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/rls_adaptive.rs
 
 ### Extended Kalman Filters
 

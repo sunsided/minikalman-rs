@@ -8,6 +8,7 @@ pub mod luenberger;
 mod matrix_types;
 pub(crate) mod process_noise;
 pub mod regular;
+pub mod rls;
 pub mod square_root;
 pub mod ud;
 pub mod unscented;

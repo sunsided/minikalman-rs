@@ -1,0 +1,19 @@
+flowchart LR
+    %% One sample of recursive least squares. Style: see docs/diagrams/README.md.
+    %% Node IDs: prior, predict (forgetting with the windup guard), sample, innovation, gate,
+    %% correct, posterior, rejected and gated (update leaves θ and P unchanged, forgetting
+    %% included).
+    prior(["parameters<br/>θₖ₋₁, P = U·D·Uᵀ"])
+    predict["forget<br/>μₖ = clamp(tr P/c, μ, 1)<br/>P⁻ = P/μₖ"]
+    sample[/"sample<br/>φₖ, yₖ, r"/]
+    innovation["innovation<br/>e = y − φᵀ·θ<br/>α = φᵀ·P⁻·φ + r"]
+    gate{{"gate"}}
+    correct["correct (Bierman)<br/>K = P⁻·φ/α<br/>θ ← θ + K·e<br/>P ← P⁻ − K·φᵀ·P⁻"]
+    posterior(["parameters<br/>θₖ, Pₖ"])
+    rejected("NotPositiveDefinite")
+    gated("Gated")
+    prior --> predict --> innovation --> correct --> posterior
+    sample --> innovation
+    innovation -.->|"r ≤ 0 or α ≤ 0"| rejected
+    innovation -.-> gate -.->|"NIS > gate"| gated
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

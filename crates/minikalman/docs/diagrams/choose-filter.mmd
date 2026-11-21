@@ -21,10 +21,15 @@ flowchart LR
     adapt["set_noise_adaptation"]
     offline{{"offline or<br/>lagged estimate?"}}
     smoother["smoother<br/>RtsSmoother, FixedLagSmoother"]
+    params{{"model parameters<br/>unknown or drifting?"}}
+    rls["rls<br/>RecursiveLeastSquares<br/>(feeds A, B or H)"]
     model --> linear
     linear -- yes --> steady
     steady -- yes --> luenberger
     steady -- no --> fusion
+    model -.-> params
+    params -. "yes, y linear in θ" .-> rls
+    rls -.->|"θ̂ into A, B each step"| regular
     fusion -- no --> definite
     definite -- no --> regular
     definite -- yes --> square_root

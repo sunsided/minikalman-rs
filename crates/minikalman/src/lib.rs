@@ -416,6 +416,22 @@ pub mod ud {
     pub use crate::kalman::ud::*;
 }
 
+/// Recursive Least Squares (RLS): online estimation of model parameters, with forgetting.
+///
+/// The [`RecursiveLeastSquares`](rls::RecursiveLeastSquares) estimator identifies a parameter
+/// vector `θ` of a model whose output is linear in it, `yₖ = φₖᵀ·θ + vₖ`, e.g. the pole and
+/// gain of a plant or a battery's internal resistance, from one sample at a time in `O(N²)`.
+/// It is the Kalman filter with `A = I`, `Q = 0` and `H = φₖᵀ`; forgetting with the factor
+/// `μ` is [`RegularKalman::predict_tuned(√μ)`](regular::RegularKalman::predict_tuned) while
+/// the windup guard is off or inactive.
+/// Its estimate can feed a Kalman filter's `A` and `B` each step (dual estimation, see the
+/// `rls-adaptive` example). Each sample forgets, then corrects:
+#[doc = diagram!("rls-update.mmd")]
+pub mod rls {
+    pub use crate::kalman::rls::*;
+    pub use crate::storage::rls::*;
+}
+
 /// Square-Root Covariance Filters: linear Kalman filters that propagate `S` with `P = S·Sᵀ`.
 ///
 /// The [`SquareRootKalman`](square_root::SquareRootKalman) keeps `P` positive semi-definite by

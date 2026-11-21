@@ -14,5 +14,6 @@ pub(crate) mod information;
 mod layout;
 pub(crate) mod luenberger;
 pub(crate) mod regular;
+pub(crate) mod rls;
 pub(crate) mod smoother;
 pub(crate) mod unscented;
