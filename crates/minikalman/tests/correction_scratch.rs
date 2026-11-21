@@ -366,9 +366,11 @@ fn builders_wire_lean_observations_from_macro_buffers() {
     regular.observation_matrix_mut().set_at(0, 0, 1.0);
     regular.measurement_noise_covariance_mut().set_at(0, 0, 1.0);
     regular.measurement_vector_mut().set_at(0, 0, 2.0);
-    assert!(regular
-        .correct_in(&mut x, &mut P, &mut scratch)
-        .is_applied());
+    assert!(
+        regular
+            .correct_in(&mut x, &mut P, &mut scratch)
+            .is_applied()
+    );
     // micromath's approximate square root makes the inversion inexact.
     #[cfg(any(feature = "std", feature = "libm"))]
     assert!((x.get_row(0) - 1.0).abs() < 1e-6, "x = {}", x.get_row(0));

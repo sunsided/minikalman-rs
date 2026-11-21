@@ -88,10 +88,12 @@ fn simple_filter() {
     let mut example = create_test_filter(1.0);
 
     // The estimate covariance still is scalar.
-    assert!(example
-        .filter
-        .estimate_covariance()
-        .inspect(|mat| (0..3).into_iter().all(|i| { mat.get_at(i, i) == 0.1 })));
+    assert!(
+        example
+            .filter
+            .estimate_covariance()
+            .inspect(|mat| (0..3).into_iter().all(|i| { mat.get_at(i, i) == 0.1 }))
+    );
 
     // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
     for _ in 0..10 {
@@ -99,12 +101,14 @@ fn simple_filter() {
     }
 
     // All states are zero.
-    assert!(example
-        .filter
-        .state_vector()
-        .as_ref()
-        .iter()
-        .all(|&x| x == 0.0));
+    assert!(
+        example
+            .filter
+            .state_vector()
+            .as_ref()
+            .iter()
+            .all(|&x| x == 0.0)
+    );
 
     // The estimate covariance has changed.
     example.filter.estimate_covariance().inspect(|mat| {
@@ -123,12 +127,14 @@ fn simple_filter() {
     example.filter.correct(&mut example.measurement);
 
     // All states are still zero.
-    assert!(example
-        .filter
-        .state_vector()
-        .as_ref()
-        .iter()
-        .all(|&x| x == 0.0));
+    assert!(
+        example
+            .filter
+            .state_vector()
+            .as_ref()
+            .iter()
+            .all(|&x| x == 0.0)
+    );
 
     // The estimate covariance has improved.
     example.filter.estimate_covariance().inspect(|mat| {

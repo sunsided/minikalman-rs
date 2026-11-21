@@ -32,8 +32,8 @@
 
 use std::process::ExitCode;
 
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 use minikalman::extended::builder::{
@@ -202,11 +202,7 @@ impl Sensors {
 ///
 /// Alternates one minute at 1C (2.5 A) with one minute at a light 0.2C load (0.5 A).
 fn load_current(step: usize) -> f32 {
-    if (step / 60) % 2 == 0 {
-        2.5
-    } else {
-        0.5
-    }
+    if (step / 60) % 2 == 0 { 2.5 } else { 0.5 }
 }
 
 /// Returns the RC decay factor `e^(−Δt/τ)` for one time step.

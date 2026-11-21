@@ -20,7 +20,7 @@ use minikalman::unscented::builder::{
 };
 
 use crate::reference::{cv, gravity, pendulum, radar};
-use crate::support::{load, read, Real};
+use crate::support::{Real, load, read};
 
 /// A linear Gaussian scenario: model matrices (row-major), initial estimate and measurements.
 #[derive(Clone, Copy, Debug)]

@@ -461,10 +461,12 @@ fn ukf_correct_with_weights_high_center_weight() {
 
     assert!(state[0].is_finite());
     assert!(state[1].is_finite());
-    assert!(filter
-        .estimate_covariance()
-        .inspect(|mat| mat.get_at(0, 0))
-        .is_finite());
+    assert!(
+        filter
+            .estimate_covariance()
+            .inspect(|mat| mat.get_at(0, 0))
+            .is_finite()
+    );
 }
 
 #[test]

@@ -19,15 +19,15 @@ impl BufferBuilder {
 
     #[allow(non_snake_case)]
     #[doc(alias = "system_covariance_P")]
-    pub fn estimate_covariance_P<const STATES: usize>(
-    ) -> EstimateCovarianceMatrixBufferBuilder<STATES> {
+    pub fn estimate_covariance_P<const STATES: usize>()
+    -> EstimateCovarianceMatrixBufferBuilder<STATES> {
         EstimateCovarianceMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
     #[doc(alias = "process_noise_covariance_Q")]
-    pub fn direct_process_noise_covariance_Q<const STATES: usize>(
-    ) -> DirectProcessNoiseCovarianceMatrixBufferBuilder<STATES> {
+    pub fn direct_process_noise_covariance_Q<const STATES: usize>()
+    -> DirectProcessNoiseCovarianceMatrixBufferBuilder<STATES> {
         DirectProcessNoiseCovarianceMatrixBufferBuilder
     }
 
@@ -36,68 +36,68 @@ impl BufferBuilder {
     }
 
     #[allow(non_snake_case)]
-    pub fn control_matrix_B<const STATES: usize, const CONTROLS: usize>(
-    ) -> ControlTransitionMatrixBufferBuilder<STATES, CONTROLS> {
+    pub fn control_matrix_B<const STATES: usize, const CONTROLS: usize>()
+    -> ControlTransitionMatrixBufferBuilder<STATES, CONTROLS> {
         ControlTransitionMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
     #[doc(alias = "control_covariance_Q")]
-    pub fn control_process_noise_covariance_Q<const CONTROLS: usize>(
-    ) -> ControlProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> {
+    pub fn control_process_noise_covariance_Q<const CONTROLS: usize>()
+    -> ControlProcessNoiseCovarianceMatrixBufferBuilder<CONTROLS> {
         ControlProcessNoiseCovarianceMatrixBufferBuilder
     }
 
     #[doc(alias = "observation_vector_z")]
-    pub fn measurement_vector_z<const OBSERVATIONS: usize>(
-    ) -> ObservationVectorBufferBuilder<OBSERVATIONS> {
+    pub fn measurement_vector_z<const OBSERVATIONS: usize>()
+    -> ObservationVectorBufferBuilder<OBSERVATIONS> {
         ObservationVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
     #[doc(alias = "measurement_transformation_H")]
-    pub fn observation_matrix_H<const OBSERVATIONS: usize, const STATES: usize>(
-    ) -> ObservationMatrixBufferBuilder<OBSERVATIONS, STATES> {
+    pub fn observation_matrix_H<const OBSERVATIONS: usize, const STATES: usize>()
+    -> ObservationMatrixBufferBuilder<OBSERVATIONS, STATES> {
         ObservationMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn observation_covariance_R<const OBSERVATIONS: usize>(
-    ) -> MeasurementNoiseCovarianceMatrixBufferBuilder<OBSERVATIONS> {
+    pub fn observation_covariance_R<const OBSERVATIONS: usize>()
+    -> MeasurementNoiseCovarianceMatrixBufferBuilder<OBSERVATIONS> {
         MeasurementNoiseCovarianceMatrixBufferBuilder
     }
 
-    pub fn innovation_vector_y<const OBSERVATIONS: usize>(
-    ) -> InnovationVectorBufferBuilder<OBSERVATIONS> {
+    pub fn innovation_vector_y<const OBSERVATIONS: usize>()
+    -> InnovationVectorBufferBuilder<OBSERVATIONS> {
         InnovationVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn innovation_covariance_S<const OBSERVATIONS: usize>(
-    ) -> InnovationResidualCovarianceMatrixBufferBuilder<OBSERVATIONS> {
+    pub fn innovation_covariance_S<const OBSERVATIONS: usize>()
+    -> InnovationResidualCovarianceMatrixBufferBuilder<OBSERVATIONS> {
         InnovationResidualCovarianceMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn kalman_gain_K<const STATES: usize, const OBSERVATIONS: usize>(
-    ) -> KalmanGainMatrixBufferBuilder<STATES, OBSERVATIONS> {
+    pub fn kalman_gain_K<const STATES: usize, const OBSERVATIONS: usize>()
+    -> KalmanGainMatrixBufferBuilder<STATES, OBSERVATIONS> {
         KalmanGainMatrixBufferBuilder
     }
 
-    pub fn state_prediction_temp_x<const STATES: usize>(
-    ) -> StatePredictionVectorBufferBuilder<STATES> {
+    pub fn state_prediction_temp_x<const STATES: usize>()
+    -> StatePredictionVectorBufferBuilder<STATES> {
         StatePredictionVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_system_covariance_P<const STATES: usize>(
-    ) -> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
+    pub fn temp_system_covariance_P<const STATES: usize>()
+    -> TemporarySystemCovarianceMatrixBufferBuilder<STATES> {
         TemporarySystemCovarianceMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_BQ<const STATES: usize, const CONTROLS: usize>(
-    ) -> TemporaryBQMatrixBufferBuilder<STATES, CONTROLS> {
+    pub fn temp_BQ<const STATES: usize, const CONTROLS: usize>()
+    -> TemporaryBQMatrixBufferBuilder<STATES, CONTROLS> {
         TemporaryBQMatrixBufferBuilder
     }
 
@@ -108,14 +108,14 @@ impl BufferBuilder {
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_HP<const OBSERVATIONS: usize, const STATES: usize>(
-    ) -> TemporaryHPMatrixBufferBuilder<OBSERVATIONS, STATES> {
+    pub fn temp_HP<const OBSERVATIONS: usize, const STATES: usize>()
+    -> TemporaryHPMatrixBufferBuilder<OBSERVATIONS, STATES> {
         TemporaryHPMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn temp_PHt<const STATES: usize, const OBSERVATIONS: usize>(
-    ) -> TemporaryPHtMatrixBufferBuilder<STATES, OBSERVATIONS> {
+    pub fn temp_PHt<const STATES: usize, const OBSERVATIONS: usize>()
+    -> TemporaryPHtMatrixBufferBuilder<STATES, OBSERVATIONS> {
         TemporaryPHtMatrixBufferBuilder
     }
 
@@ -125,32 +125,32 @@ impl BufferBuilder {
     }
 
     #[allow(non_snake_case)]
-    pub fn sigma_point_matrix<const STATES: usize, const NUM_SIGMA: usize>(
-    ) -> SigmaPointMatrixBufferBuilder<STATES, NUM_SIGMA> {
+    pub fn sigma_point_matrix<const STATES: usize, const NUM_SIGMA: usize>()
+    -> SigmaPointMatrixBufferBuilder<STATES, NUM_SIGMA> {
         SigmaPointMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn sigma_weights_vector<const NUM_SIGMA: usize>(
-    ) -> SigmaWeightsVectorBufferBuilder<NUM_SIGMA> {
+    pub fn sigma_weights_vector<const NUM_SIGMA: usize>()
+    -> SigmaWeightsVectorBufferBuilder<NUM_SIGMA> {
         SigmaWeightsVectorBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn sigma_propagated_matrix<const STATES: usize, const NUM_SIGMA: usize>(
-    ) -> SigmaPropagatedMatrixBufferBuilder<STATES, NUM_SIGMA> {
+    pub fn sigma_propagated_matrix<const STATES: usize, const NUM_SIGMA: usize>()
+    -> SigmaPropagatedMatrixBufferBuilder<STATES, NUM_SIGMA> {
         SigmaPropagatedMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn sigma_observed_matrix<const OBSERVATIONS: usize, const NUM_SIGMA: usize>(
-    ) -> SigmaObservedMatrixBufferBuilder<OBSERVATIONS, NUM_SIGMA> {
+    pub fn sigma_observed_matrix<const OBSERVATIONS: usize, const NUM_SIGMA: usize>()
+    -> SigmaObservedMatrixBufferBuilder<OBSERVATIONS, NUM_SIGMA> {
         SigmaObservedMatrixBufferBuilder
     }
 
     #[allow(non_snake_case)]
-    pub fn cross_covariance_matrix<const STATES: usize, const OBSERVATIONS: usize>(
-    ) -> CrossCovarianceMatrixBufferBuilder<STATES, OBSERVATIONS> {
+    pub fn cross_covariance_matrix<const STATES: usize, const OBSERVATIONS: usize>()
+    -> CrossCovarianceMatrixBufferBuilder<STATES, OBSERVATIONS> {
         CrossCovarianceMatrixBufferBuilder
     }
 

@@ -21,7 +21,7 @@ mod robustness;
 use fixed::types::{I16F16, I32F32};
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder;
-use robustness::{deltas, measure, num, to_f64_vector, BenchType, Noise, Run, Summary};
+use robustness::{BenchType, Noise, Run, Summary, deltas, measure, num, to_f64_vector};
 
 /// Both covariance updates, with their report labels.
 const UPDATES: [(CovarianceUpdate, &str); 2] = [

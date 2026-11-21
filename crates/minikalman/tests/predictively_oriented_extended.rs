@@ -175,11 +175,7 @@ fn random_covariance(rng: &mut StdRng) -> [[f64; 3]; 3] {
     core::array::from_fn(|i| {
         core::array::from_fn(|j| {
             let sum: f64 = (0..3).map(|k| l[i][k] * l[j][k]).sum();
-            if i == j {
-                sum + 0.1
-            } else {
-                sum
-            }
+            if i == j { sum + 0.1 } else { sum }
         })
     })
 }

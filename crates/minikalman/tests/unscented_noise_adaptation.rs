@@ -6,8 +6,8 @@
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder as RegularBuilder;
 use minikalman::unscented::builder::KalmanFilterBuilder as UnscentedBuilder;
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// Adaptation with forgetting factor `α` and a negligible floor.
@@ -201,14 +201,18 @@ fn unscented_r_matches_regular_r_for_a_linear_observation() {
     regular_measurement.set_noise_adaptation(adaptation(0.7));
     unscented_measurement.set_noise_adaptation(adaptation(0.7));
 
-    assert!(regular_filter
-        .correct(&mut regular_measurement)
-        .is_applied());
-    assert!(unscented_filter
-        .correct_sigma_point(&mut unscented_measurement, |sigma, observed| {
-            observe_linear(sigma, observed);
-        })
-        .is_applied());
+    assert!(
+        regular_filter
+            .correct(&mut regular_measurement)
+            .is_applied()
+    );
+    assert!(
+        unscented_filter
+            .correct_sigma_point(&mut unscented_measurement, |sigma, observed| {
+                observe_linear(sigma, observed);
+            })
+            .is_applied()
+    );
 
     let expected = entries(regular_measurement.measurement_noise_covariance());
     let actual = entries(unscented_measurement.measurement_noise_covariance());

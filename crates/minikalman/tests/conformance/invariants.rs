@@ -9,8 +9,8 @@ use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder;
 
 use crate::reference::{cv, pendulum, radar};
-use crate::scenarios::{self, History, CV, GRAVITY};
-use crate::support::{assert_covariance, load, read, steps, Real};
+use crate::scenarios::{self, CV, GRAVITY, History};
+use crate::support::{Real, assert_covariance, load, read, steps};
 
 /// Asserts that every filtered covariance of a run is symmetric and positive semidefinite.
 fn assert_covariances<T: Real>(what: &str, history: &History, n: usize) {

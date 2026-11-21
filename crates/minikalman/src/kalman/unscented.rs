@@ -3,11 +3,11 @@
 //! The Unscented Kalman Filter (UKF) uses sigma points to propagate mean and covariance
 //! estimates through nonlinear transformations, avoiding the need for Jacobian calculations.
 
-use crate::kalman::process_noise::{correct_adapting_process_noise, ProcessNoiseAdapter};
+use crate::kalman::process_noise::{ProcessNoiseAdapter, correct_adapting_process_noise};
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
-use crate::observations::unscented::anchored_mean;
 use crate::observations::NoiseAdaptation;
+use crate::observations::unscented::anchored_mean;
 use crate::prelude::{AsMatrix, AsMatrixMut};
 use core::marker::PhantomData;
 
@@ -126,18 +126,18 @@ pub struct UnscentedKalman<
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -242,18 +242,18 @@ impl<
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -277,18 +277,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -313,18 +313,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -355,18 +355,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -390,18 +390,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -457,18 +457,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -521,18 +521,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    >
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+>
     UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -885,18 +885,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterNumStates<STATES>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterNumStates<STATES>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -914,18 +914,18 @@ impl<
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterStateVector<STATES, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterStateVector<STATES, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -950,18 +950,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterStateVectorMut<STATES, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterStateVectorMut<STATES, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -986,18 +986,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterEstimateCovariance<STATES, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterEstimateCovariance<STATES, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1022,18 +1022,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterEstimateCovarianceMut<STATES, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterEstimateCovarianceMut<STATES, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1058,18 +1058,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterDirectProcessNoiseCovariance<STATES, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterDirectProcessNoiseCovariance<STATES, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1094,18 +1094,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterDirectProcessNoiseMut<STATES, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterDirectProcessNoiseMut<STATES, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1130,18 +1130,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterUnscentedParams<T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterUnscentedParams<T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1179,18 +1179,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterUnscentedParamsMut<T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterUnscentedParamsMut<T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1228,18 +1228,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterSigmaPointPredict<STATES, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterSigmaPointPredict<STATES, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1283,18 +1283,18 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const NUM_SIGMA: usize,
-        T,
-        X,
-        P,
-        Q,
-        PX,
-        SigmaPoints,
-        SigmaWeights,
-        SigmaPropagated,
-        TempSigmaP,
-    > KalmanFilterSigmaPointCorrect<STATES, NUM_SIGMA, T>
+    const STATES: usize,
+    const NUM_SIGMA: usize,
+    T,
+    X,
+    P,
+    Q,
+    PX,
+    SigmaPoints,
+    SigmaWeights,
+    SigmaPropagated,
+    TempSigmaP,
+> KalmanFilterSigmaPointCorrect<STATES, NUM_SIGMA, T>
     for UnscentedKalman<
         STATES,
         NUM_SIGMA,
@@ -1367,7 +1367,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::kalman::*;
-    use crate::test_dummies::{make_dummy_filter_ukf, make_dummy_observation_ukf, Dummy};
+    use crate::test_dummies::{Dummy, make_dummy_filter_ukf, make_dummy_observation_ukf};
     use crate::unscented::UnscentedKalman;
 
     #[test]

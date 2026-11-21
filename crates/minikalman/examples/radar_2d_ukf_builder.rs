@@ -143,8 +143,8 @@ fn main() {
         let std_vy = covariances.get_at(3, 3).sqrt();
 
         println!(
-        "{} t={:.2} s,  x={:.2} ± {:.4} m\n              y={:.2} ± {:.4} m\n             vx={:2.2} ± {:.4} m/s\n             vy={:2.2} ± {:.4} m/s",
-        marker, time, state[0], std_x, state[1], std_y, state[2], std_vx, state[3], std_vy
-    );
+            "{} t={:.2} s,  x={:.2} ± {:.4} m\n              y={:.2} ± {:.4} m\n             vx={:2.2} ± {:.4} m/s\n             vy={:2.2} ± {:.4} m/s",
+            marker, time, state[0], std_x, state[1], std_y, state[2], std_vx, state[3], std_vy
+        );
     }
 }

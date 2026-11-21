@@ -36,8 +36,8 @@
 use std::f32::consts::PI;
 use std::process::ExitCode;
 
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 use minikalman::angles::wrap_pi;

@@ -5,8 +5,8 @@
 //! The run count and step count come from [`chi2`](crate::reference::chi2), where the
 //! generator also put the matching chi-square bounds.
 
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, StandardNormal};
 
 use minikalman::prelude::*;

@@ -537,9 +537,9 @@ pub mod unscented {
         SigmaPropagatedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
         UnscentedKalmanFilter,
     };
+    pub use crate::observations::NoiseAdaptation;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::unscented::*;
-    pub use crate::observations::NoiseAdaptation;
     pub use crate::storage::unscented::*;
 
     /// Builder types for unscented Kalman filters

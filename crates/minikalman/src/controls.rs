@@ -401,7 +401,7 @@ mod tests {
         use crate::matrix::MatrixMut;
         use assert_float_eq::*;
 
-        use crate::prelude::{regular::RegularKalmanBuilder, BufferBuilder};
+        use crate::prelude::{BufferBuilder, regular::RegularKalmanBuilder};
 
         const NUM_STATES: usize = 4;
         const NUM_CONTROLS: usize = 3;

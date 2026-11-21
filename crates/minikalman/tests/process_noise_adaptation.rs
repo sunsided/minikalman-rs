@@ -7,8 +7,8 @@ use minikalman::extended::builder::KalmanFilterBuilder as ExtendedBuilder;
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder as RegularBuilder;
 use minikalman::unscented::builder::KalmanFilterBuilder as UnscentedBuilder;
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// Adaptation with forgetting factor `α` and a zero floor.

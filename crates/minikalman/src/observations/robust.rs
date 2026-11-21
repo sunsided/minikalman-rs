@@ -43,7 +43,7 @@
 use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 use crate::observations::predictively_oriented::vector::machine_epsilon;
-use crate::observations::{normalized_innovation_squared, CovarianceUpdate};
+use crate::observations::{CovarianceUpdate, normalized_innovation_squared};
 
 /// The relative change of the weight below which the iteration counts as converged.
 const RELATIVE_TOLERANCE: f64 = 1e-6;
@@ -258,11 +258,7 @@ fn max<T>(a: T, b: T) -> T
 where
     T: MatrixDataType,
 {
-    if b > a {
-        b
-    } else {
-        a
-    }
+    if b > a { b } else { a }
 }
 
 /// Returns `|value|`.
@@ -270,11 +266,7 @@ fn abs<T>(value: T) -> T
 where
     T: MatrixDataType,
 {
-    if value < T::zero() {
-        -value
-    } else {
-        value
-    }
+    if value < T::zero() { -value } else { value }
 }
 
 /// Performs the robust update of a linear (or linearized) observation from the prior

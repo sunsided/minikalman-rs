@@ -8,8 +8,8 @@
 use minikalman::extended::builder::KalmanFilterBuilder as ExtendedBuilder;
 use minikalman::prelude::*;
 use minikalman::unscented::builder::KalmanFilterBuilder as UnscentedBuilder;
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// Gravity in m/s², as in the paper's pendulum (Appendix C.4).
