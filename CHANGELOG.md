@@ -22,7 +22,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   never grows past the prior; the weight `w` is iterated on `OBSERVATIONS × OBSERVATIONS` matrices
   with one caller-provided scratch matrix, reported by `robust_weight()`, and the status is
   `NotConverged` if it does not settle within the budget. The gate and NIS use the prior
-  innovation, and `R` is not adapted ([#108]).
+  innovation, `R` is not adapted, and the regular and extended corrections update `P` as
+  `set_covariance_update` says (the Joseph form by default) ([#108]).
 - Added a `compass` example: a heading filter whose heading crosses north, corrected with
   `correct_with` and `angles::wrap_180`, next to an unwrapped filter that swings the long way
   around. See [#40].

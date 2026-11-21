@@ -700,8 +700,9 @@ where
             Ok(solution) => solution,
             Err(status) => return status,
         };
+        crate::observations::robust::scale(S_inv, solution.weight);
 
-        // K = Pxz × (Pzz + R/w)⁻¹
+        // K = Pxz × (Pzz + R/w)⁻¹ = Pxz × w×S_w⁻¹
         self.cross_covariance
             .as_matrix()
             .mult_transb(&*S_inv, self.K.as_matrix_mut());

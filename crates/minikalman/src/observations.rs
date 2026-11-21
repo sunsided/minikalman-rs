@@ -234,7 +234,9 @@ pub struct NoiseAdaptation<T> {
 /// Set per observation with `set_covariance_update` on
 /// [`RegularObservation`](crate::regular::RegularObservation) and
 /// [`ExtendedObservation`](crate::extended::ExtendedObservation). Applies to `correct`,
-/// `correct_with`, `correct_nonlinear` and `correct_nonlinear_with`. The corrections with an
+/// `correct_with`, `correct_nonlinear` and `correct_nonlinear_with`, and to the robust
+/// corrections `correct_robust*` and `correct_nonlinear_robust*` (with the reweighted noise
+/// `R/w` in place of `R`). The corrections with an
 /// externally supplied gain (`correct_with_gain*`) and the recalibrated extended corrections
 /// always use the Joseph form; the predictively oriented corrections write `P` their own way
 /// and ignore this setting.

@@ -918,3 +918,90 @@ fn f32_converges() {
         assert_eq!(measurement.robust_weight() < 0.01, small, "z = {z}");
     }
 }
+
+/// The robust corrections honor the observation's covariance update: the Joseph form (the
+/// default) leaves `P` exactly symmetric, and both forms agree on a well-conditioned problem.
+#[test]
+fn covariance_update_is_honored() {
+    for z in [[2.0, -1.0], [41.0, -2.0]] {
+        let prior = problem(z);
+        let mut outcomes = Vec::new();
+        for update in [CovarianceUpdate::Joseph, CovarianceUpdate::Standard] {
+            let builder = RegularBuilder::<2, f64>::default();
+            let mut filter = builder.build();
+            let mut measurement = builder.observations().build::<2>();
+            let ekf_builder = ExtendedBuilder::<2, f64>::default();
+            let mut ekf = ekf_builder.build();
+            let mut ekf_measurement = ekf_builder.observations().build::<2>();
+            for i in 0..2 {
+                filter.state_vector_mut().set_at(i, 0, prior.x[i]);
+                ekf.state_vector_mut().set_at(i, 0, prior.x[i]);
+                measurement.measurement_vector_mut().set_at(i, 0, z[i]);
+                ekf_measurement.measurement_vector_mut().set_at(i, 0, z[i]);
+                for (j, (&p, &r)) in prior.p[i].iter().zip(prior.r[i].iter()).enumerate() {
+                    filter.estimate_covariance_mut().set_at(i, j, p);
+                    ekf.estimate_covariance_mut().set_at(i, j, p);
+                    measurement
+                        .measurement_noise_covariance_mut()
+                        .set_at(i, j, r);
+                    ekf_measurement
+                        .measurement_noise_covariance_mut()
+                        .set_at(i, j, r);
+                }
+            }
+
+            measurement.observation_matrix_mut().make_identity();
+            ekf_measurement
+                .observation_jacobian_matrix_mut()
+                .make_identity();
+            measurement.set_covariance_update(update);
+            ekf_measurement.set_covariance_update(update);
+
+            let status =
+                filter.correct_robust(&mut measurement, &mut workspace::<2>(), student_t(4.0));
+            assert!(status.is_applied());
+            let status = ekf.correct_nonlinear_robust(
+                &mut ekf_measurement,
+                |x, y| {
+                    y[0] = x[0];
+                    y[1] = x[1];
+                },
+                &mut workspace::<2>(),
+                student_t(4.0),
+            );
+            assert!(status.is_applied());
+
+            for (x, p) in [
+                (
+                    state(filter.state_vector().as_matrix()),
+                    covariance(filter.estimate_covariance().as_matrix()),
+                ),
+                (
+                    state(ekf.state_vector().as_matrix()),
+                    covariance(ekf.estimate_covariance().as_matrix()),
+                ),
+            ] {
+                if update == CovarianceUpdate::Joseph {
+                    assert_eq!(p[0][1], p[1][0], "Joseph keeps P exactly symmetric");
+                }
+
+                outcomes.push(Outcome {
+                    x,
+                    p,
+                    status,
+                    nis: 0.0,
+                    weight: measurement.robust_weight(),
+                });
+            }
+        }
+
+        for outcome in &outcomes[1..] {
+            assert_close(
+                outcome,
+                &outcomes[0],
+                1e-12,
+                "Joseph vs standard, regular vs extended",
+            );
+        }
+    }
+}

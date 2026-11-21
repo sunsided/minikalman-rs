@@ -42,8 +42,8 @@
 
 use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
-use crate::observations::normalized_innovation_squared;
 use crate::observations::predictively_oriented::vector::machine_epsilon;
+use crate::observations::{normalized_innovation_squared, CovarianceUpdate};
 
 /// The relative change of the weight below which the iteration counts as converged.
 const RELATIVE_TOLERANCE: f64 = 1e-6;
@@ -116,8 +116,8 @@ impl<T> WeightSolution<T> {
 /// the prior innovation. The first factorization uses `w = 1`, i.e. `S = G + R`, so the NIS
 /// stored in `nis` is that of the prior, and `gate` is applied to it as in the regular update.
 ///
-/// On success, `S_inv` holds `(G + R/w)⁻¹ = w×(w×G + R)⁻¹` for the returned weight, and `S`
-/// the Cholesky factor of `w×G + R`. Returns [`CorrectionStatus::NotPositiveDefinite`] if any
+/// On success, `S_inv` holds `S_w⁻¹ = (w×G + R)⁻¹` for the returned weight (so
+/// `(G + R/w)⁻¹ = w×S_inv`), and `S` the Cholesky factor of `S_w`. Returns [`CorrectionStatus::NotPositiveDefinite`] if any
 /// `w×G + R` has no Cholesky factor, or [`CorrectionStatus::Gated`]; neither touches anything
 /// but `S`, `S_inv` and `nis`.
 #[allow(non_snake_case, clippy::too_many_arguments)]
@@ -160,7 +160,6 @@ where
         solution.weight = next;
     }
 
-    scale(S_inv, solution.weight);
     Ok(solution)
 }
 
@@ -178,12 +177,7 @@ fn invert_scaled<const M: usize, T>(
 where
     T: MatrixDataType,
 {
-    for i in 0..M {
-        for j in 0..M {
-            S.set(i, j, w * G.get(i, j) + R.get(i, j));
-        }
-    }
-
+    write_scaled_covariance(G, R, w, S);
     if !S.cholesky_decompose_lower() {
         return Err(CorrectionStatus::NotPositiveDefinite);
     }
@@ -248,12 +242,12 @@ where
 
 /// Multiplies every entry of `A` by `factor`.
 #[allow(non_snake_case)]
-fn scale<const M: usize, T>(A: &mut impl MatrixMut<M, M, T>, factor: T)
+pub(crate) fn scale<const R: usize, const C: usize, T>(A: &mut impl MatrixMut<R, C, T>, factor: T)
 where
     T: MatrixDataType,
 {
-    for i in 0..M {
-        for j in 0..M {
+    for i in 0..R {
+        for j in 0..C {
             A.set(i, j, A.get(i, j) * factor);
         }
     }
@@ -289,6 +283,11 @@ where
 /// Writes the weight of the applied update to `weight`. Leaves `x`, `P`, `K` and `weight`
 /// unchanged unless the update is applied; see [`solve_weight`] for the other statuses.
 ///
+/// Updates `P` as `covariance_update` says. The Joseph form is evaluated with the unscaled
+/// gain `K̃ = P⁻×Hᵀ×S_w⁻¹ = K/w` as
+/// `P − w×(K̃×H×P + (K̃×H×P)ᵀ) + w×K̃×S_w×K̃ᵀ`, which equals
+/// `P − K×H×P − (K×H×P)ᵀ + K×(H×P×Hᵀ + R/w)×Kᵀ` without forming `R/w`.
+///
 /// ## Buffers
 /// The aliasing rules are those of the regular update: `G` is the caller's scratch and aliases
 /// nothing; `temp_PHt` keeps `P⁻×Hᵀ` while the weight is iterated, since `S` and `S_inv` never
@@ -311,6 +310,7 @@ pub(crate) fn update_linear<const STATES: usize, const OBSERVATIONS: usize, T>(
     weight: &mut T,
     gate: Option<T>,
     robust: RobustCorrection<T>,
+    covariance_update: CovarianceUpdate,
 ) -> CorrectionStatus
 where
     T: MatrixDataType,
@@ -324,15 +324,84 @@ where
         Err(status) => return status,
     };
 
-    // K = P*Hᵀ*(G + R/w)⁻¹; x += K*y; P -= K*(H*P)
+    // K̃ = P*Hᵀ*S_w⁻¹; the gain is K = w*K̃.
+    let w = solution.weight;
     temp_PHt.mult(S_inv, K);
-    K.multadd_rowvector(y, x);
     H.mult(P, temp_HP);
-    K.mult(temp_HP, temp_KHP);
-    P.sub_inplace_a(temp_KHP);
+    K.mult(temp_HP, temp_KHP); // temp_KHP = K̃*H*P
+    match covariance_update {
+        CovarianceUpdate::Standard => {
+            scale(temp_KHP, w);
+            P.sub_inplace_a(temp_KHP);
+        }
+        CovarianceUpdate::Joseph => {
+            subtract_scaled_with_transpose(P, temp_KHP, w);
+            write_scaled_covariance(G, R, w, S);
+            // temp_PHt MAY alias temp_KHP, so it is only written once temp_KHP is consumed.
+            K.mult(S, temp_PHt); // temp_PHt = K̃*S_w
+            add_scaled_lower_product_mirrored(P, temp_PHt, K, w);
+        }
+    }
 
-    *weight = solution.weight;
+    scale(K, w);
+    K.multadd_rowvector(y, x);
+    *weight = w;
     solution.status()
+}
+
+/// Writes `S = w×G + R`.
+#[allow(non_snake_case)]
+fn write_scaled_covariance<const M: usize, T>(
+    G: &impl Matrix<M, M, T>,
+    R: &impl Matrix<M, M, T>,
+    w: T,
+    S: &mut impl MatrixMut<M, M, T>,
+) where
+    T: MatrixDataType,
+{
+    for i in 0..M {
+        for j in 0..M {
+            S.set(i, j, w * G.get(i, j) + R.get(i, j));
+        }
+    }
+}
+
+/// Applies `P ← P − w×(A + Aᵀ)`.
+#[allow(non_snake_case)]
+fn subtract_scaled_with_transpose<const STATES: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    A: &impl Matrix<STATES, STATES, T>,
+    w: T,
+) where
+    T: MatrixDataType,
+{
+    for i in 0..STATES {
+        for j in 0..STATES {
+            let value = P.get(i, j) - w * (A.get(i, j) + A.get(j, i));
+            P.set(i, j, value);
+        }
+    }
+}
+
+/// Adds `w×A×Bᵀ` to `P`, computing only the lower triangle and mirroring it, so that `P` comes
+/// out exactly symmetric.
+#[allow(non_snake_case)]
+fn add_scaled_lower_product_mirrored<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    A: &impl Matrix<STATES, OBSERVATIONS, T>,
+    B: &impl Matrix<STATES, OBSERVATIONS, T>,
+    w: T,
+) where
+    T: MatrixDataType,
+{
+    for i in 0..STATES {
+        for j in 0..=i {
+            let product: T = (0..OBSERVATIONS).map(|l| A.get(i, l) * B.get(j, l)).sum();
+            let value = P.get(i, j) + w * product;
+            P.set(i, j, value);
+            P.set(j, i, value);
+        }
+    }
 }
 
 #[cfg(test)]

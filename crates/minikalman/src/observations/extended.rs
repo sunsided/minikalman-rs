@@ -360,7 +360,8 @@ impl<
         self.covariance_update
     }
 
-    /// Sets how `correct_nonlinear` and `correct_nonlinear_with` update the estimate covariance `P`;
+    /// Sets how `correct_nonlinear`, `correct_nonlinear_with` and `correct_nonlinear_robust*`
+    /// update the estimate covariance `P`;
     /// [`CovarianceUpdate::Joseph`] (the default) uses the Joseph form, which keeps `P` exactly
     /// symmetric at the cost of forming `S` again and two more matrix products;
     /// [`CovarianceUpdate::Standard`] the cheaper `P ← P − K×H×P`. See [`CovarianceUpdate`] for
@@ -845,6 +846,7 @@ where
             &mut self.robust_weight,
             self.gate,
             robust,
+            self.covariance_update,
         )
     }
 

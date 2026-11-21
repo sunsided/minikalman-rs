@@ -360,7 +360,8 @@ impl<
         self.covariance_update
     }
 
-    /// Sets how `correct` and `correct_with` update the estimate covariance `P`;
+    /// Sets how `correct`, `correct_with` and `correct_robust*` update the estimate covariance
+    /// `P`;
     /// [`CovarianceUpdate::Joseph`] (the default) uses the Joseph form, which keeps `P` exactly
     /// symmetric at the cost of forming `S` again and two more matrix products;
     /// [`CovarianceUpdate::Standard`] the cheaper `P ← P − K×H×P`. See [`CovarianceUpdate`] for
@@ -805,8 +806,11 @@ where
     /// [filter](crate::regular::RegularKalman::correct_robust)'s process noise adaptation
     /// still runs.
     ///
+    /// `P` is updated as [`set_covariance_update`](Self::set_covariance_update) says, with
+    /// `R/w` in place of `R` in the Joseph form (evaluated without forming `R/w`).
+    ///
     /// `R` should be positive definite. After the correction, `K` holds the applied gain,
-    /// `temp_S_inv` holds `(H×P×Hᵀ + R/w)⁻¹`, and `S` and `workspace` hold intermediate
+    /// `temp_S_inv` holds `(w×H×P×Hᵀ + R)⁻¹`, and `S` and `workspace` hold intermediate
     /// values.
     ///
     /// With fixed-point types, the prior NIS can overflow as in [`correct`](Self::correct);
@@ -858,6 +862,7 @@ where
             &mut self.robust_weight,
             self.gate,
             robust,
+            self.covariance_update,
         )
     }
 
