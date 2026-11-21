@@ -1,10 +1,11 @@
 flowchart LR
     %% How the regular filter's types are wired up. Style: see docs/diagrams/README.md.
     %% The root README.md holds an inline copy of this diagram; keep the two in sync.
-    %% Without alloc, buffers come from the impl_buffer_* macros; with alloc, the
-    %% KalmanFilterBuilder allocates them.
+    %% Without alloc, the storage types or the impl_buffer_* macros provide the buffers;
+    %% with alloc, the KalmanFilterBuilder allocates them.
     alloc["KalmanFilterBuilder<br/>(alloc feature)"]
     macros[/"impl_buffer_* macros<br/>static arrays"/]
+    storage[/"FilterStorage, ControlStorage,<br/>ObservationStorage (const fn new)"/]
     buffers["*Buffer::from(slice)"]
     filterBuilder["RegularKalmanBuilder::new"]
     controlBuilder["ControlBuilder::new"]
@@ -16,6 +17,7 @@ flowchart LR
     filterBuilder --> filter
     controlBuilder --> control
     observationBuilder --> observation
+    storage -- "build()" --> filter & control & observation
     alloc -. "build()" .-> filter
     alloc -. "controls().build()" .-> control
     alloc -. "observations().build()" .-> observation

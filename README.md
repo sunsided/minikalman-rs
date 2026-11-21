@@ -126,16 +126,18 @@ flowchart LR
 ```
 
 Filters, controls and observations own their matrices as buffers. On embedded targets, the
-`impl_buffer_*` macros create them as static arrays; with `alloc`, the builders allocate them:
+storage types or the `impl_buffer_*` macros hold them in static or stack arrays; with `alloc`,
+the builders allocate them:
 
 ```mermaid
 flowchart LR
     %% How the regular filter's types are wired up. Style: see crates/minikalman/docs/diagrams/README.md.
     %% Copy of crates/minikalman/docs/diagrams/regular-setup.mmd; keep the two in sync.
-    %% Without alloc, buffers come from the impl_buffer_* macros; with alloc, the
-    %% KalmanFilterBuilder allocates them.
+    %% Without alloc, the storage types or the impl_buffer_* macros provide the buffers;
+    %% with alloc, the KalmanFilterBuilder allocates them.
     alloc["KalmanFilterBuilder<br/>(alloc feature)"]
     macros[/"impl_buffer_* macros<br/>static arrays"/]
+    storage[/"FilterStorage, ControlStorage,<br/>ObservationStorage (const fn new)"/]
     buffers["*Buffer::from(slice)"]
     filterBuilder["RegularKalmanBuilder::new"]
     controlBuilder["ControlBuilder::new"]
@@ -147,6 +149,7 @@ flowchart LR
     filterBuilder --> filter
     controlBuilder --> control
     observationBuilder --> observation
+    storage -- "build()" --> filter & control & observation
     alloc -. "build()" .-> filter
     alloc -. "controls().build()" .-> control
     alloc -. "observations().build()" .-> observation
@@ -223,6 +226,56 @@ assert!(velocity > 0.5 && velocity < 1.5);
 After that, the filter is used the same way as in the examples below. The
 [`gravity`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/gravity.rs)
 test and the [`xbuild-tests/stm32`] firmware use the same macros and builders.
+
+### Without allocation, shorter: storage types
+
+The storage types are a shorter route to the same explicit, compile-time-fixed memory. Each
+one holds all buffers of a filter part as const-generic arrays, with exactly the size of the
+`impl_buffer_*` buffers it replaces: `regular::{FilterStorage, ObservationStorage,
+ControlStorage}`, the same pair in `extended`, `unscented::{FilterStorage, ObservationStorage}`
+(with a compile-time check of the sigma point count), `information::FilterStorage` and
+`smoother::RtsSmootherStorage`. `new` is a `const fn`, and `build()` wires the filter to borrow
+the storage. The example above becomes:
+
+```rust
+use minikalman::prelude::*;
+use minikalman::regular::{FilterStorage, ObservationStorage};
+
+const NUM_STATES: usize = 2; // position, velocity
+const NUM_OBSERVATIONS: usize = 1; // position
+
+// All filter buffers (A, x̂, P, Q, temporaries) and all observation buffers in two values.
+let mut filter_storage = FilterStorage::<NUM_STATES, f32>::new(0.0);
+let mut measurement_storage = ObservationStorage::<NUM_STATES, NUM_OBSERVATIONS, f32>::new(0.0);
+let mut filter = filter_storage.build();
+let mut measurement = measurement_storage.build();
+
+filter.state_transition_mut().apply(|a| {
+    a.set(0, 0, 1.0);
+    a.set(0, 1, 0.1);
+    a.set(1, 1, 1.0);
+});
+filter.direct_process_noise_mut().set(1, 1, 0.01);
+filter.estimate_covariance_mut().make_scalar(10.0);
+measurement.observation_matrix_mut().set(0, 0, 1.0);
+measurement.measurement_noise_covariance_mut().set(0, 0, 0.01);
+
+for position in [0.1, 0.2, 0.32, 0.4, 0.49, 0.61, 0.7, 0.79] {
+    filter.predict();
+    measurement.measurement_vector_mut().set(0, 0, position);
+    filter.correct(&mut measurement);
+}
+
+let velocity = filter.state_vector().get(1, 0);
+assert!(velocity > 0.5 && velocity < 1.5);
+```
+
+The storage allocates nothing, and `build()` moves no arrays: the filter only borrows it. On
+small targets, put large storage in a `static` (a zero `init` lands in `.bss`) instead of on
+the stack, and take the `&'static mut` through a take-once cell such as
+`static_cell::ConstStaticCell` rather than a `static mut`. The `impl_buffer_*` macros stay the
+tool for custom layouts, such as buffers in different memory sections.
+
 
 ### Targets with allocations (`std` or `alloc`)
 

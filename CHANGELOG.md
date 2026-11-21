@@ -32,6 +32,15 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `NotConverged` if it does not settle within the budget. The gate and NIS use the prior
   innovation, `R` is not adapted, and the regular and extended corrections update `P` as
   `set_covariance_update` says (the Joseph form by default) ([#108]).
+- Added storage types that hold all buffers of a filter part as const-generic arrays, next to the
+  `impl_buffer_*` macros and the `alloc` builders: `regular::{FilterStorage, ObservationStorage,
+  ControlStorage}`, `extended::{FilterStorage, ObservationStorage}`,
+  `unscented::{FilterStorage, ObservationStorage}`, `information::FilterStorage` and
+  `smoother::RtsSmootherStorage`. `new` is a `const fn`, so storage can live in a `static`;
+  `build()` wires the existing filter types to borrow it without allocating or moving arrays.
+  Each storage has the size of the buffers it replaces. The unscented storage checks
+  `NUM_SIGMA == 2 × STATES + 1` at compile time and is the first way to build a UKF without
+  allocation or macros ([#120]).
 - Added a `compass` example: a heading filter whose heading crosses north, corrected with
   `correct_with` and `angles::wrap_180`, next to an unwrapped filter that swings the long way
   around. See [#40].
@@ -250,6 +259,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#109]: https://github.com/sunsided/minikalman-rs/issues/109
 [#119]: https://github.com/sunsided/minikalman-rs/issues/119
 [#110]: https://github.com/sunsided/minikalman-rs/issues/110
+[#120]: https://github.com/sunsided/minikalman-rs/issues/120
 
 ## [0.8.1] - 2026-10-30
 

@@ -85,6 +85,7 @@ use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 mod fixed_lag;
 
+pub use crate::storage::smoother::*;
 pub use fixed_lag::FixedLagSmoother;
 
 /// Runs the Rauch-Tung-Striebel backward pass over a recorded filter history.
