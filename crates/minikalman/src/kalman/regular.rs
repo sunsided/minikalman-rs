@@ -336,14 +336,11 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
     /// ## Arguments
-    /// * `lambda` - The estimation covariance scaling factor (0 < `lambda` <= 1) to forcibly reduce prediction certainty. Smaller values mean larger uncertainty.
+    /// * `lambda` - The fading-memory (forgetting) factor, `0 < λ ≤ 1`. `1` is the plain
+    ///   prediction; smaller values forget old measurements faster (see below). For recursive
+    ///   least squares with forgetting factor `μ`, pass `λ = √μ`.
     ///
-    /// ## Tuning Factor (lambda)
-    /// In general, a process noise component is factored into the filter's state estimation
-    /// covariance matrix update. Since it can be difficult to create a correct process noise
-    /// matrix, this function incorporates a scaling factor of 1/λ² into the update process,
-    /// where a value of 1.0 resembles no change.
-    /// Smaller values correspond to a higher uncertainty increase.
+    #[doc = include_str!("../../docs/fading-memory.md")]
     ///
     /// ## Example
     /// ```
@@ -417,6 +414,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// }
     /// ```
     #[doc(alias = "kalman_predict_tuned")]
+    #[doc(alias = "fading_memory")]
+    #[doc(alias = "forgetting_factor")]
     pub fn predict_tuned(&mut self, lambda: T)
     where
         X: StateVectorMut<STATES, T>,

@@ -425,15 +425,11 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     #[doc = diagram!("extended-loop.mmd", "predict")]
     ///
     /// ## Arguments
-    /// * `lambda` - The estimation covariance scaling factor, in range 0 < `lambda` <= 1.
+    /// * `lambda` - The fading-memory (forgetting) factor, `0 < λ ≤ 1`. `1` is the plain
+    ///   prediction; smaller values forget old measurements faster (see below).
     /// * `state_transition` - The nonlinear state transition function.
     ///
-    /// ## Tuning Factor (lambda)
-    /// In general, a process noise component is factored into the filter's state estimation
-    /// covariance matrix update. Since it can be difficult to create a correct process noise
-    /// matrix, this function incorporates a scaling factor of 1/λ² into the update process,
-    /// where a value of 1.0 resembles no change.
-    /// Smaller values correspond to a higher uncertainty increase.
+    #[doc = include_str!("../../docs/fading-memory.md")]
     ///
     /// ## Extended Kalman Filters
     /// This function can be used to implement the nonlinear state prediction step of the
@@ -447,6 +443,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     /// See [`predict_nonlinear`](Self::predict_nonlinear) for an example.
     #[doc(alias = "kalman_predict_tuned")]
+    #[doc(alias = "fading_memory")]
+    #[doc(alias = "forgetting_factor")]
     pub fn predict_tuned_nonlinear<F>(&mut self, lambda: T, state_transition: F)
     where
         X: StateVectorMut<STATES, T>,
