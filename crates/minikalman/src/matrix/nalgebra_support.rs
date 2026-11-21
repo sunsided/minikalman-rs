@@ -1,43 +1,86 @@
 //! Opt-in interoperability with [nalgebra](https://nalgebra.rs), enabled by the `nalgebra` feature.
 //!
-//! minikalman stores matrices row-major and nalgebra stores its own matrices column-major. The
-//! views returned by [`AsNalgebra::as_nalgebra`] and [`AsNalgebraMut::as_nalgebra_mut`] borrow
-//! minikalman's data with row-major strides, so `view[(row, col)]` is the same element as
-//! [`Matrix::get(row, col)`](crate::matrix::Matrix::get). The copies ([`AsNalgebra::to_nalgebra`]
-//! and [`AsNalgebraMut::copy_from_nalgebra`]) go through these views, which keeps the layout
-//! mapping in one place. Neither views nor copies allocate.
+//! minikalman stores matrices row-major and nalgebra stores its own matrices column-major.
+//! [`ToNalgebra::to_nalgebra`] and [`CopyFromNalgebra::copy_from_nalgebra`] copy between the two
+//! on the stack and keep every value at its `(row, column)` index. Internally they go through a
+//! strided view of minikalman's data, which keeps the layout mapping in one place.
 //!
-//! Do arithmetic on the copies, not the views: see [`AsNalgebra`] for the nalgebra bug this avoids.
+//! # Why there are no public zero-copy views
+//!
+//! Up to at least nalgebra 0.35, nalgebra's `axpy`-based kernels (matrix products, `gemv`, `axpy`)
+//! read and write out of bounds when a vector or a left-hand matrix operand has a row stride
+//! other than 1 ([dimforge/nalgebra#1616](https://github.com/dimforge/nalgebra/issues/1616), fix
+//! in review in [dimforge/nalgebra#1627](https://github.com/dimforge/nalgebra/pull/1627)). A
+//! view of a row-major matrix has row stride `COLS`, so safe code like `view * x` would reach
+//! undefined behavior. The views stay crate-internal, where only the element-wise copies use
+//! them. They can be made public again once a fixed nalgebra release fits the MSRV
+//! ([#138](https://github.com/sunsided/minikalman-rs/issues/138)).
 
 use nalgebra::{Const, MatrixView, MatrixViewMut, RawStorage, SMatrix};
 
 use crate::matrix::row_major::{RowMajorSequentialData, RowMajorSequentialDataMut};
 
-/// A read-only nalgebra view of a `ROWS` × `COLS` row-major minikalman matrix.
+/// A read-only nalgebra view of a `ROWS` × `COLS` row-major matrix: row stride `COLS`,
+/// column stride `1`.
 ///
-/// The row stride is `COLS` and the column stride is `1`.
-pub type RowMajorView<'a, const ROWS: usize, const COLS: usize, T> =
+/// Crate-internal; see the module docs for why.
+type RowMajorView<'a, const ROWS: usize, const COLS: usize, T> =
     MatrixView<'a, T, Const<ROWS>, Const<COLS>, Const<COLS>, Const<1>>;
 
-/// A mutable nalgebra view of a `ROWS` × `COLS` row-major minikalman matrix.
+/// A mutable nalgebra view of a `ROWS` × `COLS` row-major matrix: row stride `COLS`,
+/// column stride `1`.
 ///
-/// The row stride is `COLS` and the column stride is `1`.
-pub type RowMajorViewMut<'a, const ROWS: usize, const COLS: usize, T> =
+/// Crate-internal; see the module docs for why.
+type RowMajorViewMut<'a, const ROWS: usize, const COLS: usize, T> =
     MatrixViewMut<'a, T, Const<ROWS>, Const<COLS>, Const<COLS>, Const<1>>;
 
-/// Borrows or copies a minikalman matrix or buffer as a nalgebra matrix.
+/// Panics unless `len` elements can hold a `ROWS` × `COLS` matrix.
+///
+/// nalgebra's own length check computes `ROWS × COLS` unchecked, so for huge const generics it
+/// can wrap in release builds and pass for a short slice.
+#[inline]
+fn assert_fits<const ROWS: usize, const COLS: usize>(len: usize) {
+    assert!(
+        ROWS.checked_mul(COLS).is_some_and(|n| n <= len),
+        "buffer smaller than ROWS × COLS"
+    );
+}
+
+/// Borrows row-major `data` as a nalgebra view, without copying.
+///
+/// Never hand the result to nalgebra arithmetic; see the module docs.
+///
+/// # Panics
+///
+/// Panics if `data` holds fewer than `ROWS × COLS` elements.
+#[inline]
+fn row_major_view<const ROWS: usize, const COLS: usize, T: nalgebra::Scalar>(
+    data: &[T],
+) -> RowMajorView<'_, ROWS, COLS, T> {
+    assert_fits::<ROWS, COLS>(data.len());
+    RowMajorView::from_slice_with_strides_generic(data, Const, Const, Const, Const)
+}
+
+/// Mutably borrows row-major `data` as a nalgebra view, without copying.
+///
+/// Never hand the result to nalgebra arithmetic; see the module docs.
+///
+/// # Panics
+///
+/// Panics if `data` holds fewer than `ROWS × COLS` elements.
+#[inline]
+fn row_major_view_mut<const ROWS: usize, const COLS: usize, T: nalgebra::Scalar>(
+    data: &mut [T],
+) -> RowMajorViewMut<'_, ROWS, COLS, T> {
+    assert_fits::<ROWS, COLS>(data.len());
+    RowMajorViewMut::from_slice_with_strides_generic(data, Const, Const, Const, Const)
+}
+
+/// Copies a minikalman matrix or buffer into a stack-allocated nalgebra matrix.
 ///
 /// Implemented for every type that implements [`RowMajorSequentialData`], i.e. all matrix data
-/// types and all filter buffers. Needs only the `nalgebra` feature, not `unsafe`.
-///
-/// # Arithmetic
-///
-/// Use the views to read, write and copy elements, and do arithmetic on a
-/// [`to_nalgebra`](Self::to_nalgebra) copy. Up to at least nalgebra 0.35, nalgebra's `axpy`-based
-/// kernels (matrix products, `gemv`, `axpy`) read and write out of bounds when a vector or a
-/// left-hand matrix operand has a row stride other than 1, as these views do
-/// ([dimforge/nalgebra#1616](https://github.com/dimforge/nalgebra/issues/1616)). In release
-/// builds this is undefined behavior that no check in minikalman can catch.
+/// types and all filter buffers, read-only ones included. Needs only the `nalgebra` feature, not
+/// `unsafe`, and never allocates.
 ///
 /// # Examples
 ///
@@ -48,25 +91,17 @@ pub type RowMajorViewMut<'a, const ROWS: usize, const COLS: usize, T> =
 /// // A 2×3 matrix, stored row by row.
 /// let a = MatrixData::new_array::<2, 3, 6, f32>([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 ///
-/// let view = a.as_nalgebra();
-/// assert_eq!(view[(1, 0)], 4.0);
-///
 /// // `SMatrix::new` takes its arguments in row order, too.
 /// let expected = SMatrix::<f32, 2, 3>::new(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
-/// assert_eq!(a.to_nalgebra(), expected);
+/// let copy = a.to_nalgebra();
+/// assert_eq!(copy, expected);
+/// assert_eq!(copy[(1, 0)], 4.0);
 ///
-/// // Do arithmetic on the owned copy, not on the view (see "Arithmetic" above).
-/// let gram = a.to_nalgebra() * expected.transpose();
+/// // The copy is an ordinary nalgebra matrix.
+/// let gram = copy * expected.transpose();
 /// assert_eq!(gram[(0, 1)], 32.0);
 /// ```
-pub trait AsNalgebra<const ROWS: usize, const COLS: usize, T> {
-    /// Borrows the data as a nalgebra matrix view, without copying.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the underlying buffer holds fewer than `ROWS × COLS` elements.
-    fn as_nalgebra(&self) -> RowMajorView<'_, ROWS, COLS, T>;
-
+pub trait ToNalgebra<const ROWS: usize, const COLS: usize, T> {
     /// Copies the data into a stack-allocated nalgebra matrix.
     ///
     /// The result uses nalgebra's column-major layout and holds the same values at the same
@@ -78,10 +113,10 @@ pub trait AsNalgebra<const ROWS: usize, const COLS: usize, T> {
     fn to_nalgebra(&self) -> SMatrix<T, ROWS, COLS>;
 }
 
-/// Mutably borrows a minikalman matrix or buffer as a nalgebra matrix, or fills it from one.
+/// Fills a minikalman matrix or buffer from a nalgebra matrix.
 ///
-/// Implemented for every type that implements [`RowMajorSequentialDataMut`]. Needs only the
-/// `nalgebra` feature, not `unsafe`.
+/// Implemented for every type that implements [`RowMajorSequentialDataMut`], i.e. the mutable
+/// matrix data types and buffers. Needs only the `nalgebra` feature, not `unsafe`.
 ///
 /// # Examples
 ///
@@ -91,26 +126,13 @@ pub trait AsNalgebra<const ROWS: usize, const COLS: usize, T> {
 ///
 /// let mut a = MatrixData::new_array::<2, 3, 6, f32>([0.0; 6]);
 ///
-/// // Writes through the view land in the row-major buffer.
-/// a.as_nalgebra_mut()[(1, 0)] = 4.0;
-/// assert_eq!(a.as_slice()[3], 4.0);
-///
 /// a.copy_from_nalgebra(&SMatrix::<f32, 2, 3>::new(1.0, 2.0, 3.0, 4.0, 5.0, 6.0));
 /// assert_eq!(a.as_slice(), &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 /// ```
-pub trait AsNalgebraMut<const ROWS: usize, const COLS: usize, T>:
-    AsNalgebra<ROWS, COLS, T>
-{
-    /// Mutably borrows the data as a nalgebra matrix view, without copying.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the underlying buffer holds fewer than `ROWS × COLS` elements.
-    fn as_nalgebra_mut(&mut self) -> RowMajorViewMut<'_, ROWS, COLS, T>;
-
+pub trait CopyFromNalgebra<const ROWS: usize, const COLS: usize, T> {
     /// Overwrites the data with the values of a nalgebra matrix of the same shape.
     ///
-    /// Accepts any nalgebra storage, e.g. an [`SMatrix`] or a view.
+    /// Accepts any nalgebra storage, e.g. an [`SMatrix`] or a nalgebra view.
     ///
     /// # Panics
     ///
@@ -120,46 +142,30 @@ pub trait AsNalgebraMut<const ROWS: usize, const COLS: usize, T>:
         S: RawStorage<T, Const<ROWS>, Const<COLS>>;
 }
 
-impl<const ROWS: usize, const COLS: usize, T, D> AsNalgebra<ROWS, COLS, T> for D
+impl<const ROWS: usize, const COLS: usize, T, D> ToNalgebra<ROWS, COLS, T> for D
 where
     T: nalgebra::Scalar,
     D: RowMajorSequentialData<ROWS, COLS, T> + ?Sized,
 {
     #[inline]
-    fn as_nalgebra(&self) -> RowMajorView<'_, ROWS, COLS, T> {
-        // nalgebra checks the slice length and panics if it is too short.
-        RowMajorView::from_slice_with_strides_generic(self.as_slice(), Const, Const, Const, Const)
-    }
-
-    #[inline]
     fn to_nalgebra(&self) -> SMatrix<T, ROWS, COLS> {
-        self.as_nalgebra().clone_owned()
+        // `clone_owned` copies element by element; it does not use the affected kernels.
+        row_major_view::<ROWS, COLS, T>(self.as_slice()).clone_owned()
     }
 }
 
-impl<const ROWS: usize, const COLS: usize, T, D> AsNalgebraMut<ROWS, COLS, T> for D
+impl<const ROWS: usize, const COLS: usize, T, D> CopyFromNalgebra<ROWS, COLS, T> for D
 where
     T: nalgebra::Scalar,
     D: RowMajorSequentialDataMut<ROWS, COLS, T> + ?Sized,
 {
     #[inline]
-    fn as_nalgebra_mut(&mut self) -> RowMajorViewMut<'_, ROWS, COLS, T> {
-        // nalgebra checks the slice length and panics if it is too short.
-        RowMajorViewMut::from_slice_with_strides_generic(
-            self.as_mut_slice(),
-            Const,
-            Const,
-            Const,
-            Const,
-        )
-    }
-
-    #[inline]
     fn copy_from_nalgebra<S>(&mut self, source: &nalgebra::Matrix<T, Const<ROWS>, Const<COLS>, S>)
     where
         S: RawStorage<T, Const<ROWS>, Const<COLS>>,
     {
-        self.as_nalgebra_mut().copy_from(source);
+        // `copy_from` copies element by element; it does not use the affected kernels.
+        row_major_view_mut::<ROWS, COLS, T>(self.as_mut_slice()).copy_from(source);
     }
 }
 
@@ -197,9 +203,19 @@ unsafe impl<'a, const ROWS: usize, const COLS: usize, T> nalgebra::IsContiguous
 /// Lets a [`MatrixDataArray`](crate::matrix::MatrixDataArray) back an owned nalgebra matrix
 /// via `nalgebra::Matrix::from_data`, with row-major strides.
 ///
-/// Prefer [`AsNalgebra::as_nalgebra`], which needs no `unsafe`. Note that `as_slice()` on such a
-/// matrix returns the elements in row-major order, unlike nalgebra's own matrices.
-/// Its row stride is `COLS`, so the arithmetic caveat on [`AsNalgebra`] applies here, too.
+/// `as_slice()` on such a matrix returns the elements in row-major order, unlike nalgebra's own
+/// matrices.
+///
+/// # Warning: no arithmetic
+///
+/// The type implements only `RawStorage`, not nalgebra's `Storage`, so the matrix itself cannot
+/// be multiplied. Views taken from it can, though (`m.column(0)`, `m.fixed_view::<R, C>(0, 0)`),
+/// and they keep the row stride `COLS`. They hit
+/// [dimforge/nalgebra#1616](https://github.com/dimforge/nalgebra/issues/1616): a product with
+/// such a view on the left, `gemv` or `axpy` read and write out of bounds, which is undefined
+/// behavior in release builds (with `f32` too). Use the matrix for element access only, or call
+/// [`ToNalgebra::to_nalgebra`] and compute on the copy. See
+/// [#138](https://github.com/sunsided/minikalman-rs/issues/138).
 #[cfg_attr(docsrs, doc(cfg(all(feature = "nalgebra", feature = "unsafe"))))]
 #[cfg(feature = "unsafe")]
 unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
@@ -214,10 +230,7 @@ unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
         // nalgebra reads ROWS×COLS elements through this pointer without bounds checks.
         // Kept even under `no_assert`: it guards memory safety, and folds away when it holds.
         // Checked: a wrapping ROWS × COLS could otherwise pass for huge const generics.
-        assert!(
-            ROWS.checked_mul(COLS).is_some_and(|n| n <= TOTAL),
-            "buffer smaller than ROWS × COLS"
-        );
+        assert_fits::<ROWS, COLS>(TOTAL);
         self.as_slice().as_ptr()
     }
 
@@ -249,6 +262,29 @@ mod tests {
     use crate::buffers::types::*;
     use crate::matrix::{Matrix, MatrixData, MatrixDataArray};
     use nalgebra::SMatrix;
+
+    /// Gives tests the crate-internal views as methods.
+    trait ViewExt<const R: usize, const C: usize, T: nalgebra::Scalar> {
+        /// See [`row_major_view`].
+        fn as_nalgebra(&self) -> RowMajorView<'_, R, C, T>;
+
+        /// See [`row_major_view_mut`].
+        fn as_nalgebra_mut(&mut self) -> RowMajorViewMut<'_, R, C, T>;
+    }
+
+    impl<const R: usize, const C: usize, T, D> ViewExt<R, C, T> for D
+    where
+        T: nalgebra::Scalar,
+        D: RowMajorSequentialDataMut<R, C, T> + ?Sized,
+    {
+        fn as_nalgebra(&self) -> RowMajorView<'_, R, C, T> {
+            row_major_view(self.as_slice())
+        }
+
+        fn as_nalgebra_mut(&mut self) -> RowMajorViewMut<'_, R, C, T> {
+            row_major_view_mut(self.as_mut_slice())
+        }
+    }
 
     /// The 2×3 matrix `[[1, 2, 3], [4, 5, 6]]`, built by nalgebra from row-order arguments.
     fn expected_2x3() -> SMatrix<f32, 2, 3> {
@@ -340,11 +376,15 @@ mod tests {
         assert_eq!(p.as_nalgebra()[(1, 0)], 3.0);
     }
 
-    /// Compiles only if `D` gets the read-only nalgebra interop.
-    fn has_view<const R: usize, const C: usize, D: AsNalgebra<R, C, f32>>() {}
+    /// Compiles only if `D` can be copied into nalgebra.
+    fn has_view<const R: usize, const C: usize, D: ToNalgebra<R, C, f32>>() {}
 
-    /// Compiles only if `D` gets the mutable nalgebra interop.
-    fn has_view_mut<const R: usize, const C: usize, D: AsNalgebraMut<R, C, f32>>() {}
+    /// Compiles only if `D` can be copied into nalgebra and filled from nalgebra.
+    fn has_view_mut<const R: usize, const C: usize, D>()
+    where
+        D: ToNalgebra<R, C, f32> + CopyFromNalgebra<R, C, f32>,
+    {
+    }
 
     #[test]
     #[allow(clippy::too_many_lines)]
@@ -402,11 +442,24 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "input data buffer too small")]
+    #[should_panic(expected = "buffer smaller than ROWS × COLS")]
     fn undersized_buffer_panics_in_view() {
         // Two values cannot back a 3×3 matrix; the view must not read past them.
         let a = MatrixData::new_array::<3, 3, 2, f32>([1.0, 2.0]);
-        let _ = a.as_nalgebra();
+        let _ = a.to_nalgebra();
+    }
+
+    #[test]
+    #[should_panic(expected = "buffer smaller than ROWS × COLS")]
+    fn overflowing_dimensions_are_rejected_by_views() {
+        // (2⁶³) × 2 wraps to 0 in release builds, which would pass nalgebra's own length check.
+        let _ = row_major_view::<{ 1 << (usize::BITS - 1) }, 2, f32>(&[]);
+    }
+
+    #[test]
+    #[should_panic(expected = "buffer smaller than ROWS × COLS")]
+    fn overflowing_dimensions_are_rejected_by_mutable_views() {
+        let _ = row_major_view_mut::<{ 1 << (usize::BITS - 1) }, 2, f32>(&mut []);
     }
 
     #[cfg(feature = "fixed")]

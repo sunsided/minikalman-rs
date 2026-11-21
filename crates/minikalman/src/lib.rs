@@ -55,7 +55,7 @@
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
 //!   compiles the crate as `#![forbid(unsafe)]`.
-//! * `nalgebra` - Disabled by default. Enables views and copies between minikalman's matrices and
+//! * `nalgebra` - Disabled by default. Enables copies between minikalman's matrices and
 //!   [nalgebra](https://crates.io/crates/nalgebra) matrices; see [nalgebra interop](#nalgebra-interop).
 //!   Together with `unsafe`, a `MatrixDataArray` can also back an owned nalgebra matrix.
 //!
@@ -66,11 +66,19 @@
 //! ([#13](https://github.com/sunsided/minikalman-rs/issues/13)), so the `nalgebra` feature is
 //! opt-in; without it, nalgebra is not compiled at all.
 //!
-//! With the feature, every matrix and buffer gets `as_nalgebra` and `as_nalgebra_mut`, zero-copy
-//! views with row-major strides, plus `to_nalgebra` and `copy_from_nalgebra`, which copy on the
-//! stack. None of them need the `unsafe` feature or allocate. Do arithmetic on the copies: nalgebra
-//! arithmetic on the views can access memory out of bounds (`matrix::AsNalgebra` has the
-//! details). The matching nalgebra version is re-exported as `minikalman::nalgebra`.
+//! With the feature, every matrix and buffer gets `to_nalgebra`, which copies it into a
+//! stack-allocated nalgebra `SMatrix`. Mutable matrices and buffers also get
+//! `copy_from_nalgebra`, which fills them from any nalgebra matrix of the same shape. Neither
+//! needs the `unsafe` feature or allocates, and both keep every value at its `(row, column)`
+//! index although nalgebra is column-major. The matching nalgebra version is re-exported as
+//! `minikalman::nalgebra`.
+//!
+//! There are no public zero-copy views. nalgebra's products, `gemv` and `axpy` read and write
+//! out of bounds on operands whose row stride is not 1, which a view of a row-major matrix has
+//! ([dimforge/nalgebra#1616](https://github.com/dimforge/nalgebra/issues/1616), fix in review in
+//! [dimforge/nalgebra#1627](https://github.com/dimforge/nalgebra/pull/1627)). The views can be
+//! made public again once a fixed nalgebra release fits the MSRV
+//! ([#138](https://github.com/sunsided/minikalman-rs/issues/138)).
 //!
 //! ```
 //! # #[cfg(feature = "nalgebra")] {
@@ -82,7 +90,7 @@
 //! let mut k = KalmanGainMatrixBuffer::<3, 2, f32, _>::from([0.0; 6]);
 //!
 //! k.copy_from_nalgebra(&SMatrix::<f32, 3, 2>::new(1.0, 2.0, 3.0, 4.0, 5.0, 6.0));
-//! assert_eq!(k.as_nalgebra()[(2, 0)], 5.0);
+//! assert_eq!(k.as_slice()[4], 5.0);
 //!
 //! let kt = k.to_nalgebra().transpose();
 //! assert_eq!(kt[(0, 2)], 5.0);
@@ -311,7 +319,7 @@ pub use crate::buffers::builder::BufferBuilder;
 /// Re-export `num_traits`.
 pub use num_traits;
 
-/// Re-export `nalgebra`, so the views and copies use the same version as your code.
+/// Re-export `nalgebra`, so the copies use the same nalgebra version as your code.
 #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
 #[cfg(feature = "nalgebra")]
 pub use nalgebra;
