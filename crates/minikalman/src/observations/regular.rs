@@ -1871,20 +1871,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        T,
-        Z,
-        H,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempHP,
-        TempPHt,
-        TempKHP,
-    > KalmanFilterObservationSettleGain<STATES, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    T,
+    Z,
+    H,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempHP,
+    TempPHt,
+    TempKHP,
+> KalmanFilterObservationSettleGain<STATES, T>
     for RegularObservation<
         STATES,
         OBSERVATIONS,

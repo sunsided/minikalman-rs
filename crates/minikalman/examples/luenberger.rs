@@ -16,8 +16,8 @@ use minikalman::regular::builder::KalmanFilterBuilder;
 use minikalman::regular::{
     FilterStorage, FixedGainObservationStorage, ObservationStorage, ObserverStorage,
 };
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// Time step in seconds.
