@@ -281,9 +281,17 @@ pub use crate::buffers::builder::BufferBuilder;
 pub use num_traits;
 
 /// Compiles and runs the code examples in the README as doctests.
-#[cfg(doctest)]
+// Gated on `alloc` here because GitHub shows rustdoc's hidden `#` lines, so the README
+// examples cannot carry their own `cfg` guards.
+#[cfg(all(doctest, feature = "alloc"))]
 #[doc = include_str!("../../../README.md")]
 pub struct ReadmeDoctests;
+
+/// Runs the README's statically allocated example without the `alloc` gate, to show it needs
+/// neither `std` nor `alloc`. `tests/readme.rs` checks that the README contains it verbatim.
+#[cfg(doctest)]
+#[doc = include_str!("../docs/readme-no-alloc.md")]
+pub struct ReadmeNoAllocDoctest;
 
 /// Regular Kalman Filters
 ///

@@ -159,7 +159,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Unscented Kalman Filter with cubature weights, robust corrections (NIS gate, predictively
   oriented correction, noise adaptation, `CovarianceUpdate::Standard`), angle wrapping with
   `correct_with` and `angles::wrap_pi`, and the RTS smoother, with a short table of contents
-  under "Examples".
+  under "Examples". A new first example sets up a filter from local `impl_buffer_*!` buffers
+  without `std` or `alloc`, and also runs as a doctest without `alloc`. The README examples no
+  longer use rustdoc's hidden `#` lines, which GitHub shows; the README doctests now require
+  `alloc` instead, and a test rejects hidden lines in the README's Rust blocks.
+- The `gravity` example now drops an object from 25 m, measures its height at 30 Hz with 3 cm
+  noise, and estimates `g` from a poor guess. It prints a summary table with the 1σ uncertainty
+  from `P`, fails if the true `g` leaves the 3σ band, and prints the README's chart with
+  `-- --chart`. The measurements are seeded, so the output is reproducible.
 
 ### Fixed
 
