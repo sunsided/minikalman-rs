@@ -331,3 +331,54 @@ fn boxed_matches_inline_bit_for_bit() {
         0
     );
 }
+
+/// Explicit `inline`, a scratch over an extern lean observation, gains over an owned
+/// observation, and a system nested in a system.
+mod mixed {
+    use super::DT;
+    pub use super::inline::Track;
+    pub use super::owned::gps as owned_gps;
+
+    minikalman::filter! {
+        pub kalman tracker for Track { storage = inline; A = identity; A[pos, vel] = DT; P = identity; }
+        pub observation lean range: Range for Track { pos } { z = extern; H = [pos]; R = diag(0.5); }
+        pub scratch shared for [range];
+        pub observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+
+        /// `H` from an owned observation's declaration.
+        pub luenberger observer for Track { A = identity; } gains { owned_gps { K[pos, pos] = 0.5; } }
+
+        pub system inner { tracker, shared }
+        pub system outer { inner, gps, observer }
+    }
+}
+
+#[test]
+fn placement_items_combine_with_scratch_observers_and_nested_systems() {
+    use mixed::{Range, Track, gps, inner, observer, outer, range};
+
+    let mut z = [0.0_f32; 1];
+    let (mut storage, mut range_storage) = (outer::new(), range::new());
+    let mut sys = outer::build(&mut storage);
+    let mut observation = range::build(&mut range_storage, &mut z);
+    outer::model(&mut sys);
+    range::model(&mut observation);
+    assert_eq!(outer::BYTES, core::mem::size_of::<outer::Storage>());
+    assert_eq!(outer::BYTES, inner::BYTES + gps::BYTES + observer::BYTES);
+    assert_eq!(
+        sys.observer.owned_gps.observation_matrix().as_slice(),
+        &[1.0, 0.0]
+    );
+
+    sys.inner.tracker.predict();
+    Range { pos: 1.0 }.write(observation.measurement_vector_mut().as_mut_slice());
+    assert!(
+        sys.inner
+            .tracker
+            .correct_in(&mut observation, sys.inner.shared)
+            .is_applied()
+    );
+    assert!(Track::read(sys.inner.tracker.state_vector().as_slice()).pos > 0.0);
+    // The observation's last use is above, so its borrow of `z` has ended.
+    assert_eq!(z, [1.0]);
+}

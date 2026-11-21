@@ -23,7 +23,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `H = [pos];`, `A = |a| constant_velocity(DT, 1.0).fill_transition(a);`); items refer to each other by Rust path,
   so one observation and one control serve several filters across blocks, modules and crates.
   A `system` and a `luenberger` storage are checked at compile time to be exactly the sum of
-  their parts; nothing is allocated, no `static` is created and no `unsafe` is generated.
+  their parts; nothing is allocated (except with `storage = boxed;`, [#159]), no `static` is
+  created and no `unsafe` is generated.
   `macro_rules!` only, no new dependency, no feature, builds on the MSRV. The new `filter-dsl`
   example runs two filters sharing an observation and a control ([#157]).
 - Added placement modes to `filter!` items ([#159]).

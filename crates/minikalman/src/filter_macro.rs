@@ -234,7 +234,8 @@ pub mod support;
 ///
 /// ## Placement: on the stack or in a `static`
 ///
-/// `filter!` creates no `static` and allocates nothing. You place one value, and `new()` is a
+/// `filter!` creates no `static` and, unless an item says `storage = boxed;`, allocates
+/// nothing. You place one value, and `new()` is a
 /// `const fn` that zeroes it, so a `static` of it lands in `.bss`. For a local, write
 /// `let mut storage = tracking::new();` as above. A `static` can be initialized directly:
 ///
@@ -346,7 +347,8 @@ pub mod support;
 /// ```
 ///
 /// `new_owned()` returns the value, so it passes through the stack (`BYTES`) on its way into
-/// your struct. For a large filter, `storage = boxed;` (with the `alloc` feature) gives a
+/// your struct. It is not a `const fn`, so an `Owned` cannot initialize a `static`; for a
+/// `static`, use the inline `Storage`. For a large filter, `storage = boxed;` (with the `alloc` feature) gives a
 /// `Boxed` type and `new_boxed()`, which allocates each matrix directly on the heap; only the
 /// handle, a few pointers, is on the stack:
 ///
@@ -397,8 +399,8 @@ pub mod support;
 ///     observation lean gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
 ///     scratch shared for [gps];
 ///     kalman tracker for Track {
-///         P = extern; // placement statements come first
-///         x = extern;
+///         x = extern; // placement statements come first
+///         P = extern;
 ///         A = identity;
 ///         A[pos, vel] = 0.1;
 ///         Q = diag(0.01);
@@ -652,7 +654,10 @@ pub mod support;
 ///   buffer in its own heap allocation.
 /// * `M = extern;` leaves `M` out of `Storage`; `build` then takes it after the storage, as
 ///   `&mut [Scalar; N]`, in the order `A, x, P, Q` (kalman), `H, z, R` (observation) or
-///   `B, u, Q` (control). `extern` needs `storage = inline`.
+///   `B, u, Q` (control), whatever order you declared them in. `extern` needs
+///   `storage = inline`. Only the length is type-checked, so buffers of the same length can
+///   be swapped silently: `A`, `P` and `Q` always, `H` and `R` when there are as many
+///   measurements as states, `B` and `Q` when there are as many controls as states.
 ///
 /// `model` works in every mode. Only inline items without `extern` buffers can be `system`
 /// members, since a system is one placed value wired in one `build`; wire the others
@@ -683,7 +688,8 @@ pub mod support;
 /// `system` storage carry a compile-time assert that their size is exactly the sum of their
 /// parts. The assert can fail for a `system` whose members mix scalars of different alignment,
 /// e.g. `f32` and `f64`, when the struct needs padding; use one `system` per scalar. The
-/// generated code contains no `unsafe`, no `static` and no allocation, only paths you could
+/// generated code contains no `unsafe`, no `static` and no allocation (except for
+/// `storage = boxed;`), only paths you could
 /// write by hand; `cargo expand` shows it.
 ///
 /// ## Reference
@@ -747,8 +753,8 @@ pub mod support;
 /// | `kalman fast for Track { storage = owned; … }` (also `observation`, `control`) | `Owned` (buffers by value, no lifetime), `new_owned()` |
 /// | `kalman fast for Track { storage = boxed; … }` (also `observation`, `control`) | `Boxed` (the `alloc` builder types), `new_boxed()` |
 ///
-/// Every module (all items but `state`) has `Scalar`, `STATES`, `BYTES`, `EXTERN_BYTES` and
-/// `model`. Inline modules have `pub const fn new() -> Storage` and `pub fn build(&mut
+/// Every module (all items but `state`) has `BYTES`, `EXTERN_BYTES` and `model`, and all but
+/// `system` also have `Scalar` and `STATES`. Inline modules have `pub const fn new() -> Storage` and `pub fn build(&mut
 /// Storage, …) -> Handle<'_>`; `model` takes `&mut Handle<'_>`, `&mut Owned` or `&mut Boxed`.
 ///
 /// ### Limits
@@ -961,6 +967,8 @@ macro_rules! filter {
             /// The bytes of the members' `extern` buffers; `0`, since a member with `extern`
             /// buffers cannot be part of a system.
             pub const EXTERN_BYTES: usize = 0 $(+ $member::EXTERN_BYTES)+;
+            #[doc(hidden)]
+            pub const SYSTEM_MEMBER: bool = true;
 
             const _: () = ::core::assert!(
                 ::core::mem::size_of::<Storage>()
@@ -1571,7 +1579,9 @@ macro_rules! __filter_lowered {
 
         #[doc = ::core::concat!(
             "Wires the item over `storage` and the `extern` buffers, which come after it in the order ",
-            $names, " (those declared `extern`). Writes nothing; see [`model`]."
+            $names, " (those declared `extern`), whatever order they were declared in. Only the ",
+            "length is type-checked, so pass same-length buffers in the right order. ",
+            "Writes nothing; see [`model`]."
         )]
         #[allow(non_snake_case)]
         pub fn build<$lt>($st: &$lt mut Storage, $($params)*) -> Handle<$lt> {
@@ -1761,7 +1771,7 @@ macro_rules! __filter_route {
     ($kind:ident $ctx:tt $m:ident (placement)) => {
         ::core::compile_error!(
             "filter!: `storage = …;` and `M = extern;` come first in a `kalman`, `observation` or `control` block, before the model statements; a `luenberger` block and its gains take neither"
-        )
+        );
     };
 
     (kalman [$f:ident $s:path] A $op:tt) => { $crate::__filter_mat!(($f.state_transition_mut()) [$s] [$s] $op) };
