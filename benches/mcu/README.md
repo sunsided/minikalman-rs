@@ -47,12 +47,12 @@ produce your own (see [Reproducing](#reproducing)).
     loads and the store), to read the filter counts against.
 - **Method** (`src/main.rs`, `renode/bench.py`):
   - Each operation runs between calls to the `#[inline(never)]` marker functions `mk_begin`
-    and `mk_end(name, ok)`. Renode hooks both and logs the core's `ExecutedInstructions`
+    and `mk_end(name_ptr, name_len, ok)`. Renode hooks both and logs the core's `ExecutedInstructions`
     in between. The marker overhead (`calib/empty`) is subtracted.
   - Setup, the model, 8 warm-up steps and the measurements are outside the markers. The
     filter references go through `black_box`, so nothing is specialized on the constant
     model.
-  - 16 iterations per operation, in a realistic sequence: predict, then correct with a
+  - 16 iterations per filter operation (`prim/*` and `calib/empty`: 4), in a realistic sequence: predict, then correct with a
     fresh measurement. The table shows the mean, and the range when iterations differ.
     Soft float, fixed-point division and the libm `sqrtf` have data-dependent paths, so the
     range is not always zero.
