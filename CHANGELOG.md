@@ -32,6 +32,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `NotConverged` if it does not settle within the budget. The gate and NIS use the prior
   innovation, `R` is not adapted, and the regular and extended corrections update `P` as
   `set_covariance_update` says (the Joseph form by default) ([#108]).
+- Added the `state!` macro (`macro_rules!`, no proc-macro) for named state and observation vectors:
+  `state! { pub struct Radar(f32) { x, y, vx, vy } }` declares a `Copy` struct with the entry count
+  `Radar::N`, index constants such as `Radar::vx`, `read`/`write` for vectors and
+  `read_column`/`write_column` for the unscented filter's sigma point columns ([#121]).
 - Added storage types that hold all buffers of a filter part as const-generic arrays, next to the
   `impl_buffer_*` macros and the `alloc` builders: `regular::{FilterStorage, ObservationStorage,
   ControlStorage}`, `extended::{FilterStorage, ObservationStorage}`,
@@ -260,6 +264,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#119]: https://github.com/sunsided/minikalman-rs/issues/119
 [#110]: https://github.com/sunsided/minikalman-rs/issues/110
 [#120]: https://github.com/sunsided/minikalman-rs/issues/120
+[#121]: https://github.com/sunsided/minikalman-rs/issues/121
 
 ## [0.8.1] - 2026-10-30
 
