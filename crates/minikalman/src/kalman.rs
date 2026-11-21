@@ -7,6 +7,7 @@ pub mod information;
 mod matrix_types;
 pub(crate) mod process_noise;
 pub mod regular;
+pub mod square_root;
 pub mod ud;
 pub mod unscented;
 

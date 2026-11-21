@@ -1,0 +1,21 @@
+flowchart LR
+    %% One step of the square-root covariance filter. Style: see docs/diagrams/README.md.
+    %% Node IDs: init (set_state), prior, predict, correct (one Potter update per measurement
+    %% row), gate, posterior, recover (state), estimate, rejected.
+    initial[/"x̂, P (optional)"/]
+    init["set_state<br/>S = chol(P)"]
+    prior(["estimate<br/>x̂ₖ₋₁, Sₖ₋₁"])
+    predict["predict<br/>x̂⁻ = A·x̂<br/>S⁻ = qr_r([(A·S)ᵀ; Lqᵀ])ᵀ"]
+    gate{{"NIS ≤ gate?"}}
+    correct["correct<br/>Lr = chol(R), H' = Lr⁻¹·H<br/>per row h: φ = Sᵀ·hᵀ<br/>K = S·φ / (φᵀ·φ + 1)<br/>x̂ ← x̂ + K·(z'ᵢ − h·x̂)<br/>S ← S − γ·K·φᵀ"]
+    posterior(["estimate<br/>x̂ₖ, Sₖ"])
+    recover["state<br/>P = S·Sᵀ"]
+    estimate(["x̂ₖ, Pₖ"])
+    z[/"measurement<br/>H, R, z"/]
+    rejected("Gated or NotPositiveDefinite,<br/>x̂, S unchanged")
+    initial -.-> init -.-> prior
+    prior --> predict --> gate --> correct --> posterior
+    z --> gate
+    posterior -.->|"on demand"| recover -.-> estimate
+    gate -.->|"NIS > gate, or R or H·P·Hᵀ + R<br/>not positive definite"| rejected
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

@@ -128,6 +128,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `I16F16` and `I32F32`; in `f32` and `f64`, the Joseph form leaves `P` indefinite less often on
   ill-conditioned measurements but does not prevent it, and does not help once `I16F16` variances
   approach its resolution ([#107]).
+- Added `square_root::SquareRootKalman`, a linear filter that propagates a square root `S` of the
+  covariance, `P = S×Sᵀ`, so `P` stays positive semi-definite by construction. It predicts with a
+  Householder triangularization of `[(A×S)ᵀ; Lqᵀ]` and corrects `RegularObservation`s with Potter's
+  sequential update after decorrelating `R`. The gate and NIS match the regular filter. In an `f32`
+  test with `R` twelve orders of magnitude below `P`, it keeps `P` positive definite where the
+  regular filter's variance turns negative. Build it with `KalmanFilterBuilder::build_square_root`
+  or from static buffers with `impl_buffer_temp_prearray!` for the `2N × N` prearray ([#110]).
 
 ### Fixed
 
@@ -194,6 +201,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#89]: https://github.com/sunsided/minikalman-rs/issues/89
 [#109]: https://github.com/sunsided/minikalman-rs/issues/109
 [#119]: https://github.com/sunsided/minikalman-rs/issues/119
+[#110]: https://github.com/sunsided/minikalman-rs/issues/110
 
 ## [0.8.1] - 2026-10-30
 

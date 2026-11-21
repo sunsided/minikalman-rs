@@ -324,6 +324,19 @@ pub mod ud {
     pub use crate::kalman::ud::*;
 }
 
+/// Square-Root Covariance Filters: linear Kalman filters that propagate `S` with `P = S·Sᵀ`.
+///
+/// The [`SquareRootKalman`](square_root::SquareRootKalman) keeps `P` positive semi-definite by
+/// construction and stores standard deviations instead of variances, which helps with `f32`
+/// and fixed point. It predicts with a QR triangularization
+/// ([`predict`](square_root::SquareRootKalman::predict)) and corrects with Potter's sequential
+/// update ([`correct`](square_root::SquareRootKalman::correct)), using the same
+/// [`RegularObservation`](regular::RegularObservation)s as the regular filter:
+#[doc = diagram!("square-root-loop.mmd")]
+pub mod square_root {
+    pub use crate::kalman::square_root::*;
+}
+
 /// Extended Kalman Filters (EKF)
 ///
 /// A Kalman filter for `x̂ₖ = f(x̂ₖ₋₁)` and `z = h(x̂) + v` with nonlinear `f` and `h`. Before each
@@ -437,8 +450,9 @@ pub mod prelude {
         impl_buffer_cross_covariance, impl_buffer_sigma_observed, impl_buffer_sigma_points,
         impl_buffer_sigma_propagated, impl_buffer_sigma_weights, impl_buffer_temp_BQ,
         impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P, impl_buffer_temp_PHt,
-        impl_buffer_temp_S_inv, impl_buffer_temp_sigma_P, impl_buffer_temp_x, impl_buffer_u,
-        impl_buffer_ud_D, impl_buffer_ud_W, impl_buffer_x, impl_buffer_y, impl_buffer_z,
+        impl_buffer_temp_S_inv, impl_buffer_temp_prearray, impl_buffer_temp_sigma_P,
+        impl_buffer_temp_x, impl_buffer_u, impl_buffer_ud_D, impl_buffer_ud_W, impl_buffer_x,
+        impl_buffer_y, impl_buffer_z,
     };
 
     pub use crate::{
