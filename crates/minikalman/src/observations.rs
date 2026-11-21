@@ -11,8 +11,8 @@ pub mod unscented;
 /// Online adaptation of the measurement noise covariance `R` from the residuals of the
 /// corrections, enabled per observation with `set_noise_adaptation`.
 ///
-/// After every applied regular or extended correction (`correct*` and `correct_nonlinear*`, not
-/// the gain, predictively oriented or recalibrated variants), `R` is replaced by an
+/// After every applied regular or extended correction with the Kalman gain (`correct`,
+/// `correct_with`, `correct_nonlinear` and `correct_nonlinear_with`), `R` is replaced by an
 /// exponentially weighted average
 ///
 /// ```text
@@ -24,9 +24,28 @@ pub mod unscented;
 /// state and covariance, and `ε` is the residual after the correction. Afterwards, every
 /// diagonal entry of `R` is raised to at least the [floor](Self::floor). No history window
 /// and no extra buffer is needed; the existing temporaries are reused. Corrections that are
-/// [gated](crate::prelude::CorrectionStatus::Gated) or
-/// [not positive definite](crate::prelude::CorrectionStatus::NotPositiveDefinite) leave `R`
-/// unchanged.
+/// [gated](crate::prelude::CorrectionStatus::Gated),
+/// [not positive definite](crate::prelude::CorrectionStatus::NotPositiveDefinite) or
+/// [backed out](crate::prelude::CorrectionStatus::BackedOut) leave `R` unchanged.
+///
+/// ## Other corrections
+///
+/// The residual form above needs the optimal gain (see [below](#why-the-other-corrections-differ)),
+/// so the corrections with an externally supplied gain (`correct_with_gain*` and
+/// `correct_nonlinear_with_gain*`) and the recalibrated extended corrections
+/// (`correct_nonlinear_recalibrated*`) use the innovation form instead:
+///
+/// ```text
+/// R ← α×R + (1−α)×(y×yᵀ − H×P⁻×Hᵀ) = R + (1−α)×(y×yᵀ − S)
+/// ```
+///
+/// with the prior innovation `y = z − H×x⁻` and `S = H×P⁻×Hᵀ + R`. For the recalibrated
+/// correction, `H` is the Jacobian at the updated state. The diagonal is floored the same way.
+/// Because this form subtracts, the candidate is not positive definite by construction; if the
+/// floored candidate is not, `R` is left unchanged for that correction. The gain corrections
+/// have no gate, so every one of them adapts `R`.
+///
+/// The predictively oriented correction (`correct_predictively_oriented`) does not adapt `R`.
 ///
 /// ## Background
 ///
@@ -47,11 +66,47 @@ pub mod unscented;
 /// For the extended filter, `ε` is the linearized residual `y − H×K×y` with the Jacobian
 /// `H`, not `z − h(x⁺)`; `h` is not evaluated a second time.
 ///
+/// ### Why the other corrections differ
+///
+/// For any gain `K`, with `P⁺` from the Joseph form and `ε = H×e⁺ + v` (`e⁺` the error of
+/// `x⁺`, `v` the measurement noise, `E[e⁺×vᵀ] = −K×R`),
+///
+/// ```text
+/// E[ε×εᵀ] + H×P⁺×Hᵀ = R + 2×H×P⁺×Hᵀ − H×K×R − R×Kᵀ×Hᵀ.
+/// ```
+///
+/// The extra terms cancel only if `P⁺×Hᵀ = K×R`, which holds for the optimal gain
+/// `K = P⁻×Hᵀ×S⁻¹` and no other: for a scalar observation, `(1−k)×p = k×r` forces
+/// `k = p/(p+r)`. For any other gain, the residual form converges to a biased `R`.
+///
+/// - **Supplied gain:** `K` is arbitrary, so the residual form is biased. The prior
+///   innovation does not depend on the gain, `E[y×yᵀ] = H×P⁻×Hᵀ + R`, so the innovation form
+///   is unbiased for any gain, as long as `P⁻` is the true prior covariance. The Joseph form
+///   keeps it so for any gain, given the true `R`.
+/// - **Recalibrated:** `K` is optimal for the Jacobian `H₁` at the prior, but `P⁺` is
+///   recalibrated with the Jacobian `H₂` at `x⁺`. In the `H₂` linearization the gain is not
+///   optimal. For linear observations (`H₂ = H₁`) both forms are exact; otherwise both are
+///   biased at first order in `H₂ − H₁` (the residual form through the terms above, the
+///   innovation form through `S₂ − S₁`). The innovation form is used because it does not
+///   depend on the gain and came closer in simulations: for `h(x) = x²` with a prior spread
+///   that is large against `R`, the residual form converged to `3` to `45` times the true
+///   `R` and the innovation form to `1.3` to `9` times it, against `1.1` to `2.4` times for
+///   `correct_nonlinear`, with many corrections backed out. Where `H×P×Hᵀ ≲ R` and few
+///   corrections are backed out, all of them stayed within a few percent of the true `R`.
+/// - **Predictively oriented:** the PrO posterior `P` is deliberately inflated and is not the
+///   error covariance of `x⁺`, so neither form holds. In closed-loop simulations of a scalar
+///   random walk with `Q/R` between `0.01` and `10`, the residual form converged to `1` to `25`
+///   times the true `R`, and the innovation form to `0.5` to `0.9` times it, because the inflated
+///   `P⁻` overstates `H×P⁻×Hᵀ`. The correction therefore skips the adaptation.
+///
 /// ## Choosing α and when the estimate diverges
 ///
-/// For a single measurement, the update reduces to
+/// For a single measurement, the residual form reduces to
 /// `R ← R × (1 + (1−α) × (R/S) × (NIS − 1))`, so `R` grows while the
 /// [NIS](crate::regular::RegularObservation::nis) is above `1` and shrinks while it is below.
+/// The innovation form reduces to `R ← R × (1 + (1−α) × (S/R) × (NIS − 1))`: it reacts more
+/// strongly while `H×P×Hᵀ` dominates `R`, where a single small innovation can push `R` down
+/// to the floor. Use `α` close to `1` with it.
 ///
 /// - `α` close to `1` (e.g. `0.95` to `0.99`) averages over roughly `1 / (1−α)` corrections
 ///   and gives a smooth estimate; a small `α` lets single residuals dominate and `R`
@@ -59,11 +114,12 @@ pub mod unscented;
 ///   the correction and drives `R` away from the residuals, `α = 0` discards the previous
 ///   `R`, and `α < 0` subtracts it; outside `(0, 1)`, only the floor keeps the diagonal
 ///   positive.
-/// - `R = 0` is absorbing, and a tiny floor nearly so: at the floor, `R` grows by only
-///   `(1−α) × (floor/S) × (NIS − 1)` per correction. Set the floor near the smallest
-///   plausible sensor variance.
+/// - With the residual form, `R = 0` is absorbing, and a tiny floor nearly so: at the floor,
+///   `R` grows by only `(1−α) × (floor/S) × (NIS − 1)` per correction. Set the floor near the
+///   smallest plausible sensor variance.
 /// - While `H×P×Hᵀ` dominates `R` (an uncertain or unobservable state), `R/S` is small and
-///   `R` barely adapts. With unobservable states, `P` keeps growing and `R` stalls.
+///   the residual form barely adapts. With unobservable states, `P` keeps growing and `R`
+///   stalls.
 /// - Every excess of the NIS is attributed to `R`, including a process noise `Q` that is too
 ///   small or a model error. `R` then grows without bound to make up for it, and the filter
 ///   ignores the measurements; tune `Q` first.
@@ -166,19 +222,22 @@ where
 /// `P = (I - K×H)×P×(I - K×H)ᵀ + K×R×Kᵀ`, expanded as
 /// `P = P - K×H×P - (K×H×P)ᵀ + K×S×Kᵀ` with `S = H×P×Hᵀ + R`, so that `P` stays symmetric
 /// and positive semi-definite for any `K`. `S` is not inverted and is left holding
-/// `H×P×Hᵀ + R`.
+/// `H×P×Hᵀ + R` of the prior `P` and the `R` used in the update. Afterwards, adapts `R`
+/// with the innovation form if `adaptation` is set; see [`NoiseAdaptation`].
 #[allow(non_snake_case, clippy::too_many_arguments)]
 pub(crate) fn update_with_gain<const STATES: usize, const OBSERVATIONS: usize, T>(
     x: &mut impl MatrixMut<STATES, 1, T>,
     P: &mut impl MatrixMut<STATES, STATES, T>,
     H: &impl Matrix<OBSERVATIONS, STATES, T>,
-    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    R: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
     y: &impl Matrix<OBSERVATIONS, 1, T>,
     K: &impl Matrix<STATES, OBSERVATIONS, T>,
     S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    S_inv: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
     temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
     temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
     temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
+    adaptation: Option<NoiseAdaptation<T>>,
 ) -> CorrectionStatus
 where
     T: MatrixDataType,
@@ -198,7 +257,75 @@ where
     // P = P + K*S*Kᵀ; temp_PHt MAY alias temp_KHP, so it is only written once temp_KHP is consumed.
     K.mult(S, temp_PHt); // temp_PHt = K*S
     temp_PHt.multadd_transb(K, P); // P += temp_PHt*Kᵀ
+
+    if let Some(adaptation) = adaptation {
+        // S_inv may alias temp_PHt and temp_KHP, both of which are consumed by now.
+        adapt_measurement_noise_from_innovation(adaptation, R, y, S, S_inv);
+    }
+
     CorrectionStatus::Applied
+}
+
+/// Adapts the measurement noise covariance `R` with the innovation form
+/// `R ← R + (1−α)×(y×yᵀ − S)`, raising every diagonal entry to at least the floor. See
+/// [`NoiseAdaptation`].
+///
+/// `y` must be the prior innovation and `S = H×P⁻×Hᵀ + R` its covariance, formed with the
+/// current `R`. The candidate is checked with a Cholesky decomposition in `temp`; if it is
+/// not positive definite, `R` is left unchanged. `R` stays symmetric.
+#[allow(non_snake_case)]
+pub(crate) fn adapt_measurement_noise_from_innovation<const OBSERVATIONS: usize, T>(
+    adaptation: NoiseAdaptation<T>,
+    R: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+    S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    temp: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+) where
+    T: MatrixDataType,
+{
+    for i in 0..OBSERVATIONS {
+        for j in 0..=i {
+            let value = innovation_matched_entry(adaptation, &*R, y, S, i, j);
+            temp.set(i, j, value);
+            temp.set(j, i, value);
+        }
+    }
+
+    if !temp.cholesky_decompose_lower() {
+        return;
+    }
+
+    // Only the lower triangle is read, so mirroring into the upper one is safe in place.
+    for i in 0..OBSERVATIONS {
+        for j in 0..=i {
+            let value = innovation_matched_entry(adaptation, &*R, y, S, i, j);
+            R.set(i, j, value);
+            R.set(j, i, value);
+        }
+    }
+}
+
+/// Returns the entry `(i, j)` of the innovation-form candidate `R + (1−α)×(y×yᵀ − S)`, with
+/// diagonal entries raised to at least the floor.
+#[allow(non_snake_case)]
+fn innovation_matched_entry<const OBSERVATIONS: usize, T>(
+    adaptation: NoiseAdaptation<T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+    S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    i: usize,
+    j: usize,
+) -> T
+where
+    T: MatrixDataType,
+{
+    let weight = T::one() - adaptation.forgetting;
+    let value = R.get(i, j) + weight * (y.get(i, 0) * y.get(j, 0) - S.get(i, j));
+    if i == j && value < adaptation.floor {
+        return adaptation.floor;
+    }
+
+    value
 }
 
 /// Subtracts `A + Aᵀ` from the square matrix `P` in place.

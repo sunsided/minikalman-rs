@@ -69,6 +69,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `innovation_vector()` to the regular and extended observations. It holds the innovation of
   the prior state after every correction, including gated or rejected ones, as the input for
   learned-gain filters ([#92]).
+- The measurement noise adaptation now also runs in `correct_with_gain*`,
+  `correct_nonlinear_with_gain*` and `correct_nonlinear_recalibrated*`. Their gain is not the
+  optimal one for the covariance they produce, so the residual form would converge to a biased `R`;
+  they use the innovation form `R ← R + (1−α)×(y×yᵀ − S)` instead and discard a candidate that is
+  not positive definite. `correct_predictively_oriented` still leaves `R` unchanged, because its
+  inflated covariance makes both forms inconsistent ([#86]).
 
 ### Fixed
 
@@ -108,6 +114,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92
+[#86]: https://github.com/sunsided/minikalman-rs/issues/86
 [#69]: https://github.com/sunsided/minikalman-rs/issues/69
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63

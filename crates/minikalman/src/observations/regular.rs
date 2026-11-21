@@ -302,12 +302,20 @@ impl<
     /// Enables online adaptation of the measurement noise covariance `R` from the residuals
     /// of the corrections; `None` (the default) disables it.
     ///
-    /// After every correction applied by `correct` and `correct_with`, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual
-    /// `ε = z − H×x⁺`; gated and skipped corrections leave `R` unchanged. See
+    /// After every correction applied by `correct` and `correct_with`,
+    /// `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual `ε = z − H×x⁺`. See
     /// [`NoiseAdaptation`] for the method, the choice of `α` and when the estimate diverges.
     ///
-    /// Only those corrections adapt `R`: `correct_with_gain*` and `correct_predictively_oriented` leave `R` and its floor untouched, also when
-    /// they return [`CorrectionStatus::Applied`].
+    /// `correct_with_gain*` adapts `R` with the innovation form `R ← R + (1−α)×(y×yᵀ − S)`
+    /// instead, because the residual form is biased for any gain but the optimal one. A
+    /// candidate that is not positive definite is discarded. These corrections have no gate,
+    /// so each of them adapts `R`.
+    ///
+    /// `correct_predictively_oriented` leaves `R` and its floor untouched, also when it returns
+    /// [`CorrectionStatus::Applied`]: its inflated posterior covariance is not the error
+    /// covariance of the state, so neither form gives a consistent estimate.
+    ///
+    /// Gated and skipped corrections leave `R` unchanged.
     #[inline(always)]
     pub fn set_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>) {
         self.noise_adaptation = adaptation;
@@ -536,13 +544,15 @@ where
             x.as_matrix_mut(),
             P.as_matrix_mut(),
             self.H.as_matrix(),
-            self.R.as_matrix(),
+            self.R.as_matrix_mut(),
             self.y.as_matrix(),
             self.K.as_matrix(),
             self.S.as_matrix_mut(),
+            self.temp_S_inv.as_matrix_mut(),
             self.temp_HP.as_matrix_mut(),
             self.temp_PHt.as_matrix_mut(),
             self.temp_KHP.as_matrix_mut(),
+            self.noise_adaptation,
         )
     }
 
