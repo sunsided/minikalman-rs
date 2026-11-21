@@ -16,6 +16,9 @@
 //!
 //! The last step is already smoothed (`x_N−1|N = x_N−1|N−1`).
 //!
+//! For online use, the [`FixedLagSmoother`] runs the same pass over a sliding window of the last
+//! `N` steps and yields each step smoothed with the `N−1` steps after it.
+//!
 //! ## Example
 //!
 //! Record the predicted state after `predict()` (and any `control()`) and the filtered state
@@ -75,6 +78,10 @@
 //! ```
 
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+
+mod fixed_lag;
+
+pub use fixed_lag::FixedLagSmoother;
 
 /// Runs the Rauch-Tung-Striebel backward pass over a recorded filter history.
 ///
