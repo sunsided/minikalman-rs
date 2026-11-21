@@ -248,6 +248,11 @@ pub mod regular {
     pub use crate::kalman_builder::regular as builder;
 }
 
+/// Information Filters: linear Kalman filters in information form, for additive sensor fusion.
+pub mod information {
+    pub use crate::kalman::information::*;
+}
+
 /// Extended Kalman Filters (EKF)
 pub mod extended {
     pub use crate::kalman::extended::*;
