@@ -33,9 +33,11 @@ pub type RowMajorViewMut<'a, const ROWS: usize, const COLS: usize, T> =
 /// # Arithmetic
 ///
 /// Use the views to read, write and copy elements, and do arithmetic on a
-/// [`to_nalgebra`](Self::to_nalgebra) copy. Up to at least nalgebra 0.35, a product whose left
-/// operand has a row stride other than 1, such as these views, reads and writes out of bounds
-/// ([dimforge/nalgebra#1616](https://github.com/dimforge/nalgebra/issues/1616)).
+/// [`to_nalgebra`](Self::to_nalgebra) copy. Up to at least nalgebra 0.35, nalgebra's `axpy`-based
+/// kernels (matrix products, `gemv`, `axpy`) read and write out of bounds when a vector or a
+/// left-hand matrix operand has a row stride other than 1, as these views do
+/// ([dimforge/nalgebra#1616](https://github.com/dimforge/nalgebra/issues/1616)). In release
+/// builds this is undefined behavior that no check in minikalman can catch.
 ///
 /// # Examples
 ///
@@ -245,7 +247,7 @@ unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
 mod tests {
     use super::*;
     use crate::buffers::types::*;
-    use crate::matrix::{Matrix, MatrixData};
+    use crate::matrix::{Matrix, MatrixData, MatrixDataArray};
     use nalgebra::SMatrix;
 
     /// The 2×3 matrix `[[1, 2, 3], [4, 5, 6]]`, built by nalgebra from row-order arguments.
@@ -338,13 +340,65 @@ mod tests {
         assert_eq!(p.as_nalgebra()[(1, 0)], 3.0);
     }
 
+    /// Compiles only if `D` gets the read-only nalgebra interop.
+    fn has_view<const R: usize, const C: usize, D: AsNalgebra<R, C, f32>>() {}
+
+    /// Compiles only if `D` gets the mutable nalgebra interop.
+    fn has_view_mut<const R: usize, const C: usize, D: AsNalgebraMut<R, C, f32>>() {}
+
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn every_buffer_type_has_views() {
+        /// Storage for a 2×3 matrix.
+        type M23 = MatrixDataArray<2, 3, 6, f32>;
+        /// Storage for a 3×2 matrix.
+        type M32 = MatrixDataArray<3, 2, 6, f32>;
+        /// Storage for a 2×2 matrix.
+        type M22 = MatrixDataArray<2, 2, 4, f32>;
+        /// Storage for a 2-vector.
+        type V2 = MatrixDataArray<2, 1, 2, f32>;
+
+        has_view_mut::<2, 1, ControlVectorBuffer<2, f32, V2>>();
+        has_view::<3, 2, ControlMatrixBuffer<3, 2, f32, M32>>();
+        has_view_mut::<3, 2, ControlMatrixMutBuffer<3, 2, f32, M32>>();
+        has_view::<2, 2, ControlProcessNoiseCovarianceMatrixBuffer<2, f32, M22>>();
+        has_view_mut::<2, 2, ControlProcessNoiseCovarianceMatrixMutBuffer<2, f32, M22>>();
+        has_view_mut::<3, 2, CrossCovarianceMatrixBuffer<3, 2, f32, M32>>();
+        has_view_mut::<2, 1, InnovationVectorBuffer<2, f32, V2>>();
+        has_view_mut::<2, 3, SigmaPropagatedMatrixBuffer<2, 3, f32, M23>>();
+        has_view_mut::<2, 2, InnovationCovarianceMatrixBuffer<2, f32, M22>>();
+        has_view_mut::<2, 1, SigmaWeightsVectorBuffer<2, f32, V2>>();
+        has_view_mut::<2, 3, SigmaPointMatrixBuffer<2, 3, f32, M23>>();
+        has_view_mut::<2, 3, SigmaObservedMatrixBuffer<2, 3, f32, M23>>();
+        has_view_mut::<2, 1, StateVectorBuffer<2, f32, V2>>();
+        has_view_mut::<2, 2, TempSigmaPMatrixBuffer<2, f32, M22>>();
+        has_view_mut::<3, 2, TemporaryBQMatrixBuffer<3, 2, f32, M32>>();
+        has_view_mut::<2, 2, TemporaryStateMatrixBuffer<2, f32, M22>>();
+        has_view_mut::<2, 2, EstimateCovarianceMatrixBuffer<2, f32, M22>>();
+        has_view::<2, 2, DirectProcessNoiseCovarianceMatrixBuffer<2, f32, M22>>();
+        has_view_mut::<2, 2, DirectProcessNoiseCovarianceMatrixMutBuffer<2, f32, M22>>();
+        has_view_mut::<2, 1, PredictedStateEstimateVectorBuffer<2, f32, V2>>();
+        has_view_mut::<2, 3, TemporaryHPMatrixBuffer<2, 3, f32, M23>>();
+        has_view::<2, 2, StateTransitionMatrixBuffer<2, f32, M22>>();
+        has_view_mut::<2, 2, StateTransitionMatrixMutBuffer<2, f32, M22>>();
+        has_view_mut::<3, 2, KalmanGainMatrixBuffer<3, 2, f32, M32>>();
+        has_view_mut::<2, 1, MeasurementVectorBuffer<2, f32, V2>>();
+        has_view_mut::<2, 2, MeasurementNoiseCovarianceMatrixBuffer<2, f32, M22>>();
+        has_view::<2, 3, ObservationMatrixBuffer<2, 3, f32, M23>>();
+        has_view_mut::<2, 3, ObservationMatrixMutBuffer<2, 3, f32, M23>>();
+        has_view_mut::<2, 2, TemporaryKHPMatrixBuffer<2, f32, M22>>();
+        has_view_mut::<3, 2, TemporaryPHTMatrixBuffer<3, 2, f32, M32>>();
+        has_view_mut::<2, 2, TemporaryResidualCovarianceInvertedMatrixBuffer<2, f32, M22>>();
+    }
+
     #[test]
     fn filter_state_can_be_read_through_nalgebra() {
         use crate::test_dummies::make_dummy_filter;
 
-        let filter = make_dummy_filter();
-        let x = filter.state_vector().to_nalgebra();
-        assert_eq!(x.nrows(), 3);
+        let mut filter = make_dummy_filter();
+        filter.state_vector_mut().as_nalgebra_mut()[(2, 0)] = 5.0;
+        assert_eq!(filter.state_vector().as_slice()[2], 5.0);
+        assert_eq!(filter.state_vector().to_nalgebra()[(2, 0)], 5.0);
     }
 
     #[test]

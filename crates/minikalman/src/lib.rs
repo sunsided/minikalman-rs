@@ -61,17 +61,16 @@
 //!
 //! ## nalgebra Interop
 //!
-//! minikalman does not depend on nalgebra, and no filter uses it. nalgebra's dependency tree adds
-//! to binary size, which matters on small microcontrollers ([#13](https://github.com/sunsided/minikalman-rs/issues/13)),
-//! so the `nalgebra` feature is opt-in; without it, nalgebra is not even downloaded.
+//! minikalman does not depend on nalgebra, and no filter uses it. nalgebra's dependency tree
+//! adds to binary size, which matters on small microcontrollers
+//! ([#13](https://github.com/sunsided/minikalman-rs/issues/13)), so the `nalgebra` feature is
+//! opt-in; without it, nalgebra is not compiled at all.
 //!
-//! With the feature, every matrix and buffer gets [`as_nalgebra`](matrix::AsNalgebra::as_nalgebra)
-//! and [`as_nalgebra_mut`](matrix::AsNalgebraMut::as_nalgebra_mut), zero-copy views with
-//! row-major strides, plus [`to_nalgebra`](matrix::AsNalgebra::to_nalgebra) and
-//! [`copy_from_nalgebra`](matrix::AsNalgebraMut::copy_from_nalgebra), which copy on the stack.
-//! None of them need the `unsafe` feature or allocate. Do arithmetic on the copies; see
-//! [`AsNalgebra`](matrix::AsNalgebra) for why. The matching nalgebra version is re-exported as
-//! `minikalman::nalgebra`.
+//! With the feature, every matrix and buffer gets `as_nalgebra` and `as_nalgebra_mut`, zero-copy
+//! views with row-major strides, plus `to_nalgebra` and `copy_from_nalgebra`, which copy on the
+//! stack. None of them need the `unsafe` feature or allocate. Do arithmetic on the copies: nalgebra
+//! arithmetic on the views can access memory out of bounds (`matrix::AsNalgebra` has the
+//! details). The matching nalgebra version is re-exported as `minikalman::nalgebra`.
 //!
 //! ```
 //! # #[cfg(feature = "nalgebra")] {
