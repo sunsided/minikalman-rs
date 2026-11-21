@@ -5,6 +5,27 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Fixed
+
+- A correction no longer turns the state into NaN when the innovation covariance `S = H×P×Hᵀ + R`
+  is not positive definite, e.g. with `P = 0` and `R = 0`. The regular, extended and unscented
+  filters now skip such an update and leave `x` and `P` unchanged.
+- The Unscented Kalman Filter now draws its sigma points along the axes (`±√Pᵢᵢ`) when `P` is only
+  positive semi-definite, e.g. when a variance is zero. Previously it read leftovers of a failed
+  Cholesky decomposition.
+- The Unscented Kalman Filter and its observations now panic on construction if `NUM_SIGMA` is not
+  `2 × STATES + 1`, instead of producing a wrong covariance.
+- Enabling `micromath` together with the default features (`libm`) compiles again. If `std` or `libm`
+  is enabled, it takes precedence over `micromath`.
+- With the `nalgebra` and `unsafe` features, a `MatrixDataArray` smaller than `ROWS × COLS` now panics
+  when nalgebra accesses it, instead of reading past the array.
+
+### Removed
+
+- Removed `UnscentedObservation::correct_nonlinear`. It averaged the sigma points with equal weights,
+  ignoring the UKF weights, and read observed sigma points that callers could not set. Use
+  `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
+
 ## [0.8.1] - 2026-10-30
 
 [0.8.1]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.8.1

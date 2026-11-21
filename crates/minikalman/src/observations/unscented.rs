@@ -88,6 +88,12 @@ impl<
         cross_covariance: CrossCov,
         temp_P: TempP,
     ) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        assert_eq!(
+            NUM_SIGMA,
+            2 * STATES + 1,
+            "NUM_SIGMA must be 2 × STATES + 1"
+        );
         Self {
             z,
             R,
@@ -274,20 +280,6 @@ where
     CrossCov: CrossCovarianceMatrix<STATES, OBSERVATIONS, T>,
     TempP: TempSigmaPMatrix<STATES, T>,
 {
-    #[allow(non_snake_case)]
-    pub fn correct_nonlinear<X, P, SP>(&mut self, x: &mut X, P: &mut P, sigma_propagated: &SP)
-    where
-        X: StateVectorMut<STATES, T>,
-        P: EstimateCovarianceMatrix<STATES, T>,
-        SP: AsMatrix<STATES, NUM_SIGMA, T>,
-    {
-        let z_pred = self.compute_predicted_measurement();
-        self.compute_innovation_covariance(&z_pred);
-        self.compute_cross_covariance(&z_pred, sigma_propagated);
-        self.compute_kalman_gain();
-        self.apply_correction(x, P, &z_pred, &mut |_: &mut [T]| {});
-    }
-
     /// Correct using explicit weights (for proper UKF weighted averaging).
     #[allow(non_snake_case)]
     pub fn correct_with_weights<X, P, SP, W>(
@@ -351,24 +343,10 @@ where
             &mut fix_state,
             &mut fix_measurement,
         );
-        self.compute_kalman_gain();
-        self.apply_correction(x, P, &z_pred, &mut fix_measurement);
-    }
-
-    #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn compute_predicted_measurement(&mut self) -> [T; OBSERVATIONS] {
-        let num_sigma = NUM_SIGMA;
-        let sigma_obs = self.sigma_observed.as_matrix();
-
-        let mut z_pred = [T::default(); OBSERVATIONS];
-        for i in 0..OBSERVATIONS {
-            let mut sum = T::default();
-            for j in 0..num_sigma {
-                sum += sigma_obs.get(i, j);
-            }
-            z_pred[i] = sum / T::from_usize(num_sigma).unwrap();
+        // Skip the update, leaving x and P unchanged, if S cannot be inverted.
+        if self.compute_kalman_gain() {
+            self.apply_correction(x, P, &z_pred, &mut fix_measurement);
         }
-        z_pred
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
@@ -449,72 +427,21 @@ where
         }
     }
 
-    #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn compute_innovation_covariance(&mut self, z_pred: &[T; OBSERVATIONS]) {
-        let num_sigma = NUM_SIGMA;
-        let sigma_obs = self.sigma_observed.as_matrix();
-        let S = self.S.as_matrix_mut();
-        let R = self.R.as_matrix();
-
-        for i in 0..OBSERVATIONS {
-            for j in 0..OBSERVATIONS {
-                let mut sum = T::default();
-                for k in 0..num_sigma {
-                    let diff_i = sigma_obs.get(i, k) - z_pred[i];
-                    let diff_j = sigma_obs.get(j, k) - z_pred[j];
-                    sum += diff_i * diff_j;
-                }
-                S.set(i, j, sum / T::from_usize(num_sigma).unwrap());
-            }
-        }
-
-        R.add_inplace_b(S);
-    }
-
-    #[allow(non_snake_case, clippy::needless_range_loop)]
-    fn compute_cross_covariance<SP>(&mut self, z_pred: &[T; OBSERVATIONS], sigma_propagated: &SP)
-    where
-        SP: AsMatrix<STATES, NUM_SIGMA, T>,
-    {
-        let num_sigma = NUM_SIGMA;
-        let cross_cov = self.cross_covariance.as_matrix_mut();
-        let sigma_obs = self.sigma_observed.as_matrix();
-        let sigma_prop = sigma_propagated.as_matrix();
-
-        // Compute mean of propagated sigma points (simple average)
-        let mut x_mean = [T::default(); STATES];
-        for i in 0..STATES {
-            let mut sum = T::default();
-            for k in 0..num_sigma {
-                sum += sigma_prop.get(i, k);
-            }
-            x_mean[i] = sum / T::from_usize(num_sigma).unwrap();
-        }
-
-        for i in 0..STATES {
-            for j in 0..OBSERVATIONS {
-                let mut sum = T::default();
-                for k in 0..num_sigma {
-                    let diff_x = sigma_prop.get(i, k) - x_mean[i];
-                    let diff_z = sigma_obs.get(j, k) - z_pred[j];
-                    sum += diff_x * diff_z;
-                }
-                cross_cov.set(i, j, sum / T::from_usize(num_sigma).unwrap());
-            }
-        }
-    }
-
     #[allow(non_snake_case)]
-    fn compute_kalman_gain(&mut self) {
+    /// Computes `K = Pxz × S⁻¹`. Returns `false` if `S` is not positive definite.
+    fn compute_kalman_gain(&mut self) -> bool {
         let S = self.S.as_matrix_mut();
         let S_inv = self.temp_S_inv.as_matrix_mut();
         let cross_cov = self.cross_covariance.as_matrix();
         let K = self.K.as_matrix_mut();
 
-        S.cholesky_decompose_lower();
+        if !S.cholesky_decompose_lower() {
+            return false;
+        }
         S.invert_l_cholesky(S_inv);
 
         cross_cov.mult_transb(S_inv, K);
+        true
     }
 
     #[allow(non_snake_case, clippy::needless_range_loop)]
@@ -1068,19 +995,6 @@ mod tests {
 
         // The update pulls x + y from 3.0 towards the measurement 3.2 and shrinks P.
         let ([x, y], [pxx, _, _, pyy]) = residuals;
-        assert!(x + y > 3.0 && x + y < 3.2, "x + y = {}", x + y);
-        assert!(pxx < 0.125 && pyy < 0.125);
-    }
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    #[allow(non_snake_case)]
-    fn unweighted_correction_moves_towards_measurement() {
-        let (sigma, _) = sigma_points();
-        let ([x, y], [pxx, _, _, pyy]) = correct_once(|m, x, P| {
-            observe_sum(&sigma, &mut m.sigma_observed);
-            m.correct_nonlinear(x, P, &sigma)
-        });
         assert!(x + y > 3.0 && x + y < 3.2, "x + y = {}", x + y);
         assert!(pxx < 0.125 && pyy < 0.125);
     }

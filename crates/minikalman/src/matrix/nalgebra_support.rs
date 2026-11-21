@@ -46,6 +46,13 @@ unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
 
     #[inline]
     fn ptr(&self) -> *const T {
+        // nalgebra reads ROWS×COLS elements through this pointer without bounds checks.
+        // Kept even under `no_assert`: it guards memory safety, and folds away when it holds.
+        // Checked: a wrapping ROWS × COLS could otherwise pass for huge const generics.
+        assert!(
+            ROWS.checked_mul(COLS).is_some_and(|n| n <= TOTAL),
+            "buffer smaller than ROWS × COLS"
+        );
         self.as_slice().as_ptr()
     }
 
@@ -82,6 +89,24 @@ mod tests {
         let mat = Matrix::from_data(a);
         assert_eq!(mat.nrows(), 2);
         assert_eq!(mat.ncols(), 3);
+    }
+
+    #[test]
+    #[should_panic(expected = "buffer smaller than ROWS × COLS")]
+    fn overflowing_dimensions_are_rejected() {
+        // (2⁶³) × 2 wraps to 0 in release builds, which would pass an unchecked `<= TOTAL`.
+        let a = MatrixData::new_array::<{ 1 << (usize::BITS - 1) }, 2, 0, f32>([]);
+        let mat = Matrix::from_data(a);
+        let _ = mat.as_ptr();
+    }
+
+    #[test]
+    #[should_panic(expected = "buffer smaller than ROWS × COLS")]
+    fn undersized_buffer_is_rejected() {
+        // Two values cannot back a 3×3 matrix; nalgebra would read past the array.
+        let a = MatrixData::new_array::<3, 3, 2, f32>([1.0, 2.0]);
+        let mat = Matrix::from_data(a);
+        let _ = mat.sum();
     }
 
     /* TODO: Add implementations for all buffer types.

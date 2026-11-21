@@ -3,7 +3,7 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut, SquareMatrix};
+use crate::matrix::{Matrix, MatrixDataType, RowMajorSequentialDataMut};
 
 /// A builder for a Kalman filter [`RegularObservation`] instances.
 #[allow(clippy::type_complexity)]
@@ -386,55 +386,20 @@ where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
     {
-        // matrices and vectors
-        let P = P.as_matrix_mut();
-        let x = x.as_matrix_mut();
-
-        let H = self.H.as_matrix();
-        let K = self.K.as_matrix_mut();
-        let S = self.S.as_matrix_mut();
-        let R = self.R.as_matrix_mut();
-        let y = self.y.as_matrix_mut();
-
-        // temporaries
-        let S_inv = self.temp_S_inv.as_matrix_mut();
-        let temp_HP = self.temp_HP.as_matrix_mut();
-        let temp_KHP = self.temp_KHP.as_matrix_mut();
-        let temp_PHt = self.temp_PHt.as_matrix_mut();
-
-        // Assumes either of these is already set:
-        // y = z - H*x
-        // y = z - h(x)
-
-        // S = H*P*H' + R
-        H.mult(P, temp_HP); // temp = H*P
-        temp_HP.mult_transb(H, S); // S = temp*Hᵀ
-        S.add_inplace_a(R); // S += R
-
-        //* Calculate Kalman gain
-        //* K = P*Hᵀ * S^-1
-
-        // K = P*Hᵀ * S^-1
-        S.cholesky_decompose_lower();
-        S.invert_l_cholesky(S_inv); // S_inv = S^-1
-                                    // NOTE that to allow aliasing of Sinv and temp_PHt, a copy must be performed here
-        P.mult_transb(H, temp_PHt); // temp = P*H'
-        temp_PHt.mult(S_inv, K); // K = temp*Sinv
-
-        //* Correct state prediction
-        //* x = x + K*y
-
-        // x = x + K*y
-        K.multadd_rowvector(y, x);
-
-        //* Correct state covariances
-        //* P = (I-K*H) * P
-        //*   = P - K*(H*P)
-
-        // P = P - K*(H*P)
-        H.mult(P, temp_HP); // temp_HP = H*P
-        K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
-        P.sub_inplace_a(temp_KHP); // P -= temp_KHP
+        // The update is skipped, leaving x and P unchanged, if S cannot be inverted.
+        crate::observations::update_with_innovation(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.y.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            self.temp_S_inv.as_matrix_mut(),
+            self.temp_HP.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+        );
     }
 }
 
@@ -855,7 +820,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prelude::{AsMatrix, AsMatrixMut};
+    use crate::prelude::{AsMatrix, AsMatrixMut, MatrixMut};
     use crate::test_dummies::make_dummy_observation;
 
     #[test]

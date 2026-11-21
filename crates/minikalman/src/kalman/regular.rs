@@ -454,20 +454,13 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
     {
-        // matrices and vectors
-        let A = self.A.as_matrix();
-        let P = self.P.as_matrix_mut();
-        let Q = self.Q.as_matrix();
-
-        // temporaries
-        let P_temp = self.temp_P.as_matrix_mut();
-
-        // Predict next covariance using system dynamics (without control)
-
-        // P = A*P*Aᵀ + Q
-        A.mult(P, P_temp); // temp = A*P
-        P_temp.mult_transb(A, P); // P = temp*Aᵀ
-        Q.add_inplace_b(P); // P = P + Q
+        crate::kalman::predict_covariance(
+            self.A.as_matrix(),
+            self.P.as_matrix_mut(),
+            self.Q.as_matrix(),
+            self.temp_P.as_matrix_mut(),
+            None,
+        );
     }
 
     #[allow(non_snake_case)]
@@ -480,24 +473,13 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         TempP: TemporaryStateMatrix<STATES, T>,
         T: MatrixDataType,
     {
-        // matrices and vectors
-        let A = self.A.as_matrix();
-        let P = self.P.as_matrix_mut();
-        let Q = self.Q.as_matrix();
-
-        // temporaries
-        let P_temp = self.temp_P.as_matrix_mut();
-
-        // Predict next covariance using system dynamics (without control)
-        // P = A*P*Aᵀ * 1/lambda^2
-
-        // lambda = 1/lambda^2
-        let factor = lambda.mul(lambda).recip(); // TODO: This should be precalculated, e.g. using set_lambda(...);
-
-        // P = A*P*A' * 1/(lambda^2) + Q
-        A.mult(P, P_temp); // temp = A*P
-        P_temp.multscale_transb(A, factor, P); // P = temp*A' * 1/(lambda^2)
-        Q.add_inplace_b(P); // P = P + Q
+        crate::kalman::predict_covariance(
+            self.A.as_matrix(),
+            self.P.as_matrix_mut(),
+            self.Q.as_matrix(),
+            self.temp_P.as_matrix_mut(),
+            Some(lambda),
+        );
     }
 
     /// Applies a control input.

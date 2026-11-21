@@ -90,6 +90,12 @@ impl<
         beta: T,
         kappa: T,
     ) -> Self {
+        #[cfg(not(feature = "no_assert"))]
+        assert_eq!(
+            NUM_SIGMA,
+            2 * STATES + 1,
+            "NUM_SIGMA must be 2 × STATES + 1"
+        );
         Self {
             x,
             P,
@@ -467,13 +473,24 @@ where
         let sigma = self.sigma_points.as_matrix_mut();
         let temp = self.temp_sigma_P.as_matrix_mut();
 
-        // P.copy_to(temp) saves original P, then Cholesky overwrites temp with L
-        // But we need both L and original P. Use a copy approach:
-        // First copy P to temp, then Cholesky temp in-place
-        // After sigma generation, we don't need to restore P since it wasn't modified
-
+        // Decompose a copy, so that P itself stays untouched.
         P.copy_to(temp);
-        temp.cholesky_decompose_lower();
+        if !temp.cholesky_decompose_lower() {
+            // shortcut: if P is not positive definite (e.g. P = 0 or a zero variance), spread
+            // the sigma points along the axes by √Pᵢᵢ and drop the correlations; a failed
+            // decomposition would leave partial rows and the untouched upper triangle behind.
+            for i in 0..STATES {
+                for j in 0..STATES {
+                    let p = P.get(i, i);
+                    let val = if i == j && p > T::zero() {
+                        p.square_root()
+                    } else {
+                        T::zero()
+                    };
+                    temp.set(i, j, val);
+                }
+            }
+        }
 
         let x = self.x.as_matrix();
         for i in 0..STATES {
@@ -486,7 +503,6 @@ where
                 sigma.set(i, j + 1 + STATES, x.get(i, 0) - scale * val);
             }
         }
-        // Note: P was NOT modified by copy_to, so no restoration needed
     }
 
     #[allow(non_snake_case)]
