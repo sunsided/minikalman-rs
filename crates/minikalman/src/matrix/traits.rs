@@ -1,3 +1,4 @@
+use crate::matrix::triangular::{self, Transpose, Triangle};
 use crate::matrix::MatrixDataType;
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use core::ops::{Index, IndexMut};
@@ -815,6 +816,98 @@ pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T>
             }
         }
     }
+
+    /// Solves `L×X = B` in place for the lower triangular `self = L`, i.e. replaces `b` by
+    /// `L⁻¹×b` (forward substitution).
+    ///
+    /// Only the lower triangle of `self` is read, so a Cholesky factor from
+    /// [`MatrixMut::cholesky_decompose_lower`] can be used directly.
+    ///
+    /// ## Returns
+    /// `false` if a diagonal entry of `L` is zero, in which case `b` is left untouched.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::matrix::{MatrixData, RowMajorSequentialData, SquareMatrix};
+    ///
+    /// let l = MatrixData::new_array::<2, 2, 4, f32>([
+    ///     2.0, 0.0,
+    ///     1.0, 4.0]);
+    /// let mut b = MatrixData::new_array::<2, 1, 2, f32>([2.0, 9.0]);
+    ///
+    /// assert!(l.solve_lower_triangular_inplace(&mut b));
+    /// assert_eq!(b.as_slice(), &[1.0, 2.0]);
+    /// ```
+    fn solve_lower_triangular_inplace<const K: usize, B>(&self, b: &mut B) -> bool
+    where
+        B: MatrixMut<N, K, T>,
+        T: MatrixDataType,
+    {
+        solve(self, Triangle::Lower, Transpose::No, b)
+    }
+
+    /// Solves `Lᵀ×X = B` in place for the lower triangular `self = L`, i.e. replaces `b` by
+    /// `L⁻ᵀ×b` (back substitution).
+    ///
+    /// Together with [`solve_lower_triangular_inplace`](Self::solve_lower_triangular_inplace)
+    /// this solves `(L×Lᵀ)×X = B` with a Cholesky factor. Only the lower triangle of `self` is
+    /// read.
+    ///
+    /// ## Returns
+    /// `false` if a diagonal entry of `L` is zero, in which case `b` is left untouched.
+    fn solve_lower_triangular_transposed_inplace<const K: usize, B>(&self, b: &mut B) -> bool
+    where
+        B: MatrixMut<N, K, T>,
+        T: MatrixDataType,
+    {
+        solve(self, Triangle::Lower, Transpose::Yes, b)
+    }
+
+    /// Solves `U×X = B` in place for the upper triangular `self = U`, i.e. replaces `b` by
+    /// `U⁻¹×b` (back substitution).
+    ///
+    /// Only the upper triangle of `self` is read, so the `R` factor from
+    /// [`MatrixMut::triangularize_upper`] can be used directly.
+    ///
+    /// ## Returns
+    /// `false` if a diagonal entry of `U` is zero, in which case `b` is left untouched.
+    fn solve_upper_triangular_inplace<const K: usize, B>(&self, b: &mut B) -> bool
+    where
+        B: MatrixMut<N, K, T>,
+        T: MatrixDataType,
+    {
+        solve(self, Triangle::Upper, Transpose::No, b)
+    }
+
+    /// Solves `Uᵀ×X = B` in place for the upper triangular `self = U`, i.e. replaces `b` by
+    /// `U⁻ᵀ×b` (forward substitution).
+    ///
+    /// Only the upper triangle of `self` is read.
+    ///
+    /// ## Returns
+    /// `false` if a diagonal entry of `U` is zero, in which case `b` is left untouched.
+    fn solve_upper_triangular_transposed_inplace<const K: usize, B>(&self, b: &mut B) -> bool
+    where
+        B: MatrixMut<N, K, T>,
+        T: MatrixDataType,
+    {
+        solve(self, Triangle::Upper, Transpose::Yes, b)
+    }
+}
+
+/// Runs [`triangular::solve_triangular`] for the square factor `t` and the right-hand sides `b`.
+fn solve<const N: usize, const K: usize, T, F, B>(
+    t: &F,
+    triangle: Triangle,
+    transpose: Transpose,
+    b: &mut B,
+) -> bool
+where
+    F: SquareMatrix<N, T> + ?Sized,
+    B: MatrixMut<N, K, T>,
+    T: MatrixDataType,
+{
+    triangular::solve_triangular(t.as_slice(), N, triangle, transpose, b.as_mut_slice(), K)
 }
 
 /// A square matrix wrapping a data buffer.
@@ -1172,6 +1265,52 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
         }
 
         true
+    }
+
+    /// Triangularizes the matrix in place with Householder reflections (the `R` of a QR
+    /// decomposition), without forming `Mᵀ×M`.
+    ///
+    /// Afterwards the first `COLS` rows hold the upper triangular `R` with `Mᵀ×M = Rᵀ×R` and a
+    /// non-negative diagonal, and the rows below are zero. `Q` is not formed. Unlike
+    /// `cholesky(Mᵀ×M)`, this does not square the condition number, which is what square-root
+    /// filters need, e.g. `R = qr_r([A×S, Lq]ᵀ)` gives `Rᵀ×R = A×S×Sᵀ×Aᵀ + Lq×Lqᵀ`.
+    ///
+    /// Each reflector is computed from its column divided by the column's largest magnitude
+    /// (as BLAS `nrm2` does), so entries are never squared unscaled. With fixed-point types,
+    /// the column norms (the magnitudes in `R`) must stay below about a quarter of the type's
+    /// range, i.e. about 8000 for `I16F16`. A column that is zero from the diagonal down is
+    /// skipped and leaves a zero diagonal entry, a valid singular factor. The operation count
+    /// depends only on `ROWS` and `COLS`, apart from such skipped columns.
+    ///
+    /// ## Returns
+    /// `false` if `ROWS < COLS` (stable const generics cannot rule this out at compile time),
+    /// or if an entry or a diagonal of `R` is not finite (`NaN` or infinite, e.g. after an
+    /// overflow). The matrix is then partially modified.
+    ///
+    /// ## Example
+    /// ```
+    /// use minikalman::matrix::{MatrixData, MatrixMut, RowMajorSequentialData};
+    ///
+    /// let mut m = MatrixData::new_array::<3, 2, 6, f32>([
+    ///     3.0, 1.0,
+    ///     0.0, 2.0,
+    ///     4.0, 3.0]);
+    ///
+    /// assert!(m.triangularize_upper());
+    ///
+    /// // Rᵀ×R = Mᵀ×M = [[25, 15], [15, 14]]. The tolerance allows for the approximate
+    /// // square root of the `micromath` feature.
+    /// let r = m.as_slice();
+    /// assert!((r[0] - 5.0).abs() < 0.2 && (r[1] - 3.0).abs() < 0.2);
+    /// assert!(r[2].abs() < 0.2 && (r[3] - 5.0f32.sqrt()).abs() < 0.2);
+    /// assert_eq!(&r[4..], &[0.0, 0.0]);
+    /// ```
+    #[doc(alias = "qr")]
+    fn triangularize_upper(&mut self) -> bool
+    where
+        T: MatrixDataType,
+    {
+        triangular::triangularize_upper(self.as_mut_slice(), ROWS, COLS)
     }
 }
 

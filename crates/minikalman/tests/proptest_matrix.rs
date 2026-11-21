@@ -401,3 +401,52 @@ proptest! {
         assert_matrix_close(arr_result.as_slice(), boxed_result.as_slice(), EPS);
     }
 }
+
+// ============================================================================
+// Householder triangularization: Rᵀ×R == Mᵀ×M, R upper triangular
+// ============================================================================
+
+/// Returns `Mᵀ×M` of the row-major `4×3` matrix `m` in `f64`.
+fn gram_4x3(m: &[f32]) -> [f64; 9] {
+    let mut g = [0.0f64; 9];
+    for i in 0..3 {
+        for j in 0..3 {
+            g[i * 3 + j] = (0..4)
+                .map(|k| f64::from(m[k * 3 + i]) * f64::from(m[k * 3 + j]))
+                .sum();
+        }
+    }
+
+    g
+}
+
+proptest! {
+    #[test]
+    fn triangularize_upper_preserves_the_gram_matrix_4x3(
+        values in finite_fixed_vec::<12>()
+    ) {
+        let mut m = MatrixDataArray::<4, 3, 12, f32>::new(values);
+        prop_assert!(m.triangularize_upper());
+
+        let r = m.as_slice();
+        for i in 0..4 {
+            for j in 0..3 {
+                if i > j {
+                    prop_assert_eq!(r[i * 3 + j], 0.0, "entry ({}, {})", i, j);
+                }
+            }
+        }
+
+        for i in 0..3 {
+            prop_assert!(r[i * 3 + i] >= 0.0, "diagonal {}", i);
+        }
+
+        // Errors scale with ‖M‖², so the tolerance is relative to the largest Gram entry.
+        let expected = gram_4x3(&values);
+        let actual = gram_4x3(r);
+        let scale = expected.iter().fold(1.0f64, |a, &b| a.max(b.abs()));
+        for (a, e) in actual.iter().zip(&expected) {
+            prop_assert!((a - e).abs() <= 1e-5 * scale, "{} vs {}", a, e);
+        }
+    }
+}
