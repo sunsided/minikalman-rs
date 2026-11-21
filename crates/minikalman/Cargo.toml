@@ -51,6 +51,11 @@ path = "examples/radar_2d.rs"
 required-features = ["std"]
 
 [[example]]
+name = "compass"
+path = "examples/compass.rs"
+required-features = ["std"]
+
+[[example]]
 name = "radar-2d-ukf"
 path = "examples/radar_2d_ukf.rs"
 required-features = ["std"]

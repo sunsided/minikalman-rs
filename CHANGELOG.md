@@ -5,6 +5,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Added
+
+- Added a `compass` example: a heading filter whose heading crosses north, corrected with
+  `correct_with` and `angles::wrap_180`, next to an unwrapped filter that swings the long way
+  around. See [#40].
+
 ### Fixed
 
 - A correction no longer turns the state into NaN when the innovation covariance `S = H×P×Hᵀ + R`
