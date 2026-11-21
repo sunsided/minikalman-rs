@@ -4,6 +4,7 @@ use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 pub mod extended;
+pub(crate) mod predictively_oriented;
 pub mod regular;
 pub mod unscented;
 
