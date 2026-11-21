@@ -3,7 +3,7 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{Matrix, MatrixDataType, RowMajorSequentialDataMut};
+use crate::matrix::{Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut};
 use crate::observations::NoiseAdaptation;
 
 /// A builder for a Kalman filter [`ExtendedObservation`] instances.
@@ -312,6 +312,10 @@ impl<
     /// form. For the recalibrated correction, `S` uses the Jacobian at the updated state, and
     /// strong nonlinearity inflates `R` more than in `correct_nonlinear`. A candidate that is
     /// not positive definite is discarded.
+    ///
+    /// `correct_nonlinear_predictively_oriented*` leaves `R` and its floor untouched, also when it
+    /// returns [`CorrectionStatus::Applied`]: its inflated posterior covariance is not the error
+    /// covariance of the state, so neither form gives a consistent estimate.
     ///
     /// Only corrections that return [`CorrectionStatus::Applied`] adapt `R`; gated, skipped and
     /// backed-out corrections leave it unchanged.
@@ -736,6 +740,339 @@ where
             self.gate,
             self.noise_adaptation,
         )
+    }
+}
+
+impl<const STATES: usize, T, Z, H, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    ExtendedObservation<STATES, 1, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: ObservationMatrix<1, STATES, T>,
+    K: KalmanGainMatrix<STATES, 1, T>,
+    S: InnovationCovarianceMatrix<1, T>,
+    R: MeasurementNoiseCovarianceMatrix<1, T>,
+    Y: InnovationVector<1, T>,
+    Z: MeasurementVector<1, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, 1, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    /// Applies a predictively oriented (PrO) correction step with the observation linearized at
+    /// the prior.
+    ///
+    /// This is the PrO update of
+    /// [`RegularObservation::correct_predictively_oriented`](crate::regular::RegularObservation::correct_predictively_oriented)
+    /// with the Jacobian in the observation matrix as `H` and the nonlinear innovation
+    /// `y = z − h(x̃)`, i.e. the PrO counterpart of [`correct_nonlinear`](Self::correct_nonlinear).
+    /// See there for the objective, its cost, and when it helps. As for the regular PrO update,
+    /// it is limited to scalar observations, needs `H×P×Hᵀ > 0` and `R > 0`, updates the
+    /// [NIS](Self::nis) of the prior innovation, honors the [gate](Self::set_gate), and does not
+    /// adapt `R`.
+    ///
+    /// The Jacobian must be set up at the prior `x`. The papers relinearize `h` at the PrO mean
+    /// instead, see
+    /// [`correct_nonlinear_predictively_oriented_iterated`](Self::correct_nonlinear_predictively_oriented_iterated).
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `max_iterations` - The budget of Newton steps for the stationarity condition.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_predictively_oriented<X, P, F>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+    {
+        self.correct_nonlinear_predictively_oriented_with(x, P, observation, |_| {}, max_iterations)
+    }
+
+    /// Applies a predictively oriented (PrO) correction step with the observation linearized at
+    /// the prior, normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_predictively_oriented`](Self::correct_nonlinear_predictively_oriented)
+    /// and [`correct_nonlinear_with`](Self::correct_nonlinear_with).
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `fix` - Normalizes the innovation `y = z - h(x)` in place, e.g. by wrapping angles.
+    /// * `max_iterations` - The budget of Newton steps for the stationarity condition.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_predictively_oriented_with<X, P, F, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        mut observation: F,
+        mut fix: N,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        N: FnMut(&mut [T]),
+    {
+        self.nonlinear_innovation(x, &mut observation, &mut fix);
+        self.update_predictively_oriented(x, P, self.gate, max_iterations)
+    }
+
+    /// Applies a predictively oriented (PrO) correction step, relinearizing the observation at
+    /// the PrO mean in iterated-EKF style.
+    ///
+    /// The papers (Shen, Duran-Martin, Oates, [arXiv:2606.03230](https://arxiv.org/abs/2606.03230),
+    /// Section 2.4; Kean, Shen, Oates, [arXiv:2610.14773](https://arxiv.org/abs/2610.14773),
+    /// Appendix A) linearize `h` at the current PrO mean `m` instead of the prior `x̃`:
+    /// `h(x) ≈ h(m) + H_m×(x − m)`. The linearized problem is a regular PrO update with the
+    /// Jacobian `H_m` and the prior innovation
+    ///
+    /// ```text
+    /// v = z − h(m) − H_m×(x̃ − m),
+    /// ```
+    ///
+    /// whose mean is the next `m`. Starting from `m = x̃` with the Jacobian set up at the prior,
+    /// each of the `relinearizations` rounds moves `m` to the PrO mean of the current
+    /// linearization and calls `jacobian` and `observation` there. The final linearization
+    /// gives the posterior, so `P` is only written once and stays positive definite as in
+    /// [`correct_nonlinear_predictively_oriented`](Self::correct_nonlinear_predictively_oriented).
+    /// `relinearizations = 0` is exactly that method.
+    ///
+    /// ## Limits
+    /// - The rounds are a fixed budget without a convergence test. Like the iterated EKF, the
+    ///   relinearization is a Gauss-Newton-style fixed-point iteration that is not guaranteed to
+    ///   converge for strongly nonlinear `h`; a few rounds (e.g. 3 to 5) are typical.
+    /// - The papers alternate relinearization with an L-BFGS solve of the full objective; here
+    ///   each round solves the linearized problem exactly with the scalar Newton iteration.
+    /// - Gating and the [NIS](Self::nis) use the prior innovation `z − h(x̃)` and the Jacobian
+    ///   at the prior. The checks `H×P×Hᵀ > 0` and `R > 0` are repeated for every
+    ///   linearization; if one fails, `x` and `P` are left unchanged and
+    ///   [`CorrectionStatus::NotPositiveDefinite`] is returned.
+    /// - The observation Jacobian holds the one at the last linearization point on return, so
+    ///   set it up again before the next correction.
+    ///
+    /// ## Cost
+    /// Per round, one evaluation each of `jacobian` and `observation`, a `P×Hᵀ` product
+    /// (`O(STATES²)`), and a scalar Newton solve; `P` is only updated once. The prior state is
+    /// kept in the Kalman gain buffer `K` during the rounds.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    /// * `relinearizations` - The number of relinearization rounds.
+    /// * `max_iterations` - The budget of Newton steps for each stationarity condition.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_predictively_oriented_iterated<X, P, F, J>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+        relinearizations: usize,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        J: FnMut(&X, &mut H),
+        H: ObservationMatrixMut<1, STATES, T>,
+    {
+        self.correct_nonlinear_predictively_oriented_iterated_with(
+            x,
+            P,
+            observation,
+            jacobian,
+            |_| {},
+            relinearizations,
+            max_iterations,
+        )
+    }
+
+    /// Applies a predictively oriented (PrO) correction step, relinearizing the observation at
+    /// the PrO mean, and normalizing every innovation before it is used.
+    ///
+    /// See
+    /// [`correct_nonlinear_predictively_oriented_iterated`](Self::correct_nonlinear_predictively_oriented_iterated)
+    /// and [`correct_nonlinear_with`](Self::correct_nonlinear_with). `fix` is applied to
+    /// `z − h(m)` before the linearization term is subtracted.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    /// * `fix` - Normalizes the innovation `y = z - h(m)` in place, e.g. by wrapping angles.
+    /// * `relinearizations` - The number of relinearization rounds.
+    /// * `max_iterations` - The budget of Newton steps for each stationarity condition.
+    #[allow(non_snake_case, clippy::too_many_arguments)]
+    pub fn correct_nonlinear_predictively_oriented_iterated_with<X, P, F, J, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        mut observation: F,
+        mut jacobian: J,
+        mut fix: N,
+        relinearizations: usize,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        J: FnMut(&X, &mut H),
+        N: FnMut(&mut [T]),
+        H: ObservationMatrixMut<1, STATES, T>,
+    {
+        self.nonlinear_innovation(x, &mut observation, &mut fix);
+        if relinearizations == 0 {
+            return self.update_predictively_oriented(x, P, self.gate, max_iterations);
+        }
+
+        // The prior x̃ is kept in K until the final update overwrites it.
+        self.K.as_matrix_mut().copy_from(x.as_matrix_mut());
+        for round in 0..relinearizations {
+            let Some((g, r, v)) = self.project_prior(P) else {
+                x.as_matrix_mut().copy_from(self.K.as_matrix_mut());
+                return CorrectionStatus::NotPositiveDefinite;
+            };
+
+            if round == 0 {
+                self.nis = v * v / (g + r);
+                if self.gate.is_some_and(|gate| self.nis > gate) {
+                    return CorrectionStatus::Gated;
+                }
+            }
+
+            self.move_to_pro_mean(x, g, r, v, max_iterations);
+            jacobian(x, &mut self.H);
+            self.nonlinear_innovation(x, &mut observation, &mut fix);
+            self.linearize_innovation(x);
+        }
+
+        // The final update starts from x̃; it must neither gate again nor overwrite the NIS of
+        // the prior innovation.
+        x.as_matrix_mut().copy_from(self.K.as_matrix_mut());
+        let nis = self.nis;
+        let status = self.update_predictively_oriented(x, P, None, max_iterations);
+        self.nis = nis;
+        status
+    }
+
+    /// Computes the nonlinear innovation `y = z − h(x)` and normalizes it with `fix`.
+    ///
+    /// The innovation buffer serves as the output of `observation` first.
+    fn nonlinear_innovation<X, F, N>(&mut self, x: &X, observation: &mut F, fix: &mut N)
+    where
+        X: StateVectorMut<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        N: FnMut(&mut [T]),
+    {
+        observation(x, &mut self.y);
+        let y = self.y.as_matrix_mut();
+        self.z.as_matrix().sub_inplace_b(y);
+        fix(y.as_mut_slice());
+    }
+
+    /// Runs the scalar PrO update of the current linearization from the innovation in `y`.
+    ///
+    /// See `observations::predictively_oriented::update_scalar`; `gate` overrides the
+    /// observation's own gate.
+    #[allow(non_snake_case)]
+    fn update_predictively_oriented<X, P>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        gate: Option<T>,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        crate::observations::predictively_oriented::update_scalar(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.y.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+            &mut self.nis,
+            gate,
+            max_iterations,
+        )
+    }
+
+    /// Forms `P̃×Hᵀ` in `temp_PHt` and returns `(g, r, v)` with `g = H×P̃×Hᵀ`, the noise
+    /// variance `r` and the innovation `v` in `y`.
+    ///
+    /// Returns `None` unless both `g` and `r` are strictly positive (this also rejects NaN),
+    /// as the PrO stationarity condition requires.
+    #[allow(non_snake_case)]
+    fn project_prior<P>(&mut self, P: &P) -> Option<(T, T, T)>
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        let H = self.H.as_matrix();
+        let PHt = self.temp_PHt.as_matrix_mut();
+        P.as_matrix().mult_transb(H, PHt);
+        let g = (0..STATES).fold(T::zero(), |sum, i| sum + H.get(0, i) * PHt.get(i, 0));
+        let r = self.R.as_matrix().get(0, 0);
+        let v = self.y.as_matrix().get(0, 0);
+
+        let positive = g > T::zero() && r > T::zero();
+        positive.then_some((g, r, v))
+    }
+
+    /// Moves `x` to the PrO mean `x̃ + P̃×Hᵀ × v/(c+r+g)` of the current linearization, with
+    /// the prior `x̃` in `K` and `P̃×Hᵀ` in `temp_PHt` (see [`Self::project_prior`]).
+    #[allow(non_snake_case)]
+    fn move_to_pro_mean<X>(&mut self, x: &mut X, g: T, r: T, v: T, max_iterations: usize)
+    where
+        X: StateVectorMut<STATES, T>,
+    {
+        let c =
+            crate::observations::predictively_oriented::solve_stationarity(g, r, v, max_iterations);
+        let scale = v / (c + r + g);
+
+        let x = x.as_matrix_mut();
+        let prior = self.K.as_matrix();
+        let PHt = self.temp_PHt.as_matrix();
+        for i in 0..STATES {
+            x.set(i, 0, prior.get(i, 0) + PHt.get(i, 0) * scale);
+        }
+    }
+
+    /// Turns the innovation `z − h(m)` in `y` into the prior innovation of the linearization
+    /// at `m = x`, `z − h(m) − H_m×(x̃ − m)`, with the prior `x̃` in `K`.
+    #[allow(non_snake_case)]
+    fn linearize_innovation<X>(&mut self, x: &X)
+    where
+        X: StateVectorMut<STATES, T>,
+    {
+        let x = x.as_matrix();
+        let prior = self.K.as_matrix();
+        let H = self.H.as_matrix();
+        let offset = (0..STATES).fold(T::zero(), |sum, i| {
+            sum + H.get(0, i) * (prior.get(i, 0) - x.get(i, 0))
+        });
+
+        let y = self.y.as_matrix_mut();
+        y.set(0, 0, y.get(0, 0) - offset);
     }
 }
 
@@ -1292,6 +1629,74 @@ where
         N: FnMut(&mut [T]),
     {
         self.correct_nonlinear_recalibrated_with(x, P, observation, jacobian, fix)
+    }
+}
+
+impl<const STATES: usize, T, Z, H, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    KalmanFilterNonlinearObservationCorrectPredictivelyOriented<STATES, T>
+    for ExtendedObservation<STATES, 1, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: ObservationMatrixMut<1, STATES, T>,
+    K: KalmanGainMatrix<STATES, 1, T>,
+    S: InnovationCovarianceMatrix<1, T>,
+    R: MeasurementNoiseCovarianceMatrix<1, T>,
+    Y: InnovationVector<1, T>,
+    Z: MeasurementVector<1, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<1, T>,
+    TempHP: TemporaryHPMatrix<1, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, 1, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    type ObservationJacobian = H;
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_predictively_oriented_with<X, P, F, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        fix: N,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]),
+    {
+        self.correct_nonlinear_predictively_oriented_with(x, P, observation, fix, max_iterations)
+    }
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_predictively_oriented_iterated_with<X, P, F, J, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+        fix: N,
+        relinearizations: usize,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        J: FnMut(&X, &mut Self::ObservationJacobian),
+        N: FnMut(&mut [T]),
+    {
+        self.correct_nonlinear_predictively_oriented_iterated_with(
+            x,
+            P,
+            observation,
+            jacobian,
+            fix,
+            relinearizations,
+            max_iterations,
+        )
     }
 }
 
