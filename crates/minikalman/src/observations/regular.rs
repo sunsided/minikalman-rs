@@ -42,9 +42,10 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     /// * `S` - The residual covariance (`num_measurements` × `num_measurements`).
     /// * `K` - The Kalman gain (`num_states` × `num_measurements`).
     /// * `S_inv` - A temporary matrix (`num_measurements` × `num_measurements`). The gain
-    ///   factors a copy of `S` here (so that `S` stays unfactored); it is also scratch for noise
-    ///   adaptation, `settle_gain`, the robust, predictively oriented, UD and information
-    ///   corrections.
+    ///   factors a copy of `S` here, unless it factors `S` square-root free in local storage
+    ///   (floating point, up to three measurements), so that `S` stays unfactored; it is also
+    ///   scratch for noise adaptation, `settle_gain`, the robust, predictively oriented, UD and
+    ///   information corrections.
     /// * `temp_HP` - The temporary matrix for H×P calculation (`num_measurements` × `num_states`).
     /// * `temp_PHt` - The temporary matrix for P×H' calculation (`num_states` × `num_measurements`).
     /// * `temp_KHP` - The temporary matrix for K×H×P calculation (`num_states` × `num_states`).
@@ -338,7 +339,11 @@ impl<
     /// the NIS unchanged.
     ///
     /// With fixed-point types, large innovations can overflow `yᵀ×S⁻¹×y`; choose a type with
-    /// enough integer bits for the expected outliers.
+    /// enough integer bits for the expected outliers. A `NaN` NIS (from a `NaN` in `y`) is stored, and the
+    /// correction returns
+    /// [`CorrectionStatus::NotPositiveDefinite`] without applying it, as a gate could not reject
+    /// it.
+    /// A `NaN` in `P`, `H` or `R` makes `S` fail to factor, so the NIS keeps its previous value.
     #[inline(always)]
     pub fn nis(&self) -> T
     where

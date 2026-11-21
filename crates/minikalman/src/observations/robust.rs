@@ -42,8 +42,9 @@
 
 use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::observations::CovarianceUpdate;
+use crate::observations::innovation_factor::{is_number, prior_nis};
 use crate::observations::predictively_oriented::vector::machine_epsilon;
-use crate::observations::{CholeskyFactor, CovarianceUpdate};
 
 /// The relative change of the weight below which the iteration counts as converged.
 const RELATIVE_TOLERANCE: f64 = 1e-6;
@@ -145,8 +146,13 @@ where
     for iteration in 0..=robust.iterations {
         invert_scaled(G, R, solution.weight, S, S_inv)?;
         if iteration == 0 {
-            // The prior NIS as the plain update forms it, from the Cholesky factor of `G + R`.
-            *nis = CholeskyFactor::<M, T>::new(S.as_slice()).nis(y);
+            // The prior NIS as the plain update forms it; on the Cholesky path from the factor
+            // that `invert_scaled` just left in `S`.
+            *nis = prior_nis(G, R, S.as_slice(), y);
+            if !is_number(*nis) {
+                return Err(CorrectionStatus::NotPositiveDefinite);
+            }
+
             if gate.is_some_and(|gate| *nis > gate) {
                 return Err(CorrectionStatus::Gated);
             }
@@ -639,5 +645,26 @@ mod tests {
 
         assert!(nis > I16F16::from_num(20_000), "NIS = {nis}");
         assert!(solution.weight >= I16F16::ZERO && solution.weight < I16F16::from_num(0.001));
+    }
+
+    /// A `NaN` prior NIS is rejected before the gate, which it would pass.
+    #[test]
+    fn nan_prior_nis_is_rejected() {
+        let (mut s, mut s_inv, mut nis) = ([0.0; 4], [0.0; 4], 0.0);
+        let robust = RobustCorrection {
+            weight: RobustWeight::StudentT { dof: 4.0 },
+            iterations: 5,
+        };
+        let status = solve_weight(
+            &MatrixData::new_ref::<2, 2, f64>(&[2.0, 0.5, 0.5, 1.0]),
+            &MatrixData::new_ref::<2, 2, f64>(&[1.0, 0.0, 0.0, 1.0]),
+            &MatrixData::new_ref::<2, 1, f64>(&[f64::NAN, 1.0]),
+            &mut MatrixData::new_mut::<2, 2, f64>(&mut s),
+            &mut MatrixData::new_mut::<2, 2, f64>(&mut s_inv),
+            &mut nis,
+            Some(1e9),
+            robust,
+        );
+        assert!(matches!(status, Err(CorrectionStatus::NotPositiveDefinite)));
     }
 }

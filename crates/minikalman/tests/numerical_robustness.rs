@@ -267,13 +267,14 @@ impl Sweep {
 ///
 /// Found: the exact `P⁺` has two eigenvalues of order `δ²`, so once `δ²` approaches the
 /// roundoff of `T`, whether the computed `P⁺` passes a Cholesky decomposition is a matter of
-/// rounding, and both forms leave it indefinite for some `δ` in every type. From `δ ≈ 3×10⁻⁴`
+/// rounding, and both forms leave it indefinite for some `δ` in every type. From `δ ≈ 5×10⁻⁴`
 /// in `f32`, `S` is rejected as not positive definite and neither form applies the correction.
 /// The gain is solved from the Cholesky factor of `S` rather than formed with `S⁻¹ ~ 1/δ²`,
 /// so `I16F16` no longer overflows, and the corrected state stays close to the `f64` one
 /// (`|Δx|` below `10⁻⁴` in `f32`, against about `0.4` with the explicit inverse). With that
-/// gain, in `f32` and `f64` the standard update is indefinite for fewer `δ` than the Joseph
-/// form (6 and 9 of 48 in `f32`, 3 and 10 in `f64`); with the explicit inverse it was 16 and
+/// gain (square-root free there), in `f32` and `f64` the standard update is indefinite for no
+/// more `δ` than the Joseph form (8 and 8 of 48 in `f32`, 3 and 8 in `f64`); with the explicit
+/// inverse it was 16 and
 /// 7, 11 and 9. The fixed-point types are not ordered that way (`I32F32`: 27 and 11).
 #[test]
 fn ill_conditioned_measurement() {
@@ -384,5 +385,7 @@ fn sequential_scalar_updates() {
 
     let standard = i16f16[0].expect("standard I16F16 completes");
     assert!(standard.not_positive_definite > 0);
-    assert!(i16f16[1].is_none_or(|joseph| joseph.not_positive_definite > 0));
+    // The Joseph run completes (no overflow in the gain) and diverges instead.
+    let joseph = i16f16[1].expect("Joseph I16F16 completes");
+    assert!(joseph.not_positive_definite > 0);
 }

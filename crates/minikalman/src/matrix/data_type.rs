@@ -29,6 +29,16 @@ pub trait MatrixDataType: MatrixDataTypeBase {
 
     /// Calculates the square root of a number.
     fn square_root(self) -> Self;
+
+    /// Whether the Kalman gain of the regular and extended observations may factor innovation
+    /// covariances of up to three measurements as `L×D×Lᵀ`, without square roots.
+    ///
+    /// That factorization divides by the pivots `Dᵢ`, the squares of the Cholesky pivots, so
+    /// its intermediate values span twice the dynamic range of the Cholesky solve. That is
+    /// harmless for floating-point types (`true` for `f32` and `f64`), but overflows a
+    /// fixed-point type near its resolution, so the default, used by the fixed-point types, is
+    /// `false`: they keep the Cholesky solve.
+    const SQUARE_ROOT_FREE_GAIN: bool = false;
 }
 
 /// Auto-implementation of [`MatrixDataTypeBase`].
@@ -51,6 +61,8 @@ impl<T> MatrixDataTypeBase for T where
 
 #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 impl MatrixDataType for f32 {
+    const SQUARE_ROOT_FREE_GAIN: bool = true;
+
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
         #[cfg(feature = "std")]
@@ -86,6 +98,8 @@ impl MatrixDataType for f32 {
 
 #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 impl MatrixDataType for f64 {
+    const SQUARE_ROOT_FREE_GAIN: bool = true;
+
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
         #[cfg(feature = "std")]
