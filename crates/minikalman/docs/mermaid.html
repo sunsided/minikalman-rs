@@ -25,7 +25,7 @@
     });
 
     let rendered = null;
-    const render = async () => {
+    const renderOnce = async () => {
       const dark = isDark();
       if (rendered === dark) return;
       rendered = dark;
@@ -41,6 +41,12 @@
       });
       await mermaid.run({ nodes: diagrams });
     };
+
+    // Serialize renders: a theme switch during a running render waits for it, then renders
+    // for the theme current at that point (or does nothing if it did not change).
+    let pending = Promise.resolve();
+    const render = () =>
+      (pending = pending.then(renderOnce).catch((error) => console.error("mermaid:", error)));
 
     await render();
     new MutationObserver(render).observe(document.documentElement, {
