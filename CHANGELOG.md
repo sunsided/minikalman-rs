@@ -38,6 +38,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   square-root filters have none and return no handle. Calling code breaks only where it used the
   `()` of the inherent `predict` / `predict_tuned`, e.g. as the tail expression of a function or
   closure that returns `()`; add a `;` ([#153]).
+- Added the opt-in `derive` feature for zero-copy named vectors (needs Rust 1.88; the crate MSRV
+  stays 1.85 without it). It re-exports the `UniformArray` derive from `uniform-array-derive` and
+  `ensure_uniform_type` from `ensure-uniform-type`, and adds `NamedVector` with the
+  `named_vector!` macro and the `VectorView` / `VectorViewMut` extension traits (in the prelude):
+  `filter.state_vector().view::<Radar>()` borrows a state, measurement or control vector as a
+  `#[repr(C)]` struct, and `view_mut` writes through its fields. A struct of another length fails
+  to build. The cast comes from the derive in the user's crate, gated on that crate's `unsafe`
+  feature; minikalman adds no `unsafe` code. `state!` is unchanged and stays the default ([#124]).
 - Added a per-call correction scratch, so several observations share their temporaries soundly.
   `CorrectionScratch<STATES, MAX_OBSERVATIONS, T>` (in `regular`, `extended` and the prelude, a
   `const fn new`) holds `S⁻¹`, `H×P`, `P×Hᵀ` and `K×H×P` for any observation with up to
@@ -320,6 +328,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
 [#153]: https://github.com/sunsided/minikalman-rs/issues/153
+[#124]: https://github.com/sunsided/minikalman-rs/issues/124
 [#144]: https://github.com/sunsided/minikalman-rs/issues/144
 [#143]: https://github.com/sunsided/minikalman-rs/issues/143
 [#145]: https://github.com/sunsided/minikalman-rs/issues/145
