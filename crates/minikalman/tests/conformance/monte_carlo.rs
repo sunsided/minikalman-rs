@@ -116,6 +116,14 @@ impl Gaussian {
     }
 }
 
+/// Asserts that a correction was applied, so a skipped one cannot pass the statistics.
+///
+/// # Panics
+/// Panics, naming the run and step, for any other [`CorrectionStatus`].
+fn assert_applied(status: CorrectionStatus, run: usize, k: usize) {
+    assert_eq!(status, CorrectionStatus::Applied, "run {run}, step {k}");
+}
+
 /// Row-major `n × m` matrix times vector.
 fn mul(a: &[f64], x: &[f64]) -> Vec<f64> {
     a.chunks_exact(x.len())
@@ -141,7 +149,7 @@ pub fn regular_cv(seed: u64) -> Metrics {
 
             filter.predict();
             measurement.measurement_vector_mut().apply(|v| load(v, &z));
-            filter.correct(&mut measurement);
+            assert_applied(filter.correct(&mut measurement), run, k);
             let x = read(filter.state_vector());
             let p = read(filter.estimate_covariance());
             acc.record(k, &truth, &x, &p, measurement.nis());
@@ -162,7 +170,11 @@ pub fn extended_radar(seed: u64) -> Metrics {
             truth = add(&mul(&radar::A, &truth), &rng.noise(&radar::Q, 4));
             let z = add(&scenarios::range_bearing(&truth), &rng.noise(&radar::R, 2));
 
-            scenarios::radar_step(&mut filter, &mut measurement, &z);
+            assert_applied(
+                scenarios::radar_step(&mut filter, &mut measurement, &z),
+                run,
+                k,
+            );
             let x = read(filter.state_vector());
             let p = read(filter.estimate_covariance());
             acc.record(k, &truth, &x, &p, measurement.nis());
@@ -185,7 +197,11 @@ pub fn unscented_pendulum(seed: u64) -> Metrics {
             let bob = [pendulum::LENGTH * truth[0].sin()];
             let z = add(&bob, &rng.noise(&pendulum::R, 1));
 
-            scenarios::pendulum_step(&mut filter, &mut measurement, &z);
+            assert_applied(
+                scenarios::pendulum_step(&mut filter, &mut measurement, &z),
+                run,
+                k,
+            );
             let x = read(filter.state_vector());
             let p = read(filter.estimate_covariance());
             acc.record(k, &truth, &x, &p, measurement.nis());
