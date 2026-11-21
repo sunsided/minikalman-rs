@@ -178,3 +178,22 @@ fn predict_skips_singular_predicted_covariance() {
     assert!(!info.predict());
     assert_eq!(snapshot(&info), before);
 }
+
+#[test]
+fn conversions_skip_singular_matrices() {
+    let builder = KalmanFilterBuilder::<2, f32>::default();
+    let mut info = builder.build_information();
+    let mut x = BufferBuilder::state_vector_x::<2>().new();
+    let mut P = BufferBuilder::estimate_covariance_P::<2>().new();
+    x.set(0, 0, 1.0);
+
+    // Y = 0 cannot be turned into a covariance; P = 0 cannot be turned into information.
+    assert!(!info.state(&mut x, &mut P));
+    assert_eq!(x.as_slice(), &[1.0, 0.0]);
+    assert_eq!(P.as_slice(), &[0.0; 4]);
+
+    info.information_matrix_mut().make_identity();
+    let before = snapshot(&info);
+    assert!(!info.set_state(&x, &P));
+    assert_eq!(snapshot(&info), before);
+}

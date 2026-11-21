@@ -208,6 +208,7 @@ where
         self.Y
             .as_matrix()
             .mult_rowvector(x.as_matrix(), self.y_hat.as_matrix_mut());
+
         true
     }
 
@@ -231,6 +232,7 @@ where
 
         P.as_matrix()
             .mult_rowvector(self.y_hat.as_matrix(), x.as_matrix_mut());
+
         true
     }
 
@@ -295,6 +297,7 @@ where
 
         // ŷ = ŷ + HtRinv×z
         HtRinv.multadd_rowvector(observation.z.as_matrix(), self.y_hat.as_matrix_mut());
+
         true
     }
 
@@ -343,6 +346,7 @@ where
         A.mult_rowvector(x, y_hat);
         self.Y.as_matrix().mult_rowvector(y_hat, x);
         x.copy_to(y_hat);
+
         true
     }
 }
@@ -365,6 +369,7 @@ where
     }
 
     scratch.invert_l_cholesky(inverse);
+
     true
 }
 
