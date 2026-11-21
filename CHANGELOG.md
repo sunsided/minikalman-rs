@@ -366,6 +366,16 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+### Internal
+
+- Added a standalone benchmark harness in `benches/compare/`, outside the workspace. It checks
+  every filter variant against an independent `f64` reference before timing it, times
+  predict, correct and full steps of minikalman's variants (and of other Rust Kalman crates at
+  pinned versions) on fixed problems, counts allocations per step, and measures the
+  `thumbv7em-none-eabihf` code size of one step. `run.sh` reproduces everything; the README
+  describes the method. A CI job only compiles it ([#161]).
+
+[#161]: https://github.com/sunsided/minikalman-rs/issues/161
 [#159]: https://github.com/sunsided/minikalman-rs/issues/159
 [#157]: https://github.com/sunsided/minikalman-rs/issues/157
 [#153]: https://github.com/sunsided/minikalman-rs/issues/153

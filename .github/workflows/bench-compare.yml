@@ -1,0 +1,42 @@
+---
+name: Benchmark Harness
+
+# Compiles the standalone benchmark harness in benches/compare, so that API changes in
+# minikalman do not silently break it. It neither runs nor times anything, and it is not a
+# required check: the harness pins other crates, which must not block minikalman's own CI.
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'crates/minikalman/src/**'
+      - 'crates/minikalman/Cargo.toml'
+      - 'benches/compare/**'
+      - '.github/workflows/bench-compare.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update --target thumbv7em-none-eabihf
+          rustup default stable
+      - name: Check the harness
+        run: cargo check --locked --all-targets --manifest-path benches/compare/Cargo.toml
+      - name: Check the code size binaries
+        # Run inside the directory, so that its .cargo/config.toml selects the thumb target.
+        working-directory: benches/compare/codesize
+        run: cargo check --locked --bins
