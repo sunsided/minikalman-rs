@@ -21,7 +21,7 @@ mod robustness;
 use fixed::types::{I16F16, I32F32};
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder;
-use robustness::{deltas, measure, num, to_f64_vector, BenchType, Noise, Run, Summary};
+use robustness::{BenchType, Noise, Run, Summary, deltas, measure, num, to_f64_vector};
 
 /// Both covariance updates, with their report labels.
 const UPDATES: [(CovarianceUpdate, &str); 2] = [
@@ -376,5 +376,5 @@ fn sequential_scalar_updates() {
 
     let standard = i16f16[0].expect("standard I16F16 completes");
     assert!(standard.not_positive_definite > 0);
-    assert!(i16f16[1].map_or(true, |joseph| joseph.not_positive_definite > 0));
+    assert!(i16f16[1].is_none_or(|joseph| joseph.not_positive_definite > 0));
 }

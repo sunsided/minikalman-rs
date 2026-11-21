@@ -1,5 +1,5 @@
-use crate::matrix::triangular::{self, Transpose, Triangle};
 use crate::matrix::MatrixDataType;
+use crate::matrix::triangular::{self, Transpose, Triangle};
 use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 use core::ops::{Index, IndexMut};
 use num_traits::{One, Zero};

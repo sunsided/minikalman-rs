@@ -6,7 +6,7 @@ use crate::matrix::{
     SquareMatrix,
 };
 use crate::observations::{
-    normalized_innovation_squared, sub_symmetric_part, trace_of_gain_sandwich, NoiseAdaptation,
+    NoiseAdaptation, normalized_innovation_squared, sub_symmetric_part, trace_of_gain_sandwich,
 };
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
@@ -48,20 +48,20 @@ pub struct UnscentedObservation<
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    >
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+>
     UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -194,20 +194,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    >
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+>
     UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -233,20 +233,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    >
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+>
     UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -272,20 +272,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    >
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+>
     UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -316,20 +316,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    >
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+>
     UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -740,20 +740,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterNumStates<STATES>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterNumStates<STATES>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -773,20 +773,20 @@ impl<
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterNumObservations<OBSERVATIONS>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterNumObservations<OBSERVATIONS>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -806,20 +806,20 @@ impl<
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterMeasurementVector<OBSERVATIONS, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterMeasurementVector<OBSERVATIONS, T>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -847,20 +847,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterObservationVectorMut<OBSERVATIONS, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterObservationVectorMut<OBSERVATIONS, T>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -888,20 +888,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterMeasurementNoiseCovariance<OBSERVATIONS, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterMeasurementNoiseCovariance<OBSERVATIONS, T>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -929,20 +929,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterMeasurementNoiseCovarianceMut<OBSERVATIONS, T>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -973,20 +973,20 @@ where
 
 #[allow(non_snake_case)]
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -1059,20 +1059,20 @@ where
 
 #[allow(non_snake_case)]
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterUnscentedObservationCorrectRobust<STATES, OBSERVATIONS, NUM_SIGMA, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterUnscentedObservationCorrectRobust<STATES, OBSERVATIONS, NUM_SIGMA, T>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,
@@ -1146,20 +1146,20 @@ where
 }
 
 impl<
-        const STATES: usize,
-        const OBSERVATIONS: usize,
-        const NUM_SIGMA: usize,
-        T,
-        SigmaObserved,
-        CrossCov,
-        Z,
-        R,
-        Y,
-        S,
-        K,
-        TempSInv,
-        TempP,
-    > KalmanFilterUnscentedObservationCorrectRecalibrated<STATES, OBSERVATIONS, NUM_SIGMA, T>
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+    SigmaObserved,
+    CrossCov,
+    Z,
+    R,
+    Y,
+    S,
+    K,
+    TempSInv,
+    TempP,
+> KalmanFilterUnscentedObservationCorrectRecalibrated<STATES, OBSERVATIONS, NUM_SIGMA, T>
     for UnscentedObservation<
         STATES,
         OBSERVATIONS,

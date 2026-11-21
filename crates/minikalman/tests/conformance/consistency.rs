@@ -13,7 +13,7 @@
 //! The EKF and UKF scenarios are mildly nonlinear, where the bounds hold only approximately:
 //! a failure there is a strong hint, not a proof, of a defect.
 
-use crate::monte_carlo::{self, seed, Metrics};
+use crate::monte_carlo::{self, Metrics, seed};
 use crate::reference::chi2;
 
 /// Asserts the run-averaged NEES and the overall NIS of `metrics` are inside their bounds.

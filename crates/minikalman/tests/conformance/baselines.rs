@@ -10,7 +10,7 @@
 //! looked at and the baseline updated on purpose: rerun with `--nocapture`, copy the printed
 //! value and say why in the commit.
 
-use crate::monte_carlo::{self, Metrics, DEFAULT_SEED};
+use crate::monte_carlo::{self, DEFAULT_SEED, Metrics};
 
 /// Allowed relative deviation from a baseline. The runs are deterministic, so this only has
 /// to absorb last-bit differences of `sin` and `atan2` across platforms.

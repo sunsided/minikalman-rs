@@ -464,9 +464,10 @@ fn track(contamination: f64, dof: f64, runs: usize, steps: usize, seed: u64) -> 
             let [kf_m, gated_m, pro_m, robust_m] = &mut measurements;
             assert!(kf.correct(kf_m).is_applied());
             gated.correct(gated_m);
-            assert!(pro
-                .correct_predictively_oriented_vector(pro_m, &mut pro_workspace, ITERATIONS)
-                .is_applied());
+            assert!(
+                pro.correct_predictively_oriented_vector(pro_m, &mut pro_workspace, ITERATIONS)
+                    .is_applied()
+            );
 
             let prior = covariance(robust.estimate_covariance().as_matrix());
             let status = robust.correct_robust(robust_m, &mut robust_workspace, student_t(dof));
@@ -679,7 +680,9 @@ fn track_radar(runs: usize, steps: usize, seed: u64) -> [f64; 4] {
 #[test]
 fn radar_outliers_favor_the_robust_corrections() {
     let [ekf, ekf_robust, ukf, ukf_robust] = track_radar(5, 1000, 13);
-    println!("radar MSE: EKF {ekf:.4}, robust EKF {ekf_robust:.4}, UKF {ukf:.4}, robust UKF {ukf_robust:.4}");
+    println!(
+        "radar MSE: EKF {ekf:.4}, robust EKF {ekf_robust:.4}, UKF {ukf:.4}, robust UKF {ukf_robust:.4}"
+    );
     assert!(ekf_robust < 0.8 * ekf);
     assert!(ukf_robust < 0.8 * ukf);
 }

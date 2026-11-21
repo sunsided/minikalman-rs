@@ -53,8 +53,8 @@ pub fn make_dummy_filter_ekf() -> ExtendedKalman<
     )
 }
 
-pub fn make_dummy_control(
-) -> Control<3, 2, f32, Dummy<f32, 3, 2>, Dummy<f32, 2, 1>, Dummy<f32, 2, 2>, Dummy<f32, 3, 2>> {
+pub fn make_dummy_control()
+-> Control<3, 2, f32, Dummy<f32, 3, 2>, Dummy<f32, 2, 1>, Dummy<f32, 2, 2>, Dummy<f32, 3, 2>> {
     ControlBuilder::new::<3, 2, f32>(
         Dummy::default(),
         Dummy::default(),

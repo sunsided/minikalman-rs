@@ -279,6 +279,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Raised the MSRV to `1.80.0`, so const-generic storage can flatten nested `[[T; C]; R]` arrays
   with the safe `as_flattened_mut` instead of `unsafe` code. The CI MSRV job now checks on `1.80`
   ([#119]).
+- **Breaking:** raised the MSRV to `1.85.0` and moved the workspace to Rust edition 2024 with
+  Cargo resolver 3, which picks dependency versions that build on the MSRV. Code that uses the
+  `impl_buffer_*!(static mut …)` forms must borrow the buffers through `&raw const` / `&raw mut`
+  on edition 2024, where `static_mut_refs` is denied; the docs now show this and point to the
+  storage types or a take-once cell instead ([#150]).
 - `correct_with_gain*` now forms only the lower triangle of `K×S×Kᵀ` and mirrors it, so `P` comes out
   exactly symmetric; results change at the level of rounding, and an asymmetric `P` passed in is
   symmetrized from its lower triangle ([#107]).
@@ -320,6 +325,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#89]: https://github.com/sunsided/minikalman-rs/issues/89
 [#109]: https://github.com/sunsided/minikalman-rs/issues/109
 [#119]: https://github.com/sunsided/minikalman-rs/issues/119
+[#150]: https://github.com/sunsided/minikalman-rs/issues/150
 [#110]: https://github.com/sunsided/minikalman-rs/issues/110
 [#120]: https://github.com/sunsided/minikalman-rs/issues/120
 [#121]: https://github.com/sunsided/minikalman-rs/issues/121

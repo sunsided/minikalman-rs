@@ -15,17 +15,20 @@
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// impl_buffer_x!(static mut X, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(X.len(), 3);
-///     assert_eq!(X[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `X`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const X };
+/// assert_eq!(buffer.len(), 3);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 ///
 /// Or create it as a regular variable:
@@ -100,17 +103,20 @@ macro_rules! impl_buffer_x {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// impl_buffer_A!(static mut A, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(A.len(), 9);
-///     assert_eq!(A[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `A`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const A };
+/// assert_eq!(buffer.len(), 9);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 ///
 /// Or create it as a regular variable:
@@ -175,17 +181,20 @@ macro_rules! impl_buffer_A {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// impl_buffer_P!(static mut P, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(P.len(), 9);
-///     assert_eq!(P[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `P`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const P };
+/// assert_eq!(buffer.len(), 9);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -239,17 +248,20 @@ macro_rules! impl_buffer_P {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_CONTROLS: usize = 2;
 /// impl_buffer_Q_direct!(static mut Q, NUM_CONTROLS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(Q.len(), 4);
-///     assert_eq!(Q[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `Q`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const Q };
+/// assert_eq!(buffer.len(), 4);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -304,17 +316,20 @@ macro_rules! impl_buffer_Q_direct {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_CONTROLS: usize = 2;
 /// impl_buffer_u!(static mut U, NUM_CONTROLS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(U.len(), 2);
-///     assert_eq!(U[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `U`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const U };
+/// assert_eq!(buffer.len(), 2);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 macro_rules! impl_buffer_u {
@@ -592,7 +607,10 @@ macro_rules! impl_buffer_temp_sigma_P {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
@@ -600,10 +618,10 @@ macro_rules! impl_buffer_temp_sigma_P {
 /// const NUM_CONTROLS: usize = 2;
 /// impl_buffer_B!(static mut B, NUM_STATES, NUM_CONTROLS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(B.len(), 6);
-///     assert_eq!(B[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `B`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const B };
+/// assert_eq!(buffer.len(), 6);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -660,17 +678,20 @@ macro_rules! impl_buffer_B {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_CONTROLS: usize = 2;
 /// impl_buffer_Q_control!(static mut Q, NUM_CONTROLS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(Q.len(), 4);
-///     assert_eq!(Q[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `Q`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const Q };
+/// assert_eq!(buffer.len(), 4);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -719,17 +740,20 @@ macro_rules! impl_buffer_Q_control {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_z!(static mut Z, NUM_OBSERVATIONS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(Z.len(), 5);
-///     assert_eq!(Z[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `Z`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const Z };
+/// assert_eq!(buffer.len(), 5);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 macro_rules! impl_buffer_z {
@@ -792,7 +816,10 @@ macro_rules! impl_buffer_z {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
@@ -800,10 +827,10 @@ macro_rules! impl_buffer_z {
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_H!(static mut H, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(H.len(), 15);
-///     assert_eq!(H[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `H`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const H };
+/// assert_eq!(buffer.len(), 15);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -871,17 +898,20 @@ macro_rules! impl_buffer_H {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_R!(static mut R, NUM_OBSERVATIONS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(R.len(), 25);
-///     assert_eq!(R[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `R`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const R };
+/// assert_eq!(buffer.len(), 25);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -950,17 +980,20 @@ macro_rules! impl_buffer_R {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_y!(static mut Y, NUM_OBSERVATIONS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(Y.len(), 5);
-///     assert_eq!(Y[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `Y`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const Y };
+/// assert_eq!(buffer.len(), 5);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 macro_rules! impl_buffer_y {
@@ -1014,17 +1047,20 @@ macro_rules! impl_buffer_y {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_S!(static mut S, NUM_OBSERVATIONS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(S.len(), 25);
-///     assert_eq!(S[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `S`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const S };
+/// assert_eq!(buffer.len(), 25);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1091,7 +1127,10 @@ macro_rules! impl_buffer_S {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
@@ -1099,10 +1138,10 @@ macro_rules! impl_buffer_S {
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_K!(static mut K, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(K.len(), 15);
-///     assert_eq!(K[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `K`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const K };
+/// assert_eq!(buffer.len(), 15);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1163,17 +1202,20 @@ macro_rules! impl_buffer_K {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// impl_buffer_temp_x!(static mut TX, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(TX.len(), 3);
-///     assert_eq!(TX[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `TX`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const TX };
+/// assert_eq!(buffer.len(), 3);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 macro_rules! impl_buffer_temp_x {
@@ -1221,17 +1263,20 @@ macro_rules! impl_buffer_temp_x {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// impl_buffer_temp_P!(static mut TP, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(TP.len(), 9);
-///     assert_eq!(TP[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `TP`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const TP };
+/// assert_eq!(buffer.len(), 9);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1338,7 +1383,10 @@ macro_rules! impl_buffer_temp_prearray {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
@@ -1346,10 +1394,10 @@ macro_rules! impl_buffer_temp_prearray {
 /// const NUM_CONTROLS: usize = 2;
 /// impl_buffer_temp_BQ!(static mut TBQ, NUM_STATES, NUM_CONTROLS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(TBQ.len(), 6);
-///     assert_eq!(TBQ[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `TBQ`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const TBQ };
+/// assert_eq!(buffer.len(), 6);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1408,17 +1456,20 @@ macro_rules! impl_buffer_temp_BQ {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// impl_buffer_temp_S_inv!(static mut TSINV, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(TSINV.len(), 9);
-///     assert_eq!(TSINV[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `TSINV`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const TSINV };
+/// assert_eq!(buffer.len(), 9);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1486,7 +1537,10 @@ macro_rules! impl_buffer_temp_S_inv {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
@@ -1494,10 +1548,10 @@ macro_rules! impl_buffer_temp_S_inv {
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_temp_HP!(static mut THP, NUM_OBSERVATIONS, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(THP.len(), 15);
-///     assert_eq!(THP[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `THP`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const THP };
+/// assert_eq!(buffer.len(), 15);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1567,7 +1621,10 @@ macro_rules! impl_buffer_temp_HP {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
@@ -1575,10 +1632,10 @@ macro_rules! impl_buffer_temp_HP {
 /// const NUM_OBSERVATIONS: usize = 5;
 /// impl_buffer_temp_PHt!(static mut TPHT, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(TPHT.len(), 15);
-///     assert_eq!(TPHT[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `TPHT`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const TPHT };
+/// assert_eq!(buffer.len(), 15);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]
@@ -1646,17 +1703,20 @@ macro_rules! impl_buffer_temp_PHt {
 /// * `init` - The default value to initialize the buffer with.
 ///
 /// ## Example
-/// You can generate a `static mut` binding:
+/// You can generate a `static mut` binding. Access it only through `&raw const` or `&raw mut`
+/// (edition 2024 denies plain references to a `static mut`), and keep every reference unique.
+/// The storage types or a take-once cell such as `static_cell::ConstStaticCell` avoid the
+/// `unsafe` altogether:
 ///
 /// ```
 /// # use minikalman::prelude::*;
 /// const NUM_STATES: usize = 3;
 /// impl_buffer_temp_KHP!(static mut TKHP, NUM_STATES, f32, 0.0);
 ///
-/// unsafe {
-///     assert_eq!(TKHP.len(), 9);
-///     assert_eq!(TKHP[0], 0.0_f32);
-/// }
+/// // SAFETY: this is the only access to `TKHP`, so the reference is unique.
+/// let buffer = unsafe { &*&raw const TKHP };
+/// assert_eq!(buffer.len(), 9);
+/// assert_eq!(buffer[0], 0.0_f32);
 /// ```
 #[macro_export]
 #[allow(non_snake_case)]

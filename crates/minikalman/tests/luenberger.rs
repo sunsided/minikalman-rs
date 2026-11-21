@@ -16,8 +16,8 @@ use minikalman::regular::builder::{
     LuenbergerObserverType,
 };
 use minikalman::regular::{FixedGainObservationStorage, ObserverStorage};
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// Time step in seconds.
@@ -280,9 +280,11 @@ fn predictor_form_is_current_form_one_step_ahead() {
         assert!(current.correct(&mut current_position).is_applied());
 
         predictor_position.measurement_vector_mut().set_at(0, 0, z);
-        assert!(predictor
-            .predict_from_measurement(&mut predictor_position)
-            .is_applied());
+        assert!(
+            predictor
+                .predict_from_measurement(&mut predictor_position)
+                .is_applied()
+        );
 
         let [p, v] = state(current.state_vector());
         let ahead = [p + DT * v, v];
@@ -334,9 +336,11 @@ fn predictor_form_with_control_is_the_next_current_prior() {
         assert!(current.correct(&mut current_position).is_applied());
 
         predictor_position.measurement_vector_mut().set_at(0, 0, z);
-        assert!(predictor
-            .predict_from_measurement(&mut predictor_position)
-            .is_applied());
+        assert!(
+            predictor
+                .predict_from_measurement(&mut predictor_position)
+                .is_applied()
+        );
         predictor.control(&mut control);
     }
 }
@@ -388,9 +392,11 @@ fn deadbeat_gain_in_the_wrong_form_diverges() {
         right_position
             .measurement_vector_mut()
             .set_at(0, 0, truth(k)[0]);
-        assert!(right
-            .predict_from_measurement(&mut right_position)
-            .is_applied());
+        assert!(
+            right
+                .predict_from_measurement(&mut right_position)
+                .is_applied()
+        );
     }
     assert!(gap(state(right.state_vector()), truth(2)) < 1e-12);
 

@@ -187,11 +187,7 @@ fn abs<T>(x: T) -> T
 where
     T: MatrixDataType,
 {
-    if x < T::zero() {
-        -x
-    } else {
-        x
-    }
+    if x < T::zero() { -x } else { x }
 }
 
 /// Returns the larger of `a` and `b`.
@@ -199,11 +195,7 @@ fn max<T>(a: T, b: T) -> T
 where
     T: MatrixDataType,
 {
-    if b > a {
-        b
-    } else {
-        a
-    }
+    if b > a { b } else { a }
 }
 
 #[cfg(test)]

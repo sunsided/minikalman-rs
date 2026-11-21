@@ -223,7 +223,9 @@
 //!
 //! Alternatively, the helper macros wire up single buffers. This comes at the cost of
 //! potentially confusing IDEs due to recursive macro expansion, so buyer beware. In the example
-//! below, types are set up as arrays bound to `static mut` variables.
+//! below, types are set up as arrays bound to `static mut` variables. Each one is borrowed
+//! exactly once through `&raw mut`, since edition 2024 denies plain references to a
+//! `static mut`; outside a doc example, prefer the storage above or a take-once cell.
 //!
 //! ```
 //! # #![allow(non_snake_case)]
@@ -261,28 +263,29 @@
 //! impl_buffer_temp_PHt!(static mut gravity_temp_PHt, NUM_STATES, NUM_OBSERVATIONS, f32, 0.0);
 //! impl_buffer_temp_KHP!(static mut gravity_temp_KHP, NUM_STATES, f32, 0.0);
 //!
+//! // SAFETY: each `static mut` below is borrowed once and never re-entered.
 //! let mut filter = RegularKalmanBuilder::new::<NUM_STATES, f32>(
-//!     StateTransitionMatrixMutBuffer::from(unsafe { gravity_A.as_mut_slice() }),
-//!     StateVectorBuffer::from(unsafe { gravity_x.as_mut_slice() }),
-//!     EstimateCovarianceMatrixBuffer::from(unsafe { gravity_P.as_mut_slice() }),
-//!     DirectProcessNoiseCovarianceMatrixBuffer::from(unsafe { gravity_Q.as_mut_slice() }),
-//!     PredictedStateEstimateVectorBuffer::from(unsafe { gravity_temp_x.as_mut_slice() }),
-//!     TemporaryStateMatrixBuffer::from(unsafe { gravity_temp_P.as_mut_slice() }),
+//!     StateTransitionMatrixMutBuffer::from(unsafe { (&mut *&raw mut gravity_A).as_mut_slice() }),
+//!     StateVectorBuffer::from(unsafe { (&mut *&raw mut gravity_x).as_mut_slice() }),
+//!     EstimateCovarianceMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_P).as_mut_slice() }),
+//!     DirectProcessNoiseCovarianceMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_Q).as_mut_slice() }),
+//!     PredictedStateEstimateVectorBuffer::from(unsafe { (&mut *&raw mut gravity_temp_x).as_mut_slice() }),
+//!     TemporaryStateMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_temp_P).as_mut_slice() }),
 //! );
 //!
 //! let mut measurement = RegularObservationBuilder::new::<NUM_STATES, NUM_OBSERVATIONS, f32>(
-//!     ObservationMatrixMutBuffer::from(unsafe { gravity_H.as_mut_slice() }),
-//!     MeasurementVectorBuffer::from(unsafe { gravity_z.as_mut_slice() }),
-//!     MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { gravity_R.as_mut_slice() }),
-//!     InnovationVectorBuffer::from(unsafe { gravity_y.as_mut_slice() }),
-//!     InnovationCovarianceMatrixBuffer::from(unsafe { gravity_S.as_mut_slice() }),
-//!     KalmanGainMatrixBuffer::from(unsafe { gravity_K.as_mut_slice() }),
+//!     ObservationMatrixMutBuffer::from(unsafe { (&mut *&raw mut gravity_H).as_mut_slice() }),
+//!     MeasurementVectorBuffer::from(unsafe { (&mut *&raw mut gravity_z).as_mut_slice() }),
+//!     MeasurementNoiseCovarianceMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_R).as_mut_slice() }),
+//!     InnovationVectorBuffer::from(unsafe { (&mut *&raw mut gravity_y).as_mut_slice() }),
+//!     InnovationCovarianceMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_S).as_mut_slice() }),
+//!     KalmanGainMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_K).as_mut_slice() }),
 //!     TemporaryResidualCovarianceInvertedMatrixBuffer::from(unsafe {
-//!         gravity_temp_S_inv.as_mut_slice()
+//!         (&mut *&raw mut gravity_temp_S_inv).as_mut_slice()
 //!     }),
-//!     TemporaryHPMatrixBuffer::from(unsafe { gravity_temp_HP.as_mut_slice() }),
-//!     TemporaryPHTMatrixBuffer::from(unsafe { gravity_temp_PHt.as_mut_slice() }),
-//!     TemporaryKHPMatrixBuffer::from(unsafe { gravity_temp_KHP.as_mut_slice() }),
+//!     TemporaryHPMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_temp_HP).as_mut_slice() }),
+//!     TemporaryPHTMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_temp_PHt).as_mut_slice() }),
+//!     TemporaryKHPMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_temp_KHP).as_mut_slice() }),
 //! );
 //! ```
 //!
@@ -534,9 +537,9 @@ pub mod unscented {
         SigmaPropagatedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
         UnscentedKalmanFilter,
     };
+    pub use crate::observations::NoiseAdaptation;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::unscented::*;
-    pub use crate::observations::NoiseAdaptation;
     pub use crate::storage::unscented::*;
 
     /// Builder types for unscented Kalman filters

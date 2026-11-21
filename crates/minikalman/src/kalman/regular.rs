@@ -1,6 +1,6 @@
 //! # Regular Kalman Filter
 
-use crate::kalman::process_noise::{correct_adapting_process_noise, ProcessNoiseAdapter};
+use crate::kalman::process_noise::{ProcessNoiseAdapter, correct_adapting_process_noise};
 use crate::kalman::*;
 use crate::matrix::MatrixDataType;
 use crate::observations::NoiseAdaptation;
@@ -1421,10 +1421,12 @@ mod tests {
         let mut example = crate::test_filter::create_test_filter(1.0);
 
         // The estimate covariance still is scalar.
-        assert!(example
-            .filter
-            .estimate_covariance()
-            .inspect(|mat| (0..3).into_iter().all(|i| { mat.get_at(i, i) == 0.1 })));
+        assert!(
+            example
+                .filter
+                .estimate_covariance()
+                .inspect(|mat| (0..3).into_iter().all(|i| { mat.get_at(i, i) == 0.1 }))
+        );
 
         // Since our initial state is zero, any number of prediction steps keeps the filter unchanged.
         for _ in 0..10 {
@@ -1432,12 +1434,14 @@ mod tests {
         }
 
         // All states are zero.
-        assert!(example
-            .filter
-            .state_vector()
-            .as_ref()
-            .iter()
-            .all(|&x| x == 0.0));
+        assert!(
+            example
+                .filter
+                .state_vector()
+                .as_ref()
+                .iter()
+                .all(|&x| x == 0.0)
+        );
 
         // The estimate covariance has changed.
         example.filter.estimate_covariance().inspect(|mat| {
@@ -1456,12 +1460,14 @@ mod tests {
         example.filter.correct(&mut example.measurement);
 
         // All states are still zero.
-        assert!(example
-            .filter
-            .state_vector()
-            .as_ref()
-            .iter()
-            .all(|&x| x == 0.0));
+        assert!(
+            example
+                .filter
+                .state_vector()
+                .as_ref()
+                .iter()
+                .all(|&x| x == 0.0)
+        );
 
         // The estimate covariance has improved.
         example.filter.estimate_covariance().inspect(|mat| {

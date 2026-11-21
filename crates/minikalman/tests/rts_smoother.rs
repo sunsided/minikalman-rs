@@ -8,8 +8,8 @@ use minikalman::models::motion;
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder;
 use minikalman::smoother::RtsSmoother;
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// Number of filter steps in the simulated run.

@@ -12,8 +12,8 @@ use minikalman::prelude::*;
 use minikalman::unscented::builder::KalmanFilterBuilder as UnscentedBuilder;
 
 use crate::reference::cv;
-use crate::scenarios::{self, History, Linear, CV, CV_NOISELESS, GRAVITY};
-use crate::support::{assert_close, load, read, Tolerance};
+use crate::scenarios::{self, CV, CV_NOISELESS, GRAVITY, History, Linear};
+use crate::support::{Tolerance, assert_close, load, read};
 
 /// Agreement required between two `f64` implementations of the same math.
 const IDENTITY: Tolerance = if crate::support::APPROXIMATE_MATH {

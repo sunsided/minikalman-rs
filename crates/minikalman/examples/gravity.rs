@@ -14,8 +14,8 @@
 
 use minikalman::prelude::*;
 use minikalman::regular::builder::{KalmanFilterBuilder, KalmanFilterType};
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// States: height (m), upwards velocity (m/s), and `g` (m/s², pointing down).

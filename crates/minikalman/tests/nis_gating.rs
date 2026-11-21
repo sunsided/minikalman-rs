@@ -7,8 +7,8 @@ use minikalman::extended::builder::KalmanFilterBuilder as ExtendedBuilder;
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder as RegularBuilder;
 use minikalman::unscented::builder::KalmanFilterBuilder as UnscentedBuilder;
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
 
 /// Gate for one measurement: the 99% quantile of the chi-square distribution with one
@@ -152,15 +152,21 @@ macro_rules! check_defaults {
 
 #[test]
 fn nis_is_zero_before_the_first_correction_and_gate_is_off_by_default() {
-    check_defaults!(RegularBuilder::<1, f64>::default()
-        .observations()
-        .build::<1>());
-    check_defaults!(ExtendedBuilder::<1, f64>::default()
-        .observations()
-        .build::<1>());
-    check_defaults!(UnscentedBuilder::<1, f64>::default()
-        .observations()
-        .build::<1, 3>());
+    check_defaults!(
+        RegularBuilder::<1, f64>::default()
+            .observations()
+            .build::<1>()
+    );
+    check_defaults!(
+        ExtendedBuilder::<1, f64>::default()
+            .observations()
+            .build::<1>()
+    );
+    check_defaults!(
+        UnscentedBuilder::<1, f64>::default()
+            .observations()
+            .build::<1, 3>()
+    );
 }
 
 /// A correctly tuned linear filter is consistent: its NIS averages to the number of

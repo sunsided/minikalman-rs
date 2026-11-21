@@ -4,8 +4,8 @@
 //! recorded step with the number type's [`Real::REFERENCE`] tolerance.
 
 use crate::reference::{cv, gravity, pendulum, radar};
-use crate::scenarios::{self, History, CV, GRAVITY};
-use crate::support::{assert_close, Real};
+use crate::scenarios::{self, CV, GRAVITY, History};
+use crate::support::{Real, assert_close};
 
 /// Compares the filtered states and covariances of a run with the reference.
 fn assert_posterior<T: Real>(what: &str, history: &History, x: &[f64], p: &[f64]) {

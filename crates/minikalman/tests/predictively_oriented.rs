@@ -282,9 +282,10 @@ fn track(noise: &impl Distribution<f64>, runs: usize, steps: usize, seed: u64) -
             kf_measurement.measurement_vector_mut().set_at(0, 0, z);
             pro_measurement.measurement_vector_mut().set_at(0, 0, z);
             assert!(kf.correct(&mut kf_measurement).is_applied());
-            assert!(pro
-                .correct_predictively_oriented(&mut pro_measurement, BUDGET)
-                .is_applied());
+            assert!(
+                pro.correct_predictively_oriented(&mut pro_measurement, BUDGET)
+                    .is_applied()
+            );
 
             for (i, value) in truth.iter().enumerate() {
                 errors.kf += (kf.state_vector().get_at(i, 0) - value).powi(2);

@@ -55,7 +55,7 @@
 //! ([`ln`]) that needs only arithmetic.
 
 use crate::kalman::CorrectionStatus;
-use crate::matrix::triangular::{solve_triangular, Transpose, Triangle};
+use crate::matrix::triangular::{Transpose, Triangle, solve_triangular};
 use crate::matrix::{
     Matrix, MatrixDataMut, MatrixDataRef, MatrixDataType, MatrixMut, RowMajorSequentialData,
     RowMajorSequentialDataMut, SquareMatrix,
@@ -542,11 +542,7 @@ where
     fn of<const M: usize>(x: &[T]) -> Self {
         let scale = x.iter().fold(T::zero(), |max, &value| {
             let magnitude = if value < T::zero() { -value } else { value };
-            if magnitude > max {
-                magnitude
-            } else {
-                max
-            }
+            if magnitude > max { magnitude } else { max }
         });
 
         if scale <= T::zero() {

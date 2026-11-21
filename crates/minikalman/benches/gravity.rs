@@ -1,7 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use minikalman::buffers::types::*;
 use minikalman::{
-    regular::RegularKalmanBuilder, regular::RegularObservationBuilder, BufferBuilder,
+    BufferBuilder, regular::RegularKalmanBuilder, regular::RegularObservationBuilder,
 };
 
 use minikalman::prelude::*;
