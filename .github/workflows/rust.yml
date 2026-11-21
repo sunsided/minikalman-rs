@@ -176,7 +176,7 @@ jobs:
           persist-credentials: false
       - name: Install Rust toolchains
         run: |
-          rustup toolchain install stable 1.71 --profile minimal --no-self-update
+          rustup toolchain install stable 1.80 --profile minimal --no-self-update
       # Dev-dependencies don't affect downstream users but do take part in resolution,
       # so resolve with the MSRV-aware fallback and only build the library.
       - name: Resolve dependencies for the MSRV
@@ -184,11 +184,11 @@ jobs:
           CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
         run: cargo +stable generate-lockfile
       - name: Check (std, fixed, alloc, unsafe, nalgebra)
-        run: cargo +1.71 check --locked --package minikalman --lib --no-default-features --features=std,fixed,alloc,unsafe,nalgebra
+        run: cargo +1.80 check --locked --package minikalman --lib --no-default-features --features=std,fixed,alloc,unsafe,nalgebra
       - name: Check (libm, alloc)
-        run: cargo +1.71 check --locked --package minikalman --lib --no-default-features --features=libm,alloc
+        run: cargo +1.80 check --locked --package minikalman --lib --no-default-features --features=libm,alloc
       - name: Check (micromath, alloc)
-        run: cargo +1.71 check --locked --package minikalman --lib --no-default-features --features=micromath,alloc
+        run: cargo +1.80 check --locked --package minikalman --lib --no-default-features --features=micromath,alloc
 
   dependencies:
     name: Dependency Submission

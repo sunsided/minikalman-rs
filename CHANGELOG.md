@@ -141,6 +141,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Raised the MSRV to `1.71.0` and the minimum `fixed` version to `1.24.0`. The `fixed` feature uses
   `sqrt`, which `fixed` only provides since `1.24.0`, and that release requires Rust `1.71`. CI now
   checks the library on the MSRV ([#91]).
+- Raised the MSRV to `1.80.0`, so const-generic storage can flatten nested `[[T; C]; R]` arrays
+  with the safe `as_flattened_mut` instead of `unsafe` code. The CI MSRV job now checks on `1.80`
+  ([#119]).
 
 ### Removed
 
@@ -167,6 +170,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#66]: https://github.com/sunsided/minikalman-rs/issues/66
 [#89]: https://github.com/sunsided/minikalman-rs/issues/89
 [#109]: https://github.com/sunsided/minikalman-rs/issues/109
+[#119]: https://github.com/sunsided/minikalman-rs/issues/119
 
 ## [0.8.1] - 2026-10-30
 
