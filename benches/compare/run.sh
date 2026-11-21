@@ -15,6 +15,10 @@ cd "$(dirname "$0")"
 here="$(pwd)"
 out="$here/results"
 mkdir -p "$out"
+# A relative CARGO_TARGET_DIR would resolve differently in codesize/; make it absolute here.
+if [ -n "${CARGO_TARGET_DIR:-}" ] && [ "${CARGO_TARGET_DIR#/}" = "$CARGO_TARGET_DIR" ]; then
+  export CARGO_TARGET_DIR="$here/$CARGO_TARGET_DIR"
+fi
 target="${CARGO_TARGET_DIR:-$here/target}"
 
 # 1. Correctness gate: exits non-zero if any filter disagrees with the f64 reference.
