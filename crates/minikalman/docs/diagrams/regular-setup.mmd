@@ -21,6 +21,6 @@ flowchart LR
     alloc -. "build()" .-> filter
     alloc -. "controls().build()" .-> control
     alloc -. "observations().build()" .-> observation
-    control -- "filter.control()" --> filter
+    control -- "filter.predict().control()" --> filter
     observation -- "filter.correct()" --> filter
     classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

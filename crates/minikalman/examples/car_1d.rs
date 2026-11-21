@@ -115,8 +115,7 @@ fn main() {
             .control_vector_mut()
             .apply(|vec| vec.set_at(0, 0, ACCELERATION));
 
-        filter.predict();
-        filter.control(&mut control);
+        filter.predict().control(&mut control);
 
         if t % 2 != 0 {
             print_state(t, &filter, Stage::Prior);

@@ -236,7 +236,11 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///
     #[doc = diagram!("regular-loop.mmd", "predict")]
     ///
-    /// This call assumes that the control covariance and variables are already set in the filter structure.
+    /// Returns a [`TimeUpdate`] handle through which control inputs are applied, one
+    /// [`control`](TimeUpdate::control) per distinct [`Control`](crate::regular::Control):
+    /// `filter.predict().control(&mut throttle).control(&mut steering);`. The handle borrows
+    /// the filter, so controls cannot follow a correction. Without controls, call
+    /// `filter.predict();` and drop the handle.
     ///
     /// ## Example
     /// ```
@@ -308,7 +312,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// }
     /// ```
     #[doc(alias = "kalman_predict")]
-    pub fn predict(&mut self)
+    pub fn predict(&mut self) -> TimeUpdate<'_, Self>
     where
         X: StateVectorMut<STATES, T>,
         A: StateTransitionMatrix<STATES, T>,
@@ -325,6 +329,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         //* Predict next covariance using system dynamics and control
         //* P = A*P*Aᵀ + Q
         self.predict_P();
+
+        TimeUpdate::new(self)
     }
 
     /// Performs the time update / prediction step.
@@ -333,7 +339,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Unlike the plain [`predict`](Self::predict) shown above, this scales the propagated
     /// covariance by `1/λ²` before adding `Q`: `P ← A·P·Aᵀ/λ² + Q`.
     ///
-    /// This call assumes that the control covariance and variables are already set in the filter structure.
+    /// Returns a [`TimeUpdate`] handle for control inputs, as [`predict`](Self::predict) does.
     ///
     /// ## Arguments
     /// * `lambda` - The fading-memory (forgetting) factor, `0 < λ ≤ 1`. `1` is the plain
@@ -416,7 +422,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     #[doc(alias = "kalman_predict_tuned")]
     #[doc(alias = "fading_memory")]
     #[doc(alias = "forgetting_factor")]
-    pub fn predict_tuned(&mut self, lambda: T)
+    pub fn predict_tuned(&mut self, lambda: T) -> TimeUpdate<'_, Self>
     where
         X: StateVectorMut<STATES, T>,
         A: StateTransitionMatrix<STATES, T>,
@@ -433,6 +439,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         // Predict next covariance using system dynamics and control
         // P = A*P*Aᵀ * 1/lambda^2 + Q
         self.predict_P_tuned(lambda);
+
+        TimeUpdate::new(self)
     }
 
     /// Performs the time update / prediction step of only the state vector
@@ -500,6 +508,12 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Applies a control input.
     ///
     #[doc = diagram!("regular-loop.mmd", "control")]
+    ///
+    /// Call it after [`predict`](Self::predict) and before any correction, once per input.
+    /// Before the prediction it computes `A·(x + B·u)` instead of `A·x + B·u`; after a
+    /// correction it applies the input at the wrong point of the cycle. Prefer the handle
+    /// that `predict` returns, which enforces the order:
+    /// `filter.predict().control(&mut control);`.
     #[inline(always)]
     pub fn control<I>(&mut self, control: &mut I)
     where
@@ -1211,6 +1225,28 @@ where
     }
 }
 
+impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
+    TimeUpdate<'_, RegularKalman<STATES, T, A, X, P, Q, PX, TempP>>
+{
+    /// Applies a control input to the prediction: `x ← x + B·u`, `P ← P + B·Qᵤ·Bᵀ`.
+    ///
+    #[doc = diagram!("regular-loop.mmd", "control")]
+    ///
+    /// Chain one call per distinct [`Control`](crate::regular::Control); each carries its own
+    /// `B`, `u` and `Qᵤ`. Applying the same control twice adds its input twice.
+    #[inline(always)]
+    pub fn control<I>(&mut self, control: &mut I) -> &mut Self
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        I: KalmanFilterControlApplyToFilter<STATES, T>,
+    {
+        self.filter.control(control);
+        self
+    }
+}
+
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterPredict<STATES, T>
     for RegularKalman<STATES, T, A, X, P, Q, PX, TempP>
 where
@@ -1224,7 +1260,7 @@ where
 {
     #[inline(always)]
     fn predict(&mut self) {
-        self.predict()
+        self.predict();
     }
 }
 

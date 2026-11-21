@@ -165,7 +165,7 @@ flowchart LR
     alloc -. "build()" .-> filter
     alloc -. "controls().build()" .-> control
     alloc -. "observations().build()" .-> observation
-    control -- "filter.control()" --> filter
+    control -- "filter.predict().control()" --> filter
     observation -- "filter.correct()" --> filter
     classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
 ```
@@ -361,11 +361,8 @@ for _ in 0..50 {
         z[0] = 42.0;
     });
 
-    // Update prediction (without controls).
-    filter.predict();
-
-    // Apply any controls to the prediction.
-    filter.control(&mut control);
+    // Predict, then apply each control input to the prediction.
+    filter.predict().control(&mut control);
 
     // Apply any measurements.
     filter.correct(&mut measurement);
