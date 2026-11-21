@@ -229,6 +229,13 @@ tasks:
     cmds:
       - "{{.CARGO}} run --example car-1d --features std"
 
+  example:linear:luenberger:
+    desc: Run the fixed-gain Luenberger observer example (designed with settle_gain)
+    aliases:
+      - example:luenberger
+    cmds:
+      - "{{.CARGO}} run --example luenberger --features \"fixed,std\""
+
   # WebAssembly example
   example:wasm:
     desc: Build the wasm32 browser example and serve it on http://localhost:8000

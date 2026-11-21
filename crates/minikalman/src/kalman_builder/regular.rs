@@ -5,9 +5,10 @@ use crate::matrix::{MatrixData, MatrixDataBoxed, MatrixDataType};
 use crate::buffers::builder::*;
 
 use crate::information::InformationFilter;
+use crate::kalman::GainForm;
 use crate::regular::{
-    Control, ControlBuilder, RegularKalman, RegularKalmanBuilder, RegularObservation,
-    RegularObservationBuilder,
+    Control, ControlBuilder, FixedGainObservation, LuenbergerObserver, RegularKalman,
+    RegularKalmanBuilder, RegularObservation, RegularObservationBuilder,
 };
 use crate::square_root::SquareRootKalman;
 use crate::ud::UdKalman;
@@ -88,6 +89,31 @@ pub type SquareRootKalmanType<const STATES: usize, const TWO_STATES: usize, T> =
     MatrixDataBoxed<TWO_STATES, STATES, T>,
 >;
 
+/// The type of fixed-gain (Luenberger) observers with owned buffers.
+///
+/// See also [`KalmanFilterBuilder::build_observer`].
+pub type LuenbergerObserverType<const STATES: usize, T> = LuenbergerObserver<
+    STATES,
+    T,
+    SystemMatrixMutBufferOwnedType<STATES, T>,
+    StateVectorBufferOwnedType<STATES, T>,
+    TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
+>;
+
+/// The type of fixed-gain observations with owned buffers.
+///
+/// See also [`KalmanFilterObservationBuilder::build_fixed_gain`].
+pub type FixedGainObservationType<const STATES: usize, const OBSERVATIONS: usize, T> =
+    FixedGainObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        ObservationMatrixBufferOwnedType<OBSERVATIONS, STATES, T>,
+        ObservationVectorBufferOwnedType<OBSERVATIONS, T>,
+        InnovationVectorBufferOwnedType<OBSERVATIONS, T>,
+        KalmanGainMatrixBufferOwnedType<STATES, OBSERVATIONS, T>,
+    >;
+
 impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// Creates a new [`KalmanFilterBuilder`] instance.
     pub fn new() -> Self {
@@ -132,6 +158,30 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
             process_noise,
             temp_x,
             temp_p,
+        )
+    }
+
+    /// Builds a new fixed-gain (Luenberger) observer using heap allocated buffers.
+    ///
+    /// It holds only `A`, `x` and one temporary vector; pair it with observations from
+    /// [`KalmanFilterObservationBuilder::build_fixed_gain`].
+    ///
+    /// ## Example
+    /// ```rust
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
+    ///
+    /// let builder = KalmanFilterBuilder::<2, f32>::default();
+    /// let mut observer = builder.build_observer();
+    /// let mut position = builder.observations().build_fixed_gain::<1>();
+    /// ```
+    pub fn build_observer(&self) -> LuenbergerObserverType<STATES, T>
+    where
+        T: MatrixDataType + Default,
+    {
+        LuenbergerObserver::new(
+            BufferBuilder::system_matrix_A::<STATES>().new(),
+            BufferBuilder::state_vector_x::<STATES>().new(),
+            BufferBuilder::state_prediction_temp_x::<STATES>().new(),
         )
     }
 
@@ -359,6 +409,27 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
             temp_hp,
             temp_pht,
             temp_khp,
+        )
+    }
+
+    /// Builds a new fixed-gain observation for a
+    /// [`LuenbergerObserver`] using heap allocated buffers.
+    ///
+    /// The gain starts at zero in the [current form](GainForm::Current); set it with
+    /// [`set_gain_current`](FixedGainObservation::set_gain_current) or
+    /// [`set_gain_predictor`](FixedGainObservation::set_gain_predictor).
+    pub fn build_fixed_gain<const OBSERVATIONS: usize>(
+        &self,
+    ) -> FixedGainObservationType<STATES, OBSERVATIONS, T>
+    where
+        T: MatrixDataType + Default,
+    {
+        FixedGainObservation::new(
+            BufferBuilder::observation_matrix_H::<OBSERVATIONS, STATES>().new(),
+            BufferBuilder::measurement_vector_z::<OBSERVATIONS>().new(),
+            BufferBuilder::innovation_vector_y::<OBSERVATIONS>().new(),
+            BufferBuilder::kalman_gain_K::<STATES, OBSERVATIONS>().new(),
+            GainForm::Current,
         )
     }
 }

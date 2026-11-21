@@ -511,6 +511,18 @@ impl<
         &mut self.K
     }
 
+    /// Gets a reference to the innovation covariance matrix S.
+    ///
+    /// What it holds depends on the last operation: after
+    /// [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain), the
+    /// unfactored steady-state innovation covariance `S∞ = H·P⁻∞·Hᵀ + R`; after a Joseph-form
+    /// or external-gain correction, `H×P⁻×Hᵀ + R` of the prior; after a standard-form
+    /// correction, its lower Cholesky factor.
+    #[inline(always)]
+    pub fn innovation_covariance(&self) -> &S {
+        &self.S
+    }
+
     /// Gets a reference to the innovation vector y.
     ///
     /// Every correction writes the innovation `z − H×x` of the prior state here (after the
@@ -1900,6 +1912,68 @@ where
         N: FnMut(&mut [T]),
     {
         self.correct_with_gain_with(x, P, fix)
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterObservationSettleGain<STATES, T>
+    for RegularObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+where
+    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    #[allow(non_snake_case)]
+    fn settle_gain_step<P>(&mut self, P: &mut P, tolerance: T) -> Result<bool, CorrectionStatus>
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        crate::observations::settle_gain_step(
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            self.temp_S_inv.as_matrix_mut(),
+            self.temp_HP.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+            tolerance,
+            self.covariance_update,
+        )
     }
 }
 

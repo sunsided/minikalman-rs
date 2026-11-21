@@ -143,6 +143,8 @@ jobs:
           tool: nextest
       - name: Run Example (fixed)
         run: cargo run --example=fixed --no-default-features --features=fixed,std
+      - name: Run Luenberger observer example
+        run: cargo run --example=luenberger --no-default-features --features=fixed,std
       - name: Run tests (fixed)
         run: cargo nextest run --verbose --package minikalman --no-default-features --features=fixed,std
       - name: Run doctests (fixed)

@@ -334,6 +334,48 @@ where
     }
 }
 
+impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
+    Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
+where
+    U: ControlVector<CONTROLS, T>,
+    B: ControlMatrix<STATES, CONTROLS, T>,
+    T: MatrixDataType,
+{
+    /// Applies the control to the state only, `x ← x + B·u`, for an estimator without a
+    /// covariance such as the [`LuenbergerObserver`](crate::regular::LuenbergerObserver).
+    ///
+    /// The control process noise `Q` and the `B×Q` temporary are not used.
+    #[allow(non_snake_case)]
+    pub fn apply_control_to_state<X>(&mut self, x: &mut X)
+    where
+        X: StateVectorMut<STATES, T>,
+    {
+        let u = self.u.as_matrix();
+        let B = self.B.as_matrix();
+        if u.is_empty() || B.is_empty() {
+            return;
+        }
+
+        B.multadd_rowvector(u, x.as_matrix_mut());
+    }
+}
+
+impl<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ>
+    KalmanFilterControlApplyToState<STATES, T> for Control<STATES, CONTROLS, T, B, U, Q, TempBQ>
+where
+    U: ControlVector<CONTROLS, T>,
+    B: ControlMatrix<STATES, CONTROLS, T>,
+    T: MatrixDataType,
+{
+    #[inline(always)]
+    fn apply_to_state<X>(&mut self, x: &mut X)
+    where
+        X: StateVectorMut<STATES, T>,
+    {
+        self.apply_control_to_state(x)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

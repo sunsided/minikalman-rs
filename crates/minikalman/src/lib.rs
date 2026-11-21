@@ -369,14 +369,21 @@ pub struct ReadmeNoAllocDoctest;
 /// [`Control`](regular::Control), and corrects with one or more
 /// [`RegularObservation`](regular::RegularObservation)s:
 #[doc = diagram!("regular-loop.mmd")]
+///
+/// For a time-invariant model, the [`LuenbergerObserver`](regular::LuenbergerObserver) runs a
+/// fixed gain without any covariance, e.g. the steady-state gain that
+/// [`RegularKalman::settle_gain`](regular::RegularKalman::settle_gain) computes from `Q` and `R`.
 pub mod regular {
     pub use crate::controls::*;
+    pub use crate::kalman::luenberger::*;
     pub use crate::kalman::regular::*;
+    pub use crate::observations::fixed_gain::*;
     pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
     pub use crate::observations::regular::*;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::scratch::CorrectionScratch;
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
+    pub use crate::storage::luenberger::*;
     pub use crate::storage::regular::*;
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]

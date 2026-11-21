@@ -4,6 +4,7 @@ use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 pub mod extended;
+pub mod fixed_gain;
 pub(crate) mod predictively_oriented;
 pub mod regular;
 pub(crate) mod robust;
@@ -647,6 +648,111 @@ where
     P.mult_transb(H, temp_PHt); // temp = P*H'
     temp_PHt.mult(S_inv, K); // K = temp*Sinv
     CorrectionStatus::Applied
+}
+
+/// Runs one correction of the covariance recursion for [`RegularKalman::settle_gain`]: forms
+/// `S = H×P×Hᵀ + R` and the gain `K = P×Hᵀ×S⁻¹`, compares every new entry of `K` with the old
+/// one while writing it, and updates `P` as `covariance_update` says.
+///
+/// No state, gate, NIS or noise adaptation is involved. On return, `S` holds the unfactored
+/// `H×P×Hᵀ + R` of the `P` passed in (in both covariance update modes). Returns `Ok(true)` if
+/// every entry satisfies `|ΔKᵢⱼ| ≤ tolerance×max(1, |Kᵢⱼ|)`. The previous gain needs no copy, so
+/// no buffer beyond the observation's own is used; the aliasing rules of the observation
+/// temporaries hold: `temp_HP` is formed again after the gain, because it may alias
+/// `temp_S_inv` or `temp_PHt`.
+///
+/// [`RegularKalman::settle_gain`]: crate::regular::RegularKalman::settle_gain
+#[allow(non_snake_case, clippy::too_many_arguments)]
+pub(crate) fn settle_gain_step<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    K: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    S_inv: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
+    tolerance: T,
+    covariance_update: CovarianceUpdate,
+) -> Result<bool, CorrectionStatus>
+where
+    T: MatrixDataType,
+{
+    // S = H*P*Hᵀ + R, factored and inverted.
+    H.mult(P, temp_HP);
+    temp_HP.mult_transb(H, S);
+    S.add_inplace_a(R);
+    if !S.cholesky_decompose_lower() {
+        return Err(CorrectionStatus::NotPositiveDefinite);
+    }
+    S.invert_l_cholesky(S_inv);
+
+    // K = P*Hᵀ*S⁻¹; temp_PHt never aliases S_inv.
+    P.mult_transb(H, temp_PHt);
+    let converged = write_gain_and_compare(K, temp_PHt, S_inv, tolerance);
+
+    // temp_HP may alias S_inv or temp_PHt, so H*P is formed again from the prior P.
+    match covariance_update {
+        CovarianceUpdate::Standard => {
+            H.mult(P, temp_HP);
+            temp_HP.mult_transb(H, S);
+            S.add_inplace_a(R);
+            K.mult(temp_HP, temp_KHP);
+            P.sub_inplace_a(temp_KHP);
+        }
+        CovarianceUpdate::Joseph => joseph_update(P, H, R, K, S, temp_HP, temp_PHt, temp_KHP),
+    }
+
+    Ok(converged)
+}
+
+/// Writes `K = PHt×S⁻¹` entry by entry and returns whether every entry moved by at most
+/// `tolerance×max(1, |Kᵢⱼ|)` from the value it replaced.
+///
+/// The comparison uses absolute values rather than squares, so that a small tolerance does
+/// not round to zero and a large gain does not overflow in fixed point.
+#[allow(non_snake_case)]
+fn write_gain_and_compare<const STATES: usize, const OBSERVATIONS: usize, T>(
+    K: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    PHt: &impl Matrix<STATES, OBSERVATIONS, T>,
+    S_inv: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    tolerance: T,
+) -> bool
+where
+    T: MatrixDataType,
+{
+    let mut converged = true;
+    for i in 0..STATES {
+        for j in 0..OBSERVATIONS {
+            let gain: T = (0..OBSERVATIONS)
+                .map(|l| PHt.get(i, l) * S_inv.get(l, j))
+                .sum();
+            let magnitude = abs(gain);
+            let scale = if magnitude > T::one() {
+                magnitude
+            } else {
+                T::one()
+            };
+            converged &= abs(gain - K.get(i, j)) <= tolerance * scale;
+            K.set(i, j, gain);
+        }
+    }
+
+    converged
+}
+
+/// Returns `|value|` with only the operations every [`MatrixDataType`] has.
+#[inline(always)]
+fn abs<T>(value: T) -> T
+where
+    T: MatrixDataType,
+{
+    if value < T::zero() {
+        T::zero() - value
+    } else {
+        value
+    }
 }
 
 /// Performs the first pass of the recalibrated update of the extended observations from an

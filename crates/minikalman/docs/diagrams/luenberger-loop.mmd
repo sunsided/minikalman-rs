@@ -1,0 +1,16 @@
+flowchart LR
+    %% One step of the fixed-gain (Luenberger) observer. Style: see docs/diagrams/README.md.
+    %% No covariance: the gain K is designed once, e.g. with RegularKalman::settle_gain.
+    design[/"fixed gain K<br/>(settle_gain, place)"/]
+    prior(["estimate<br/>x̂ₖ₋₁"])
+    predict["predict<br/>x̂ ← A·x̂"]
+    control["control<br/>x̂ ← x̂ + B·u"]
+    correct["correct<br/>y = z − H·x̂<br/>x̂ ← x̂ + K·y"]
+    posterior(["estimate<br/>x̂ₖ"])
+    u[/"control input u"/]
+    z[/"measurement z"/]
+    prior --> predict --> control --> correct --> posterior
+    u -.-> control
+    z --> correct
+    design --> correct
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

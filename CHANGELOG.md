@@ -28,6 +28,22 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stores 48 instead of 97 values. Owning observations and every existing method are unchanged.
   The inherited "MAY be aliased" buffer docs now say that each temporary is a buffer of its own
   and that sharing goes through the scratch ([#123]).
+- Added the fixed-gain (Luenberger) observer `regular::LuenbergerObserver` (doc alias
+  `steady_state_kalman`) with `regular::FixedGainObservation`: the steady-state Kalman filter
+  without `P`, `Q` or `R`, at `n² + 2·n·m` multiply-adds per step with no square root, division or
+  data-dependent branch. The gain is stored together with its convention: `set_gain_current(K)`
+  for the crate's predict-then-correct form (`predict`, `correct`) and `set_gain_predictor(L)` for
+  the textbook form `x̂ₖ₊₁ = A·x̂ₖ + L·(zₖ − H·x̂ₖ)` that `place` and python-control `dlqe` return
+  (`predict_from_measurement`); running a gain in the other form returns the new
+  `CorrectionStatus::GainFormMismatch` and leaves the state unchanged.
+  `RegularKalman::settle_gain` iterates the filter's own covariance recursion until the
+  observation's gain settles and reproduces SciPy's DARE (`K∞` to `2e-12` in `f64`); it
+  overwrites the filter's `P` and the observation's `S` and `K` and leaves `x`, the gate and the
+  noise adaptation alone. Also new: `Control::apply_control_to_state` (trait
+  `KalmanFilterControlApplyToState`), `RegularObservation::innovation_covariance`, the storage
+  types `regular::{ObserverStorage, FixedGainObservationStorage}`, the builders
+  `KalmanFilterBuilder::build_observer` and `build_fixed_gain`, and the `luenberger` example.
+  NIS gating for the fixed-gain observation is tracked in [#144] ([#143]).
 - With the opt-in `nalgebra` feature, every matrix and buffer gets `to_nalgebra()` (a stack copy
   into `SMatrix`, trait `ToNalgebra`), and mutable ones also get `copy_from_nalgebra()` (trait
   `CopyFromNalgebra`). They do not need the `unsafe` feature, and nalgebra stays out of the
@@ -262,6 +278,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+[#144]: https://github.com/sunsided/minikalman-rs/issues/144
+[#143]: https://github.com/sunsided/minikalman-rs/issues/143
 [#138]: https://github.com/sunsided/minikalman-rs/issues/138
 [#123]: https://github.com/sunsided/minikalman-rs/issues/123
 [#135]: https://github.com/sunsided/minikalman-rs/issues/135

@@ -962,6 +962,108 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
             |x| measurement.correct_robust_with(x, &mut self.P, workspace, robust, fix),
         )
     }
+
+    /// Iterates the filter's own covariance recursion until the Kalman gain of `measurement`
+    /// settles, to design a fixed-gain [`LuenbergerObserver`](crate::regular::LuenbergerObserver).
+    ///
+    /// **This overwrites the filter's `P` and the observation's `S` and `K`.** It is meant for
+    /// design or boot time, not for a running filter. Each iteration runs
+    ///
+    /// ```text
+    /// P ← A·P·Aᵀ + Q            (predict)
+    /// S = H·P·Hᵀ + R
+    /// K = P·Hᵀ·S⁻¹
+    /// P ← P⁺                    (as set_covariance_update says)
+    /// ```
+    ///
+    /// until no entry of `K` moves by more than `tolerance·max(1, |Kᵢⱼ|)`; the first iteration
+    /// is never taken as converged. On `Ok`, the observation's `K` is the steady-state gain
+    /// `K∞` in the [current form](GainForm::Current) (the form of
+    /// [`FixedGainObservation::set_gain_current`](crate::regular::FixedGainObservation::set_gain_current)),
+    /// its `S` is the unfactored steady-state innovation covariance `S∞ = H·P⁻∞·Hᵀ + R`, and the
+    /// filter's `P` is the corrected steady state `P⁺∞`.
+    ///
+    /// The state `x` is not touched. The observation's gate, its NIS and its noise adaptation
+    /// and the filter's process noise adaptation are bypassed, because they act on an
+    /// innovation, which this does not form. The result depends only on `A`, `Q`, `H` and `R`,
+    /// not on the starting `P`, if `(A, H)` is detectable and `(A, Q½)` is stabilizable; no
+    /// buffer beyond the filter's and the observation's own is used.
+    ///
+    /// ## Convergence and tolerance
+    /// The error shrinks by about `ρ²` per iteration, with the spectral radius `ρ` of the
+    /// closed-loop error dynamics `(I − K∞·H)·A`, so it takes about `log(tolerance) / (2·log ρ)`
+    /// iterations: 128 for `ρ ≈ 0.905` and `1e-12`, about 1400 for `ρ = 0.99`. The rule bounds
+    /// the last step, not the error; the error is about `1/(1 − ρ²)` times larger. Choose a
+    /// tolerance well above the precision of `T`, e.g. `1e-12` in `f64` and `1e-6` in `f32`.
+    /// Do not iterate in `I16F16`: small `Q` entries round to a few LSB and bias `K` by
+    /// percents. Compute the gain in `f32` or `f64` and convert it.
+    ///
+    /// For several observations corrected in sequence, or multi-rate schedules, run
+    /// `predict` and the corrections in their real order instead until every gain settles;
+    /// each schedule has its own gains.
+    ///
+    /// ## Errors
+    /// * [`CorrectionStatus::NotConverged`]: the gain did not settle within `max_iterations`,
+    ///   e.g. because `(A, H)` is not detectable. `P`, `S` and `K` hold the last iterate; no
+    ///   measurement was applied, unlike the other uses of this status.
+    /// * [`CorrectionStatus::NotPositiveDefinite`]: `S` was not positive definite. `P`, `S` and
+    ///   `K` may hold intermediate values.
+    ///
+    /// Returns the number of iterations on success.
+    ///
+    /// ## Example
+    /// ```
+    /// # #[cfg(feature = "alloc")] {
+    /// use minikalman::models::motion;
+    /// use minikalman::prelude::*;
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
+    ///
+    /// let builder = KalmanFilterBuilder::<2, f64>::default();
+    /// let mut filter = builder.build();
+    /// let mut position = builder.observations().build::<1>();
+    ///
+    /// let model = motion::constant_velocity(0.1, 1.0);
+    /// filter.state_transition_mut().apply(|a| model.fill_transition(a));
+    /// filter.direct_process_noise_mut().apply(|q| model.fill_process_noise(q));
+    /// filter.estimate_covariance_mut().make_identity();
+    /// position.observation_matrix_mut().set_at(0, 0, 1.0);
+    /// position.measurement_noise_covariance_mut().set_at(0, 0, 0.25);
+    ///
+    /// let iterations = filter.settle_gain(&mut position, 1e-12, 10_000).unwrap();
+    /// assert!(iterations < 200);
+    ///
+    /// // K∞ in the current form, as SciPy's solve_discrete_are gives it.
+    /// let k = position.kalman_gain();
+    /// # #[cfg(any(feature = "std", feature = "libm"))] {
+    /// assert!((k.get_at(0, 0) - 0.181201).abs() < 1e-6);
+    /// assert!((k.get_at(1, 0) - 0.180975).abs() < 1e-6);
+    /// # }
+    /// # }
+    /// ```
+    pub fn settle_gain<M>(
+        &mut self,
+        measurement: &mut M,
+        tolerance: T,
+        max_iterations: usize,
+    ) -> Result<usize, CorrectionStatus>
+    where
+        A: StateTransitionMatrix<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+        TempP: TemporaryStateMatrix<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationSettleGain<STATES, T>,
+    {
+        for iteration in 1..=max_iterations {
+            self.predict_P();
+            let settled = measurement.settle_gain_step(&mut self.P, tolerance)?;
+            if settled && iteration > 1 {
+                return Ok(iteration);
+            }
+        }
+
+        Err(CorrectionStatus::NotConverged)
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>
