@@ -6,7 +6,7 @@ use crate::matrix::{
     SquareMatrix,
 };
 use crate::observations::{
-    normalized_innovation_squared, sub_symmetric_part, trace_of_gain_sandwich,
+    normalized_innovation_squared, sub_symmetric_part, trace_of_gain_sandwich, NoiseAdaptation,
 };
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
@@ -39,6 +39,8 @@ pub struct UnscentedObservation<
     nis: T,
     /// Upper bound on the normalized innovation squared above which a correction is skipped.
     gate: Option<T>,
+    /// Online adaptation of `R` after each applied correction; `None` disables it.
+    noise_adaptation: Option<NoiseAdaptation<T>>,
 }
 
 impl<
@@ -118,6 +120,25 @@ where
         self.gate = threshold;
     }
 
+    /// Returns the online adaptation of `R` set by
+    /// [`set_noise_adaptation`](Self::set_noise_adaptation).
+    #[inline(always)]
+    pub fn noise_adaptation(&self) -> Option<NoiseAdaptation<T>> {
+        self.noise_adaptation
+    }
+
+    /// Enables or disables the online adaptation of the measurement noise covariance `R`.
+    ///
+    /// With `Some`, every applied sigma point correction, including the recalibrated one,
+    /// updates `R` from the innovation, with the predicted measurement covariance in place of
+    /// `H×P×Hᵀ`; gated and skipped corrections leave it unchanged. `None` (the default)
+    /// leaves `R` untouched. See [`NoiseAdaptation`] for the method, the choice of `α` and
+    /// when the estimate diverges.
+    #[inline(always)]
+    pub fn set_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>) {
+        self.noise_adaptation = adaptation;
+    }
+
     #[allow(clippy::too_many_arguments, non_snake_case)]
     pub fn new(
         z: Z,
@@ -148,6 +169,7 @@ where
             temp_P,
             nis: T::zero(),
             gate: None,
+            noise_adaptation: None,
         }
     }
 }
@@ -385,8 +407,23 @@ where
         let status = self.compute_kalman_gain();
         if status.is_applied() {
             self.apply_correction(x, P);
+            self.adapt_measurement_noise();
         }
         status
+    }
+
+    /// Adapts `R` from the innovation `y` and the inverted innovation covariance `S⁻¹` of the
+    /// last applied first pass, if adaptation is enabled. Overwrites `S⁻¹`.
+    #[allow(non_snake_case)]
+    fn adapt_measurement_noise(&mut self) {
+        if let Some(adaptation) = self.noise_adaptation {
+            adapt_measurement_noise(
+                adaptation,
+                self.R.as_matrix_mut(),
+                self.temp_S_inv.as_matrix_mut(),
+                self.y.as_matrix(),
+            );
+        }
     }
 
     /// Computes the predicted measurement `ẑ` from the observed sigma points, then the
@@ -1049,7 +1086,76 @@ where
             &mut fix_measurement,
         );
 
-        self.apply_recalibrated_correction(x, P, &correction)
+        let status = self.apply_recalibrated_correction(x, P, &correction);
+        if status.is_applied() {
+            // The second pass leaves y and S⁻¹ of the first pass untouched.
+            self.adapt_measurement_noise();
+        }
+        status
+    }
+}
+
+/// Adapts the measurement noise covariance after an applied unscented correction:
+/// `R ← R + (1−α)×(ε×εᵀ − R×S⁻¹×R)` with `ε = R×S⁻¹×y`, then raises every diagonal entry of
+/// `R` to at least the floor. See [`NoiseAdaptation`].
+///
+/// This is the update of the linear observations, `α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)`, with `Pzz`
+/// in place of `H×P⁻×Hᵀ`. For `Pzz = S − R`, `ε = R×S⁻¹×y` and
+/// `H×P⁺×Hᵀ = Pzz − Pzz×S⁻¹×Pzz = R − R×S⁻¹×R`, so it needs only `R`, `S⁻¹` and `y`. `S_inv` is
+/// overwritten with `S⁻¹×R`. The result is written to the lower triangle and mirrored, so `R`
+/// stays symmetric.
+#[allow(non_snake_case, clippy::needless_range_loop)]
+fn adapt_measurement_noise<const OBSERVATIONS: usize, T>(
+    adaptation: NoiseAdaptation<T>,
+    R: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    S_inv: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+) where
+    T: MatrixDataType,
+{
+    let weight = T::one() - adaptation.forgetting;
+
+    // S_inv ← S⁻¹×R, row by row: row i of the product needs only row i of S⁻¹.
+    let mut row = [T::zero(); OBSERVATIONS];
+    for i in 0..OBSERVATIONS {
+        for j in 0..OBSERVATIONS {
+            row[j] = (0..OBSERVATIONS)
+                .map(|k| S_inv.get(i, k) * R.get(k, j))
+                .sum();
+        }
+        for j in 0..OBSERVATIONS {
+            S_inv.set(i, j, row[j]);
+        }
+    }
+
+    // ε = R×S⁻¹×y = (S⁻¹×R)ᵀ×y, since R and S⁻¹ are symmetric.
+    let mut eps = [T::zero(); OBSERVATIONS];
+    for i in 0..OBSERVATIONS {
+        eps[i] = (0..OBSERVATIONS)
+            .map(|k| S_inv.get(k, i) * y.get(k, 0))
+            .sum();
+    }
+
+    // R ← R + (1−α)×(ε×εᵀ − R×(S⁻¹×R)), row by row: row i needs only row i of R.
+    for i in 0..OBSERVATIONS {
+        for j in 0..=i {
+            let rsr: T = (0..OBSERVATIONS)
+                .map(|k| R.get(i, k) * S_inv.get(k, j))
+                .sum();
+            row[j] = R.get(i, j) + weight * (eps[i] * eps[j] - rsr);
+        }
+        for j in 0..=i {
+            R.set(i, j, row[j]);
+        }
+    }
+
+    for i in 0..OBSERVATIONS {
+        for j in 0..i {
+            R.set(j, i, R.get(i, j));
+        }
+        if R.get(i, i) < adaptation.floor {
+            R.set(i, i, adaptation.floor);
+        }
     }
 }
 

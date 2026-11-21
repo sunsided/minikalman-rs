@@ -50,6 +50,17 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   applied correction, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` from the residual `ε = z − H×x⁺`, with a
   floor on the diagonal. It needs no history window and no extra buffers. Gated and skipped
   corrections leave `R` unchanged. `Q` and the unscented observation are not adapted ([#61]).
+- Added `set_noise_adaptation` to the unscented observation. After each applied sigma point
+  correction, including the recalibrated one, `R` is adapted as for the regular observation, with the
+  predicted measurement covariance in place of `H×P×Hᵀ`, written as
+  `R ← R + (1−α)×(ε×εᵀ − R×S⁻¹×R)` with `ε = R×S⁻¹×y` ([#89]).
+- Added opt-in online adaptation of the process noise covariance `Q` to the regular, extended and
+  unscented filters with `set_process_noise_adaptation(Some(NoiseAdaptation { forgetting, floor }))`.
+  After each applied `correct`, `correct_with`, `correct_nonlinear`, `correct_nonlinear_with` or
+  sigma point correction, `Q ← α×Q + (1−α)×Δx×Δxᵀ` from the state correction `Δx = K×y`
+  (Mohamed and Schwarz), with a floor on the diagonal. `Q` stays symmetric positive semi-definite by
+  construction. The estimate is exact for a random walk and biased otherwise. It needs no extra
+  buffers, and filters with an immutable `Q` are unaffected ([#89]).
 - Added `correct_predictively_oriented` to `RegularKalman` and to scalar `RegularObservation`s
   (one measurement), with the trait `KalmanFilterObservationCorrectPredictivelyOriented`. It
   applies the predictively oriented (PrO) update, which inflates the covariance when the innovation
@@ -135,6 +146,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#62]: https://github.com/sunsided/minikalman-rs/issues/62
 [#88]: https://github.com/sunsided/minikalman-rs/issues/88
 [#66]: https://github.com/sunsided/minikalman-rs/issues/66
+[#89]: https://github.com/sunsided/minikalman-rs/issues/89
 
 ## [0.8.1] - 2026-10-30
 

@@ -3,9 +3,11 @@
 //! The Unscented Kalman Filter (UKF) uses sigma points to propagate mean and covariance
 //! estimates through nonlinear transformations, avoiding the need for Jacobian calculations.
 
+use crate::kalman::process_noise::{correct_adapting_process_noise, ProcessNoiseAdapter};
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
 use crate::observations::unscented::anchored_mean;
+use crate::observations::NoiseAdaptation;
 use crate::prelude::{AsMatrix, AsMatrixMut};
 use core::marker::PhantomData;
 
@@ -114,6 +116,10 @@ pub struct UnscentedKalman<
     /// Whether `sigma_propagated` no longer describes the current `x` and `P`, i.e. a
     /// correction ran since the last prediction (or no prediction ran yet).
     sigma_points_stale: bool,
+    /// Online adaptation of `Q` from the state corrections; `None` (the default) disables it.
+    ///
+    /// See [`set_process_noise_adaptation`](Self::set_process_noise_adaptation).
+    process_noise_adaptation: Option<ProcessNoiseAdapter<STATES, T, Q>>,
     _phantom: PhantomData<T>,
 }
 
@@ -185,6 +191,7 @@ impl<
             kappa,
             state_residual: None,
             sigma_points_stale: true,
+            process_noise_adaptation: None,
             _phantom: PhantomData,
         }
     }
@@ -412,6 +419,36 @@ where
     #[inline(always)]
     pub fn direct_process_noise_mut(&mut self) -> &mut Q {
         &mut self.Q
+    }
+
+    /// Returns the online adaptation of the process noise `Q`, if enabled with
+    /// [`set_process_noise_adaptation`](Self::set_process_noise_adaptation).
+    #[inline(always)]
+    pub fn process_noise_adaptation(&self) -> Option<NoiseAdaptation<T>>
+    where
+        T: MatrixDataType,
+    {
+        self.process_noise_adaptation
+            .map(|adapter| adapter.settings())
+    }
+
+    /// Enables or disables the online adaptation of the process noise `Q`.
+    ///
+    /// With `Some`, every applied sigma point correction, including the recalibrated one,
+    /// replaces `Q` by `α×Q + (1−α)×Δx×Δxᵀ` from the state correction `Δx = x⁺ − x⁻`, then
+    /// raises every diagonal entry to at least the floor; `Q` stays symmetric positive
+    /// semi-definite. The estimate is unbiased only for a steady state that the prediction
+    /// without `Q` leaves unchanged, e.g. a random walk; otherwise it is biased, and with a
+    /// steady-state gain it has rank one along `K`. `None` (the
+    /// default) leaves `Q` untouched.
+    ///
+    /// See [`NoiseAdaptation`] for the forgetting factor, the method and its limits.
+    #[inline(always)]
+    pub fn set_process_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>)
+    where
+        T: MatrixDataType,
+    {
+        self.process_noise_adaptation = adaptation.map(ProcessNoiseAdapter::new);
     }
 }
 
@@ -696,15 +733,23 @@ where
     {
         self.refresh_sigma_points();
         let lambda = self.lambda();
-        let status = measurement.correct_with_observed_recalibrated_residuals(
+        let fix_state = Self::fix_state(self.state_residual);
+        let status = correct_adapting_process_noise(
+            self.process_noise_adaptation,
             &mut self.x,
-            &mut self.P,
-            &mut self.sigma_propagated,
-            &self.sigma_weights,
-            lambda,
-            observation,
-            Self::fix_state(self.state_residual),
-            fix,
+            &mut self.Q,
+            |x| {
+                measurement.correct_with_observed_recalibrated_residuals(
+                    x,
+                    &mut self.P,
+                    &mut self.sigma_propagated,
+                    &self.sigma_weights,
+                    lambda,
+                    observation,
+                    fix_state,
+                    fix,
+                )
+            },
         );
         // Also after a back-out: the second pass leaves the sigma points shifted.
         self.sigma_points_stale = true;
@@ -1192,15 +1237,23 @@ where
     {
         self.refresh_sigma_points();
         let lambda = self.lambda();
-        let status = measurement.correct_with_observed_residuals(
+        let fix_state = Self::fix_state(self.state_residual);
+        let status = correct_adapting_process_noise(
+            self.process_noise_adaptation,
             &mut self.x,
-            &mut self.P,
-            &self.sigma_propagated,
-            &self.sigma_weights,
-            lambda,
-            observation,
-            Self::fix_state(self.state_residual),
-            fix,
+            &mut self.Q,
+            |x| {
+                measurement.correct_with_observed_residuals(
+                    x,
+                    &mut self.P,
+                    &self.sigma_propagated,
+                    &self.sigma_weights,
+                    lambda,
+                    observation,
+                    fix_state,
+                    fix,
+                )
+            },
         );
         self.sigma_points_stale = true;
         status

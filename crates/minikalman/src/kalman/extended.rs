@@ -1,7 +1,9 @@
 //! # Extended Kalman Filter
 
+use crate::kalman::process_noise::{correct_adapting_process_noise, ProcessNoiseAdapter};
 use crate::kalman::*;
 use crate::matrix::MatrixDataType;
+use crate::observations::NoiseAdaptation;
 use crate::prelude::Matrix;
 use core::marker::PhantomData;
 
@@ -82,6 +84,7 @@ impl<A, X, P, Q, PX, TempP> ExtendedKalmanBuilder<A, X, P, Q, PX, TempP> {
             Q,
             predicted_x,
             temp_P,
+            process_noise_adaptation: None,
             _phantom: Default::default(),
         }
     }
@@ -115,6 +118,11 @@ pub struct ExtendedKalman<const STATES: usize, T, A, X, P, Q, PX, TempP> {
     ///
     /// The backing field for this temporary MAY be aliased with temporary BQ.
     temp_P: TempP,
+
+    /// Online adaptation of `Q` from the state corrections; `None` (the default) disables it.
+    ///
+    /// See [`set_process_noise_adaptation`](Self::set_process_noise_adaptation).
+    process_noise_adaptation: Option<ProcessNoiseAdapter<STATES, T, Q>>,
 
     _phantom: PhantomData<T>,
 }
@@ -257,6 +265,37 @@ where
     #[inline(always)]
     pub fn direct_process_noise_mut(&mut self) -> &mut Q {
         &mut self.Q
+    }
+
+    /// Returns the online adaptation of the process noise `Q`, if enabled with
+    /// [`set_process_noise_adaptation`](Self::set_process_noise_adaptation).
+    #[inline(always)]
+    pub fn process_noise_adaptation(&self) -> Option<NoiseAdaptation<T>>
+    where
+        T: MatrixDataType,
+    {
+        self.process_noise_adaptation
+            .map(|adapter| adapter.settings())
+    }
+
+    /// Enables or disables the online adaptation of the process noise `Q`.
+    ///
+    /// With `Some`, every applied [`correct_nonlinear`](Self::correct_nonlinear) or
+    /// [`correct_nonlinear_with`](Self::correct_nonlinear_with)
+    /// replaces `Q` by `α×Q + (1−α)×Δx×Δxᵀ` from the state correction `Δx = x⁺ − x⁻`, then
+    /// raises every diagonal entry to at least the floor; `Q` stays symmetric positive
+    /// semi-definite. The estimate is unbiased only for a steady state with `A×P⁺×Aᵀ = P⁺`,
+    /// e.g. a random walk; otherwise it is biased, and with a steady-state gain it has rank
+    /// one along `K`. Corrections with an external gain and recalibrated corrections do not
+    /// adapt `Q`. `None` (the default) leaves `Q` untouched.
+    ///
+    /// See [`NoiseAdaptation`] for the forgetting factor, the method and its limits.
+    #[inline(always)]
+    pub fn set_process_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>)
+    where
+        T: MatrixDataType,
+    {
+        self.process_noise_adaptation = adaptation.map(ProcessNoiseAdapter::new);
     }
 }
 
@@ -498,7 +537,12 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
         F: FnMut(&X, &mut M::ObservationVector),
     {
-        measurement.correct_nonlinear(&mut self.x, &mut self.P, observation)
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| measurement.correct_nonlinear(x, &mut self.P, observation),
+        )
     }
 
     /// Performs the nonlinear measurement update step, normalizing the innovation before
@@ -531,7 +575,12 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         F: FnMut(&X, &mut M::ObservationVector),
         N: FnMut(&mut [T]),
     {
-        measurement.correct_nonlinear_with(&mut self.x, &mut self.P, observation, fix)
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| measurement.correct_nonlinear_with(x, &mut self.P, observation, fix),
+        )
     }
 
     /// Performs the nonlinear measurement update step with the externally supplied Kalman

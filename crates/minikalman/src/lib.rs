@@ -278,6 +278,7 @@ pub mod unscented {
         UnscentedKalmanFilter,
     };
     pub use crate::observations::unscented::*;
+    pub use crate::observations::NoiseAdaptation;
 
     /// Builder types for unscented Kalman filters
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
