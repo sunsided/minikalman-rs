@@ -1277,8 +1277,9 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// Each reflector is computed from its column divided by the column's largest magnitude
     /// (as BLAS `nrm2` does), so entries are never squared unscaled. With fixed-point types,
-    /// the column norms (the magnitudes in `R`) must stay below about a quarter of the type's
-    /// range, i.e. about 8000 for `I16F16`. A column that is zero from the diagonal down is
+    /// every column norm times `√(2·ROWS + 2·√ROWS)` must fit the type, since that bounds the
+    /// dot products with the reflectors. For `I16F16` (maximum 32767), column norms must stay
+    /// below about 8000 for 6 rows and 5800 for 12 rows. A column that is zero from the diagonal down is
     /// skipped and leaves a zero diagonal entry, a valid singular factor. The operation count
     /// depends only on `ROWS` and `COLS`, apart from such skipped columns.
     ///

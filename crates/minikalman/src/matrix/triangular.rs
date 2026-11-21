@@ -72,8 +72,8 @@ where
 /// non-negative diagonal, and all rows below are zero. `Q` is never formed.
 ///
 /// Each reflector is computed from the column divided by its largest magnitude, as BLAS `nrm2`
-/// does, so no entry is squared unscaled: with fixed-point types, entries are limited by the
-/// magnitude of `R` (`√rows × max|mᵢⱼ|`), not by its square. A zero column is skipped, which
+/// does, so no entry is squared unscaled. With fixed-point types, the column norms times
+/// `√(2·rows + 2·√rows)` (the bound of `ṽᵀ×column`) must fit the type. A zero column is skipped, which
 /// leaves a zero on the diagonal of `R`, i.e. a valid singular factor.
 ///
 /// Returns `false` if `rows < cols`, or if an entry or a diagonal of `R` is not finite (`NaN`
@@ -141,13 +141,14 @@ where
     let alpha = if head < T::zero() { norm } else { -norm };
     m[j * cols + j] = head - alpha;
 
-    // β̃ = 2 / (ṽᵀ×ṽ) = 1 / (‖ã‖·(‖ã‖ + |ã₀|)), with β̃×ṽ×ṽᵀ = β×v×vᵀ.
-    let beta = (norm * (norm + abs(head))).recip();
+    // β̃ = 2 / (ṽᵀ×ṽ) = 1 / (‖ã‖·(‖ã‖ + |ã₀|)), with β̃×ṽ×ṽᵀ = β×v×vᵀ. Divided by the
+    // denominator (up to about `rows`) rather than multiplied by β̃, which rounds in fixed point.
+    let denominator = norm * (norm + abs(head));
     for k in (j + 1)..cols {
         let projection = (j..rows)
             .map(|i| m[i * cols + j] * m[i * cols + k])
             .sum::<T>()
-            * beta;
+            / denominator;
         for i in j..rows {
             m[i * cols + k] -= projection * m[i * cols + j];
         }
@@ -376,6 +377,34 @@ mod tests {
         let r = fixed.map(|x| x.to_num::<f64>());
         assert_close(&r[..9], &expected, 0.05);
         assert_eq!(&r[9..], &[0.0; 3]);
+    }
+
+    /// The worst case of the documented `I16F16` limit: with 12 rows, `ṽᵀ×column` reaches
+    /// `√(2·12 + 2·√12) ≈ 5.56` times the column norm when the column is parallel to the
+    /// reflector. A norm of 5000 gives about 27800, just inside the range of `±32768`.
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn fixed_point_handles_the_documented_limit() {
+        use fixed::types::I16F16;
+
+        // Column 0 is constant, so ṽ = (1 + √12, 1, …, 1); column 1 is ṽ scaled to norm 5000.
+        let head = 1.0 + 12f64.sqrt();
+        let length = (head * head + 11.0).sqrt();
+        let mut m = [0.0f64; 24];
+        for i in 0..12 {
+            m[i * 2] = 1000.0;
+            m[i * 2 + 1] = 5000.0 * if i == 0 { head } else { 1.0 } / length;
+        }
+
+        let mut fixed = m.map(I16F16::from_num);
+        assert!(MatrixData::new_mut::<12, 2, I16F16>(&mut fixed).triangularize_upper());
+
+        let r = fixed.map(|x| x.to_num::<f64>());
+        assert_upper_triangular(&r, 12, 2);
+        let expected = gram::<4>(&m, 12, 2);
+        for (a, e) in gram::<4>(&r, 12, 2).iter().zip(&expected) {
+            assert!((a - e).abs() <= 1e-4 * 25e6, "{a} vs {e}");
+        }
     }
 
     /// A zero column (e.g. from a singular process noise factor) is skipped: no division by
