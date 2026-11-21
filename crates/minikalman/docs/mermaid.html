@@ -1,0 +1,51 @@
+<!-- Rendered into every rustdoc page via `--html-in-header`.
+     rustdoc emits ```mermaid blocks as <pre class="language-mermaid"> (not doctested);
+     this turns them into diagrams, following the rustdoc theme, also when it is switched.
+     mermaid is only loaded on pages that contain a diagram. -->
+<script type="module">
+  const blocks = [...document.querySelectorAll("pre.language-mermaid")];
+  if (blocks.length > 0) {
+    const { default: mermaid } = await import(
+      "https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs"
+    );
+
+    // rustdoc's themes: light, rust (light), coal, navy, ayu (dark).
+    const isDark = () =>
+      ["coal", "navy", "ayu", "dark"].includes(
+        document.documentElement.getAttribute("data-theme") || ""
+      );
+
+    // Keep each diagram's source, so it can be rendered again after a theme switch.
+    const diagrams = blocks.map((pre) => {
+      const diagram = document.createElement("div");
+      diagram.className = "mermaid";
+      diagram.dataset.source = pre.textContent;
+      pre.replaceWith(diagram);
+      return diagram;
+    });
+
+    let rendered = null;
+    const render = async () => {
+      const dark = isDark();
+      if (rendered === dark) return;
+      rendered = dark;
+      for (const diagram of diagrams) {
+        diagram.removeAttribute("data-processed");
+        diagram.textContent = diagram.dataset.source;
+      }
+      // Wider than the default 200 px, so formulas stay on one line.
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: dark ? "dark" : "default",
+        flowchart: { wrappingWidth: 320 },
+      });
+      await mermaid.run({ nodes: diagrams });
+    };
+
+    await render();
+    new MutationObserver(render).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  }
+</script>
