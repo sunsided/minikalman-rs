@@ -43,7 +43,8 @@ use core::marker::PhantomData;
 /// Per step with `n` states and `m` measurements: `n²` multiply-adds to predict and `2·n·m`
 /// to correct, with no square root, no division and no data-dependent branch, so every step
 /// takes the same time. An innovation [gate](crate::regular::FixedGainGate) adds `m² + m`
-/// multiply-adds and one comparison. The regular filter adds `2·n³` for `P` in the prediction, and a
+/// multiply-adds and one comparison, and a rejected step skips the gain (and, in the predictor
+/// form, the time update), so it is shorter. The regular filter adds `2·n³` for `P` in the prediction, and a
 /// Cholesky factorization with `m` square roots and reciprocals, the gain and the covariance
 /// update in the correction.
 ///

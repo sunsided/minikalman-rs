@@ -579,6 +579,10 @@ fn fixed_point_observer_tracks_f64() {
 /// The chi-square 99% quantile for one degree of freedom, the gate of the gating tests.
 const GATE: f64 = 6.63;
 
+/// A gate so wide (about 5σ) that no clean reading of the seeded noise exceeds it, for tests
+/// that assert every clean step is applied.
+const WIDE_GATE: f64 = 25.0;
+
 /// A design filter and observation settled to `P⁺∞`, so that the next prediction gives `S∞`.
 fn settled() -> (
     KalmanFilterType<2, f64>,
@@ -655,6 +659,8 @@ fn outliers_are_gated_and_leave_the_state_unchanged() {
     let (mut observer, mut gated) = gated_observer(&mut settled().1);
     let (mut predictor, mut gated_predictor) = gated_observer(&mut settled().1);
     gated_predictor.set_gain_predictor(&column(L_INF));
+    gated.set_gate(Some(WIDE_GATE));
+    gated_predictor.set_gate(Some(WIDE_GATE));
 
     let data = readings(100);
     for (k, &reading) in data.iter().enumerate() {
@@ -816,7 +822,7 @@ fn fixed_point_gate_rejects_outliers() {
     position
         .set_innovation_covariance(&mut s)
         .expect("positive definite");
-    position.set_gate(Some(I16F16::from_num(GATE)));
+    position.set_gate(Some(I16F16::from_num(WIDE_GATE)));
 
     let data = readings(200);
     observer
