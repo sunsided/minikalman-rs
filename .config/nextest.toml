@@ -1,0 +1,4 @@
+# Print the numerical-robustness report, which nextest would hide for passing tests.
+[[profile.default.overrides]]
+filter = "binary(numerical_robustness)"
+success-output = "immediate"

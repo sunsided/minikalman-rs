@@ -293,7 +293,7 @@ pub mod regular {
     pub use crate::kalman::regular::*;
     pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
     pub use crate::observations::regular::*;
-    pub use crate::observations::NoiseAdaptation;
+    pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
@@ -382,7 +382,7 @@ pub mod ud {
 pub mod extended {
     pub use crate::kalman::extended::*;
     pub use crate::observations::extended::*;
-    pub use crate::observations::NoiseAdaptation;
+    pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
@@ -429,7 +429,7 @@ pub mod prelude {
     pub use crate::kalman::*;
     pub use crate::matrix::*;
     pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
-    pub use crate::observations::NoiseAdaptation;
+    pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
     pub use crate::{
         impl_buffer_A, impl_buffer_B, impl_buffer_H, impl_buffer_K, impl_buffer_P,
