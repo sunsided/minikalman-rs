@@ -24,7 +24,7 @@ fn expected_nis(z: f64) -> f64 {
 /// The state, the variance, the NIS and the status after one correction.
 type Outcome = (f64, f64, f64, CorrectionStatus);
 
-/// Runs one correction of a scalar regular filter and returns `(x, P, NIS)`.
+/// Runs one correction of a scalar regular filter and returns its [`Outcome`].
 fn regular_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     let builder = RegularBuilder::<1, f64>::default();
     let mut filter = builder.build();
@@ -47,7 +47,7 @@ fn regular_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     )
 }
 
-/// Runs one correction of a scalar extended filter and returns `(x, P, NIS)`.
+/// Runs one correction of a scalar extended filter and returns its [`Outcome`].
 fn extended_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     let builder = ExtendedBuilder::<1, f64>::default();
     let mut filter = builder.build();
@@ -74,7 +74,7 @@ fn extended_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     )
 }
 
-/// Runs one correction of a scalar unscented filter and returns `(x, P, NIS)`.
+/// Runs one correction of a scalar unscented filter and returns its [`Outcome`].
 fn unscented_after_one_reading(z: f64, gate: Option<f64>) -> Outcome {
     let builder = UnscentedBuilder::<1, f64>::default();
     let mut filter = builder.build::<3>();
