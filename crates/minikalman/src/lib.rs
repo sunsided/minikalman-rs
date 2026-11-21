@@ -342,7 +342,9 @@ pub mod information {
 ///    observation closure ignores `x` and writes the prediction from `X̂`; the `fix` closure
 ///    can turn `z − h(X̂)` into an invariant innovation, e.g. rotate it into the body frame.
 ///    Both closures may borrow `X̂` from a field next to the filter. The gate and the NIS see
-///    the innovation after `fix`.
+///    the innovation after `fix`. A rotated innovation `R̂ᵀ·y` has the noise covariance
+///    `R̂ᵀ·R·R̂`, so write that into `measurement_noise_covariance_mut` before each correction
+///    unless `R` is isotropic (`σ²·I`), which is the same in every frame.
 /// 3. **Inject.** Read `ξ` from [`state_vector`](extended::ExtendedKalman::state_vector),
 ///    set `X̂ ← X̂·Exp(ξ)`, reset `ξ` to zero via
 ///    [`state_vector_mut`](extended::ExtendedKalman::state_vector_mut), and optionally move

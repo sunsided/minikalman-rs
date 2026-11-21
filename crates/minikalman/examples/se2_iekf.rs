@@ -247,41 +247,45 @@ impl Pose {
 
 /// Returns `(sin θ/θ, (1 − cos θ)/θ)`, so that `V(θ) = [[a, −b], [b, a]]` (Solà (158)).
 ///
-/// Below 1e-3 rad it uses the Taylor series, since both quotients lose all precision in `f32`.
+/// Written as `(1 − θ·α, θ·β)` with the coefficients of [`series_coefficients`], so small
+/// angles use their Taylor series instead of cancelling in `f32`.
 fn v_coefficients(theta: f32) -> [f32; 2] {
-    if theta.abs() < 1e-3 {
-        [1.0 - theta * theta / 6.0, theta / 2.0]
-    } else {
-        [theta.sin() / theta, (1.0 - theta.cos()) / theta]
-    }
+    let [alpha, beta] = series_coefficients(theta);
+    [1.0 - theta * alpha, theta * beta]
 }
 
 /// Returns the right Jacobian `J_r(τ)` of SE(2), so that `Exp(τ + δ) ≈ Exp(τ)·Exp(J_r·δ)`.
 ///
-/// Solà (163), with the `θ → 0` limit `[[1, 0, −ρy/2], [0, 1, ρx/2], [0, 0, 1]]` below 1e-3 rad.
+/// Solà (163), regrouped: the `ρ` column is `(ρx·α − ρy·β, ρx·β + ρy·α)` with
+/// `α = (θ − sin θ)/θ²` and `β = (1 − cos θ)/θ²`.
 fn right_jacobian(tau: [f32; 3]) -> Mat3 {
     let [r1, r2, theta] = tau;
-
-    if theta.abs() < 1e-3 {
-        return [[1.0, 0.0, -r2 / 2.0], [0.0, 1.0, r1 / 2.0], [0.0, 0.0, 1.0]];
-    }
-
-    let (s, c) = theta.sin_cos();
-    let t2 = theta * theta;
+    let [a, b] = v_coefficients(theta);
+    let [alpha, beta] = series_coefficients(theta);
 
     [
-        [
-            s / theta,
-            (1.0 - c) / theta,
-            (theta * r1 - r2 + r2 * c - r1 * s) / t2,
-        ],
-        [
-            (c - 1.0) / theta,
-            s / theta,
-            (r1 + theta * r2 - r1 * c - r2 * s) / t2,
-        ],
+        [a, b, r1 * alpha - r2 * beta],
+        [-b, a, r1 * beta + r2 * alpha],
         [0.0, 0.0, 1.0],
     ]
+}
+
+/// Returns `(α, β) = ((θ − sin θ)/θ², (1 − cos θ)/θ²)` for [`v_coefficients`] and [`right_jacobian`].
+///
+/// Both quotients cancel catastrophically in `f32` well above 1e-3 rad (the relative error of
+/// `1 − cos θ` is about `1e-7/θ²`), so below 1e-1 rad they use their Taylor series, which
+/// are accurate to `f32` precision there.
+fn series_coefficients(theta: f32) -> [f32; 2] {
+    let t2 = theta * theta;
+
+    if theta.abs() < 1e-1 {
+        [
+            theta / 6.0 * (1.0 - t2 / 20.0),
+            0.5 * (1.0 - t2 / 12.0 * (1.0 - t2 / 30.0)),
+        ]
+    } else {
+        [(theta - theta.sin()) / t2, (1.0 - theta.cos()) / t2]
+    }
 }
 
 /// Rotates the vector `(x, y)` by `theta` radians.
@@ -508,6 +512,9 @@ impl NaiveFilter {
 }
 
 /// Sets `H = [I₂ 0]` and the isotropic fix noise, which is the same in any frame.
+///
+/// The invariant filter's innovation is `R̂ᵀ·(z − t̂)`, so an anisotropic world-frame noise
+/// `N` would have to be rotated into the body frame as `R̂ᵀ·N·R̂` before every correction.
 fn set_position_fix(fix: &mut Fix) {
     fix.observation_jacobian_matrix_mut().apply(|h| {
         h.set_at(0, 0, 1.0);
@@ -644,9 +651,19 @@ fn check_convergence(truth: &Pose, invariant: &Pose, naive: &Pose) -> ExitCode {
 /// Asserts that the SE(2) helpers match their defining identities.
 ///
 /// `Log(Exp(τ)) = τ`, `Exp(u)⁻¹·Exp(ξ)·Exp(u) = Exp(Ad_{Exp(u)}⁻¹·ξ)` (exact), and
-/// `Log(Exp(τ)⁻¹·Exp(τ + δ)) ≈ J_r(τ)·δ` to first order in `δ`.
+/// `Log(Exp(τ)⁻¹·Exp(τ + δ)) ≈ J_r(τ)·δ` to first order in `δ`. The angles cover both sides
+/// of the series cutoff in [`series_coefficients`], which is also checked against `f64`.
 fn check_lie_helpers() {
-    let taus = [[0.3, -0.2, 1.1], [0.1, 0.4, 1e-5], [-1.0, 2.0, -2.5]];
+    check_series_coefficients();
+
+    let taus = [
+        [0.3, -0.2, 1.1],
+        [0.1, 0.4, 1e-5],
+        [0.5, -0.3, 5e-3],
+        [-0.4, 0.2, 0.09],
+        [0.2, 0.6, -0.11],
+        [-1.0, 2.0, -2.5],
+    ];
 
     for tau in taus {
         assert_close(&Pose::exp(tau).log(), &tau, 1e-4, "Log(Exp(τ))");
@@ -663,6 +680,25 @@ fn check_lie_helpers() {
             .compose(&Pose::exp(perturbed))
             .log();
         assert_close(&local, &mul(&right_jacobian(tau), delta), 1e-3, "J_r");
+    }
+}
+
+/// Asserts that [`series_coefficients`] matches an `f64` evaluation to `f32` precision.
+///
+/// Samples angles from 1e-4 rad to 1 rad, across the series cutoff at 1e-1 rad.
+fn check_series_coefficients() {
+    for theta in [1e-4_f32, 1e-3, 5e-3, 1e-2, 3e-2, 0.0999, 0.1001, 0.3, 1.0] {
+        let t = f64::from(theta);
+        let expected = [(t - t.sin()) / (t * t), (1.0 - t.cos()) / (t * t)];
+        let actual = series_coefficients(theta);
+
+        for (a, e) in actual.iter().zip(expected) {
+            let relative = (f64::from(*a) - e).abs() / e.abs();
+            assert!(
+                relative < 1e-4,
+                "series coefficients at θ={theta}: {a} vs {e}"
+            );
+        }
     }
 }
 
