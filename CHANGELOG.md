@@ -379,6 +379,19 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   therefore no longer copies `S` into the `K×H×P` temporary or forms it again. The robust
   corrections take their prior NIS from the Cholesky factor the same way, so it agrees with the
   plain correction's (bit for bit where `G + R` rounds like `H×P×Hᵀ + R`, as in the tests).
+- For floating-point types and up to three measurements, the regular and extended corrections
+  factor `S` square-root free as `L×D×Lᵀ` in local storage instead of with a Cholesky
+  factorization ([#166]). For one measurement this is `K = P×Hᵀ/s` and `NIS = y²/s`. The choice
+  is made at compile time on the element type (the new `MatrixDataType::SQUARE_ROOT_FREE_GAIN`,
+  `true` for `f32` and `f64`) and on `OBSERVATIONS`. Fixed-point types and more measurements
+  keep the Cholesky solve: `L×D×Lᵀ` divides by the squared pivots, which overflows fixed point
+  near its resolution. A pivot that is not positive or not finite is rejected as
+  `NotPositiveDefinite`, as before; near-singular `S` can flip between accepted and rejected at
+  the level of rounding. `D⁻¹` is applied with one reciprocal per pivot, except for a single
+  measurement, which divides by `s` to keep `K` correctly rounded. The robust corrections take
+  their prior NIS from the same factorization, without an extra Cholesky factorization. A 4×2
+  `f32` Joseph step on `thumbv7em-none-eabihf` (`opt-level = "s"`) shrinks from 2218 to
+  1958 bytes of `.text` and links no `sqrt`.
 - **Breaking:** the `nalgebra` feature now uses nalgebra 0.33 (was 0.32), the newest release that
   builds on the MSRV 1.80. The commented-out `nalgebra_std`/`nalgebra_alloc`/`nalgebra_libm` features
   are gone ([#135]).
@@ -422,6 +435,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#163]: https://github.com/sunsided/minikalman-rs/issues/163
 [#167]: https://github.com/sunsided/minikalman-rs/issues/167
 [#165]: https://github.com/sunsided/minikalman-rs/issues/165
+[#166]: https://github.com/sunsided/minikalman-rs/issues/166
 [#159]: https://github.com/sunsided/minikalman-rs/issues/159
 [#157]: https://github.com/sunsided/minikalman-rs/issues/157
 [#153]: https://github.com/sunsided/minikalman-rs/issues/153

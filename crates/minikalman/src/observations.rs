@@ -1,11 +1,12 @@
 //! # Observations for Regular, Extended, and Unscented Kalman Filters.
 
 use crate::kalman::CorrectionStatus;
-use crate::matrix::triangular::{Transpose, Triangle, substitute};
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::observations::innovation_factor::InnovationFactor;
 
 pub mod extended;
 pub mod fixed_gain;
+pub(crate) mod innovation_factor;
 pub(crate) mod predictively_oriented;
 pub mod regular;
 pub(crate) mod robust;
@@ -248,8 +249,9 @@ pub struct NoiseAdaptation<T> {
 ///
 /// [`Joseph`](Self::Joseph) needs no extra buffer. For `N` states and `m` measurements it adds
 /// about `N×m² + N²×m/2` multiply-adds per correction: `K×S` and the lower triangle of
-/// `K×S×Kᵀ`. Both forms reuse the `H×P` the gain needed, and the gain factors a copy of `S`
-/// (`m²` values, in the `S⁻¹` temporary), so the Joseph form reads `S` as formed.
+/// `K×S×Kᵀ`. Both forms reuse the `H×P` the gain needed. The gain never overwrites `S`: up to
+/// three measurements it factors `S` square-root free in local storage, beyond that it factors
+/// a copy (`m²` values, in the `S⁻¹` temporary), so the Joseph form reads `S` as formed.
 ///
 /// ## What it buys
 ///
@@ -262,8 +264,8 @@ pub struct NoiseAdaptation<T> {
 /// - **Positive definiteness, ill-conditioned measurements.** For the textbook case
 ///   `H = [[1,1,1],[1,1,1+δ]]`, `R = δ²×I`, `P = I`, the exact `P⁺` has eigenvalues of order
 ///   `δ²`, so near the singular end its definiteness is decided by rounding. The standard
-///   update left `P` indefinite for 6 of 48 values of `δ` in `f32` (from `δ ≈ 10⁻³`) and 3 in
-///   `f64` (from `δ ≈ 3×10⁻⁶`); the Joseph form for 9 and 10 (from `δ ≈ 10⁻²` and
+///   update left `P` indefinite for 8 of 48 values of `δ` in `f32` (from `δ ≈ 2×10⁻³`) and 3 in
+///   `f64` (from `δ ≈ 3×10⁻⁶`); the Joseph form for 8 and 8 (from `δ ≈ 7×10⁻³` and
 ///   `6×10⁻⁵`), and in `I32F32` 27 and 11. Neither form fixes the case.
 /// - **Fixed point.** In `I16F16`, neither form helps once the variances approach the
 ///   resolution (`2⁻¹⁶`): with ten scalar sensors and a steady-state variance below one LSB,
@@ -285,8 +287,9 @@ pub enum CovarianceUpdate {
     /// arithmetic.
     ///
     /// With either form, the observation's `S` holds `H×P⁻×Hᵀ + R` of the prior after a regular,
-    /// extended or robust correction (also a gated or rejected one): the gain factors a copy of
-    /// it. The predictively oriented corrections document their own `S`.
+    /// extended or robust correction (also a gated or rejected one): the gain factors it in local
+    /// storage (floating point, up to three measurements) or a copy of it. The predictively
+    /// oriented corrections document their own `S`.
     #[default]
     Joseph,
 }
@@ -632,8 +635,8 @@ fn adapt_measurement_noise<const STATES: usize, const OBSERVATIONS: usize, T>(
 ///
 /// Stores the normalized innovation squared in `nis` whenever `S = H×P×Hᵀ + R` is positive
 /// definite, and leaves `K` unchanged if `S` is not positive definite or `nis` exceeds
-/// `gate`. Neither `x` nor `P` is written. `S` keeps `H×P×Hᵀ + R`; `temp_factor` receives
-/// its Cholesky factor.
+/// `gate`. Neither `x` nor `P` is written. `S` keeps `H×P×Hᵀ + R`; for more than three
+/// measurements, `temp_factor` receives its Cholesky factor.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 fn compute_kalman_gain<const STATES: usize, const OBSERVATIONS: usize, T>(
     P: &impl Matrix<STATES, STATES, T>,
@@ -657,12 +660,14 @@ where
 /// The second half of [`compute_kalman_gain`]: factors `S = H×P×Hᵀ + R`, which
 /// [`form_innovation_covariance`] formed, gates on the NIS and solves `K×S = P×Hᵀ` for `K`.
 ///
-/// With the Cholesky factor `S = L×Lᵀ`, the NIS `yᵀ×S⁻¹×y = ‖L⁻¹×y‖²` takes one forward
+/// With a triangular factorization of `S` ([`InnovationFactor`]: `L×D×Lᵀ` without square
+/// roots up to three measurements, `L×Lᵀ` beyond), the NIS `yᵀ×S⁻¹×y` takes one forward
 /// substitution, and every row `k` of the gain solves `S×kᵀ = (P×Hᵀ)ᵀ` with one forward and
-/// one back substitution in place. `S⁻¹` is never formed, so no `S⁻¹` buffer is needed.
+/// one back substitution in place. `S⁻¹` is never formed.
 ///
-/// `S` is copied into `temp_factor` (`OBSERVATIONS²` values) and factored there, so `S` itself
-/// keeps `H×P×Hᵀ + R` whatever the outcome. Neither `x` nor `P` is written, and `K` only once
+/// `S` itself keeps `H×P×Hᵀ + R` whatever the outcome: up to three measurements the factor
+/// lives in local storage, beyond that `S` is copied into `temp_factor` (`OBSERVATIONS²`
+/// values) and factored there. Neither `x` nor `P` is written, and `K` only once
 /// the correction is known to apply.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 fn gain_from_innovation_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
@@ -678,15 +683,11 @@ fn gain_from_innovation_covariance<const STATES: usize, const OBSERVATIONS: usiz
 where
     T: MatrixDataType,
 {
-    // S = L*Lᵀ in temp_factor; a successful factorization leaves a positive diagonal.
-    let s_len = OBSERVATIONS * OBSERVATIONS;
-    temp_factor.as_mut_slice()[..s_len].copy_from_slice(&S.as_slice()[..s_len]);
-    if !temp_factor.cholesky_decompose_lower() {
+    let Some(factor) = InnovationFactor::new(S, temp_factor) else {
         return CorrectionStatus::NotPositiveDefinite;
-    }
+    };
 
     // Gate on the normalized innovation squared before anything else is written.
-    let factor = CholeskyFactor::<OBSERVATIONS, T>::new(temp_factor.as_slice());
     *nis = factor.nis(y);
     if gate.is_some_and(|gate| *nis > gate) {
         return CorrectionStatus::Gated;
@@ -700,71 +701,6 @@ where
     }
 
     CorrectionStatus::Applied
-}
-
-/// The lower Cholesky factor `L` of an innovation covariance `S = L×Lᵀ`, for applying `S⁻¹`
-/// by substitution without forming it.
-///
-/// The substitutions multiply with the reciprocals `1/Lᵢᵢ`, formed once per pivot, rather than
-/// dividing per entry: that keeps the gain at `OBSERVATIONS` divisions, fewer than the explicit
-/// inverse needed, which matters where a division is expensive (fixed point, soft float).
-pub(crate) struct CholeskyFactor<'a, const OBSERVATIONS: usize, T> {
-    /// The row-major `OBSERVATIONS × OBSERVATIONS` factor; only the lower triangle is read.
-    l: &'a [T],
-    /// `1 / Lᵢᵢ`.
-    inverse_diagonal: [T; OBSERVATIONS],
-}
-
-impl<'a, const OBSERVATIONS: usize, T> CholeskyFactor<'a, OBSERVATIONS, T>
-where
-    T: MatrixDataType,
-{
-    /// Wraps the factor `l` from a successful
-    /// [`cholesky_decompose_lower`](MatrixMut::cholesky_decompose_lower), whose diagonal is
-    /// positive.
-    pub(crate) fn new(l: &'a [T]) -> Self {
-        let l = &l[..OBSERVATIONS * OBSERVATIONS];
-        let mut inverse_diagonal = [T::zero(); OBSERVATIONS];
-        for (i, inverse) in inverse_diagonal.iter_mut().enumerate() {
-            *inverse = l[i * OBSERVATIONS + i].recip();
-        }
-
-        Self {
-            l,
-            inverse_diagonal,
-        }
-    }
-
-    /// Returns the normalized innovation squared `yᵀ×S⁻¹×y = ‖L⁻¹×y‖²`, from one forward
-    /// substitution.
-    pub(crate) fn nis(&self, y: &impl Matrix<OBSERVATIONS, 1, T>) -> T {
-        let mut w = [T::zero(); OBSERVATIONS];
-        w.copy_from_slice(&y.as_slice()[..OBSERVATIONS]);
-        self.substitute(Transpose::No, &mut w);
-        w.iter().map(|&w| w * w).sum()
-    }
-
-    /// Replaces the row `b` by `S⁻¹×b = L⁻ᵀ×(L⁻¹×b)`, with one forward and one back
-    /// substitution.
-    fn solve_row(&self, b: &mut [T]) {
-        self.substitute(Transpose::No, b);
-        self.substitute(Transpose::Yes, b);
-    }
-
-    /// Replaces `b` by `L⁻¹×b` or `L⁻ᵀ×b`.
-    #[inline]
-    fn substitute(&self, transpose: Transpose, b: &mut [T]) {
-        let inverse_diagonal = &self.inverse_diagonal;
-        substitute(
-            self.l,
-            OBSERVATIONS,
-            Triangle::Lower,
-            transpose,
-            b,
-            1,
-            |i, rest| rest * inverse_diagonal[i],
-        );
-    }
 }
 
 /// Runs one correction of the covariance recursion for [`RegularKalman::settle_gain`]: forms
@@ -1400,6 +1336,58 @@ mod tests {
         for update in [CovarianceUpdate::Standard, CovarianceUpdate::Joseph] {
             assert_close_to_explicit_inverse::<4, 2, f64>(7, -1.0, update, None, 0.0);
             assert_close_to_explicit_inverse::<1, 1, f64>(7, -1.0, update, None, 0.0);
+            // More than three measurements take the Cholesky path.
+            assert_close_to_explicit_inverse::<5, 4, f64>(7, -1.0, update, None, 0.0);
         }
+    }
+
+    /// An `I16F16` correction with `S` at the resolution of the type (`S = 2⁻¹⁶`, one LSB):
+    /// `P = [1]`, `H = [2⁻⁸]`, `R = [0]`, `y = 0.6`. A square-root free `y/S` would need about
+    /// `39321`, beyond the range of `I16F16`; the Cholesky solve (`y/√S ≈ 153.6`) keeps the
+    /// NIS `y²/S ≈ 23593` and the gain `P×Hᵀ/S = 256` in range, as the fixed-point types use it.
+    #[test]
+    #[cfg(feature = "fixed")]
+    #[allow(non_snake_case)]
+    fn fixed_point_gain_at_the_resolution_stays_in_range() {
+        use fixed::types::I16F16;
+
+        let one = I16F16::ONE;
+        let (mut x, mut P, H, mut R) = ([I16F16::ZERO], [one], [one >> 8], [I16F16::ZERO]);
+        let y = [I16F16::from_num(0.6)];
+        let (mut K, mut S, mut S_inv, mut HP, mut PHt, mut KHP) = (
+            [I16F16::ZERO],
+            [I16F16::ZERO],
+            [I16F16::ZERO],
+            [I16F16::ZERO],
+            [I16F16::ZERO],
+            [I16F16::ZERO],
+        );
+        let mut nis = I16F16::ZERO;
+        let status = update_with_innovation(
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut x),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut P),
+            &MatrixData::new_ref::<1, 1, I16F16>(&H),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut R),
+            &MatrixData::new_ref::<1, 1, I16F16>(&y),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut K),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut S),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut S_inv),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut HP),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut PHt),
+            &mut MatrixData::new_mut::<1, 1, I16F16>(&mut KHP),
+            &mut nis,
+            None,
+            None,
+            CovarianceUpdate::Joseph,
+        );
+
+        assert_eq!(status, CorrectionStatus::Applied);
+        assert_eq!(S[0], I16F16::DELTA, "S keeps H×P×Hᵀ + R");
+        assert_eq!(K[0], I16F16::from_num(256));
+        assert!(
+            (nis.to_num::<f64>() - 0.36 * 65536.0).abs() < 10.0,
+            "NIS {nis}"
+        );
+        assert!((x[0].to_num::<f64>() - 153.6).abs() < 0.01, "x {}", x[0]);
     }
 }
