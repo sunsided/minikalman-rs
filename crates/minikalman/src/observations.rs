@@ -6,6 +6,8 @@ use crate::observations::innovation_factor::{InnovationFactor, is_number};
 
 pub mod extended;
 pub mod fixed_gain;
+#[cfg(test)]
+mod glue_reference;
 pub(crate) mod innovation_factor;
 pub(crate) mod predictively_oriented;
 pub mod regular;
@@ -507,11 +509,18 @@ pub(crate) fn adapt_measurement_noise_from_innovation<const OBSERVATIONS: usize,
 ) where
     T: MatrixDataType,
 {
-    for i in 0..OBSERVATIONS {
-        for j in 0..=i {
-            let value = innovation_matched_entry(adaptation, &*R, y, S, i, j);
-            temp.set(i, j, value);
-            temp.set(j, i, value);
+    // Slices of the static length, so that the loops need no bounds checks.
+    let y = &y.as_slice()[..OBSERVATIONS];
+    let s = &S.as_slice()[..OBSERVATIONS * OBSERVATIONS];
+    {
+        let r = &R.as_slice()[..OBSERVATIONS * OBSERVATIONS];
+        let candidate = &mut temp.as_mut_slice()[..OBSERVATIONS * OBSERVATIONS];
+        for i in 0..OBSERVATIONS {
+            for j in 0..=i {
+                let value = innovation_matched_entry::<OBSERVATIONS, T>(adaptation, r, y, s, i, j);
+                candidate[i * OBSERVATIONS + j] = value;
+                candidate[j * OBSERVATIONS + i] = value;
+            }
         }
     }
 
@@ -520,23 +529,27 @@ pub(crate) fn adapt_measurement_noise_from_innovation<const OBSERVATIONS: usize,
     }
 
     // Only the lower triangle is read, so mirroring into the upper one is safe in place.
+    let r = &mut R.as_mut_slice()[..OBSERVATIONS * OBSERVATIONS];
     for i in 0..OBSERVATIONS {
         for j in 0..=i {
-            let value = innovation_matched_entry(adaptation, &*R, y, S, i, j);
-            R.set(i, j, value);
-            R.set(j, i, value);
+            let value = innovation_matched_entry::<OBSERVATIONS, T>(adaptation, r, y, s, i, j);
+            r[i * OBSERVATIONS + j] = value;
+            r[j * OBSERVATIONS + i] = value;
         }
     }
 }
 
 /// Returns the entry `(i, j)` of the innovation-form candidate `R + (1−α)×(y×yᵀ − S)`, with
 /// diagonal entries raised to at least the floor.
-#[allow(non_snake_case)]
+///
+/// `r` and `s` are the row-major `OBSERVATIONS × OBSERVATIONS` entries of `R` and `S`, `y`
+/// the innovation.
+#[inline(always)]
 fn innovation_matched_entry<const OBSERVATIONS: usize, T>(
     adaptation: NoiseAdaptation<T>,
-    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
-    y: &impl Matrix<OBSERVATIONS, 1, T>,
-    S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    r: &[T],
+    y: &[T],
+    s: &[T],
     i: usize,
     j: usize,
 ) -> T
@@ -544,12 +557,26 @@ where
     T: MatrixDataType,
 {
     let weight = T::one() - adaptation.forgetting;
-    let value = R.get(i, j) + weight * (y.get(i, 0) * y.get(j, 0) - S.get(i, j));
+    let ij = i * OBSERVATIONS + j;
+    let value = r[ij] + weight * (y[i] * y[j] - s[ij]);
     if i == j && value < adaptation.floor {
         return adaptation.floor;
     }
 
     value
+}
+
+/// Raises every diagonal entry of the row-major `N × N` matrix `m` to at least `floor`.
+#[inline(always)]
+pub(crate) fn raise_diagonal_to_floor<const N: usize, T>(m: &mut [T], floor: T)
+where
+    T: MatrixDataType,
+{
+    for i in 0..N {
+        if m[i * N + i] < floor {
+            m[i * N + i] = floor;
+        }
+    }
 }
 
 /// Subtracts `A + Aᵀ` from the lower triangle of the square matrix `P` in place.
@@ -592,6 +619,10 @@ fn adapt_measurement_noise<const STATES: usize, const OBSERVATIONS: usize, T>(
 ) where
     T: MatrixDataType,
 {
+    // This body stays on get/set although it never runs with the adaptation off: it is
+    // inlined into every regular and extended correction, and a slice version shifted the
+    // register allocation of the hot path (Cortex-M4F, benches/mcu: up to +5 instructions for
+    // the 2×1 correction). Revisit together with an instruction-count check.
     let alpha = adaptation.forgetting;
     let weight = T::one() - alpha;
 
@@ -783,11 +814,15 @@ fn write_gain_and_compare<const STATES: usize, const OBSERVATIONS: usize, T>(
 where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let pht = &PHt.as_slice()[..STATES * OBSERVATIONS];
+    let s_inv = &S_inv.as_slice()[..OBSERVATIONS * OBSERVATIONS];
+    let k = &mut K.as_mut_slice()[..STATES * OBSERVATIONS];
     let mut converged = true;
     for i in 0..STATES {
         for j in 0..OBSERVATIONS {
             let gain: T = (0..OBSERVATIONS)
-                .map(|l| PHt.get(i, l) * S_inv.get(l, j))
+                .map(|l| pht[i * OBSERVATIONS + l] * s_inv[l * OBSERVATIONS + j])
                 .sum();
             let magnitude = abs(gain);
             let scale = if magnitude > T::one() {
@@ -795,8 +830,8 @@ where
             } else {
                 T::one()
             };
-            converged &= abs(gain - K.get(i, j)) <= tolerance * scale;
-            K.set(i, j, gain);
+            converged &= abs(gain - k[i * OBSERVATIONS + j]) <= tolerance * scale;
+            k[i * OBSERVATIONS + j] = gain;
         }
     }
 
@@ -847,10 +882,11 @@ where
         return status;
     }
 
-    // The prior is stored in temp_KHP once K exists.
-    for i in 0..STATES {
-        temp_KHP.set(i, 0, x.get(i, 0));
-    }
+    // The prior is stored in column 0 of temp_KHP once K exists.
+    copy_into_first_column::<STATES, T>(
+        &x.as_slice()[..STATES],
+        &mut temp_KHP.as_mut_slice()[..STATES * STATES],
+    );
 
     K.multadd_rowvector(y, x);
     CorrectionStatus::Applied
@@ -886,9 +922,14 @@ where
     // trace(P⁺) - trace(P) = trace(K*S₂*Kᵀ) - 2*trace(K*H₂*P)
     let cross = trace_of_product(K, temp_HP);
     if trace_of_gain_sandwich(K, S) - cross - cross > T::zero() {
-        for i in 0..STATES {
-            x.set(i, 0, temp_KHP.get(i, 0));
+        let prior = &temp_KHP.as_slice()[..STATES * STATES];
+        for (x, row) in x.as_mut_slice()[..STATES]
+            .iter_mut()
+            .zip(prior.chunks_exact(STATES))
+        {
+            *x = row[0];
         }
+
         return CorrectionStatus::BackedOut;
     }
 
@@ -910,14 +951,17 @@ pub(crate) fn trace_of_gain_sandwich<const STATES: usize, const OBSERVATIONS: us
 where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let s = &S.as_slice()[..OBSERVATIONS * OBSERVATIONS];
+    let k = &K.as_slice()[..STATES * OBSERVATIONS];
     let mut trace = T::zero();
-    for i in 0..STATES {
-        for j in 0..OBSERVATIONS {
+    for k_row in k.chunks_exact(OBSERVATIONS) {
+        for (j, s_row) in s.chunks_exact(OBSERVATIONS).enumerate() {
             let mut row = T::zero();
             for l in 0..OBSERVATIONS {
-                row += S.get(j, l) * K.get(i, l);
+                row += s_row[l] * k_row[l];
             }
-            trace += K.get(i, j) * row;
+            trace += k_row[j] * row;
         }
     }
     trace
@@ -933,10 +977,13 @@ fn trace_of_product<const STATES: usize, const OBSERVATIONS: usize, T>(
 where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let a = &A.as_slice()[..STATES * OBSERVATIONS];
+    let b = &B.as_slice()[..OBSERVATIONS * STATES];
     let mut trace = T::zero();
     for i in 0..STATES {
         for j in 0..OBSERVATIONS {
-            trace += A.get(i, j) * B.get(j, i);
+            trace += a[i * OBSERVATIONS + j] * b[j * STATES + i];
         }
     }
     trace
@@ -950,10 +997,24 @@ pub(crate) fn sub_symmetric_part<const STATES: usize, T>(
 ) where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let p = &mut P.as_mut_slice()[..STATES * STATES];
+    let m = &M.as_slice()[..STATES * STATES];
     for i in 0..STATES {
         for j in 0..STATES {
-            P.set(i, j, P.get(i, j) - M.get(i, j) - M.get(j, i));
+            p[i * STATES + j] = p[i * STATES + j] - m[i * STATES + j] - m[j * STATES + i];
         }
+    }
+}
+
+/// Copies the `N` entries of `source` into column 0 of the row-major `N × N` matrix `target`.
+#[inline(always)]
+fn copy_into_first_column<const N: usize, T>(source: &[T], target: &mut [T])
+where
+    T: Copy,
+{
+    for (&value, row) in source.iter().zip(target.chunks_exact_mut(N)) {
+        row[0] = value;
     }
 }
 

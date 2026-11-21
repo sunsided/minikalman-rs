@@ -1072,7 +1072,15 @@ where
     B: MatrixMut<N, K, T>,
     T: MatrixDataType,
 {
-    triangular::solve_triangular(t.as_slice(), N, triangle, transpose, b.as_mut_slice(), K)
+    // Slices of the static length, so that the substitutions need no bounds checks.
+    triangular::solve_triangular(
+        &t.as_slice()[..N * N],
+        N,
+        triangle,
+        transpose,
+        &mut b.as_mut_slice()[..N * K],
+        K,
+    )
 }
 
 /// A square matrix wrapping a data buffer.
