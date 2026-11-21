@@ -131,7 +131,9 @@ where
 /// Picks the largest of three candidates that passes `f(c) ≥ 0`:
 /// - the large-innovation estimate `|v|·√g − r − g`, where `v²/(c+r+g)² = 1/g`,
 /// - the `v = 0` root `(√(r² + 4gr) − r)/2`,
-/// - the Kalman filter's `g·r/(g+r)`, which always passes and needs no square root.
+/// - the Kalman filter's `g·r/(g+r)`, which always passes and needs no square root. It is
+///   formed without the product `g·r`, which can underflow to zero (subnormal floats, or
+///   fixed-point types) and would leave `c = 0`.
 ///
 /// The first two are exact lower bounds, but an approximate square root (e.g. `micromath`) or
 /// cancellation in `|v|·√g − g` can push them right of the root, hence the check.
@@ -146,7 +148,11 @@ where
     let large_innovation = abs_v * g.square_root() - r - g;
     // (√(r² + 4gr) − r)/2, rationalized to avoid cancellation when g ≪ r.
     let no_innovation = two * g * r / ((r * r + four * g * r).square_root() + r);
-    let kalman = g * r / (g + r);
+    let kalman = if g <= r {
+        g / (T::one() + g / r)
+    } else {
+        r / (T::one() + r / g)
+    };
 
     let mut start = kalman;
     for candidate in [no_innovation, large_innovation] {
@@ -161,6 +167,9 @@ where
 /// Evaluates the stationarity condition `f(c)` and its derivative `f′(c)` (see the module docs).
 ///
 /// Uses `a = v/(c+r+g)` so that neither `v²` nor `(c+r+g)²` is formed on its own.
+///
+/// Forms `1/c²`, so fixed-point types overflow once `c` is below `1/√MAX` (about `0.0055` for
+/// `I16F16`).
 fn stationarity<T>(c: T, g: T, r: T, v: T) -> (T, T)
 where
     T: MatrixDataType,
@@ -179,6 +188,15 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `g·r` underflows to zero in `f32` here; the start point must stay positive anyway.
+    #[test]
+    fn tiny_covariances_keep_a_positive_root() {
+        let (g, r) = (1e-23_f32, 1e-23_f32);
+        assert_eq!(g * r, 0.0);
+        let c = solve_stationarity(g, r, 0.0, 20);
+        assert!(c > 0.0 && c.is_finite(), "c = {c}");
+    }
 
     /// The derivation's toy problem `P̃ = H = R = 1`, `v = 3` has its root at `c ≈ 1.5019`.
     #[test]
