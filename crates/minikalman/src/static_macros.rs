@@ -1269,6 +1269,56 @@ macro_rules! impl_buffer_temp_P {
     };
 }
 
+/// Creates a static buffer fitting the prearray of the square-root filter
+/// (`2 × num_states` × `num_states`).
+///
+/// This will create a [`MatrixDataArray`](crate::matrix::MatrixDataArray) for the `temp_pre`
+/// argument of [`SquareRootKalman::new`](crate::square_root::SquareRootKalman::new), which
+/// holds `[(A×S)ᵀ; Lqᵀ]` during the predict and scratch vectors during the correction.
+///
+/// ## Arguments
+/// * `num_states` - The number of states.
+/// * `t` - The data type.
+/// * `init` - The default value to initialize the buffer with.
+///
+/// ## Example
+/// ```
+/// # use minikalman::prelude::*;
+/// const NUM_STATES: usize = 3;
+/// impl_buffer_temp_prearray!(mut pre, NUM_STATES, f32, 0.0);
+///
+/// assert_eq!(pre.as_slice().len(), 18);
+/// ```
+#[macro_export]
+macro_rules! impl_buffer_temp_prearray {
+    (mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_prearray!($mat_name, $num_states, $t, $init, let mut)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_prearray!($mat_name, $num_states, $t, $init, let)
+    };
+    (let mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_prearray!($mat_name, $num_states, $t, $init, let mut)
+    };
+    (let $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_prearray!($mat_name, $num_states, $t, $init, let)
+    };
+    (static mut $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_prearray!($mat_name, $num_states, $t, $init, static mut)
+    };
+    (static $mat_name:ident, $num_states:expr, $t:ty, $init:expr) => {
+        $crate::impl_buffer_temp_prearray!($mat_name, $num_states, $t, $init, static)
+    };
+    ($mat_name:ident, $num_states:expr, $t:ty, $init:expr, $($keywords:tt)+) => {
+        $($keywords)* $mat_name: $crate::matrix::MatrixDataArray<
+            { 2 * $num_states },
+            $num_states,
+            { 2 * $num_states * $num_states },
+            $t,
+        > = $crate::matrix::MatrixDataArray::new_unchecked([$init; { 2 * $num_states * $num_states }]);
+    };
+}
+
 /// Creates a static buffer fitting the temporary B×Q matrix (`num_states` × `num_controls`).
 ///
 /// This will create a [`TemporaryBQMatrixBuffer`](crate::buffers::types::TemporaryBQMatrixBuffer)

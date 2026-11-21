@@ -40,9 +40,11 @@ flowchart LR
     linear{{"linear?"}}
     fusion{{"many sensors,<br/>fused independently?"}}
     jacobians{{"Jacobians available,<br/>mild nonlinearity?"}}
+    definite{{"P loses definiteness?<br/>(f32, fixed point)"}}
     regular["regular<br/>RegularKalman"]
+    square_root["square_root<br/>SquareRootKalman<br/>(floating point)"]
     information["information<br/>InformationFilter::fuse"]
-    ud["ud<br/>UdKalman"]
+    ud["ud<br/>UdKalman<br/>(fixed point, no square roots)"]
     extended["extended<br/>ExtendedKalman"]
     unscented["unscented<br/>UnscentedKalman<br/>(CKF: α=1, β=0, κ=0)"]
     outliers{{"outliers or<br/>heavy tails?"}}
@@ -53,9 +55,11 @@ flowchart LR
     smoother["smoother<br/>RtsSmoother, FixedLagSmoother"]
     model --> linear
     linear -- yes --> fusion
-    fusion -- no --> regular
+    fusion -- no --> definite
+    definite -- no --> regular
+    definite -- yes --> square_root
+    definite -- yes --> ud
     fusion -- yes --> information
-    regular -. "fixed-point or<br/>ill-conditioned" .-> ud
     linear -- no --> jacobians
     jacobians -- yes --> extended
     jacobians -- no --> unscented
@@ -64,6 +68,7 @@ flowchart LR
     outliers --> noise
     noise -. yes .-> adapt
     noise --> offline
+    square_root & ud --> offline
     offline -. yes .-> smoother
     classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
 ```

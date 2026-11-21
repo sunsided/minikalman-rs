@@ -9,6 +9,7 @@ use crate::regular::{
     Control, ControlBuilder, RegularKalman, RegularKalmanBuilder, RegularObservation,
     RegularObservationBuilder,
 };
+use crate::square_root::SquareRootKalman;
 use crate::ud::UdKalman;
 
 /// A simple builder for [`RegularKalman`] instances.
@@ -71,6 +72,20 @@ pub type UdKalmanType<const STATES: usize, const TWO_STATES: usize, T> = UdKalma
     DirectProcessNoiseCovarianceMatrixBufferOwnedType<STATES, T>,
     MatrixDataBoxed<STATES, TWO_STATES, T>,
     MatrixDataBoxed<TWO_STATES, 1, T>,
+>;
+
+/// The type of square-root covariance filters with owned buffers.
+///
+/// `TWO_STATES` must be `2 × STATES`. See also [`KalmanFilterBuilder::build_square_root`].
+pub type SquareRootKalmanType<const STATES: usize, const TWO_STATES: usize, T> = SquareRootKalman<
+    STATES,
+    TWO_STATES,
+    T,
+    SystemMatrixMutBufferOwnedType<STATES, T>,
+    StateVectorBufferOwnedType<STATES, T>,
+    EstimateCovarianceMatrixBufferOwnedType<STATES, T>,
+    DirectProcessNoiseCovarianceMatrixBufferOwnedType<STATES, T>,
+    MatrixDataBoxed<TWO_STATES, STATES, T>,
 >;
 
 impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
@@ -162,6 +177,31 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
                 STATES * TWO_STATES
             ]),
             MatrixData::new_boxed::<TWO_STATES, 1, T, _>(alloc::vec![T::default(); TWO_STATES]),
+        )
+    }
+
+    /// Builds a new square-root covariance filter using heap allocated buffers.
+    ///
+    /// `TWO_STATES` is the row count of the prearray and must be `2 × STATES`. The filter
+    /// starts with `x = 0`, `S = 0` and `Lq = 0`; set them with
+    /// [`SquareRootKalman::set_state`] and [`SquareRootKalman::set_process_noise`], or
+    /// directly as factors. Observations built with [`observations`](Self::observations) are
+    /// applied with [`SquareRootKalman::correct`].
+    ///
+    /// ## Panics
+    /// If `TWO_STATES` is not `2 × STATES` (unless the `no_assert` feature is enabled).
+    pub fn build_square_root<const TWO_STATES: usize>(
+        &self,
+    ) -> SquareRootKalmanType<STATES, TWO_STATES, T>
+    where
+        T: MatrixDataType + Default,
+    {
+        SquareRootKalman::new(
+            BufferBuilder::system_matrix_A::<STATES>().new(),
+            BufferBuilder::state_vector_x::<STATES>().new(),
+            BufferBuilder::estimate_covariance_P::<STATES>().new(),
+            BufferBuilder::direct_process_noise_covariance_Q::<STATES>().new(),
+            MatrixDataBoxed::new(alloc::vec![T::default(); TWO_STATES * STATES]),
         )
     }
 

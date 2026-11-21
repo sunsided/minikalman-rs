@@ -208,10 +208,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(any(feature = "std", feature = "libm", feature = "fixed"))]
     use super::*;
     use crate::matrix::{Matrix, MatrixData, MatrixMut, RowMajorSequentialData, SquareMatrix};
 
     /// Returns `Mᵀ×M` of the row-major `rows×cols` matrix `m` in `f64`, with `N = cols²`.
+    #[cfg(any(feature = "std", feature = "libm", feature = "fixed"))]
     fn gram<const N: usize>(m: &[f64], rows: usize, cols: usize) -> [f64; N] {
         let mut g = [0.0; N];
         for i in 0..cols {
@@ -225,6 +227,7 @@ mod tests {
 
     /// Asserts that the first `cols` rows of `r` are upper triangular with a non-negative
     /// diagonal and that all rows below are zero.
+    #[cfg(any(feature = "std", feature = "libm", feature = "fixed"))]
     fn assert_upper_triangular(r: &[f64], rows: usize, cols: usize) {
         for i in 0..rows {
             for j in 0..cols {
