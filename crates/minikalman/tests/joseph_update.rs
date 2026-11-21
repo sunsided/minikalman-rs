@@ -49,7 +49,7 @@ fn default_is_standard() {
 }
 
 /// Runs a constant-velocity filter (position and velocity, position sensor) for 200 steps with
-/// `update`, optionally adapting `R`, normalizing the innovation on odd steps. Returns the
+/// `update`, optionally adapting `R`, exercising the `*_with` variants on odd steps. Returns the
 /// final state, the final `P` in row-major order and the final `R`.
 fn regular_run(update: CovarianceUpdate, adapt: bool) -> ([f64; 2], [f64; 4], f64) {
     let builder = RegularBuilder::<2, f64>::default();
@@ -129,8 +129,8 @@ fn observe(x: &impl Matrix<2, 1, f64>, z: &mut impl MatrixMut<1, 1, f64>) {
     z.set_at(0, 0, x.get_at(0, 0) * x.get_at(0, 0) + x.get_at(1, 0));
 }
 
-/// Runs an extended filter with `h(x) = x₀² + x₁` for 50 steps with `update`, normalizing the
-/// innovation on odd steps. Returns the final state and `P` in row-major order.
+/// Runs an extended filter with `h(x) = x₀² + x₁` for 50 steps with `update`, exercising the
+/// `*_with` variants on odd steps. Returns the final state and `P` in row-major order.
 fn extended_run(update: CovarianceUpdate) -> ([f64; 2], [f64; 4]) {
     let builder = ExtendedBuilder::<2, f64>::default();
     let mut filter = builder.build();

@@ -347,7 +347,7 @@ impl<
     /// cost of forming `S` again and two more matrix products. See [`CovarianceUpdate`] for
     /// what it does and does not fix.
     ///
-    /// The external-gain and predictively oriented corrections ignore this setting.
+    /// The external-gain, recalibrated and predictively oriented corrections ignore this setting.
     #[inline(always)]
     pub fn set_covariance_update(&mut self, update: CovarianceUpdate) {
         self.covariance_update = update;
