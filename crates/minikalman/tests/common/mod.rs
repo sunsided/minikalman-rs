@@ -280,11 +280,17 @@ pub fn assert_matrix_close(a: &[f32], b: &[f32], eps: f32) {
     }
 }
 
+/// Checks that the row-major `n` × `n` matrix is symmetric to within `eps`, relative to the
+/// larger entry of each pair (absolute for entries below 1).
+///
+/// The covariance update `P - K×(H×P)` is not symmetric by construction, so in `f32` its
+/// round-off grows with the size of `P`; an absolute bound fails for large covariances.
 pub fn is_symmetric(data: &[f32], n: usize, eps: f32) -> bool {
     for i in 0..n {
         for j in (i + 1)..n {
-            let diff = (data[i * n + j] - data[j * n + i]).abs();
-            if diff > eps {
+            let (a, b) = (data[i * n + j], data[j * n + i]);
+            let diff = (a - b).abs();
+            if diff > eps * a.abs().max(b.abs()).max(1.0) {
                 return false;
             }
         }
