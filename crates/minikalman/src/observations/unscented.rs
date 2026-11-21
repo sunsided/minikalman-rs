@@ -388,6 +388,7 @@ where
     }
 
     /// Computes the innovation `y = fix(z - ẑ)`.
+    #[allow(clippy::needless_range_loop)]
     fn compute_innovation<NZ>(&mut self, z_pred: &[T; OBSERVATIONS], fix_measurement: &mut NZ)
     where
         NZ: FnMut(&mut [T]),
