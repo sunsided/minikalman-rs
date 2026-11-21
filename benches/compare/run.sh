@@ -24,7 +24,7 @@ cargo run --locked --release --bin check > "$out/check.json"
 pin=()
 CPU="${CPU-2}"
 if [ -n "$CPU" ] && command -v taskset > /dev/null; then pin=(taskset -c "$CPU"); fi
-"${pin[@]}" cargo bench --locked --bench compare -- ${BENCH_FILTER:-}
+${pin[@]+"${pin[@]}"} cargo bench --locked --bench compare -- ${BENCH_FILTER:-}
 python3 -I tables.py "$target/criterion" > "$out/tables.md"
 
 # 3. Code size on Cortex-M4F (needs `rustup target add thumbv7em-none-eabihf` and llvm-size).
