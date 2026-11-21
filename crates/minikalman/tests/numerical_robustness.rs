@@ -385,5 +385,7 @@ fn sequential_scalar_updates() {
 
     let standard = i16f16[0].expect("standard I16F16 completes");
     assert!(standard.not_positive_definite > 0);
-    assert!(i16f16[1].is_none_or(|joseph| joseph.not_positive_definite > 0));
+    // The Joseph run completes (no overflow in the gain) and diverges instead.
+    let joseph = i16f16[1].expect("Joseph I16F16 completes");
+    assert!(joseph.not_positive_definite > 0);
 }

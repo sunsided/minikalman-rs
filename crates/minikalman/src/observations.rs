@@ -1172,9 +1172,8 @@ mod tests {
         deviation
     }
 
-    /// Every shape class: `M < N` (S kept in `temp_KHP`), `M = N`, and `M > N` (S formed
-    /// again), with up to five measurements, plus a gated correction. Returns the largest
-    /// deviation from the explicit-inverse gain.
+    /// Every shape class (`M < N`, `M = N`, `M > N`) with up to five measurements, plus a
+    /// gated correction. Returns the largest deviation from the explicit-inverse gain.
     fn assert_all_shapes<T: MatrixDataType + ToBits>(scale: f64, tolerance: f64) -> f64 {
         let mut deviation = 0.0f64;
         for update in [CovarianceUpdate::Standard, CovarianceUpdate::Joseph] {
