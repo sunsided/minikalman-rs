@@ -686,6 +686,138 @@ pub trait KalmanFilterObservationCorrectPredictivelyOrientedVector<
         W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>;
 }
 
+/// The outlier-robust (Student-t) observation function for a regular Kalman Filter.
+///
+/// See [`RegularObservation::correct_robust`](crate::regular::RegularObservation::correct_robust)
+/// for the update, its cost, and how it relates to the predictively oriented correction.
+pub trait KalmanFilterObservationCorrectRobust<const STATES: usize, const OBSERVATIONS: usize, T> {
+    /// Performs the robust measurement update step.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget.
+    ///
+    /// Returns whether the measurement was applied and the weight converged; see
+    /// [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_robust<X, P, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        self.correct_robust_with(x, P, workspace, robust, |_| {})
+    }
+
+    /// Performs the robust measurement update step, normalizing the innovation before it is
+    /// applied.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget.
+    /// * `fix` - Normalizes the innovation vector in place.
+    ///
+    /// Returns whether the measurement was applied and the weight converged; see
+    /// [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_robust_with<X, P, W, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+        N: FnMut(&mut [T]);
+}
+
+/// The outlier-robust (Student-t) observation function for an Extended Kalman Filter.
+///
+/// See [`ExtendedObservation::correct_nonlinear_robust`](crate::extended::ExtendedObservation::correct_nonlinear_robust)
+/// for the update. Unlike the extended predictively oriented correction, it supports any
+/// number of measurements.
+pub trait KalmanFilterNonlinearObservationCorrectRobust<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    T,
+>: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
+{
+    /// Performs the robust nonlinear measurement update step.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget.
+    ///
+    /// Returns whether the measurement was applied and the weight converged; see
+    /// [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_nonlinear_robust<X, P, F, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        self.correct_nonlinear_robust_with(x, P, observation, |_| {}, workspace, robust)
+    }
+
+    /// Performs the robust nonlinear measurement update step, normalizing the innovation
+    /// before it is applied.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `fix` - Normalizes the innovation vector in place.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget.
+    ///
+    /// Returns whether the measurement was applied and the weight converged; see
+    /// [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_robust_with<X, P, F, N, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        fix: N,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>;
+}
+
 /// The observation function for an Extended Kalman Filter.
 pub trait KalmanFilterNonlinearObservationCorrectFilter<
     const STATES: usize,
@@ -1399,6 +1531,51 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
         F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
         NX: FnMut(&mut [T]),
         NZ: FnMut(&mut [T]);
+}
+
+/// Outlier-robust (Student-t) sigma point correction for Unscented Kalman Filters.
+///
+/// See [`UnscentedKalman::correct_sigma_point_robust`](crate::unscented::UnscentedKalman::correct_sigma_point_robust)
+/// for the update and how it differs from Piché et al.
+pub trait KalmanFilterUnscentedObservationCorrectRobust<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+>: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>
+{
+    /// Performs the robust correction given the sigma points, normalizing state and
+    /// measurement differences before they are used.
+    ///
+    /// `observation`, `fix_state` and `fix_measurement` are used as in
+    /// [`correct_with_observed_residuals`](KalmanFilterUnscentedObservationCorrectFilter::correct_with_observed_residuals);
+    /// `workspace` is one `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    ///
+    /// Returns whether the measurement was applied and the weight converged; see
+    /// [`CorrectionStatus`].
+    #[allow(non_snake_case, clippy::too_many_arguments)]
+    fn correct_with_observed_robust_residuals<X, P, SP, F, W, NX, NZ, WS>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &SP,
+        weights: &W,
+        lambda: T,
+        observation: F,
+        fix_state: NX,
+        fix_measurement: NZ,
+        workspace: &mut WS,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+        NX: FnMut(&mut [T]),
+        NZ: FnMut(&mut [T]),
+        WS: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>;
 }
 
 /// Recalibrated sigma point correction for Unscented Kalman Filters.

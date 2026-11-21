@@ -28,6 +28,10 @@
 //! and their extended and unscented counterparts). The predictively oriented correction is
 //! [`RegularKalman::correct_predictively_oriented`](regular::RegularKalman::correct_predictively_oriented)
 //! or [`ExtendedKalman::correct_nonlinear_predictively_oriented`](extended::ExtendedKalman::correct_nonlinear_predictively_oriented).
+//! The outlier-robust Student-t correction is
+//! [`RegularKalman::correct_robust`](regular::RegularKalman::correct_robust),
+//! [`ExtendedKalman::correct_nonlinear_robust`](extended::ExtendedKalman::correct_nonlinear_robust)
+//! or [`UnscentedKalman::correct_sigma_point_robust`](unscented::UnscentedKalman::correct_sigma_point_robust).
 //! The [`smoother`] module refines a recorded run ([`RtsSmoother`](smoother::RtsSmoother))
 //! or a sliding window ([`FixedLagSmoother`](smoother::FixedLagSmoother)).
 //!
@@ -293,6 +297,7 @@ pub mod regular {
     pub use crate::kalman::regular::*;
     pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
     pub use crate::observations::regular::*;
+    pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -382,6 +387,7 @@ pub mod ud {
 pub mod extended {
     pub use crate::kalman::extended::*;
     pub use crate::observations::extended::*;
+    pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -404,11 +410,13 @@ pub mod unscented {
     pub use crate::kalman::{
         CrossCovarianceMatrix, KalmanFilterSigmaPointCorrect, KalmanFilterSigmaPointPredict,
         KalmanFilterUnscentedObservationCorrectFilter,
-        KalmanFilterUnscentedObservationCorrectRecalibrated, KalmanFilterUnscentedParams,
+        KalmanFilterUnscentedObservationCorrectRecalibrated,
+        KalmanFilterUnscentedObservationCorrectRobust, KalmanFilterUnscentedParams,
         KalmanFilterUnscentedParamsMut, SigmaObservedMatrix, SigmaPointMatrix,
         SigmaPropagatedMatrix, SigmaWeightsVector, SigmaWeightsVectorMut, TempSigmaPMatrix,
         UnscentedKalmanFilter,
     };
+    pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::unscented::*;
     pub use crate::observations::NoiseAdaptation;
 
@@ -429,6 +437,7 @@ pub mod prelude {
     pub use crate::kalman::*;
     pub use crate::matrix::*;
     pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
+    pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
     pub use crate::{

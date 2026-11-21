@@ -13,6 +13,16 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   square root, which suits fixed-point targets: in an `I16F16` test where the plain filter's `P` turns
   indefinite, the UD filter's `P` stays positive semi-definite over 10⁴ steps. Correlated `R`, rank-deficient `Q`, the gate
   and the NIS are supported. New buffer macros `impl_buffer_ud_W` and `impl_buffer_ud_D` ([#111]).
+- Added an outlier-robust correction that models the measurement noise as Student-t
+  (variational Bayes, Piché, Särkkä and Hartikainen, IEEE MLSP 2012): `correct_robust` /
+  `correct_robust_with` on the regular filter, `correct_nonlinear_robust` /
+  `correct_nonlinear_robust_with` on the extended filter (any number of measurements) and
+  `correct_sigma_point_robust` / `correct_sigma_point_robust_with` on the unscented filter, with
+  `RobustCorrection` and `RobustWeight::StudentT { dof }`. It is a Kalman update with `R/w`, so `P`
+  never grows past the prior; the weight `w` is iterated on `OBSERVATIONS × OBSERVATIONS` matrices
+  with one caller-provided scratch matrix, reported by `robust_weight()`, and the status is
+  `NotConverged` if it does not settle within the budget. The gate and NIS use the prior
+  innovation, and `R` is not adapted ([#108]).
 - Added a `compass` example: a heading filter whose heading crosses north, corrected with
   `correct_with` and `angles::wrap_180`, next to an unwrapped filter that swings the long way
   around. See [#40].
@@ -173,6 +183,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [#112]: https://github.com/sunsided/minikalman-rs/issues/112
 [#111]: https://github.com/sunsided/minikalman-rs/issues/111
+[#108]: https://github.com/sunsided/minikalman-rs/issues/108
 [#107]: https://github.com/sunsided/minikalman-rs/issues/107
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92

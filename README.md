@@ -26,9 +26,10 @@ Unscented Kalman filters, compiled to WebAssembly, side by side on a radar track
 
 ## Which filter do I need?
 
-Pick the filter from the model, then add what the measurements need: an innovation gate or the
-predictively oriented correction against outliers, noise adaptation when `R` is unknown, and a
-smoother when the estimate may lag behind the measurements.
+Pick the filter from the model, then add what the measurements need: an innovation gate, the
+Student-t robust correction or the predictively oriented correction against outliers, noise
+adaptation when `R` is unknown, and a smoother when the estimate may lag behind the
+measurements.
 
 ```mermaid
 flowchart LR
@@ -45,7 +46,7 @@ flowchart LR
     extended["extended<br/>ExtendedKalman"]
     unscented["unscented<br/>UnscentedKalman<br/>(CKF: α=1, β=0, κ=0)"]
     outliers{{"outliers or<br/>heavy tails?"}}
-    gate["set_gate<br/>correct_predictively_oriented (regular)<br/>correct_nonlinear_predictively_oriented (extended)"]
+    gate["set_gate<br/>correct_robust, correct_nonlinear_robust,<br/>correct_sigma_point_robust (Student-t)<br/>correct_predictively_oriented (regular)<br/>correct_nonlinear_predictively_oriented (extended)"]
     noise{{"R unknown?"}}
     adapt["set_noise_adaptation"]
     offline{{"offline or<br/>lagged estimate?"}}

@@ -609,6 +609,23 @@ fn tolerance<T>() -> T
 where
     T: MatrixDataType,
 {
+    let epsilon = machine_epsilon::<T>();
+    let tolerance = T::from_f64(TOLERANCE).unwrap_or_else(T::zero);
+    if epsilon > tolerance {
+        epsilon
+    } else {
+        tolerance
+    }
+}
+
+/// Returns the machine epsilon of `T`: the smallest power of two `ε` with `1 + ε ≠ 1`.
+///
+/// This is `2⁻⁵²` for `f64`, `2⁻²³` for `f32` and one unit in the last place for fixed-point
+/// types (`2⁻¹⁶` for `I16F16`).
+pub(crate) fn machine_epsilon<T>() -> T
+where
+    T: MatrixDataType,
+{
     let one = T::one();
     let two = one + one;
     let mut epsilon = one;
@@ -621,12 +638,7 @@ where
         epsilon = half;
     }
 
-    let tolerance = T::from_f64(TOLERANCE).unwrap_or_else(T::zero);
-    if epsilon > tolerance {
-        epsilon
-    } else {
-        tolerance
-    }
+    epsilon
 }
 
 /// Writes `out = aᵀ×b` for row-major `M×M` matrices.

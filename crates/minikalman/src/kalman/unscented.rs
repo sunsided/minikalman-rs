@@ -768,6 +768,97 @@ where
         status
     }
 
+    /// Performs an outlier-robust sigma point correction step with Student-t measurement
+    /// noise.
+    ///
+    #[doc = diagram!("unscented-loop.mmd", "observe", "correct")]
+    ///
+    /// The gain is `K = Pxz×(Pzz + R/w)⁻¹`, where the weight `w` is fitted to the innovation
+    /// by a few variational Bayes iterations (Piché, Särkkä, Hartikainen, IEEE MLSP 2012) on
+    /// the predicted measurement covariance `Pzz`. Outliers get a small weight and move the
+    /// state little; `P` never grows past the prior. See
+    /// [`RegularObservation::correct_robust_with`](crate::regular::RegularObservation::correct_robust_with)
+    /// for the update, its status, and how it relates to the predictively oriented correction.
+    /// This is the only robust update of the unscented filter besides the
+    /// [gate](crate::unscented::UnscentedObservation::set_gate).
+    ///
+    /// ## Difference to Piché et al.
+    /// The paper recomputes the residual statistics `D` from posterior sigma points in every
+    /// iteration. Here they come from the prior sigma points, which observes `h` only once:
+    /// `z − ẑ⁺ = R×(w×Pzz + R)⁻¹×y` and `Pzz⁺ = Pzz − Pzz×(Pzz + R/w)⁻¹×Pzz`, which is exact
+    /// for a linear `h` and the statistical linearization of the sigma points otherwise.
+    ///
+    /// The observation's `R` is not adapted; the filter's
+    /// [process noise adaptation](Self::set_process_noise_adaptation) runs on applied
+    /// corrections, including [`CorrectionStatus::NotConverged`].
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - Writes the images of the sigma points under `h`.
+    /// * `workspace` - One `OBS × OBS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget, e.g. `20`.
+    pub fn correct_sigma_point_robust<M, F, W, const OBS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        M: KalmanFilterUnscentedObservationCorrectRobust<STATES, OBS, NUM_SIGMA, T>,
+        F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBS, T>,
+        SigmaPropagated: AsMatrixMut<STATES, NUM_SIGMA, T>,
+    {
+        self.correct_sigma_point_robust_with(measurement, observation, |_| {}, workspace, robust)
+    }
+
+    /// Performs an outlier-robust sigma point correction step with Student-t measurement
+    /// noise, normalizing differences between measurements before they are used.
+    ///
+    /// See [`correct_sigma_point_robust`](Self::correct_sigma_point_robust) and
+    /// [`correct_sigma_point_with`](KalmanFilterSigmaPointCorrect::correct_sigma_point_with).
+    pub fn correct_sigma_point_robust_with<M, F, N, W, const OBS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        M: KalmanFilterUnscentedObservationCorrectRobust<STATES, OBS, NUM_SIGMA, T>,
+        F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
+        N: FnMut(&mut [T]),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBS, T>,
+        SigmaPropagated: AsMatrixMut<STATES, NUM_SIGMA, T>,
+    {
+        self.refresh_sigma_points();
+        let lambda = self.lambda();
+        let fix_state = Self::fix_state(self.state_residual);
+        let status = correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| {
+                measurement.correct_with_observed_robust_residuals(
+                    x,
+                    &mut self.P,
+                    &self.sigma_propagated,
+                    &self.sigma_weights,
+                    lambda,
+                    observation,
+                    fix_state,
+                    fix,
+                    workspace,
+                    robust,
+                )
+            },
+        );
+        self.sigma_points_stale = true;
+        status
+    }
+
     /// Redraws the sigma points from the current state and covariance, without
     /// propagating them, if a correction already used the current set.
     ///

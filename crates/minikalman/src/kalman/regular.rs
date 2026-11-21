@@ -780,6 +780,108 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
             max_iterations,
         )
     }
+
+    /// Performs an outlier-robust measurement update step with Student-t measurement noise.
+    ///
+    #[doc = diagram!("regular-loop.mmd", "correct")]
+    ///
+    /// A Kalman update with the noise covariance `R/w`, where the weight `w` is fitted to the
+    /// innovation by a few variational Bayes iterations (Piché, Särkkä, Hartikainen, IEEE
+    /// MLSP 2012). Outliers get a small weight and move the state little; `P` never grows past
+    /// the prior. See
+    /// [`RegularObservation::correct_robust_with`](crate::regular::RegularObservation::correct_robust_with)
+    /// for the update, its status, and when to prefer it over the
+    /// [predictively oriented](Self::correct_predictively_oriented_vector) correction.
+    ///
+    /// The [process noise adaptation](Self::set_process_noise_adaptation) runs on applied
+    /// corrections, including [`CorrectionStatus::NotConverged`].
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget, e.g. `20`.
+    ///
+    /// ## Example
+    /// ```
+    /// # #[cfg(feature = "alloc")] {
+    /// use minikalman::prelude::*;
+    /// use minikalman::regular::builder::KalmanFilterBuilder;
+    ///
+    /// let builder = KalmanFilterBuilder::<2, f64>::default();
+    /// let mut filter = builder.build();
+    /// let mut measurement = builder.observations().build::<2>();
+    /// let mut workspace = BufferBuilder::temp_S_inv::<2>().new();
+    ///
+    /// filter.estimate_covariance_mut().make_identity();
+    /// measurement.observation_matrix_mut().make_identity();
+    /// measurement.measurement_noise_covariance_mut().make_identity();
+    /// measurement.measurement_vector_mut().set_at(0, 0, 50.0);
+    ///
+    /// let robust = RobustCorrection {
+    ///     weight: RobustWeight::StudentT { dof: 4.0 },
+    ///     iterations: 20,
+    /// };
+    /// let status = filter.correct_robust(&mut measurement, &mut workspace, robust);
+    /// assert_eq!(status, CorrectionStatus::Applied);
+    ///
+    /// // The 50σ outlier is discounted: a Kalman update would move the state to 25.
+    /// assert!(measurement.robust_weight() < 0.01);
+    /// assert!(filter.state_vector().get_at(0, 0) < 1.0);
+    /// # }
+    /// ```
+    pub fn correct_robust<const OBSERVATIONS: usize, M, W>(
+        &mut self,
+        measurement: &mut M,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectRobust<STATES, OBSERVATIONS, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| measurement.correct_robust(x, &mut self.P, workspace, robust),
+        )
+    }
+
+    /// Performs an outlier-robust measurement update step with Student-t measurement noise,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_robust`](Self::correct_robust) and [`correct_with`](Self::correct_with).
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget.
+    /// * `fix` - Normalizes the innovation vector in place.
+    pub fn correct_robust_with<const OBSERVATIONS: usize, M, W, N>(
+        &mut self,
+        measurement: &mut M,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectRobust<STATES, OBSERVATIONS, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+        N: FnMut(&mut [T]),
+    {
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| measurement.correct_robust_with(x, &mut self.P, workspace, robust, fix),
+        )
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>

@@ -593,6 +593,100 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         )
     }
 
+    /// Performs an outlier-robust nonlinear measurement update step with Student-t
+    /// measurement noise.
+    ///
+    #[doc = diagram!("extended-loop.mmd", "correct")]
+    ///
+    /// A Kalman update with the noise covariance `R/w`, where the weight `w` is fitted to the
+    /// innovation by a few variational Bayes iterations (Piché, Särkkä, Hartikainen, IEEE
+    /// MLSP 2012). Works for any number of measurements; the Jacobian must be set up at the
+    /// prior. See
+    /// [`ExtendedObservation::correct_nonlinear_robust_with`](crate::extended::ExtendedObservation::correct_nonlinear_robust_with)
+    /// for the linearization, and
+    /// [`RegularObservation::correct_robust_with`](crate::regular::RegularObservation::correct_robust_with)
+    /// for the update, its status, and when to prefer it over the
+    /// [predictively oriented](Self::correct_nonlinear_predictively_oriented) correction.
+    ///
+    /// The [process noise adaptation](Self::set_process_noise_adaptation) runs on applied
+    /// corrections, including [`CorrectionStatus::NotConverged`].
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - The observation function.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget, e.g. `20`.
+    pub fn correct_nonlinear_robust<M, F, W, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectRobust<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| {
+                measurement.correct_nonlinear_robust(x, &mut self.P, observation, workspace, robust)
+            },
+        )
+    }
+
+    /// Performs an outlier-robust nonlinear measurement update step with Student-t
+    /// measurement noise, normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_robust`](Self::correct_nonlinear_robust) and
+    /// [`correct_nonlinear_with`](Self::correct_nonlinear_with).
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `observation` - The observation function.
+    /// * `fix` - Normalizes the innovation vector in place.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// * `robust` - The noise model and the iteration budget.
+    pub fn correct_nonlinear_robust_with<M, F, N, W, const OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        observation: F,
+        fix: N,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectRobust<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+        N: FnMut(&mut [T]),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| {
+                measurement.correct_nonlinear_robust_with(
+                    x,
+                    &mut self.P,
+                    observation,
+                    fix,
+                    workspace,
+                    robust,
+                )
+            },
+        )
+    }
+
     /// Performs the nonlinear measurement update step with the externally supplied Kalman
     /// gain stored in the measurement, instead of computing it.
     ///
