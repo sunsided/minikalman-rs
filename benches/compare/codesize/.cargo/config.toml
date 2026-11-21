@@ -1,0 +1,6 @@
+[build]
+target = "thumbv7em-none-eabihf"
+
+[target.thumbv7em-none-eabihf]
+# No startup code or linker script: `step` is the entry, so only its call graph is kept.
+rustflags = ["-C", "link-arg=--entry=step", "-C", "link-arg=--gc-sections"]

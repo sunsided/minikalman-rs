@@ -1,0 +1,27 @@
+[package]
+name = "kalman-codesize"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Flash footprint of one predict+correct step per crate on thumbv7em-none-eabihf"
+
+[workspace]
+
+[dependencies]
+libm = "0.2"
+minikalman = { path = "../../../crates/minikalman", default-features = false, features = ["libm"] }
+kfilter = { version = "=0.5.1", default-features = false }
+smelly = { version = "=0.2.0" }
+na34 = { package = "nalgebra", version = "0.34", default-features = false, features = ["libm"] }
+na35 = { package = "nalgebra", version = "0.35", default-features = false, features = ["libm", "alloc"] }
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+debug = false
+
+[profile.o3]
+inherits = "release"
+opt-level = 3
