@@ -248,6 +248,20 @@ fn build_wires_only_and_model_writes_and_resets() {
     assert_eq!(filter.state_vector().get_at(Track::vel, 0), 0.0);
 }
 
+/// `H = [...]` is a whole-matrix assignment: `model()` clears entries outside the selection.
+#[test]
+fn model_resets_a_selected_observation_matrix() {
+    let mut storage = shared::gps::new();
+    let mut gps = shared::gps::build(&mut storage);
+    shared::gps::model(&mut gps);
+    assert_eq!(gps.observation_matrix().get_at(0, Track::pos), 1.0);
+
+    gps.observation_matrix_mut().set_at(0, Track::vel, 7.0);
+    shared::gps::model(&mut gps);
+    assert_eq!(gps.observation_matrix().get_at(0, Track::pos), 1.0);
+    assert_eq!(gps.observation_matrix().get_at(0, Track::vel), 0.0);
+}
+
 #[test]
 fn a_system_model_writes_every_member() {
     let mut storage = tracking::new();

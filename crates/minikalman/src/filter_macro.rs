@@ -1146,6 +1146,8 @@ macro_rules! __filter_mat {
     };
     (($m:expr) [$r:path] [$c:path] (select [$($s:ident)*])) => {{
         let matrix = $m;
+        // A whole-matrix assignment: clear stale entries so `model()` is a true reset.
+        matrix.clear();
         let mut row = 0_usize;
         $(
             matrix.set_at(row, <$c>::$s, $crate::num_traits::One::one());
