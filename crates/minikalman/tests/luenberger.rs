@@ -474,6 +474,30 @@ fn time_update_applies_two_controls() {
     assert!(gap(state(predictor.state_vector()), expected) < 1e-15);
 }
 
+/// Rebuilding a predictor-form observer from its storage discards a correction left pending
+/// by the previous observer, but keeps `A` and `x̂`.
+#[test]
+fn predictor_storage_rebuild_clears_the_pending_correction() {
+    let mut observer_storage = PredictorObserverStorage::<2, f64>::new(0.0);
+    let mut position_storage = FixedGainObservationStorage::<2, 1, f64, Predictor>::new(0.0);
+    {
+        let mut observer = observer_storage.build();
+        let mut position = position_storage.build();
+        observer.state_transition_mut().make_identity();
+        observer.state_vector_mut().set_at(0, 0, 1.0);
+        position.observation_matrix_mut().set_at(0, 0, 1.0);
+        position.set_gain(&column([0.5, 0.0]));
+        position.measurement_vector_mut().set_at(0, 0, 3.0);
+        assert!(observer.correct(&mut position).is_applied());
+        assert_eq!(observer.pending_correction().get_at(0, 0), 1.0);
+    }
+
+    let mut observer = observer_storage.build();
+    assert_eq!(state(observer.pending_correction()), [0.0, 0.0]);
+    observer.predict();
+    assert_eq!(state(observer.state_vector()), [1.0, 0.0]);
+}
+
 /// A storage keeps the gain across builds, in the form of its type.
 #[test]
 fn storage_rebuild_keeps_the_gain() {

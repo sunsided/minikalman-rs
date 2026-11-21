@@ -162,8 +162,8 @@ pub struct PredictorObserverStorage<const STATES: usize, T> {
 }
 
 impl<const STATES: usize, T: Copy> PredictorObserverStorage<STATES, T> {
-    /// Creates the storage with every entry set to `init`; the pending correction starts at
-    /// `init` too, so pass zero.
+    /// Creates the storage with every entry set to `init`; [`build`](Self::build) clears the
+    /// pending correction.
     pub const fn new(init: T) -> Self {
         Self {
             observer: ObserverStorage::new(init),
@@ -176,9 +176,11 @@ impl<const STATES: usize, T: MatrixDataType> PredictorObserverStorage<STATES, T>
     /// Wires a [`Predictor`](crate::kalman::Predictor)-form [`LuenbergerObserver`] whose
     /// buffers borrow this storage.
     ///
-    /// A correction still pending from a previous observer is kept and applied by the next
-    /// prediction.
+    /// The pending correction is cleared, so a correction left by an earlier observer on this
+    /// storage is discarded instead of reaching the new observer's first prediction. `A` and
+    /// `x̂` are kept.
     pub fn build(&mut self) -> BorrowedPredictorObserver<'_, STATES, T> {
+        self.pending.fill(T::zero());
         let observer = &mut self.observer;
         LuenbergerObserver::new_predictor(
             flat(&mut observer.A).into(),
