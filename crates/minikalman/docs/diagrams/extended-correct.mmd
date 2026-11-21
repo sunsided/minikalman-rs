@@ -1,0 +1,25 @@
+flowchart LR
+    %% Correction step of the extended filter. Style: see docs/diagrams/README.md.
+    %% Node IDs as in regular-correct.mmd, plus the caller's inputs `h` (the observation
+    %% closure), `hjac` (the Jacobian in H) and `fix` (the innovation normalization).
+    z[/"measurement z"/]
+    h[/"observation h(x̂)"/]
+    fix[/"fix(y)"/]
+    hjac[/"Jacobian H = ∂h/∂x at x̂"/]
+    innovation["innovation<br/>y = z − h(x̂)"]
+    covariance["innovation covariance<br/>S = H·P·Hᵀ + R"]
+    gate{{"gate<br/>NIS = yᵀ·S⁻¹·y"}}
+    gain["gain<br/>K = P·Hᵀ·S⁻¹"]
+    update["update<br/>x̂ ← x̂ + K·y<br/>P ← P − K·H·P"]
+    adapt["adapt R<br/>(optional)"]
+    applied("Applied")
+    npd("NotPositiveDefinite")
+    gated("Gated")
+    z --> innovation
+    h --> innovation
+    fix -.->|"_with variants"| innovation
+    hjac --> covariance
+    innovation --> covariance --> gate --> gain --> update --> adapt --> applied
+    covariance -.->|"S not positive definite"| npd
+    gate -.->|"NIS above threshold"| gated
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

@@ -862,6 +862,8 @@ pub trait KalmanFilterNonlinearObservationCorrectWithGain<
 
 /// Recalibrated nonlinear measurement update for Extended Kalman Filters.
 ///
+#[doc = diagram!("extended-recalibrated.mmd")]
+///
 /// Implements the covariance recalibration of Jiang, Shi and Moura, "Mitigating
 /// Overconfidence in Nonlinear Kalman Filters via Covariance Recalibration", Automatica 194
 /// (2026) 113295, [arXiv:2407.05717](https://arxiv.org/abs/2407.05717), Algorithm 2:

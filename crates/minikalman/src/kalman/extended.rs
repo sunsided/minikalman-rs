@@ -91,6 +91,8 @@ impl<A, X, P, Q, PX, TempP> ExtendedKalmanBuilder<A, X, P, Q, PX, TempP> {
 }
 
 /// Kalman Filter structure.  See [`ExtendedKalmanBuilder`] for construction.
+///
+#[doc = diagram!("extended-loop.mmd")]
 #[allow(non_snake_case, unused)]
 pub struct ExtendedKalman<const STATES: usize, T, A, X, P, Q, PX, TempP> {
     /// State vector.
@@ -304,6 +306,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 {
     /// Performs a nonlinear state transition only involving the current state.
     ///
+    #[doc = diagram!("extended-loop.mmd", "predict")]
+    ///
     /// ## Extended Kalman Filters
     /// This function can be used to implement the nonlinear state prediction step of the
     /// Extended Kalman Filter. Since it predicts both the next state and the next
@@ -418,6 +422,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
     /// Nonlinear state transformation with a state estimation covariance tuning factor.
     ///
+    #[doc = diagram!("extended-loop.mmd", "predict")]
+    ///
     /// ## Arguments
     /// * `lambda` - The estimation covariance scaling factor, in range 0 < `lambda` <= 1.
     /// * `state_transition` - The nonlinear state transition function.
@@ -517,6 +523,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
     /// Performs the nonlinear measurement update step.
     ///
+    #[doc = diagram!("extended-correct.mmd")]
+    ///
     /// ## Extended Kalman Filters
     /// This function expects that the Jacobian of the observation transformation function
     /// is correctly set up for the measurement. See [`KalmanFilterObservationTransformationMut`](KalmanFilterObservationTransformationMut::observation_matrix_mut)
@@ -547,6 +555,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
     /// Performs the nonlinear measurement update step, normalizing the innovation before
     /// it is applied.
+    ///
+    #[doc = diagram!("extended-correct.mmd")]
     ///
     /// The innovation `y = z - h(x)` is computed by plain subtraction. For measurements that
     /// wrap around, such as a bearing from `atan2`, `fix` can wrap each entry back into range,
@@ -586,6 +596,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Performs the nonlinear measurement update step with the externally supplied Kalman
     /// gain stored in the measurement, instead of computing it.
     ///
+    #[doc = diagram!("extended-loop.mmd", "correct")]
+    ///
     /// See [`KalmanFilterNonlinearObservationCorrectWithGain`]: the observation matrix must
     /// hold the Jacobian of `observation`, `P` is updated with the Joseph form, the gate is
     /// not evaluated and the NIS is not updated.
@@ -611,6 +623,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Performs the nonlinear measurement update step with the externally supplied Kalman
     /// gain stored in the measurement, normalizing the innovation before it is applied.
     ///
+    #[doc = diagram!("extended-loop.mmd", "correct")]
+    ///
     /// See [`correct_nonlinear_with_gain`](Self::correct_nonlinear_with_gain).
     ///
     /// ## Arguments
@@ -635,6 +649,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     }
 
     /// Performs the nonlinear measurement update step with covariance recalibration.
+    ///
+    #[doc = diagram!("extended-recalibrated.mmd")]
     ///
     /// The gain and the state update are the same as in
     /// [`correct_nonlinear`](Self::correct_nonlinear). The covariance is then recalibrated
@@ -701,6 +717,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Performs the nonlinear measurement update step with covariance recalibration,
     /// normalizing the innovation before it is applied.
     ///
+    #[doc = diagram!("extended-recalibrated.mmd")]
+    ///
     /// See [`correct_nonlinear_recalibrated`](Self::correct_nonlinear_recalibrated) and
     /// [`correct_nonlinear_with`](Self::correct_nonlinear_with).
     ///
@@ -736,6 +754,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
     /// Performs the predictively oriented (PrO) measurement update step with the observation
     /// linearized at the current state.
+    ///
+    #[doc = diagram!("extended-loop.mmd", "correct")]
     ///
     /// See
     /// [`ExtendedObservation::correct_nonlinear_predictively_oriented`](crate::extended::ExtendedObservation::correct_nonlinear_predictively_oriented)
@@ -802,6 +822,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Performs the predictively oriented (PrO) measurement update step with the observation
     /// linearized at the current state, normalizing the innovation before it is applied.
     ///
+    #[doc = diagram!("extended-loop.mmd", "correct")]
+    ///
     /// See [`correct_nonlinear_predictively_oriented`](Self::correct_nonlinear_predictively_oriented)
     /// and [`correct_nonlinear_with`](Self::correct_nonlinear_with).
     ///
@@ -836,6 +858,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
     /// Performs the predictively oriented (PrO) measurement update step, relinearizing the
     /// observation at the PrO mean in iterated-EKF style.
+    ///
+    #[doc = diagram!("extended-loop.mmd", "correct")]
     ///
     /// See
     /// [`ExtendedObservation::correct_nonlinear_predictively_oriented_iterated`](crate::extended::ExtendedObservation::correct_nonlinear_predictively_oriented_iterated)
@@ -909,6 +933,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
     /// Performs the predictively oriented (PrO) measurement update step, relinearizing the
     /// observation at the PrO mean and normalizing every innovation before it is used.
+    ///
+    #[doc = diagram!("extended-loop.mmd", "correct")]
     ///
     /// See
     /// [`correct_nonlinear_predictively_oriented_iterated`](Self::correct_nonlinear_predictively_oriented_iterated)

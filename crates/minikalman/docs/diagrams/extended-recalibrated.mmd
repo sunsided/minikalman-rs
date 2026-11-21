@@ -1,0 +1,29 @@
+flowchart LR
+    %% Recalibrated correction of the extended filter, in two passes. Style: see docs/diagrams/README.md.
+    %% Node IDs as in extended-correct.mmd; `gain` also moves the state, and `relinearize`,
+    %% `trace` and `recalibrate` form the second pass with the Jacobian H₂ from `hjac2`.
+    z[/"measurement z"/]
+    h[/"observation h(x̂)"/]
+    hjac[/"Jacobian H = ∂h/∂x at x̂"/]
+    hjac2[/"jacobian(x̂⁺)<br/>H₂ = ∂h/∂x at x̂⁺"/]
+    innovation["innovation<br/>y = z − h(x̂)"]
+    covariance["innovation covariance<br/>S = H·P·Hᵀ + R"]
+    gate{{"gate<br/>NIS = yᵀ·S⁻¹·y"}}
+    gain["gain and state<br/>K = P·Hᵀ·S⁻¹<br/>x̂⁺ = x̂ + K·y"]
+    relinearize["relinearize<br/>S₂ = H₂·P·H₂ᵀ + R"]
+    trace{{"trace check<br/>trace P⁺ ≤ trace P"}}
+    recalibrate["recalibrate<br/>P ← P − K·H₂·P − (K·H₂·P)ᵀ + K·S₂·Kᵀ"]
+    adapt["adapt R (optional)<br/>R ← R + (1−α)·(y·yᵀ − S₂)"]
+    applied("Applied")
+    npd("NotPositiveDefinite")
+    gated("Gated")
+    backedout("BackedOut")
+    z --> innovation
+    h --> innovation
+    hjac --> covariance
+    hjac2 --> relinearize
+    innovation --> covariance --> gate --> gain --> relinearize --> trace --> recalibrate --> adapt --> applied
+    covariance -.->|"S not positive definite"| npd
+    gate -.->|"NIS above threshold"| gated
+    trace -.->|"trace grows: x̂, P restored"| backedout
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

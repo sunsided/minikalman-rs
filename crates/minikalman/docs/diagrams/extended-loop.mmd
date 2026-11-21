@@ -1,0 +1,20 @@
+flowchart LR
+    %% One step of the extended Kalman filter. Style: see docs/diagrams/README.md.
+    %% Node IDs as in regular-loop.mmd, plus the caller's inputs: `f` and `h` are the closures,
+    %% `fjac` and `hjac` the Jacobians written into A and H before the step. No control step.
+    prior(["estimate<br/>x̂ₖ₋₁, Pₖ₋₁"])
+    predict["predict<br/>x̂ ← f(x̂)<br/>P ← A·P·Aᵀ + Q"]
+    correct["correct<br/>y = z − h(x̂)<br/>K = P·Hᵀ·S⁻¹<br/>x̂ ← x̂ + K·y<br/>P ← P − K·H·P"]
+    posterior(["estimate<br/>x̂ₖ, Pₖ"])
+    f[/"state transition f(x̂)"/]
+    fjac[/"Jacobian A = ∂f/∂x at x̂ₖ₋₁"/]
+    h[/"observation h(x̂)"/]
+    hjac[/"Jacobian H = ∂h/∂x at x̂"/]
+    z[/"measurement z"/]
+    prior --> predict --> correct --> posterior
+    f --> predict
+    fjac --> predict
+    h --> correct
+    hjac --> correct
+    z --> correct
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

@@ -278,6 +278,14 @@ pub mod information {
 }
 
 /// Extended Kalman Filters (EKF)
+///
+/// A Kalman filter for `x̂ₖ = f(x̂ₖ₋₁)` and `z = h(x̂) + v` with nonlinear `f` and `h`. Before each
+/// step, the caller writes the Jacobians `A = ∂f/∂x` and `H = ∂h/∂x` at the current state. Each
+/// step predicts with
+/// [`ExtendedKalman::predict_nonlinear`](extended::ExtendedKalman::predict_nonlinear) and
+/// corrects with one or more [`ExtendedObservation`](extended::ExtendedObservation)s via
+/// [`ExtendedKalman::correct_nonlinear`](extended::ExtendedKalman::correct_nonlinear):
+#[doc = diagram!("extended-loop.mmd")]
 pub mod extended {
     pub use crate::kalman::extended::*;
     pub use crate::observations::extended::*;

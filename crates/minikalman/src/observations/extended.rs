@@ -138,6 +138,8 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 }
 
 /// Kalman Filter measurement structure. See [`ExtendedObservationBuilder`] for construction.
+///
+#[doc = diagram!("extended-correct.mmd")]
 #[allow(non_snake_case, unused)]
 pub struct ExtendedObservation<
     const STATES: usize,
@@ -276,6 +278,8 @@ impl<
     /// Sets an innovation gate: a correction whose [normalized innovation squared](Self::nis)
     /// exceeds `threshold` is skipped and leaves the state and covariance unchanged.
     ///
+    #[doc = diagram!("extended-correct.mmd", "gate")]
+    ///
     /// A common choice is a chi-square quantile for `OBSERVATIONS` degrees of freedom,
     /// e.g. `6.63` (one measurement) or `9.21` (two measurements) to reject about 1% of
     /// measurements of a consistent filter. `None` (the default) disables the gate.
@@ -301,6 +305,8 @@ impl<
 
     /// Enables online adaptation of the measurement noise covariance `R` from the residuals
     /// of the corrections; `None` (the default) disables it.
+    ///
+    #[doc = diagram!("extended-correct.mmd", "adapt")]
     ///
     /// After every correction applied by `correct_nonlinear` and `correct_nonlinear_with`,
     /// `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual `ε = z − H×x⁺`. See
@@ -597,6 +603,8 @@ where
 
     /// Applies a recalibrated nonlinear correction step to the provided state vector and
     /// covariance matrix.
+    ///
+    #[doc = diagram!("extended-recalibrated.mmd")]
     ///
     /// See [`KalmanFilterNonlinearObservationCorrectRecalibrated`] for the algorithm. The
     /// observation Jacobian must be set up at the prior `x`; `jacobian` overwrites it with the
