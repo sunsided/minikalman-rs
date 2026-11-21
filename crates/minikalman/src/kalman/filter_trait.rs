@@ -904,6 +904,144 @@ pub trait KalmanFilterNonlinearObservationCorrectRecalibrated<
         N: FnMut(&mut [T]);
 }
 
+/// The predictively oriented (PrO) observation function for an Extended Kalman Filter.
+///
+/// See [`ExtendedObservation::correct_nonlinear_predictively_oriented`](crate::extended::ExtendedObservation::correct_nonlinear_predictively_oriented)
+/// and [`ExtendedObservation::correct_nonlinear_predictively_oriented_iterated`](crate::extended::ExtendedObservation::correct_nonlinear_predictively_oriented_iterated)
+/// for the algorithm and its limits. Only scalar observations support it.
+pub trait KalmanFilterNonlinearObservationCorrectPredictivelyOriented<const STATES: usize, T>:
+    KalmanFilterNonlinearObservationCorrectFilter<STATES, 1, T>
+{
+    /// The type of the observation Jacobian `H` that the `jacobian` callback fills.
+    type ObservationJacobian: ObservationMatrixMut<1, STATES, T>;
+
+    /// Performs the PrO measurement update step with the Jacobian set up at the prior.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `max_iterations` - The budget of Newton steps for the stationarity condition.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_nonlinear_predictively_oriented<X, P, F>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+    {
+        self.correct_nonlinear_predictively_oriented_with(x, P, observation, |_| {}, max_iterations)
+    }
+
+    /// Performs the PrO measurement update step with the Jacobian set up at the prior,
+    /// normalizing the innovation before it is applied.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `fix` - Normalizes the innovation vector in place.
+    /// * `max_iterations` - The budget of Newton steps for the stationarity condition.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_predictively_oriented_with<X, P, F, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        fix: N,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]);
+
+    /// Performs the PrO measurement update step, relinearizing the observation at the PrO
+    /// mean for `relinearizations` rounds.
+    ///
+    /// The Jacobian must be set up at the prior; `jacobian` overwrites it at every new
+    /// linearization point.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    /// * `relinearizations` - The number of relinearization rounds.
+    /// * `max_iterations` - The budget of Newton steps for each stationarity condition.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_nonlinear_predictively_oriented_iterated<X, P, F, J>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+        relinearizations: usize,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        J: FnMut(&X, &mut Self::ObservationJacobian),
+    {
+        self.correct_nonlinear_predictively_oriented_iterated_with(
+            x,
+            P,
+            observation,
+            jacobian,
+            |_| {},
+            relinearizations,
+            max_iterations,
+        )
+    }
+
+    /// Performs the PrO measurement update step, relinearizing the observation at the PrO
+    /// mean for `relinearizations` rounds and normalizing every innovation before it is used.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    /// * `fix` - Normalizes the innovation vector in place.
+    /// * `relinearizations` - The number of relinearization rounds.
+    /// * `max_iterations` - The budget of Newton steps for each stationarity condition.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case, clippy::too_many_arguments)]
+    fn correct_nonlinear_predictively_oriented_iterated_with<X, P, F, J, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+        fix: N,
+        relinearizations: usize,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        J: FnMut(&X, &mut Self::ObservationJacobian),
+        N: FnMut(&mut [T]);
+}
+
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
     type MeasurementVector: MeasurementVector<OBSERVATIONS, T>;
 

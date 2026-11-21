@@ -105,7 +105,7 @@ where
 /// no progress in `T`, which happens at the working precision because the iteration converges
 /// monotonically. On budget exhaustion the returned `c` lies left of the root: a valid, but
 /// less inflated, posterior. `max_iterations = 0` returns the start point.
-fn solve_stationarity<T>(g: T, r: T, v: T, max_iterations: usize) -> T
+pub(crate) fn solve_stationarity<T>(g: T, r: T, v: T, max_iterations: usize) -> T
 where
     T: MatrixDataType,
 {

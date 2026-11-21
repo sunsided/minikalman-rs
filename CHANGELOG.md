@@ -75,6 +75,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   they use the innovation form `R ← R + (1−α)×(y×yᵀ − S)` instead and discard a candidate that is
   not positive definite. `correct_predictively_oriented` still leaves `R` unchanged, because its
   inflated covariance makes both forms inconsistent ([#86]).
+- Added the predictively oriented (PrO) update for scalar extended observations:
+  `ExtendedKalman::correct_nonlinear_predictively_oriented` uses the Jacobian as `H` and the
+  nonlinear innovation `z − h(x)`, and `correct_nonlinear_predictively_oriented_iterated`
+  relinearizes `h` at the PrO mean for a fixed number of rounds through a Jacobian callback, as
+  in the iterated EKF. `P` is written once, so it stays positive definite. Both have `_with`
+  variants, and the observation side is exposed as the trait
+  `KalmanFilterNonlinearObservationCorrectPredictivelyOriented` ([#93]).
 
 ### Fixed
 
@@ -115,6 +122,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92
 [#86]: https://github.com/sunsided/minikalman-rs/issues/86
+[#93]: https://github.com/sunsided/minikalman-rs/issues/93
 [#69]: https://github.com/sunsided/minikalman-rs/issues/69
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
