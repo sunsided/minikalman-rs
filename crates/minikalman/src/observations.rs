@@ -6,6 +6,7 @@ use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 pub mod extended;
 pub(crate) mod predictively_oriented;
 pub mod regular;
+pub(crate) mod robust;
 pub mod unscented;
 
 /// Online adaptation of the measurement noise covariance `R` from the residuals of the
@@ -45,7 +46,9 @@ pub mod unscented;
 /// floored candidate is not, `R` is left unchanged for that correction. The gain corrections
 /// have no gate, so every one of them adapts `R`.
 ///
-/// The predictively oriented correction (`correct_predictively_oriented`) does not adapt `R`.
+/// The predictively oriented correction (`correct_predictively_oriented`) and the robust
+/// corrections (`correct_robust*`, `correct_nonlinear_robust*`, `correct_sigma_point_robust*`)
+/// do not adapt `R`; the latter use the reweighted `R/w`, whose residuals would bias it.
 ///
 /// ## Background
 ///
@@ -161,8 +164,9 @@ pub mod unscented;
 ///
 /// The regular, extended and unscented filters adapt their process noise covariance `Q`
 /// with the same settings, enabled with their `set_process_noise_adaptation`. After every
-/// applied `correct`, `correct_with`, `correct_nonlinear`, `correct_nonlinear_with` or
-/// `correct_sigma_point*` correction,
+/// applied `correct`, `correct_with`, `correct_nonlinear`, `correct_nonlinear_with`,
+/// `correct_sigma_point*` or robust (`correct_robust*`, `correct_nonlinear_robust*`,
+/// `correct_sigma_point_robust*`) correction,
 ///
 /// ```text
 /// Δx = x⁺ − x⁻ = K×y
@@ -230,7 +234,9 @@ pub struct NoiseAdaptation<T> {
 /// Set per observation with `set_covariance_update` on
 /// [`RegularObservation`](crate::regular::RegularObservation) and
 /// [`ExtendedObservation`](crate::extended::ExtendedObservation). Applies to `correct`,
-/// `correct_with`, `correct_nonlinear` and `correct_nonlinear_with`. The corrections with an
+/// `correct_with`, `correct_nonlinear` and `correct_nonlinear_with`, and to the robust
+/// corrections `correct_robust*` and `correct_nonlinear_robust*` (with the reweighted noise
+/// `R/w` in place of `R`). The corrections with an
 /// externally supplied gain (`correct_with_gain*`) and the recalibrated extended corrections
 /// always use the Joseph form; the predictively oriented corrections write `P` their own way
 /// and ignore this setting.

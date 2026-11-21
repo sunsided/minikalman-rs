@@ -43,6 +43,8 @@ pub struct UnscentedObservation<
     gate: Option<T>,
     /// Online adaptation of `R` after each applied correction; `None` disables it.
     noise_adaptation: Option<NoiseAdaptation<T>>,
+    /// Noise weight `w` of the last applied robust correction; `1` before the first one.
+    robust_weight: T,
 }
 
 impl<
@@ -98,6 +100,16 @@ where
     #[inline(always)]
     pub fn nis(&self) -> T {
         self.nis
+    }
+
+    /// Returns the noise weight `w` of the last applied robust correction
+    /// ([`correct_sigma_point_robust`](crate::unscented::UnscentedKalman::correct_sigma_point_robust)),
+    /// which used the noise covariance `R/w`.
+    ///
+    /// See [`RegularObservation::robust_weight`](crate::regular::RegularObservation::robust_weight).
+    #[inline(always)]
+    pub fn robust_weight(&self) -> T {
+        self.robust_weight
     }
 
     /// Returns the gate set by [`set_gate`](Self::set_gate).
@@ -176,6 +188,7 @@ where
             nis: T::zero(),
             gate: None,
             noise_adaptation: None,
+            robust_weight: T::one(),
         }
     }
 }
@@ -646,6 +659,58 @@ where
         CorrectionStatus::Applied
     }
 
+    /// Applies the robust update from the innovation and the covariances of
+    /// [`compute_covariances`](Self::compute_covariances), with the predicted measurement
+    /// covariance `Pzz = S − R` in place of `H×P×Hᵀ` (see `observations::robust`).
+    ///
+    /// Leaves `x`, `P`, `K` and the weight unchanged unless the update is applied.
+    #[allow(non_snake_case)]
+    fn apply_robust_correction<XVec, PCov, WS>(
+        &mut self,
+        x: &mut XVec,
+        P: &mut PCov,
+        workspace: &mut WS,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        XVec: StateVectorMut<STATES, T>,
+        PCov: EstimateCovarianceMatrix<STATES, T>,
+        WS: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        let G = workspace.as_matrix_mut();
+        let S = self.S.as_matrix_mut();
+        let R = self.R.as_matrix();
+        for i in 0..OBSERVATIONS {
+            for j in 0..OBSERVATIONS {
+                G.set(i, j, S.get(i, j) - R.get(i, j));
+            }
+        }
+
+        let S_inv = self.temp_S_inv.as_matrix_mut();
+        let solution = match crate::observations::robust::solve_weight(
+            &*G,
+            R,
+            self.y.as_matrix(),
+            S,
+            S_inv,
+            &mut self.nis,
+            self.gate,
+            robust,
+        ) {
+            Ok(solution) => solution,
+            Err(status) => return status,
+        };
+        crate::observations::robust::scale(S_inv, solution.weight);
+
+        // K = Pxz × (Pzz + R/w)⁻¹ = Pxz × w×S_w⁻¹
+        self.cross_covariance
+            .as_matrix()
+            .mult_transb(&*S_inv, self.K.as_matrix_mut());
+        self.apply_correction(x, P);
+        self.robust_weight = solution.weight;
+        solution.status()
+    }
+
     #[allow(non_snake_case, clippy::needless_range_loop)]
     fn apply_correction<XVec, PCov>(&mut self, x: &mut XVec, P: &mut PCov)
     where
@@ -989,6 +1054,94 @@ where
             fix_state,
             fix_measurement,
         )
+    }
+}
+
+#[allow(non_snake_case)]
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        const NUM_SIGMA: usize,
+        T,
+        SigmaObserved,
+        CrossCov,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempP,
+    > KalmanFilterUnscentedObservationCorrectRobust<STATES, OBSERVATIONS, NUM_SIGMA, T>
+    for UnscentedObservation<
+        STATES,
+        OBSERVATIONS,
+        NUM_SIGMA,
+        T,
+        SigmaObserved,
+        CrossCov,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempP,
+    >
+where
+    T: MatrixDataType
+        + Copy
+        + core::ops::Add<Output = T>
+        + core::ops::Mul<Output = T>
+        + core::ops::Sub<Output = T>
+        + core::ops::Div<Output = T>
+        + num_traits::FromPrimitive
+        + Default,
+    Z: MeasurementVectorMut<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    SigmaObserved:
+        SigmaObservedMatrix<OBSERVATIONS, NUM_SIGMA, T> + AsMatrixMut<OBSERVATIONS, NUM_SIGMA, T>,
+    CrossCov: CrossCovarianceMatrix<STATES, OBSERVATIONS, T>,
+    TempP: TempSigmaPMatrix<STATES, T>,
+{
+    fn correct_with_observed_robust_residuals<X, P, SP, F, W, NX, NZ, WS>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_propagated: &SP,
+        weights: &W,
+        lambda: T,
+        mut observation: F,
+        mut fix_state: NX,
+        mut fix_measurement: NZ,
+        workspace: &mut WS,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+        NX: FnMut(&mut [T]),
+        NZ: FnMut(&mut [T]),
+        WS: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        observation(sigma_propagated, &mut self.sigma_observed);
+        let w0_m = mean_weight::<STATES, T>(lambda);
+        let z_pred = self.compute_covariances(
+            sigma_propagated,
+            weights,
+            w0_m,
+            &mut fix_state,
+            &mut fix_measurement,
+        );
+        self.compute_innovation(&z_pred, &mut fix_measurement);
+        self.apply_robust_correction(x, P, workspace, robust)
     }
 }
 

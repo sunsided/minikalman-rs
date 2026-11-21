@@ -134,6 +134,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
             gate: None,
             noise_adaptation: None,
             covariance_update: CovarianceUpdate::Joseph,
+            robust_weight: T::one(),
         }
     }
 }
@@ -218,6 +219,9 @@ pub struct ExtendedObservation<
 
     /// How the corrections with the Kalman gain update `P`.
     pub(crate) covariance_update: CovarianceUpdate,
+
+    /// Noise weight `w` of the last applied robust correction; `1` before the first one.
+    pub(crate) robust_weight: T,
 }
 
 impl<
@@ -268,6 +272,19 @@ impl<
         T: Copy,
     {
         self.nis
+    }
+
+    /// Returns the noise weight `w` of the last applied
+    /// [robust correction](Self::correct_nonlinear_robust), which used the noise covariance
+    /// `R/w`.
+    ///
+    /// See [`RegularObservation::robust_weight`](crate::regular::RegularObservation::robust_weight).
+    #[inline(always)]
+    pub fn robust_weight(&self) -> T
+    where
+        T: Copy,
+    {
+        self.robust_weight
     }
 
     /// Returns the gate set by [`set_gate`](Self::set_gate).
@@ -326,6 +343,8 @@ impl<
     /// `correct_nonlinear_predictively_oriented*` leaves `R` and its floor untouched, also when it
     /// returns [`CorrectionStatus::Applied`]: its inflated posterior covariance is not the error
     /// covariance of the state, so neither form gives a consistent estimate.
+    /// `correct_nonlinear_robust*` leaves `R` untouched too: its update uses the reweighted
+    /// `R/w`.
     ///
     /// Only corrections that return [`CorrectionStatus::Applied`] adapt `R`; gated, skipped and
     /// backed-out corrections leave it unchanged.
@@ -341,7 +360,8 @@ impl<
         self.covariance_update
     }
 
-    /// Sets how `correct_nonlinear` and `correct_nonlinear_with` update the estimate covariance `P`;
+    /// Sets how `correct_nonlinear`, `correct_nonlinear_with` and `correct_nonlinear_robust*`
+    /// update the estimate covariance `P`;
     /// [`CovarianceUpdate::Joseph`] (the default) uses the Joseph form, which keeps `P` exactly
     /// symmetric at the cost of forming `S` again and two more matrix products;
     /// [`CovarianceUpdate::Standard`] the cheaper `P ← P − K×H×P`. See [`CovarianceUpdate`] for
@@ -739,6 +759,95 @@ where
         }
 
         status
+    }
+
+    /// Applies an outlier-robust nonlinear correction step that models the measurement noise
+    /// as Student-t instead of Gaussian.
+    ///
+    /// See [`correct_nonlinear_robust_with`](Self::correct_nonlinear_robust_with).
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_robust<X, P, F, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        self.correct_nonlinear_robust_with(x, P, observation, |_| {}, workspace, robust)
+    }
+
+    /// Applies an outlier-robust nonlinear correction step that models the measurement noise
+    /// as Student-t instead of Gaussian, normalizing the innovation before it is applied.
+    ///
+    /// This is the extended form of
+    /// [`RegularObservation::correct_robust_with`](crate::regular::RegularObservation::correct_robust_with);
+    /// see there for the update, its status and how it relates to the predictively oriented
+    /// correction. Unlike the extended PrO correction, it supports any number of
+    /// measurements.
+    ///
+    /// The innovation is `y = z − h(x)` and the Jacobian `H` must be set up at the prior. The
+    /// weight iteration uses the linearized residual `z − h(x⁻) − H×(x⁺ − x⁻)` and
+    /// `H×P⁺×Hᵀ`, i.e. the expectations of Piché et al. under the linearization at the prior;
+    /// `h` is evaluated once.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `observation` - The observation function; takes the current state and provides observations.
+    /// * `fix` - Normalizes the innovation `y = z − h(x)` in place, e.g. by wrapping angles.
+    /// * `workspace` - One `OBSERVATIONS × OBSERVATIONS` scratch matrix that aliases no buffer
+    ///   of the observation.
+    /// * `robust` - The noise model and the iteration budget.
+    #[allow(non_snake_case)]
+    pub fn correct_nonlinear_robust_with<X, P, F, N, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        mut observation: F,
+        mut fix: N,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Y),
+        N: FnMut(&mut [T]),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        // y = z - h(x)
+        observation(x, &mut self.y);
+        let y = self.y.as_matrix_mut();
+        self.z.as_matrix().sub_inplace_b(y);
+        fix(y.as_mut_slice());
+
+        crate::observations::robust::update_linear(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.y.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            self.temp_S_inv.as_matrix_mut(),
+            self.temp_HP.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+            workspace.as_matrix_mut(),
+            &mut self.nis,
+            &mut self.robust_weight,
+            self.gate,
+            robust,
+            self.covariance_update,
+        )
     }
 
     /// Performs the update step. Assumes that the innovation vector is already calculated correctly,
@@ -1543,6 +1652,71 @@ where
         N: FnMut(&mut [T]),
     {
         self.correct_nonlinear_with(x, P, observation, fix)
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        T,
+        Z,
+        H,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    > KalmanFilterNonlinearObservationCorrectRobust<STATES, OBSERVATIONS, T>
+    for ExtendedObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        H,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempHP,
+        TempPHt,
+        TempKHP,
+    >
+where
+    H: ObservationMatrix<OBSERVATIONS, STATES, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    Z: MeasurementVector<OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    TempHP: TemporaryHPMatrix<OBSERVATIONS, STATES, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, OBSERVATIONS, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_robust_with<X, P, F, N, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        fix: N,
+        workspace: &mut W,
+        robust: crate::prelude::RobustCorrection<T>,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        N: FnMut(&mut [T]),
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    {
+        self.correct_nonlinear_robust_with(x, P, observation, fix, workspace, robust)
     }
 }
 
