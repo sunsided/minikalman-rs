@@ -42,6 +42,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   precomputed steady-state gain, set via the new `kalman_gain_mut` accessor. They skip the inversion
   of `S` and update `P` with the Joseph form, so it stays symmetric and positive semi-definite for
   any gain. The gate is not evaluated and the NIS is not updated ([#66]).
+- Added opt-in online adaptation of the measurement noise covariance `R` to the regular and extended
+  observations with `set_noise_adaptation(Some(NoiseAdaptation { forgetting, floor }))`. After each
+  applied correction, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` from the residual `ε = z − H×x⁺`, with a
+  floor on the diagonal. It needs no history window and no extra buffers. Gated and skipped
+  corrections leave `R` unchanged. `Q` and the unscented observation are not adapted ([#61]).
 
 ### Fixed
 
@@ -79,6 +84,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
 [#59]: https://github.com/sunsided/minikalman-rs/issues/59
+[#61]: https://github.com/sunsided/minikalman-rs/issues/61
 [#65]: https://github.com/sunsided/minikalman-rs/issues/65
 [#64]: https://github.com/sunsided/minikalman-rs/issues/64
 [#67]: https://github.com/sunsided/minikalman-rs/issues/67
