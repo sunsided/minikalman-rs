@@ -75,9 +75,11 @@ pub mod unscented;
 /// E[ε×εᵀ] + H×P⁺×Hᵀ = R + 2×H×P⁺×Hᵀ − H×K×R − R×Kᵀ×Hᵀ.
 /// ```
 ///
-/// The extra terms cancel only if `P⁺×Hᵀ = K×R`, which holds for the optimal gain
-/// `K = P⁻×Hᵀ×S⁻¹` and no other: for a scalar observation, `(1−k)×p = k×r` forces
-/// `k = p/(p+r)`. For any other gain, the residual form converges to a biased `R`.
+/// The extra terms cancel only if `P⁺×Hᵀ = K×R`. With the Joseph form, a scalar observation
+/// gives `p⁺ = (1−k)²×p + k²×r`, so the condition reads `(1−k)×[(1−k)×p − k×r] = 0`. It holds
+/// for the optimal gain `k = p/(p+r)`, i.e. `K = P⁻×Hᵀ×S⁻¹`, and for the degenerate `k = 1`,
+/// where `ε = 0` and `R` stops adapting. For any other gain, the residual form converges to a
+/// biased `R`.
 ///
 /// - **Supplied gain:** `K` is arbitrary, so the residual form is biased. The prior
 ///   innovation does not depend on the gain, `E[y×yᵀ] = H×P⁻×Hᵀ + R`, so the innovation form
@@ -259,7 +261,7 @@ where
     temp_PHt.multadd_transb(K, P); // P += temp_PHt*Kᵀ
 
     if let Some(adaptation) = adaptation {
-        // S_inv may alias temp_PHt and temp_KHP, both of which are consumed by now.
+        // S_inv may alias temp_HP and temp_KHP, both of which are consumed by now.
         adapt_measurement_noise_from_innovation(adaptation, R, y, S, S_inv);
     }
 
