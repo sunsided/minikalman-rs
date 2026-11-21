@@ -80,6 +80,8 @@ jobs:
         run: cargo nextest run --no-default-features --features=libm,alloc
       - name: Test using micromath
         run: cargo nextest run --no-default-features --features=micromath,alloc
+      - name: Check micromath with default features
+        run: cargo check --features=micromath
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:

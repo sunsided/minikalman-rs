@@ -57,7 +57,7 @@ impl MatrixDataType for f32 {
         {
             self.recip()
         }
-        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
+        #[cfg(all(feature = "libm", not(feature = "std")))]
         {
             1.0 / self
         }
@@ -73,7 +73,7 @@ impl MatrixDataType for f32 {
         {
             self.sqrt()
         }
-        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
+        #[cfg(all(feature = "libm", not(feature = "std")))]
         {
             libm::sqrtf(self)
         }
@@ -92,7 +92,7 @@ impl MatrixDataType for f64 {
         {
             self.recip()
         }
-        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
+        #[cfg(all(feature = "libm", not(feature = "std")))]
         {
             1.0 / self
         }
@@ -108,7 +108,7 @@ impl MatrixDataType for f64 {
         {
             self.sqrt()
         }
-        #[cfg(all(feature = "libm", not(any(feature = "std", feature = "micromath"))))]
+        #[cfg(all(feature = "libm", not(feature = "std")))]
         {
             libm::sqrt(self)
         }
