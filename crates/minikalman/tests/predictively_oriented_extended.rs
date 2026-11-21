@@ -701,3 +701,56 @@ fn observation_level_calls() {
         assert_same(&direct, &expected, "observation level");
     }
 }
+
+/// Like the regular PrO correction, both extended PrO variants leave `Q` untouched even with
+/// process noise adaptation enabled, while `correct_nonlinear` adapts it.
+#[test]
+fn process_noise_is_not_adapted() {
+    let builder = ExtendedBuilder::<2, f64>::default();
+    for mode in [Mode::Ekf, Mode::Pro, Mode::Iterated(3)] {
+        let mut filter = builder.build();
+        let mut measurement = builder.observations().build::<1>();
+        for i in 0..2 {
+            filter.state_vector_mut().set_at(i, 0, PRIOR_X[i]);
+            for (j, &value) in PRIOR_P[i].iter().enumerate() {
+                filter.estimate_covariance_mut().set_at(i, j, value);
+            }
+        }
+
+        filter.direct_process_noise_mut().make_scalar(0.5);
+        filter.set_process_noise_adaptation(Some(NoiseAdaptation {
+            forgetting: 0.5,
+            floor: 0.0,
+        }));
+        set_row(
+            measurement.observation_jacobian_matrix_mut(),
+            &range_jacobian(&PRIOR_X),
+        );
+        measurement
+            .measurement_noise_covariance_mut()
+            .set_at(0, 0, 0.04);
+        measurement.measurement_vector_mut().set_at(0, 0, 6.0);
+
+        let observation = |x: &_, y: &mut _| set_scalar(y, range(&to_array(x)));
+        let status = match mode {
+            Mode::Ekf => filter.correct_nonlinear(&mut measurement, observation),
+            Mode::Pro => filter.correct_nonlinear_predictively_oriented(
+                &mut measurement,
+                observation,
+                BUDGET,
+            ),
+            _ => filter.correct_nonlinear_predictively_oriented_iterated(
+                &mut measurement,
+                observation,
+                |x, h| set_row(h, &range_jacobian(&to_array(x))),
+                3,
+                BUDGET,
+            ),
+        };
+
+        assert!(status.is_applied(), "{mode:?}");
+        let q = filter.direct_process_noise().get_at(0, 0);
+        let adapted = (q - 0.5).abs() > 1e-6;
+        assert_eq!(adapted, matches!(mode, Mode::Ekf), "{mode:?}: Q = {q}");
+    }
+}

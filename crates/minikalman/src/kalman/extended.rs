@@ -286,8 +286,8 @@ where
     /// raises every diagonal entry to at least the floor; `Q` stays symmetric positive
     /// semi-definite. The estimate is unbiased only for a steady state with `A×P⁺×Aᵀ = P⁺`,
     /// e.g. a random walk; otherwise it is biased, and with a steady-state gain it has rank
-    /// one along `K`. Corrections with an external gain and recalibrated corrections do not
-    /// adapt `Q`. `None` (the default) leaves `Q` untouched.
+    /// one along `K`. Corrections with an external gain, recalibrated and predictively
+    /// oriented corrections do not adapt `Q`, as for the regular filter. `None` (the default) leaves `Q` untouched.
     ///
     /// See [`NoiseAdaptation`] for the forgetting factor, the method and its limits.
     #[inline(always)]
