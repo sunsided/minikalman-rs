@@ -192,6 +192,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - `nalgebra` together with `unsafe` now builds without `std` ([#135]).
+- The stm32 cross-build example declared its fixed-point measurement vector with
+  `impl_buffer_Q_control!` and took references to function-local `static mut` buffers in a safe
+  function, which is unsound when re-entered (e.g. from an interrupt) and denied by the
+  `static_mut_refs` lint in edition 2024. Both examples now keep their buffers in one
+  const-initialized `static` storage handed out once through `static_cell::ConstStaticCell`, and
+  name their states with `state!` ([#122]).
 - The Cholesky decomposition now fails on a `NaN` or infinite pivot, e.g. from overflowing entries,
   instead of reporting success and producing a non-finite factor. Corrections then skip the update
   as for any other covariance that is not positive definite.
@@ -265,6 +271,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#110]: https://github.com/sunsided/minikalman-rs/issues/110
 [#120]: https://github.com/sunsided/minikalman-rs/issues/120
 [#121]: https://github.com/sunsided/minikalman-rs/issues/121
+[#122]: https://github.com/sunsided/minikalman-rs/issues/122
 
 ## [0.8.1] - 2026-10-30
 

@@ -22,6 +22,7 @@ embedded-hal = "1.0.0"
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 minikalman = { version = "*", path = "../../crates/minikalman", default-features = false }
 panic-halt = "0.2.0"
+static_cell = "2.1.1"
 stm32f3 = { version = "0.15.1", features = ["stm32f303"] }
 stm32f3xx-hal = { version = "0.10.0", features = ["ld", "rt", "stm32f303xc"] }
 

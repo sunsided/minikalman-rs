@@ -225,7 +225,8 @@ assert!(velocity > 0.5 && velocity < 1.5);
 
 After that, the filter is used the same way as in the examples below. The
 [`gravity`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/gravity.rs)
-test and the [`xbuild-tests/stm32`] firmware use the same macros and builders.
+test uses the same macros and builders; the [`xbuild-tests/stm32`] firmware uses the storage
+types below.
 
 ### Without allocation, shorter: storage types
 
@@ -765,7 +766,8 @@ show both.
 ### Embedded Targets
 
 An example for STM32F303 microcontrollers can be found in the
-[`xbuild-tests/stm32`] directory. It showcases both fixed-point and floating-point support.
+[`xbuild-tests/stm32`] directory. It showcases both fixed-point and floating-point support, with
+the filter's storage in a `static` that a `static_cell::ConstStaticCell` hands out once.
 
 ### `Q16.16` fixed-point
 
