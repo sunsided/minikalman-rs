@@ -4,9 +4,11 @@
 //! a microcontroller targeted Kalman filter implementation. It can use [`micromath`](https://docs.rs/micromath)
 //! for square root and reciprocal calculations on `no_std`; [`libm`](https://docs.rs/libm) is supported as well.
 //!
-//! This implementation uses statically allocated buffers for all matrix operations. Due to lack
-//! of `const` generics for array allocations in Rust, this crate also provides helper macros
-//! to create the required arrays (see e.g. [`impl_buffer_A`]).
+//! This implementation uses statically allocated buffers for all matrix operations. The storage
+//! types, such as [`regular::FilterStorage`] and [`regular::ObservationStorage`], hold all buffers
+//! of a filter part as const-generic arrays with a `const fn new`, and `build()` wires the filter
+//! to them. For custom layouts, the helper macros create single buffers (see e.g.
+//! [`impl_buffer_A`]).
 //!
 //! If allocation is available (via `std` or `alloc` crate features), the [`KalmanFilterBuilder`](regular::builder::KalmanFilterBuilder) can be
 //! used to quickly create a [`RegularKalman`](regular::RegularKalman) filter instance with all necessary buffers, alongside
@@ -38,8 +40,8 @@
 //! ## Wiring Up a Filter
 //!
 //! Filters, controls and observations own their matrices as buffers. Without allocation, the
-//! `impl_buffer_*` macros create them as static arrays; with the `alloc` feature, the builders
-//! allocate them:
+//! storage types or the `impl_buffer_*` macros hold them in static or stack arrays; with the
+//! `alloc` feature, the builders allocate them:
 #![doc = concat!(
     "\n```mermaid\n",
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/diagrams/regular-setup.mmd")),
@@ -158,10 +160,31 @@
 //!
 //! ## `no_std` Example
 //!
-//! Systems without the liberty of heap allocation may make use of the provided helper macros
-//! to wire up new types. This comes at the cost of potentially confusing IDEs due to recursive
-//! macro expansion, so buyer beware. In the example below, types are set up as arrays bound
-//! to `static mut` variables.
+//! Systems without the liberty of heap allocation can use the storage types:
+//!
+//! ```
+//! use minikalman::prelude::*;
+//! use minikalman::regular::{FilterStorage, ObservationStorage};
+//!
+//! const NUM_STATES: usize = 3;
+//! const NUM_OBSERVATIONS: usize = 1;
+//!
+//! let mut filter_storage = FilterStorage::<NUM_STATES, f32>::new(0.0);
+//! let mut measurement_storage = ObservationStorage::<NUM_STATES, NUM_OBSERVATIONS, f32>::new(0.0);
+//!
+//! let mut filter = filter_storage.build();
+//! let mut measurement = measurement_storage.build();
+//! # filter.predict();
+//! # filter.correct(&mut measurement);
+//! ```
+//!
+//! The storage has the size of the buffers it holds and allocates nothing; `build()` borrows
+//! it and moves no arrays. Large storage belongs in a `static` (see
+//! [`regular::FilterStorage`] for placement), not on a small stack.
+//!
+//! Alternatively, the helper macros wire up single buffers. This comes at the cost of
+//! potentially confusing IDEs due to recursive macro expansion, so buyer beware. In the example
+//! below, types are set up as arrays bound to `static mut` variables.
 //!
 //! ```
 //! # #![allow(non_snake_case)]
@@ -266,6 +289,7 @@ pub mod models;
 mod observations;
 pub mod smoother;
 mod static_macros;
+mod storage;
 
 #[cfg(test)]
 mod test_dummies;
@@ -307,6 +331,7 @@ pub mod regular {
     pub use crate::observations::regular::*;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
+    pub use crate::storage::regular::*;
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
@@ -323,6 +348,7 @@ pub mod regular {
 #[doc = diagram!("information-loop.mmd")]
 pub mod information {
     pub use crate::kalman::information::*;
+    pub use crate::storage::information::*;
 }
 
 /// UD Filters: linear Kalman filters with the covariance factored as `P = U·D·Uᵀ`, without
@@ -410,6 +436,7 @@ pub mod extended {
     pub use crate::observations::extended::*;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
+    pub use crate::storage::extended::*;
 
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[cfg(feature = "alloc")]
@@ -440,6 +467,7 @@ pub mod unscented {
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
     pub use crate::observations::unscented::*;
     pub use crate::observations::NoiseAdaptation;
+    pub use crate::storage::unscented::*;
 
     /// Builder types for unscented Kalman filters
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
