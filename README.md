@@ -320,7 +320,16 @@ filter.predict_nonlinear(|x, next| {
 
 With the opt-in `derive` feature (Rust 1.88), a `#[repr(C)]` struct derived with `UniformArray`
 views the vector in place instead of copying. The derive emits the cast only when your crate
-enables its own `unsafe` feature (`unsafe = []` in `[features]`):
+declares *and enables* its own `unsafe` feature:
+
+```toml
+[dependencies]
+minikalman = { version = "0.8", features = ["derive"] }
+
+[features]
+default = ["unsafe"] # or build with `--features unsafe`
+unsafe = []
+```
 
 ```rust,ignore
 #[derive(minikalman::UniformArray)]

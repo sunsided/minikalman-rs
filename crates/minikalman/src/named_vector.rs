@@ -49,7 +49,14 @@
 //! calls the derived functions through [`NamedVector`], which [`named_vector!`](macro@crate::named_vector)
 //! implements. Without the gate, `named_vector!` fails to compile with "no associated
 //! function or constant named `from_slice`". With the gate, the derive rejects a struct without
-//! `#[repr(C)]` or `#[repr(transparent)]`, and a struct whose fields differ in type:
+//! `#[repr(C)]` or `#[repr(transparent)]`, and a struct whose fields differ in type.
+//!
+//! The examples below set `safety_gate = "derive"` because a doctest's features are
+//! minikalman's, and `derive` is the one always on when this module exists. In your crate, the
+//! gate must name a feature that crate declares and enables: keep the default `unsafe` from the
+//! setup above, or declare a feature with the name you pass.
+//!
+//! A struct without `#[repr(C)]` fails to compile:
 //!
 //! ```compile_fail
 //! #[derive(minikalman::UniformArray)]
