@@ -10,6 +10,78 @@ use crate::prelude::AsMatrix;
 use core::marker::PhantomData;
 
 /// Kalman Filter structure for Unscented Kalman Filter.
+///
+/// # Choosing α, β and κ
+///
+/// The parameters set where the sigma points go and how they are weighted. With
+/// `n = STATES`, the filter computes
+///
+/// - `λ = α²·(n + κ) − n`,
+/// - the sigma points `x` and `x ± √(n + λ)·[√P]ᵢ` for each column `i` of the Cholesky
+///   factor of `P`,
+/// - the mean weights `W₀ᵐ = λ / (n + λ)` and `Wᵢ = 1 / (2·(n + λ))`,
+/// - the covariance weights `W₀ᶜ = λ / (n + λ) + (1 − α² + β)` and the same `Wᵢ`.
+///
+/// `n + λ = α²·(n + κ)` must be positive. The weights are recomputed on every prediction,
+/// so values changed with [`set_alpha`](Self::set_alpha), [`set_beta`](Self::set_beta) and
+/// [`set_kappa`](Self::set_kappa) take effect on the next [`predict_nonlinear`](Self::predict_nonlinear).
+///
+/// | Setting | α | β | κ | λ | `√(n + λ)` | `W₀ᵐ` | `W₀ᶜ` | `Wᵢ` |
+/// |---|---|---|---|---|---|---|---|---|
+/// | [`KalmanFilterBuilder`](crate::unscented::builder::KalmanFilterBuilder) default | 1 | 2 | 1 | 1 | `√(n + 1)` | `1 / (n + 1)` | `1 / (n + 1) + 2` | `1 / (2·(n + 1))` |
+/// | Cubature Kalman filter (CKF) | 1 | 0 | 0 | 0 | `√n` | 0 | 0 | `1 / (2n)` |
+/// | Classic scaled UKF | 10⁻³ | 2 | 0 | `≈ −n` | `10⁻³·√n` | `1 − 10⁶` | `≈ 4 − 10⁶` | `10⁶ / (2n)` |
+///
+/// - **Default (α = 1, β = 2, κ = 1)**: the points sit at `√(n + 1)` standard deviations,
+///   all weights are positive, and `β = 2` adds the extra centre weight that is optimal for
+///   a Gaussian prior.
+/// - **Cubature Kalman filter (α = 1, β = 0, κ = 0)**: the third-degree spherical-radial
+///   cubature rule. The `2n` outer points sit at `±√n` standard deviations with equal
+///   weights `1 / (2n)`; the centre point gets zero weight in both the mean and the
+///   covariance. No weight is negative, so the predicted covariance stays positive
+///   semi-definite. Kean, Shen and Oates ([arXiv:2610.14773](https://arxiv.org/abs/2610.14773))
+///   evaluate a predictively oriented (PrO) UKF variant on the Lorenz96 model. With these
+///   settings it "offers consistent improvements, which become substantial under strong
+///   nonlinearity", while "the default unscented parameters are unreliable".
+/// - **Classic scaled UKF (α = 10⁻³, β = 2, κ = 0)**: the points sit very close to the mean,
+///   and the centre weights are about `−10⁶`. The mean and covariance then come from the
+///   difference of large numbers, which loses most of an `f32`'s precision. These are the
+///   "default unscented parameters" of the paper above. Avoid them, in particular with
+///   `f32` or fixed-point types.
+///
+/// Which setting tracks best depends on the model, so compare them on recorded or simulated
+/// data before you change them.
+///
+/// ## Example
+///
+/// Configure a cubature Kalman filter:
+///
+/// ```
+/// # #[cfg(feature = "alloc")] {
+/// use minikalman::prelude::*;
+/// use minikalman::unscented::builder::KalmanFilterBuilder;
+///
+/// const NUM_STATES: usize = 2;
+/// const NUM_SIGMA: usize = 2 * NUM_STATES + 1;
+///
+/// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+/// let mut filter = builder.build::<NUM_SIGMA>();
+///
+/// filter.set_alpha(1.0);
+/// filter.set_beta(0.0);
+/// filter.set_kappa(0.0);
+/// assert_eq!(filter.lambda(), 0.0);
+///
+/// // With equal positive weights, a linear transition reproduces the covariance exactly.
+/// filter.estimate_covariance_mut().make_identity();
+/// filter.predict_nonlinear(|_x| {});
+///
+/// let p = filter.estimate_covariance().as_matrix();
+/// assert!((p.get_at(0, 0) - 1.0).abs() < 1e-6);
+/// assert!((p.get_at(1, 1) - 1.0).abs() < 1e-6);
+/// assert!(p.get_at(0, 1).abs() < 1e-6);
+/// # }
+/// ```
 #[allow(non_snake_case)]
 pub struct UnscentedKalman<
     const STATES: usize,
