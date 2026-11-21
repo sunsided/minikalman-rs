@@ -217,6 +217,7 @@ mod kalman;
 pub mod matrix;
 pub mod models;
 mod observations;
+pub mod smoother;
 mod static_macros;
 
 #[cfg(test)]

@@ -34,6 +34,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   extra `STATES` × `STATES` Cholesky inversions. Steps on matrices that are not positive definite return
   `false` and leave the filter unchanged. `KalmanFilterBuilder::build_information` creates one with heap
   allocated buffers.
+- Added `smoother::RtsSmoother`, a Rauch-Tung-Striebel backward pass that refines a recorded filter
+  history of `x`, `P` and their predictions in place, using the measurements that came later ([#62]).
+  It does not allocate and skips steps whose predicted covariance is not positive definite.
 
 ### Fixed
 
@@ -71,6 +74,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#65]: https://github.com/sunsided/minikalman-rs/issues/65
 [#64]: https://github.com/sunsided/minikalman-rs/issues/64
 [#67]: https://github.com/sunsided/minikalman-rs/issues/67
+[#62]: https://github.com/sunsided/minikalman-rs/issues/62
 
 ## [0.8.1] - 2026-10-30
 
