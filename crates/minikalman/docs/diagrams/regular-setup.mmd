@@ -1,0 +1,24 @@
+flowchart LR
+    %% How the regular filter's types are wired up. Style: see docs/diagrams/README.md.
+    %% The root README.md holds an inline copy of this diagram; keep the two in sync.
+    %% Without alloc, buffers come from the impl_buffer_* macros; with alloc, the
+    %% KalmanFilterBuilder allocates them.
+    alloc["KalmanFilterBuilder<br/>(alloc feature)"]
+    macros[/"impl_buffer_* macros<br/>static arrays"/]
+    buffers["*Buffer::from(slice)"]
+    filterBuilder["RegularKalmanBuilder::new"]
+    controlBuilder["ControlBuilder::new"]
+    observationBuilder["RegularObservationBuilder::new"]
+    filter(["RegularKalman<br/>A, x̂, P, Q"])
+    control["Control<br/>B, u, Qᵤ"]
+    observation["RegularObservation<br/>H, z, R"]
+    macros --> buffers --> filterBuilder & controlBuilder & observationBuilder
+    filterBuilder --> filter
+    controlBuilder --> control
+    observationBuilder --> observation
+    alloc -. "build()" .-> filter
+    alloc -. "controls().build()" .-> control
+    alloc -. "observations().build()" .-> observation
+    control -- "filter.control()" --> filter
+    observation -- "filter.correct()" --> filter
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
