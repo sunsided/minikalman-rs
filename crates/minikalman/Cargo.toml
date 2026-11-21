@@ -10,7 +10,7 @@ categories.workspace = true
 license.workspace = true
 edition.workspace = true
 readme = "../../README.md"
-rust-version = "1.71.0"
+rust-version = "1.80.0"
 
 [[bench]]
 name = "inversion"
