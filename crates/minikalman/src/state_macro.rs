@@ -88,6 +88,30 @@
 /// follow a type with a brace group. Any `Copy` scalar works, e.g. `I16F16` with the `fixed`
 /// feature.
 ///
+/// ## Conditional compilation
+///
+/// Attributes inside the macro apply to the struct or field only, so they are for docs,
+/// derives and lints. `#[cfg]` and `#[cfg_attr]` inside the macro would remove a struct or
+/// field while the generated constants and helpers still refer to it, so the macro rejects
+/// them with a compile error. Put the `#[cfg]` on the macro invocation instead; it gates the
+/// whole expansion:
+///
+/// ```
+/// #[cfg(feature = "std")]
+/// minikalman::state! { pub struct Radar(f32) { x, y } }
+///
+/// #[cfg(feature = "std")]
+/// assert_eq!(Radar::N, 2);
+/// ```
+///
+/// ```compile_fail
+/// minikalman::state! { #[cfg(feature = "std")] pub struct Radar(f32) { x, y } }
+/// ```
+///
+/// ```compile_fail
+/// minikalman::state! { pub struct Radar(f32) { x, #[cfg(feature = "std")] y } }
+/// ```
+///
 /// ## Limits
 ///
 /// * The field names `N`, `read`, `write`, `read_column` and `write_column` are reserved, since the
@@ -103,17 +127,20 @@
 #[macro_export]
 macro_rules! state {
     (
-        $(#[$meta:meta])*
+        $(# $attr:tt)*
         $vis:vis struct $name:ident ($scalar:ty) $fields:tt
     ) => {
-        $crate::state!(@define [$(#[$meta])*] $vis $name ($scalar) $fields $fields);
+        $crate::state!(@define [$(# $attr)*] $vis $name ($scalar) $fields $fields);
     };
     (
-        @define [$(#[$meta:meta])*] $vis:vis $name:ident ($scalar:ty)
-        { $( $(#[$field_meta:meta])* $field:ident ),+ $(,)? }
+        @define [$(# $attr:tt)*] $vis:vis $name:ident ($scalar:ty)
+        { $( $(# $field_attr:tt)* $field:ident ),+ $(,)? }
         $all:tt
     ) => {
-        $(#[$meta])*
+        $( $crate::state!(@reject_cfg $attr); )*
+        $( $( $crate::state!(@reject_cfg $field_attr); )* )+
+
+        $(# $attr)*
         #[derive(
             ::core::clone::Clone,
             ::core::marker::Copy,
@@ -121,7 +148,7 @@ macro_rules! state {
             ::core::cmp::PartialEq,
         )]
         $vis struct $name {
-            $( $(#[$field_meta])* pub $field: $scalar, )+
+            $( $(# $field_attr)* pub $field: $scalar, )+
         }
 
         #[allow(non_upper_case_globals, dead_code)]
@@ -178,7 +205,18 @@ macro_rules! state {
             }
         }
     };
-    (@index { $( $(#[$field_meta:meta])* $all:ident ),+ $(,)? } $field:ident) => {{
+    (@reject_cfg [cfg $($rest:tt)*]) => {
+        ::core::compile_error!(
+            "`#[cfg]` inside `state!` is not supported; put it on the `state!` invocation"
+        );
+    };
+    (@reject_cfg [cfg_attr $($rest:tt)*]) => {
+        ::core::compile_error!(
+            "`#[cfg_attr]` inside `state!` is not supported; put it on the `state!` invocation"
+        );
+    };
+    (@reject_cfg [$($rest:tt)*]) => {};
+    (@index { $( $(# $field_attr:tt)* $all:ident ),+ $(,)? } $field:ident) => {{
         #[allow(non_camel_case_types, dead_code)]
         enum Index { $($all),+ }
         Index::$field as usize

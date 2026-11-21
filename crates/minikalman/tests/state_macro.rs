@@ -199,3 +199,27 @@ fn fixed_point_scalars_work() {
     .write(&mut vector);
     assert_eq!(Fall::read(&vector).v, I16F16::from_num(2));
 }
+
+#[cfg(not(test))]
+minikalman::state! {
+    /// Compiled out: a `#[cfg]` on the invocation gates the struct and every generated item.
+    pub struct Disabled(f32) {
+        /// Never compiled.
+        a,
+    }
+}
+
+#[cfg(test)]
+minikalman::state! {
+    /// Compiled in through a `#[cfg]` on the invocation.
+    pub struct Enabled(f32) {
+        /// The only entry.
+        a,
+    }
+}
+
+#[test]
+fn cfg_on_the_invocation_gates_the_whole_expansion() {
+    assert_eq!(Enabled::N, 1);
+    assert_eq!(Enabled::read(&[2.0]).a, 2.0);
+}
