@@ -29,23 +29,23 @@ fn reading(t: usize) -> f64 {
     2.0 * DT * t + 0.3 * (1.7 * t).sin()
 }
 
-/// The default is the standard update, and the setter round-trips, on both observations.
+/// The default is the Joseph form, and the setter round-trips, on both observations.
 #[test]
-fn default_is_standard() {
+fn default_is_joseph() {
     let mut regular = RegularBuilder::<2, f64>::default()
         .observations()
         .build::<1>();
     let mut extended = ExtendedBuilder::<2, f64>::default()
         .observations()
         .build::<1>();
-    assert_eq!(CovarianceUpdate::default(), CovarianceUpdate::Standard);
-    assert_eq!(regular.covariance_update(), CovarianceUpdate::Standard);
-    assert_eq!(extended.covariance_update(), CovarianceUpdate::Standard);
-
-    regular.set_covariance_update(CovarianceUpdate::Joseph);
-    extended.set_covariance_update(CovarianceUpdate::Joseph);
+    assert_eq!(CovarianceUpdate::default(), CovarianceUpdate::Joseph);
     assert_eq!(regular.covariance_update(), CovarianceUpdate::Joseph);
     assert_eq!(extended.covariance_update(), CovarianceUpdate::Joseph);
+
+    regular.set_covariance_update(CovarianceUpdate::Standard);
+    extended.set_covariance_update(CovarianceUpdate::Standard);
+    assert_eq!(regular.covariance_update(), CovarianceUpdate::Standard);
+    assert_eq!(extended.covariance_update(), CovarianceUpdate::Standard);
 }
 
 /// Runs a constant-velocity filter (position and velocity, position sensor) for 200 steps with

@@ -121,11 +121,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `solve_lower_triangular_transposed_inplace`, `solve_upper_triangular_inplace` and
   `solve_upper_triangular_transposed_inplace` on `SquareMatrix`, which return `false` on a zero
   diagonal; the predictively oriented correction now uses them ([#109]).
-- Added an opt-in Joseph-form covariance update for `correct`, `correct_with`, `correct_nonlinear`
-  and `correct_nonlinear_with`: `set_covariance_update(CovarianceUpdate::Joseph)` on
-  `RegularObservation` and `ExtendedObservation`. The default, `CovarianceUpdate::Standard`, keeps
-  `P ← P − K×H×P` and its results unchanged. The Joseph form keeps `P` exactly symmetric and needs no
-  extra buffer. A new `numerical_robustness` test bench measures how `P` degrades in `f32`, `f64`,
+- **Behavior change:** `correct`, `correct_with`, `correct_nonlinear` and `correct_nonlinear_with`
+  now update `P` with the Joseph form by default, which keeps `P` exactly symmetric and needs no
+  extra buffer; results change at the rounding level. `set_covariance_update(CovarianceUpdate::Standard)`
+  on `RegularObservation` and `ExtendedObservation` restores the cheaper `P ← P − K×H×P`. A new `numerical_robustness` test bench measures how `P` degrades in `f32`, `f64`,
   `I16F16` and `I32F32`; in `f32` and `f64`, the Joseph form leaves `P` indefinite less often on
   ill-conditioned measurements but does not prevent it, and does not help once `I16F16` variances
   approach its resolution ([#107]).

@@ -265,16 +265,16 @@ pub struct NoiseAdaptation<T> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum CovarianceUpdate {
-    /// The short form `P ← P − K×H×P` (the default). Cheapest, and exact only for the
-    /// optimal gain in exact arithmetic: rounding can make `P` asymmetric or, once `K×H×P`
-    /// is close to `P`, indefinite.
-    #[default]
+    /// The short form `P ← P − K×H×P`. Cheapest, and exact only for the optimal gain in exact
+    /// arithmetic: rounding can make `P` asymmetric or, once `K×H×P` is close to `P`,
+    /// indefinite. Opt in where the extra products of the Joseph form do not fit the budget.
     Standard,
-    /// The Joseph form `P ← (I − K×H)×P×(I − K×H)ᵀ + K×R×Kᵀ`, evaluated as
+    /// The Joseph form (the default) `P ← (I − K×H)×P×(I − K×H)ᵀ + K×R×Kᵀ`, evaluated as
     /// `P − K×H×P − (K×H×P)ᵀ + K×S×Kᵀ`. Only the lower triangle is formed and mirrored, so
     /// `P` comes out exactly symmetric. Positive semi-definite for any gain in exact
     /// arithmetic. After the correction, the observation's `S` holds `H×P⁻×Hᵀ + R` instead of
     /// its Cholesky factor.
+    #[default]
     Joseph,
 }
 

@@ -136,7 +136,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
             nis: T::zero(),
             gate: None,
             noise_adaptation: None,
-            covariance_update: CovarianceUpdate::Standard,
+            covariance_update: CovarianceUpdate::Joseph,
         }
     }
 }
@@ -342,9 +342,9 @@ impl<
     }
 
     /// Sets how `correct` and `correct_with` update the estimate covariance `P`;
-    /// [`CovarianceUpdate::Standard`] (the default) uses `P ← P − K×H×P`,
-    /// [`CovarianceUpdate::Joseph`] the Joseph form, which keeps `P` exactly symmetric at the
-    /// cost of forming `S` again and two more matrix products. See [`CovarianceUpdate`] for
+    /// [`CovarianceUpdate::Joseph`] (the default) uses the Joseph form, which keeps `P` exactly
+    /// symmetric at the cost of forming `S` again and two more matrix products;
+    /// [`CovarianceUpdate::Standard`] the cheaper `P ← P − K×H×P`. See [`CovarianceUpdate`] for
     /// what it does and does not fix.
     ///
     /// The external-gain and predictively oriented corrections ignore this setting.
