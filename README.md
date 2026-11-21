@@ -349,6 +349,58 @@ let velocity = filter.state_vector().view::<TrackView>().velocity;
 A struct whose field count differs from the vector length fails to build. See the
 `named_vector` module docs for the setup.
 
+### Declaring filters: `filter!`
+
+`minikalman::filter!` declares the states, observations, controls and filters, and generates
+the storage types and their wiring. Each item becomes a module (`tracker::Storage`,
+`tracker::new`, `tracker::build`, `tracker::model`) over the library's own storage types, so
+memory stays explicit and you call the usual API on what `build` returns. `build` only
+wires, like the storage types' `build()`; `model` writes the declared values and also resets
+them. Items name each other by path, so one observation and one control can serve several
+filters, across `filter!` blocks and modules:
+
+```rust
+use minikalman::prelude::*;
+
+const DT: f32 = 0.1;
+
+minikalman::filter! {
+    pub state Track(f32) { pos, vel }
+
+    pub observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+
+    pub kalman tracker for Track {
+        A = identity;
+        A[pos, vel] = DT;
+        Q = diag(0.01);
+        P = diag(10.0);
+    }
+
+    /// One value holding every buffer: 37 `f32`, checked at compile time.
+    pub system tracking { tracker, gps }
+}
+
+fn main() {
+    let mut storage = tracking::new(); // `const fn`: a `static` works too
+    let mut sys = tracking::build(&mut storage);
+    tracking::model(&mut sys);
+
+    for position in [0.1, 0.2, 0.32, 0.4, 0.49, 0.61, 0.7, 0.79] {
+        sys.tracker.predict();
+        Gps { pos: position }.write(sys.gps.measurement_vector_mut().as_mut_slice());
+        sys.tracker.correct(&mut sys.gps);
+    }
+
+    let velocity = Track::read(sys.tracker.state_vector().as_slice()).vel;
+    assert!(velocity > 0.5 && velocity < 1.5);
+}
+```
+
+`observation lean` with a `scratch` shares the correction temporaries, and `luenberger` runs
+a fixed-gain observer. The `filter!` docs have the grammar, and
+[`examples/filter_dsl.rs`](crates/minikalman/examples/filter_dsl.rs) runs two filters sharing
+one observation and one control.
+
 ### Targets with allocations (`std` or `alloc`)
 
 When the `alloc` crate feature is enabled either directly or implicitly via `std`,

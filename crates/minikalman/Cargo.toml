@@ -76,6 +76,11 @@ path = "examples/luenberger.rs"
 required-features = ["fixed", "std"]
 
 [[example]]
+name = "filter-dsl"
+path = "examples/filter_dsl.rs"
+required-features = ["std"]
+
+[[example]]
 name = "rls-adaptive"
 path = "examples/rls_adaptive.rs"
 required-features = ["std"]

@@ -125,6 +125,8 @@ jobs:
         run: cargo run --example=se2-iekf --no-default-features --features=std
       - name: Run RLS dual-estimation example
         run: cargo run --example=rls-adaptive --no-default-features --features=std
+      - name: Run filter! DSL example
+        run: cargo run --example=filter-dsl --no-default-features --features=std
       - name: Run tests (std)
         run: cargo nextest run --verbose --package minikalman --no-default-features --features=std
       - name: Run tests (libm)
