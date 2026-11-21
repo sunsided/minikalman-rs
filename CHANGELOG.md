@@ -155,6 +155,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   estimate untouched, bit-identical reruns), and against regression baselines. Tolerances are
   stated per number type (`f64`, `f32`, `I32F32`, `I16F16`), and CI runs it on `std`, `libm` and
   `micromath` ([#131]).
+- Added README examples, run as doctests, for the information filter, the UD filter, the
+  Unscented Kalman Filter with cubature weights, robust corrections (NIS gate, predictively
+  oriented correction, noise adaptation, `CovarianceUpdate::Standard`), angle wrapping with
+  `correct_with` and `angles::wrap_pi`, and the RTS smoother, with a short table of contents
+  under "Examples".
 
 ### Fixed
 

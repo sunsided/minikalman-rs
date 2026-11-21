@@ -89,6 +89,20 @@ cargo build --features=alloc
 
 ## Examples
 
+In the order of [Which filter do I need?](#which-filter-do-i-need):
+
+- [Regular filter](#targets-with-allocations-std-or-alloc) for linear models
+- [Information filter](#information-filter-fusing-sensors) for fusing many independent sensors
+- [UD filter](#ud-filter) for fixed-point or ill-conditioned problems
+- [Extended Kalman filter](#extended-kalman-filters) for nonlinear models with Jacobians
+- [Unscented Kalman filter](#unscented-kalman-filter) for nonlinear models without Jacobians
+- [Robust corrections](#robust-corrections-gating-and-noise-adaptation): NIS gate, predictively
+  oriented correction, noise adaptation, covariance update form
+- [Angle wrapping](#angle-wrapping) for headings and bearings
+- [Smoothing](#smoothing-a-recorded-run) a recorded run
+- [Embedded targets](#embedded-targets), [fixed-point](#q1616-fixed-point) and the
+  [gravity](#gravity-constant-estimation-example) example
+
 Each step of the regular filter predicts, applies the optional control, and corrects with
 each measurement.
 
@@ -190,6 +204,103 @@ fn example() {
     }
 }
 ```
+
+### Information filter: fusing sensors
+
+The information filter keeps `Y = P⁻¹` and `ŷ = P⁻¹·x̂` instead of `x̂` and `P`. Each sensor
+then adds its information, `Y ← Y + Hᵀ·R⁻¹·H`, in any order and without inverting `Y`. Use it
+when many independent sensors report at once, or when the start is truly unknown (`Y = 0`):
+
+```rust
+# #[cfg(feature = "alloc")] {
+use minikalman::prelude::*;
+use minikalman::regular::builder::KalmanFilterBuilder;
+
+// Position and velocity; the filter starts with no information at all (Y = 0).
+let builder = KalmanFilterBuilder::<2, f32>::default();
+let mut filter = builder.build_information();
+filter.state_transition_mut().apply(|a| {
+    a.set(0, 0, 1.0);
+    a.set(0, 1, 0.1);
+    a.set(1, 1, 1.0);
+});
+filter.process_noise_mut().set(1, 1, 0.01);
+
+let mut gps = builder.observations().build::<1>();
+gps.observation_matrix_mut().set(0, 0, 1.0);
+gps.measurement_noise_covariance_mut().set(0, 0, 4.0);
+
+let mut wheel_speed = builder.observations().build::<1>();
+wheel_speed.observation_matrix_mut().set(0, 1, 1.0);
+wheel_speed.measurement_noise_covariance_mut().set(0, 0, 0.25);
+
+for (position, speed) in [(0.1, 1.0), (0.2, 1.1), (0.35, 0.9), (0.4, 1.0)] {
+    gps.measurement_vector_mut().set(0, 0, position);
+    wheel_speed.measurement_vector_mut().set(0, 0, speed);
+    assert!(filter.fuse(&mut gps));
+    assert!(filter.fuse(&mut wheel_speed));
+    assert!(filter.predict());
+}
+
+// Recover x̂ = Y⁻¹·ŷ and P = Y⁻¹ when needed; this costs one inversion.
+let mut x = BufferBuilder::state_vector_x::<2>().new();
+let mut p = BufferBuilder::estimate_covariance_P::<2>().new();
+assert!(filter.state(&mut x, &mut p));
+assert!(x.get(1, 0) > 0.5 && p.get(0, 0) < 4.0);
+# }
+```
+
+`predict` and `state` invert `Y`, so they return `false` while some state is still unobserved.
+The [`information_filter`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/information_filter.rs)
+test compares it step by step to the regular filter.
+
+### UD filter
+
+`ud::UdKalman` is a linear filter that keeps `P` factored as `U·D·Uᵀ`, which stays positive
+semi-definite whatever rounding does, and never takes a square root. Use it on fixed-point
+targets (e.g. `I16F16`) or for ill-conditioned problems where the plain filter's `P` turns
+indefinite:
+
+```rust
+# #[cfg(feature = "alloc")] {
+use minikalman::prelude::*;
+use minikalman::regular::builder::KalmanFilterBuilder;
+
+// The prediction workspace is 2 × STATES wide.
+let builder = KalmanFilterBuilder::<2, f32>::default();
+let mut filter = builder.build_ud::<4>();
+let mut gps = builder.observations().build::<1>();
+filter.state_transition_mut().apply(|a| {
+    a.set(0, 0, 1.0);
+    a.set(0, 1, 0.1);
+    a.set(1, 1, 1.0);
+});
+
+// Q and the initial P are given in full and factored once.
+let mut q = BufferBuilder::direct_process_noise_covariance_Q::<2>().new();
+q.set(1, 1, 0.01);
+assert!(filter.set_process_noise(&q));
+let mut x = BufferBuilder::state_vector_x::<2>().new();
+let mut p = BufferBuilder::estimate_covariance_P::<2>().new();
+p.make_identity();
+assert!(filter.set_state(&x, &p));
+
+gps.observation_matrix_mut().set(0, 0, 1.0);
+gps.measurement_noise_covariance_mut().set(0, 0, 4.0);
+for z in [0.1, 0.25, 0.3, 0.45] {
+    filter.predict();
+    gps.measurement_vector_mut().set(0, 0, z);
+    assert!(filter.correct(&mut gps).is_applied());
+}
+
+// Multiply the factors back out into x̂ and P.
+filter.state(&mut x, &mut p);
+assert!(p.get(0, 0) > 0.0 && p.get(0, 0) < 1.0);
+# }
+```
+
+The [`ud`](https://docs.rs/minikalman/latest/minikalman/ud/index.html) module docs give the
+value ranges that fit `I16F16`.
 
 ### Extended Kalman Filters
 
@@ -300,6 +411,220 @@ see the [`radar-2d`](https://github.com/sunsided/minikalman-rs/blob/main/crates/
 ```shell
 cargo run --example radar-2d --features=std
 ```
+
+### Unscented Kalman Filter
+
+The unscented filter propagates `2n + 1` sigma points through the nonlinear `f` and `h`
+themselves, so it needs no Jacobians and copes with stronger nonlinearity than the EKF. Here,
+a pendulum's angle and angular rate are tracked from the bob's horizontal position:
+
+```rust
+# #[cfg(feature = "alloc")] {
+use minikalman::prelude::*;
+use minikalman::unscented::builder::KalmanFilterBuilder;
+
+const NUM_STATES: usize = 2; // angle θ (rad), angular rate ω (rad/s)
+const NUM_SIGMA: usize = 2 * NUM_STATES + 1;
+const DT: f32 = 0.05;
+const G_OVER_L: f32 = 9.81; // a pendulum of length 1 m
+
+let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+let mut filter = builder.build::<NUM_SIGMA>();
+let mut bob = builder.observations().build::<1, NUM_SIGMA>();
+
+// Cubature Kalman filter weights: all positive, no centre point.
+filter.set_alpha(1.0);
+filter.set_beta(0.0);
+filter.set_kappa(0.0);
+
+filter.state_vector_mut().set_at(0, 0, 0.2);
+filter.estimate_covariance_mut().make_scalar(0.1);
+filter.direct_process_noise_mut().make_scalar(1e-4);
+bob.measurement_noise_covariance_mut().make_scalar(1e-3);
+
+for step in 1..=100 {
+    // f is applied to every sigma point.
+    filter.predict_nonlinear(|x| {
+        let (theta, omega) = (x.as_matrix().get_at(0, 0), x.as_matrix().get_at(1, 0));
+        x.as_matrix_mut().set_at(0, 0, theta + omega * DT);
+        x.as_matrix_mut().set_at(1, 0, omega - G_OVER_L * theta.sin() * DT);
+    });
+
+    let truth = 0.3 * (G_OVER_L.sqrt() * step as f32 * DT).cos();
+    bob.measurement_vector_mut().set_at(0, 0, truth.sin());
+
+    // h maps each predicted sigma point (column j of a STATES × NUM_SIGMA matrix).
+    filter.correct_sigma_point(&mut bob, |sigma, observed| {
+        for j in 0..NUM_SIGMA {
+            observed[j] = sigma[j].sin();
+        }
+    });
+}
+
+let truth = 0.3 * (G_OVER_L.sqrt() * 100.0 * DT).cos();
+assert!((filter.state_vector().get_at(0, 0) - truth).abs() < 0.05);
+# }
+```
+
+The builder defaults to `α = 1`, `β = 2`, `κ = 1`; the cubature settings above are often the
+better choice under strong nonlinearity. See the
+[`UnscentedKalman`](https://docs.rs/minikalman/latest/minikalman/unscented/struct.UnscentedKalman.html)
+docs for how the parameters place and weight the sigma points, and the
+[`radar-2d-ukf`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/radar_2d_ukf.rs)
+and [`radar_2d_ukf_builder`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/radar_2d_ukf_builder.rs)
+examples for a range-bearing tracker.
+
+### Robust corrections: gating and noise adaptation
+
+Each observation can reject outliers and learn its own noise. Use the gate when readings are
+occasionally wrong, the predictively oriented correction when the noise is heavy-tailed, and
+noise adaptation when `R` is not known in advance:
+
+```rust
+# #[cfg(feature = "alloc")] {
+use minikalman::prelude::*;
+use minikalman::regular::builder::KalmanFilterBuilder;
+use minikalman::regular::CovarianceUpdate;
+
+let builder = KalmanFilterBuilder::<1, f32>::default();
+let mut filter = builder.build();
+let mut sensor = builder.observations().build::<1>();
+filter.state_transition_mut().make_identity();
+filter.direct_process_noise_mut().make_scalar(0.01);
+filter.estimate_covariance_mut().make_scalar(1.0);
+sensor.observation_matrix_mut().make_identity();
+sensor.measurement_noise_covariance_mut().make_scalar(1.0);
+
+// Skip readings whose NIS = yᵀ·S⁻¹·y exceeds the 99% χ² quantile for one measurement.
+sensor.set_gate(Some(6.63));
+// Learn R from the residuals, forgetting old ones with α = 0.95.
+sensor.set_noise_adaptation(Some(NoiseAdaptation { forgetting: 0.95, floor: 0.01 }));
+
+for z in [0.2, -0.1, 0.1, 50.0, 0.0] {
+    filter.predict();
+    sensor.measurement_vector_mut().set_at(0, 0, z);
+    let status = filter.correct(&mut sensor);
+    assert_eq!(status == CorrectionStatus::Gated, z == 50.0);
+}
+
+// Instead of a hard gate, the predictively oriented correction down-weights large
+// innovations; it takes a budget of Newton steps and scalar observations.
+sensor.set_gate(None);
+sensor.measurement_vector_mut().set_at(0, 0, 8.0);
+assert!(filter.correct_predictively_oriented(&mut sensor, 20).is_applied());
+
+// The Joseph form keeps P symmetric and is the default. Opt into the cheaper
+// P ← P − K·H·P only where its extra products do not fit the budget.
+sensor.set_covariance_update(CovarianceUpdate::Standard);
+# }
+```
+
+The same `set_gate` and `set_noise_adaptation` exist on extended and unscented observations;
+the extended filter has `correct_nonlinear_predictively_oriented`, and all three have a
+Student-t robust correction (`correct_robust` and its nonlinear variants). The
+[`numerical_robustness`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/numerical_robustness.rs)
+test bench measures what the Joseph form buys.
+
+### Angle wrapping
+
+A heading of `3.1` rad and a reading of `−3.1` rad are `0.08` rad apart, not `6.2`. Wrap the
+innovation with `correct_with`, and keep the state itself wrapped, whenever a state or
+measurement is an angle:
+
+```rust
+# #[cfg(feature = "alloc")] {
+use minikalman::angles::wrap_pi;
+use minikalman::prelude::*;
+use minikalman::regular::builder::KalmanFilterBuilder;
+
+let builder = KalmanFilterBuilder::<1, f32>::default();
+let mut filter = builder.build();
+let mut compass = builder.observations().build::<1>();
+filter.state_transition_mut().make_identity();
+filter.estimate_covariance_mut().make_identity();
+compass.observation_matrix_mut().make_identity();
+compass.measurement_noise_covariance_mut().make_identity();
+
+// The heading is just below +π; the compass reads just above −π.
+filter.state_vector_mut().set_at(0, 0, 3.1);
+compass.measurement_vector_mut().set_at(0, 0, -3.1);
+
+filter.predict();
+filter.correct_with(&mut compass, |y| y[0] = wrap_pi(y[0]));
+filter.state_vector_mut().apply(|x| x.set(0, 0, wrap_pi(x.get(0, 0))));
+
+// The estimate moves across ±π, not 3.1 rad the long way round.
+assert!(filter.state_vector().get_at(0, 0).abs() > 3.1);
+# }
+```
+
+`angles::wrap_180` does the same in degrees; both work with fixed-point types. The
+[`compass`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/compass.rs)
+example runs a wrapped and an unwrapped filter side by side:
+
+```shell
+cargo run --example compass --features=std
+```
+
+### Smoothing a recorded run
+
+The RTS smoother refines every filtered estimate of a recorded run with the measurements
+that came after it. Record the predicted values after `predict()` and the filtered ones after
+`correct()`, then smooth in place:
+
+```rust
+# #[cfg(feature = "alloc")] {
+use minikalman::matrix::MatrixDataArray;
+use minikalman::models::motion;
+use minikalman::prelude::*;
+use minikalman::regular::builder::KalmanFilterBuilder;
+use minikalman::smoother::RtsSmoother;
+
+type Vector = MatrixDataArray<2, 1, 2, f32>;
+type Square = MatrixDataArray<2, 2, 4, f32>;
+
+let builder = KalmanFilterBuilder::<2, f32>::default();
+let mut filter = builder.build();
+let mut measurement = builder.observations().build::<1>();
+let model = motion::constant_velocity(1.0, 0.1);
+filter.state_transition_mut().apply(|a| model.fill_transition(a));
+filter.direct_process_noise_mut().apply(|q| model.fill_process_noise(q));
+filter.estimate_covariance_mut().make_scalar(10.0);
+measurement.observation_matrix_mut().set(0, 0, 1.0);
+measurement.measurement_noise_covariance_mut().set(0, 0, 1.0);
+
+let readings = [0.1, 1.2, 1.9, 3.1, 3.8, 5.3];
+let mut x = vec![Vector::new([0.0; 2]); readings.len()];
+let mut p = vec![Square::new([0.0; 4]); readings.len()];
+let (mut x_predicted, mut p_predicted) = (x.clone(), p.clone());
+
+for (k, z) in readings.into_iter().enumerate() {
+    filter.predict();
+    filter.state_vector().inspect(|v| v.copy_to(&mut x_predicted[k]));
+    filter.estimate_covariance().inspect(|m| m.copy_to(&mut p_predicted[k]));
+    measurement.measurement_vector_mut().set(0, 0, z);
+    filter.correct(&mut measurement);
+    filter.state_vector().inspect(|v| v.copy_to(&mut x[k]));
+    filter.estimate_covariance().inspect(|m| m.copy_to(&mut p[k]));
+}
+
+let mut smoother = RtsSmoother::new(
+    Square::new([0.0; 4]),
+    Square::new([0.0; 4]),
+    Square::new([0.0; 4]),
+    Vector::new([0.0; 2]),
+);
+let smoothed = filter
+    .state_transition()
+    .inspect(|a| smoother.smooth(a, &mut x, &mut p, &x_predicted, &p_predicted));
+assert!(smoothed);
+# }
+```
+
+For online use, `smoother::FixedLagSmoother` runs the same pass over a ring buffer of the last
+`N` steps and yields each step smoothed with the `N − 1` steps after it. The
+[`smoother`](https://docs.rs/minikalman/latest/minikalman/smoother/index.html) module docs
+show both.
 
 ### Embedded Targets
 
