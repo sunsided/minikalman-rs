@@ -31,8 +31,8 @@ pub mod unscented;
 /// Adjustment of Noise Covariance in Kalman Filter for Dynamic State Estimation"
 /// (arXiv:1702.00884, 2017), eq. (11), which replaces a moving window by the forgetting
 /// factor. The paper prints the prior covariance `P⁻` in that equation; this implementation
-/// uses the corrected covariance `P⁺` (as in Mohamed and Schwarz, "Adaptive Kalman Filtering
-/// for INS/GPS", 1999), because only then is the true `R` a fixed point: with
+/// uses the corrected covariance `P⁺` (see also Mohamed and Schwarz, "Adaptive Kalman
+/// Filtering for INS/GPS", 1999), because only then is the true `R` a fixed point: with
 /// `ε = R×S⁻¹×y` one gets `E[ε×εᵀ] = R×S⁻¹×R` and `H×P⁺×Hᵀ = R − R×S⁻¹×R`, which sum to
 /// `R`. With `P⁻`, the estimate is biased upwards by `H×K×S×Kᵀ×Hᵀ`.
 ///
@@ -52,9 +52,13 @@ pub mod unscented;
 ///
 /// - `α` close to `1` (e.g. `0.95` to `0.99`) averages over roughly `1 / (1−α)` corrections
 ///   and gives a smooth estimate; a small `α` lets single residuals dominate and `R`
-///   fluctuates strongly. `α` must lie in `(0, 1)`: `α ≥ 1` freezes `R`, and `α ≤ 0`
-///   discards the previous `R` and can let it lose definiteness (only the floor remains).
-/// - `R = 0` is absorbing, so the floor must be positive to let `R` recover.
+///   fluctuates strongly. `α` must lie in `(0, 1)`: `α = 1` freezes `R`, `α > 1` reverses
+///   the correction and drives `R` away from the residuals, `α = 0` discards the previous
+///   `R`, and `α < 0` subtracts it; outside `(0, 1)`, only the floor keeps the diagonal
+///   positive.
+/// - `R = 0` is absorbing, and a tiny floor nearly so: at the floor, `R` grows by only
+///   `(1−α) × (floor/S) × (NIS − 1)` per correction. Set the floor near the smallest
+///   plausible sensor variance.
 /// - While `H×P×Hᵀ` dominates `R` (an uncertain or unobservable state), `R/S` is small and
 ///   `R` barely adapts. With unobservable states, `P` keeps growing and `R` stalls.
 /// - Every excess of the NIS is attributed to `R`, including a process noise `Q` that is too

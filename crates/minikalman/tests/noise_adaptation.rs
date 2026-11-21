@@ -120,6 +120,14 @@ fn check_single_readings(correct: Correct) {
     });
     let (_, r) = correct(0.0, 1.0, 1.0, None, floored);
     assert_eq!(r, 0.8);
+
+    // α > 1 reverses the correction, 1.5 − 0.5 × 25.5 = −11.25; only the floor remains.
+    let reversed = Some(NoiseAdaptation {
+        forgetting: 1.5,
+        floor: 0.8,
+    });
+    let (_, r) = correct(10.0, 1.0, 1.0, None, reversed);
+    assert_eq!(r, 0.8);
 }
 
 #[test]
