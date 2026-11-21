@@ -252,14 +252,16 @@ pub struct NoiseAdaptation<T> {
 /// - **Positive definiteness, ill-conditioned measurements.** For the textbook case
 ///   `H = [[1,1,1],[1,1,1+δ]]`, `R = δ²×I`, `P = I`, the standard update left `P` indefinite
 ///   for 16 of 48 values of `δ` in `f32` (from `δ ≈ 9×10⁻³`) and 11 in `f64` (from
-///   `δ ≈ 10⁻⁴`); the Joseph form for 7 and 9 (from `δ ≈ 7×10⁻³` and `4×10⁻⁵`). It helps,
-///   but it does not fix the case.
+///   `δ ≈ 10⁻⁴`); the Joseph form for 7 and 9 (from `δ ≈ 7×10⁻³` and `4×10⁻⁵`). In `I32F32`,
+///   it was the other way round: 0 for the standard update, 1 for the Joseph form. It helps
+///   in floating point, but it does not fix the case.
 /// - **Fixed point.** In `I16F16`, neither form helps once the variances approach the
 ///   resolution (`2⁻¹⁶`): with ten scalar sensors and a steady-state variance below one LSB,
-///   the standard update left `P` indefinite in 16 of 1000 steps, and the Joseph form drifted
-///   until `S⁻¹` overflowed. Use a type with more fractional bits, such as `I32F32`, there.
+///   the standard update left `P` indefinite in 16 of 1000 steps, and the Joseph form
+///   overflowed while computing the gain. Use a type with more fractional bits, such as `I32F32`, there.
 ///
-/// On well-conditioned problems, both forms agree to a few ULP in `f64`.
+/// On well-conditioned problems, both forms agree to a few ULP in `f64`, given an exact square
+/// root; with `micromath`'s approximate one, the gain is not quite optimal and they differ more.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum CovarianceUpdate {
@@ -338,6 +340,10 @@ where
 
     match covariance_update {
         CovarianceUpdate::Standard => {
+            //* Correct state covariances
+            //* P = (I-K*H) * P
+            //*   = P - K*(H*P)
+
             // P = P - K*(H*P)
             H.mult(P, temp_HP); // temp_HP = H*P
             K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP

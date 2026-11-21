@@ -18,83 +18,16 @@
 #[path = "common/robustness.rs"]
 mod robustness;
 
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
 use fixed::types::{I16F16, I32F32};
-use minikalman::num_traits::ToPrimitive;
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder;
-use robustness::{measure, to_f64_vector, Summary};
-
-/// The number types the bench runs, with the bounds the scenarios need.
-trait BenchType: MatrixDataType + Default + ToPrimitive {}
-
-impl<T> BenchType for T where T: MatrixDataType + Default + ToPrimitive {}
+use robustness::{deltas, measure, num, to_f64_vector, BenchType, Noise, Run, Summary};
 
 /// Both covariance updates, with their report labels.
 const UPDATES: [(CovarianceUpdate, &str); 2] = [
     (CovarianceUpdate::Standard, "standard"),
     (CovarianceUpdate::Joseph, "joseph"),
 ];
-
-/// Converts an `f64` constant to the filter's type.
-fn num<T: BenchType>(value: f64) -> T {
-    T::from_f64(value).expect("bench constants fit every type")
-}
-
-/// A deterministic noise source (xorshift64) for reproducible measurements.
-struct Noise(u64);
-
-impl Noise {
-    /// Returns an approximately standard normal sample: the centred sum of four uniform
-    /// samples, scaled to unit variance.
-    fn next(&mut self) -> f64 {
-        let sum: f64 = (0..4).map(|_| self.uniform()).sum();
-        (sum - 2.0) * 3f64.sqrt()
-    }
-
-    /// Returns a uniform sample in `[0, 1)`.
-    fn uniform(&mut self) -> f64 {
-        self.0 ^= self.0 << 13;
-        self.0 ^= self.0 >> 7;
-        self.0 ^= self.0 << 17;
-        (self.0 >> 11) as f64 / (1u64 << 53) as f64
-    }
-}
-
-/// One run of a scenario: its aggregated metrics and the state after every step.
-struct Run<const N: usize> {
-    /// The aggregated metrics; `None` if the run panicked on fixed-point overflow.
-    summary: Option<Summary>,
-
-    /// The state after every step, as `f64`; the reference of the other runs.
-    states: Vec<[f64; N]>,
-}
-
-impl<const N: usize> Run<N> {
-    /// Runs `scenario`, catching a panic (fixed-point overflow) as an overflowed run.
-    fn caught<F>(scenario: F) -> Self
-    where
-        F: FnOnce(&mut Vec<[f64; N]>) -> Summary,
-    {
-        let mut states = Vec::new();
-        let summary = catch_unwind(AssertUnwindSafe(|| scenario(&mut states))).ok();
-        Self { summary, states }
-    }
-
-    /// Prints a report line for the run, or that it overflowed.
-    fn report(&self, label: &str) {
-        match &self.summary {
-            Some(summary) => summary.report(label),
-            None => println!("{label:<24} overflowed"),
-        }
-    }
-
-    /// Returns the summary of a run that must not overflow.
-    fn completed(&self) -> &Summary {
-        self.summary.as_ref().expect("run overflowed")
-    }
-}
 
 /// Records the state of `filter` and the metrics of its `P`, with the NEES against step
 /// `step` of `reference`, if given.
@@ -330,19 +263,13 @@ impl Sweep {
     }
 }
 
-/// Returns `count` values of `δ`, log-spaced from `10⁻¹` down to `10⁻⁶`, largest first.
-fn deltas(count: usize) -> Vec<f64> {
-    (0..count)
-        .map(|k| 10f64.powf(-1.0 - 5.0 * k as f64 / (count - 1) as f64))
-        .collect()
-}
-
 /// Scenario 1 over 48 values of `δ` per type.
 ///
 /// Found: the standard update leaves `P` indefinite for more values of `δ` than the Joseph
 /// form, in `f32` (from `δ ≈ 9×10⁻³`) and `f64` (from `δ ≈ 10⁻⁴`), but the Joseph form fails
 /// too once `δ` is small enough. From `δ ≈ 3×10⁻⁴` in `f32`, `S` is rejected as not positive
-/// definite and neither form applies the correction. `I16F16` overflows `S⁻¹ ~ 1/δ²` first.
+/// definite and neither form applies the correction. In `I32F32`, the Joseph form fails for
+/// one `δ` and the standard update for none. `I16F16` overflows `S⁻¹ ~ 1/δ²` first.
 #[test]
 fn ill_conditioned_measurement() {
     let deltas = deltas(48);
@@ -374,7 +301,10 @@ fn ill_conditioned_measurement() {
     }
 
     assert!(joseph.iter().all(|run| run.summary.max_asymmetry == 0.0));
-    assert!(standard[2].overflowed > 0, "I16F16 overflows for small δ");
+    // Release builds wrap instead of panicking, so the overflow is only caught with debug assertions.
+    if cfg!(debug_assertions) {
+        assert!(standard[2].overflowed > 0, "I16F16 overflows for small δ");
+    }
 }
 
 /// Scenario 2 for `10⁴` steps per type.
@@ -414,7 +344,7 @@ fn long_fixed_point_run() {
 /// Scenario 3 for `10³` predictions with [`SENSORS`] corrections each, per type.
 ///
 /// Found: in `I16F16`, the standard update leaves `P` indefinite in some steps, and the
-/// Joseph form does not fix it: it drifts until `H×P×Hᵀ` cancels `R` and `S⁻¹` overflows.
+/// Joseph form does not fix it: it overflows while computing the gain (debug builds).
 /// The cause is the resolution, not the form: the steady-state variance is below one LSB.
 /// The floating-point types and `I32F32` stay positive definite with both forms.
 #[test]

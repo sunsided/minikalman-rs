@@ -4,9 +4,13 @@
 //!
 //! The bench (`tests/numerical_robustness.rs`) includes this module with
 //! `#[path = "common/robustness.rs"]`. Factored filters (square-root, UD) can include it the
-//! same way and record their own runs with [`Summary::record`].
+//! same way, reuse the number types ([`BenchType`]), the noise source ([`Noise`]), the
+//! panic-catching [`Run`] and the `δ` sweep ([`deltas`]), and record their own runs with
+//! [`Summary::record`].
 
 #![allow(dead_code)]
+
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use minikalman::matrix::MatrixDataBoxed;
 use minikalman::num_traits::ToPrimitive;
@@ -205,4 +209,76 @@ impl Summary {
             self.skipped,
         );
     }
+}
+
+/// The number types the bench runs, with the bounds the scenarios need.
+pub trait BenchType: MatrixDataType + Default + ToPrimitive {}
+
+impl<T> BenchType for T where T: MatrixDataType + Default + ToPrimitive {}
+
+/// Converts an `f64` constant to the filter's type.
+pub fn num<T: BenchType>(value: f64) -> T {
+    T::from_f64(value).expect("bench constants fit every type")
+}
+
+/// A deterministic noise source (xorshift64) for reproducible measurements; the field is the
+/// seed and state, which must not be zero.
+pub struct Noise(pub u64);
+
+impl Noise {
+    /// Returns an approximately standard normal sample: the centred sum of four uniform
+    /// samples, scaled to unit variance.
+    pub fn next(&mut self) -> f64 {
+        let sum: f64 = (0..4).map(|_| self.uniform()).sum();
+        (sum - 2.0) * 3f64.sqrt()
+    }
+
+    /// Returns a uniform sample in `[0, 1)`.
+    fn uniform(&mut self) -> f64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        (self.0 >> 11) as f64 / (1u64 << 53) as f64
+    }
+}
+
+/// One run of a scenario: its aggregated metrics and the state after every step.
+pub struct Run<const N: usize> {
+    /// The aggregated metrics; `None` if the run panicked on fixed-point overflow.
+    pub summary: Option<Summary>,
+
+    /// The state after every step, as `f64`; the reference of the other runs.
+    pub states: Vec<[f64; N]>,
+}
+
+impl<const N: usize> Run<N> {
+    /// Runs `scenario`, catching a panic (fixed-point overflow) as an overflowed run.
+    pub fn caught<F>(scenario: F) -> Self
+    where
+        F: FnOnce(&mut Vec<[f64; N]>) -> Summary,
+    {
+        let mut states = Vec::new();
+        let summary = catch_unwind(AssertUnwindSafe(|| scenario(&mut states))).ok();
+        Self { summary, states }
+    }
+
+    /// Prints a report line for the run, or that it overflowed.
+    pub fn report(&self, label: &str) {
+        match &self.summary {
+            Some(summary) => summary.report(label),
+            None => println!("{label:<24} overflowed"),
+        }
+    }
+
+    /// Returns the summary of a run that must not overflow.
+    pub fn completed(&self) -> &Summary {
+        self.summary.as_ref().expect("run overflowed")
+    }
+}
+
+/// Returns `count` values of `δ`, log-spaced from `10⁻¹` down to `10⁻⁶`, largest first.
+pub fn deltas(count: usize) -> Vec<f64> {
+    (0..count)
+        .map(|k| 10f64.powf(-1.0 - 5.0 * k as f64 / (count - 1) as f64))
+        .collect()
 }
