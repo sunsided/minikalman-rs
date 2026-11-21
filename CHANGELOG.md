@@ -47,6 +47,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   applied correction, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` from the residual `ε = z − H×x⁺`, with a
   floor on the diagonal. It needs no history window and no extra buffers. Gated and skipped
   corrections leave `R` unchanged. `Q` and the unscented observation are not adapted ([#61]).
+- Added `correct_predictively_oriented` to `RegularKalman` and to scalar `RegularObservation`s
+  (one measurement), with the trait `KalmanFilterObservationCorrectPredictivelyOriented`. It
+  applies the predictively oriented (PrO) update, which inflates the covariance when the innovation
+  is larger than predicted. This makes the filter robust to heavy-tailed noise and outliers, at a
+  small accuracy cost under Gaussian noise. It costs a few scalar Newton steps on top of a regular
+  correction and needs no extra buffers ([#69]).
 
 ### Fixed
 
@@ -81,6 +87,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+[#69]: https://github.com/sunsided/minikalman-rs/issues/69
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
 [#59]: https://github.com/sunsided/minikalman-rs/issues/59

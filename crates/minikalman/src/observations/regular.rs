@@ -610,6 +610,136 @@ where
     }
 }
 
+impl<const STATES: usize, T, Z, H, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    RegularObservation<STATES, 1, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: ObservationMatrix<1, STATES, T>,
+    K: KalmanGainMatrix<STATES, 1, T>,
+    S: InnovationCovarianceMatrix<1, T>,
+    R: MeasurementNoiseCovarianceMatrix<1, T>,
+    Y: InnovationVector<1, T>,
+    Z: MeasurementVector<1, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, 1, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    /// Applies a predictively oriented (PrO) correction step to the provided state vector and
+    /// covariance matrix.
+    ///
+    /// Instead of the Bayesian posterior, the PrO update (Shen, Duran-Martin, Oates,
+    /// [arXiv:2606.03230](https://arxiv.org/abs/2606.03230); unscented variant: Kean, Shen,
+    /// Oates, [arXiv:2610.14773](https://arxiv.org/abs/2610.14773)) picks the Gaussian
+    /// `q = N(x, P)` that minimizes
+    ///
+    /// ```text
+    /// −log ∫ p(z|x) q(x) dx + KL(q ‖ N(x̃, P̃))
+    /// ```
+    ///
+    /// i.e. the one that best predicts the measurement while staying close to the prior.
+    /// The result is still Kalman-shaped, but the covariance is inflated in the direction of
+    /// `H` whenever the innovation is larger than predicted; `P` can even grow past the prior.
+    /// Large outliers therefore move the state much less than in [`correct`](Self::correct).
+    ///
+    /// ## When to use it
+    /// - **Helps** under heavy-tailed measurement noise or outliers. In a 1-D tracking
+    ///   simulation with Student-t noise (2.01 degrees of freedom) the mean squared error
+    ///   drops by a factor of 3 or more compared to [`correct`](Self::correct).
+    /// - **Costs** under truly Gaussian noise: the same simulation shows about 8% higher mean
+    ///   squared error, because the update is more conservative than the optimal Kalman update.
+    ///   Even with a zero innovation, the covariance shrinks less than in a Kalman update.
+    ///
+    /// ## Cost
+    /// One Kalman-sized update plus a scalar Newton iteration for the stationarity condition,
+    /// typically 3 to 6 steps (up to about 15 for badly scaled problems with `H×P×Hᵀ` and `R`
+    /// eight orders of magnitude apart). No buffers are needed beyond the observation's own.
+    /// The iteration converges monotonically from below, so every iterate is a valid posterior;
+    /// if `max_iterations` runs out (`0` skips the iteration entirely), the covariance is
+    /// inflated less than the exact PrO solution. A budget of 20 is ample for `f32` and `f64`.
+    /// With `micromath`, whose square root is approximate, the start point can be poorer and
+    /// badly scaled problems may need a larger budget.
+    ///
+    /// ## Scalar observations only
+    /// This method exists for observations with a single measurement. Applying it row by row
+    /// to a vector observation is **not** the joint PrO update: the update does not compose
+    /// over measurements.
+    ///
+    /// ## Status
+    /// Like [`correct`](Self::correct), this updates the [NIS](Self::nis) (of the prior
+    /// innovation) and honors the [gate](Self::set_gate). Unlike [`correct`](Self::correct),
+    /// which only needs `H×P×Hᵀ + R > 0`, it requires both `H×P×Hᵀ > 0` and `R > 0`, since
+    /// the PrO objective needs measurement noise and an informative measurement. Otherwise it
+    /// returns [`CorrectionStatus::NotPositiveDefinite`] and leaves `x` and `P` unchanged.
+    ///
+    /// With fixed-point types, large innovations can overflow intermediate values; choose a
+    /// type with enough integer bits for the expected outliers.
+    ///
+    /// ## Arguments
+    /// * `x` - The current state vector.
+    /// * `P` - The current state estimate covariance matrix.
+    /// * `max_iterations` - The budget of Newton steps for the stationarity condition.
+    #[allow(non_snake_case)]
+    pub fn correct_predictively_oriented<X, P>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        // y = z - H*x
+        let y = self.y.as_matrix_mut();
+        self.H.as_matrix().mult_rowvector(x.as_matrix(), y);
+        self.z.as_matrix().sub_inplace_b(y);
+
+        crate::observations::predictively_oriented::update_scalar(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            self.H.as_matrix(),
+            self.R.as_matrix(),
+            self.y.as_matrix(),
+            self.K.as_matrix_mut(),
+            self.S.as_matrix_mut(),
+            self.temp_PHt.as_matrix_mut(),
+            self.temp_KHP.as_matrix_mut(),
+            &mut self.nis,
+            self.gate,
+            max_iterations,
+        )
+    }
+}
+
+impl<const STATES: usize, T, Z, H, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+    KalmanFilterObservationCorrectPredictivelyOriented<STATES, T>
+    for RegularObservation<STATES, 1, T, H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
+where
+    H: ObservationMatrix<1, STATES, T>,
+    K: KalmanGainMatrix<STATES, 1, T>,
+    S: InnovationCovarianceMatrix<1, T>,
+    R: MeasurementNoiseCovarianceMatrix<1, T>,
+    Y: InnovationVector<1, T>,
+    Z: MeasurementVector<1, T>,
+    TempPHt: TemporaryPHTMatrix<STATES, 1, T>,
+    TempKHP: TemporaryKHPMatrix<STATES, T>,
+    T: MatrixDataType,
+{
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn correct_predictively_oriented<X, P>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        self.correct_predictively_oriented(x, P, max_iterations)
+    }
+}
+
 impl<
         const STATES: usize,
         const OBSERVATIONS: usize,

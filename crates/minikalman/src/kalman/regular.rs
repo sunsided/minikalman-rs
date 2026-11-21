@@ -658,6 +658,30 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     {
         measurement.correct_with_gain_with(&mut self.x, &mut self.P, fix)
     }
+
+    /// Performs a predictively oriented (PrO) measurement update step.
+    ///
+    /// More conservative than [`correct`](Self::correct) under large innovations, which makes
+    /// it robust to heavy-tailed noise and outliers at a small cost under Gaussian noise. See
+    /// [`RegularObservation::correct_predictively_oriented`](crate::regular::RegularObservation::correct_predictively_oriented)
+    /// for the objective, its cost, and when it helps. Only scalar observations support it.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `max_iterations` - The budget of Newton steps for the stationarity condition, e.g. `20`.
+    pub fn correct_predictively_oriented<M>(
+        &mut self,
+        measurement: &mut M,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectPredictivelyOriented<STATES, T>,
+    {
+        measurement.correct_predictively_oriented(&mut self.x, &mut self.P, max_iterations)
+    }
 }
 
 impl<const STATES: usize, T, A, X, P, Q, PX, TempP> KalmanFilterNumStates<STATES>

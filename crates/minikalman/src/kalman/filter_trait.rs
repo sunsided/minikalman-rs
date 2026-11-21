@@ -605,6 +605,31 @@ pub trait KalmanFilterObservationCorrectFilter<const STATES: usize, T> {
         N: FnMut(&mut [T]);
 }
 
+/// The predictively oriented (PrO) observation function for a regular Kalman Filter.
+///
+/// See [`RegularObservation::correct_predictively_oriented`](crate::regular::RegularObservation::correct_predictively_oriented)
+/// for the objective, its cost, and when it helps.
+pub trait KalmanFilterObservationCorrectPredictivelyOriented<const STATES: usize, T> {
+    /// Performs the predictively oriented measurement update step.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `max_iterations` - The budget of Newton steps for the stationarity condition.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_predictively_oriented<X, P>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>;
+}
+
 /// The observation function for an Extended Kalman Filter.
 pub trait KalmanFilterNonlinearObservationCorrectFilter<
     const STATES: usize,
