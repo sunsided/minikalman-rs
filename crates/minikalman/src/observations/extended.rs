@@ -302,12 +302,19 @@ impl<
     /// Enables online adaptation of the measurement noise covariance `R` from the residuals
     /// of the corrections; `None` (the default) disables it.
     ///
-    /// After every correction applied by `correct_nonlinear` and `correct_nonlinear_with`, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual
-    /// `ε = z − H×x⁺`; gated and skipped corrections leave `R` unchanged. See
+    /// After every correction applied by `correct_nonlinear` and `correct_nonlinear_with`,
+    /// `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual `ε = z − H×x⁺`. See
     /// [`NoiseAdaptation`] for the method, the choice of `α` and when the estimate diverges.
     ///
-    /// Only those corrections adapt `R`: `correct_nonlinear_with_gain*` and `correct_nonlinear_recalibrated*` leave `R` and its floor untouched, also when
-    /// they return [`CorrectionStatus::Applied`].
+    /// `correct_nonlinear_with_gain*` and `correct_nonlinear_recalibrated*` adapt `R` with the
+    /// innovation form `R ← R + (1−α)×(y×yᵀ − S)` instead, because their gain is not, in
+    /// general, the optimal one for the covariance they produce, which biases the residual
+    /// form. For the recalibrated correction, `S` uses the Jacobian at the updated state, and
+    /// strong nonlinearity inflates `R` more than in `correct_nonlinear`. A candidate that is
+    /// not positive definite is discarded.
+    ///
+    /// Only corrections that return [`CorrectionStatus::Applied`] adapt `R`; gated, skipped and
+    /// backed-out corrections leave it unchanged.
     #[inline(always)]
     pub fn set_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>) {
         self.noise_adaptation = adaptation;
@@ -572,13 +579,15 @@ where
             x.as_matrix_mut(),
             P.as_matrix_mut(),
             self.H.as_matrix(),
-            self.R.as_matrix(),
+            self.R.as_matrix_mut(),
             self.y.as_matrix(),
             self.K.as_matrix(),
             self.S.as_matrix_mut(),
+            self.temp_S_inv.as_matrix_mut(),
             self.temp_HP.as_matrix_mut(),
             self.temp_PHt.as_matrix_mut(),
             self.temp_KHP.as_matrix_mut(),
+            self.noise_adaptation,
         )
     }
 
@@ -672,7 +681,7 @@ where
         // H₂ = ∂h/∂x at x⁺
         jacobian(x, &mut self.H);
 
-        crate::observations::recalibrate_covariance(
+        let status = crate::observations::recalibrate_covariance(
             x.as_matrix_mut(),
             P.as_matrix_mut(),
             self.H.as_matrix(),
@@ -681,7 +690,20 @@ where
             self.S.as_matrix_mut(),
             self.temp_HP.as_matrix_mut(),
             self.temp_KHP.as_matrix_mut(),
-        )
+        );
+
+        // S holds S₂ = H₂×P⁻×H₂ᵀ + R; the residual form would be biased, see NoiseAdaptation.
+        if let Some(adaptation) = self.noise_adaptation.filter(|_| status.is_applied()) {
+            crate::observations::adapt_measurement_noise_from_innovation(
+                adaptation,
+                self.R.as_matrix_mut(),
+                self.y.as_matrix(),
+                self.S.as_matrix(),
+                self.temp_S_inv.as_matrix_mut(),
+            );
+        }
+
+        status
     }
 
     /// Performs the update step. Assumes that the innovation vector is already calculated correctly,
