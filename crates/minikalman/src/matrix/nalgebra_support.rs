@@ -252,7 +252,7 @@ unsafe impl<const ROWS: usize, const COLS: usize, const TOTAL: usize, T>
     #[inline]
     unsafe fn as_slice_unchecked(&self) -> &[T] {
         // SAFETY: `ptr` asserts that the array holds at least ROWS × COLS elements.
-        core::slice::from_raw_parts(self.ptr(), ROWS * COLS)
+        unsafe { core::slice::from_raw_parts(self.ptr(), ROWS * COLS) }
     }
 }
 

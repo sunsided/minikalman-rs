@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["crates/minikalman", "xbuild-tests/stm32", "xbuild-tests/wasm"]
 default-members = ["crates/minikalman"]
 exclude = ["crates/minikalman/fuzz"]
@@ -12,7 +12,8 @@ repository = "https://github.com/sunsided/minikalman-rs"
 homepage = "https://github.com/sunsided/minikalman-rs"
 keywords = ["kalman-filter", "embedded", "fixed-point", "robotics", "slam"]
 categories = ["aerospace", "algorithms", "science::robotics", "no-std", "embedded"]
-edition = "2021"
+edition = "2024"
+rust-version = "1.85.0"
 license = "MIT"
 
 [profile.dev]      # Needed for the embedded cross-compilation projects

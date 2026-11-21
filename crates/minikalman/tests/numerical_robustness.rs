@@ -376,5 +376,5 @@ fn sequential_scalar_updates() {
 
     let standard = i16f16[0].expect("standard I16F16 completes");
     assert!(standard.not_positive_definite > 0);
-    assert!(i16f16[1].map_or(true, |joseph| joseph.not_positive_definite > 0));
+    assert!(i16f16[1].is_none_or(|joseph| joseph.not_positive_definite > 0));
 }

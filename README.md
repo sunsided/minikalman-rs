@@ -173,7 +173,8 @@ flowchart LR
 ### Without allocation (`no_std`)
 
 This example works without `std` and without `alloc`. The `impl_buffer_*!` macros create
-each matrix as a fixed-size local array (`mut name`), or as a `static` with `static mut name`,
+each matrix as a fixed-size local array (`mut name`), or as a `static` with `static mut name`
+(borrowed through `&raw mut`, since edition 2024 denies plain references to a `static mut`),
 and the filter and observation builders take ownership of them.
 
 It is verbose on purpose: every buffer the filter will ever use is declared up front, with its
