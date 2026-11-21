@@ -295,7 +295,7 @@ where
     {
         x.as_mut_slice().copy_from_slice(self.x.as_slice());
         let S = self.S.as_matrix();
-        S.mult_transb(S, P);
+        S.mult_symmetric_transb(S, P);
     }
 
     /// Copies `m` into the first `STATES × STATES` entries of the prearray and replaces them

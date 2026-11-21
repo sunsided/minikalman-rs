@@ -350,6 +350,18 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     which LLVM vectorizes; every entry still sums its terms in the same order.
   - A 4×2 `f32` Joseph step on `thumbv7em-none-eabihf` (`opt-level = "s"`) shrinks from 2558 to
     2202 bytes of `.text`.
+- Symmetric covariance products compute only their lower triangle and mirror it ([#167]):
+  `A×P×Aᵀ` in the prediction of the regular, extended and information filters (also with the
+  fading-memory `λ`), `B×Qᵤ×Bᵀ` of controls, the `K×S×Kᵀ` and `K×H×P + (K×H×P)ᵀ` terms of the
+  Joseph update, `Hᵀ×R⁻¹×H` of the information filter, the RTS smoother's gain sandwich, the
+  square-root filter's `S×Sᵀ`, the scalar PrO update and the unscented `Pxz×Kᵀ` / `K×S×Kᵀ`.
+  Each product's lower triangle is the same bit for bit; the upper one is now an exact copy,
+  so `P` comes out exactly symmetric from `predict` (for a symmetric `Q`) and from every Joseph
+  `correct`, also in fixed point. Over a run, results change at the level of rounding, since
+  later steps read the mirrored entries. A 6×3 `f64` prediction is about 16% faster; a 4×2
+  `f32` Joseph step on `thumbv7em-none-eabihf` grows from 2198 to 2218 bytes of `.text`
+  (`opt-level = "s"`). New kernels `mult_symmetric_transb`, `multadd_symmetric_transb` and
+  `multscale_symmetric_transb`.
 - **Breaking:** the `nalgebra` feature now uses nalgebra 0.33 (was 0.32), the newest release that
   builds on the MSRV 1.80. The commented-out `nalgebra_std`/`nalgebra_alloc`/`nalgebra_libm` features
   are gone ([#135]).
@@ -391,6 +403,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [#161]: https://github.com/sunsided/minikalman-rs/issues/161
 [#163]: https://github.com/sunsided/minikalman-rs/issues/163
+[#167]: https://github.com/sunsided/minikalman-rs/issues/167
 [#159]: https://github.com/sunsided/minikalman-rs/issues/159
 [#157]: https://github.com/sunsided/minikalman-rs/issues/157
 [#153]: https://github.com/sunsided/minikalman-rs/issues/153

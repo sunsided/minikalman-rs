@@ -225,7 +225,7 @@ where
 
         // P = P + B*Q*Bᵀ
         B.mult(Q, BQ_temp); // temp = B*Q
-        BQ_temp.multadd_transb(B, P); // P += temp*Bᵀ
+        BQ_temp.multadd_symmetric_transb(B, P); // P += temp*Bᵀ, symmetric: lower triangle mirrored
     }
 }
 

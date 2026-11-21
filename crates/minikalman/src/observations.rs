@@ -256,8 +256,9 @@ pub struct NoiseAdaptation<T> {
 /// Measured with the `numerical_robustness` test bench of this crate:
 ///
 /// - **Symmetry.** The Joseph form leaves `P` exactly symmetric in every type. The standard
-///   update leaves a relative asymmetry of about `10⁻⁵` in `f32` and `10⁻³` to `0.3` in
-///   `I16F16`, which the prediction carries forward.
+///   update leaves a relative asymmetry of about `10⁻⁵` in `f32` and `10⁻⁴` to `0.03` in
+///   `I16F16`. The next prediction makes `P` exactly symmetric again (it computes the lower
+///   triangle of `A×P×Aᵀ` and mirrors it), but its lower triangle has seen the asymmetry.
 /// - **Positive definiteness, ill-conditioned measurements.** For the textbook case
 ///   `H = [[1,1,1],[1,1,1+δ]]`, `R = δ²×I`, `P = I`, the standard update left `P` indefinite
 ///   for 16 of 48 values of `δ` in `f32` (from `δ ≈ 9×10⁻³`) and 11 in `f64` (from
@@ -470,13 +471,15 @@ fn joseph_update_from_hp<const STATES: usize, const OBSERVATIONS: usize, T>(
 ) where
     T: MatrixDataType,
 {
-    // P = P - K*H*P - (K*H*P)ᵀ
+    // P = P - K*H*P - (K*H*P)ᵀ, on the lower triangle only
     K.mult(HP, temp_KHP); // temp_KHP = K*HP
-    subtract_with_transpose(P, temp_KHP);
+    subtract_with_transpose_lower(P, temp_KHP);
 
-    // P = P + K*S*Kᵀ, once temp_KHP is consumed.
+    // P = P + K*S*Kᵀ, once temp_KHP is consumed. K×S×Kᵀ is symmetric in exact arithmetic but
+    // not under rounding; adding its lower triangle and mirroring the sums into the upper one
+    // leaves P exactly symmetric.
     K.mult(S, temp_PHt); // temp_PHt = K*S
-    add_lower_product_mirrored(P, temp_PHt, K); // P += temp_PHt*Kᵀ
+    temp_PHt.multadd_symmetric_transb(K, P); // P += temp_PHt*Kᵀ
 }
 
 /// Forms the innovation covariance `S = H×P×Hᵀ + R`, leaving `H×P` in `temp_HP`.
@@ -493,35 +496,6 @@ fn form_innovation_covariance<const STATES: usize, const OBSERVATIONS: usize, T>
     H.mult(P, temp_HP); // temp_HP = H*P
     temp_HP.mult_transb(H, S); // S = temp_HP*Hᵀ
     S.add_inplace_a(R); // S += R
-}
-
-/// Adds `A×Bᵀ` to `P`, computing only the lower triangle of the sum and mirroring it into
-/// the upper one, so that `P` comes out exactly symmetric.
-///
-/// For `A = K×S` and `B = K`, `A×Bᵀ = K×S×Kᵀ` is symmetric in exact arithmetic, but not under
-/// rounding: `(K×S)ᵢₗ×Kⱼₗ` and `(K×S)ⱼₗ×Kᵢₗ` round differently.
-#[allow(non_snake_case)]
-fn add_lower_product_mirrored<const STATES: usize, const OBSERVATIONS: usize, T>(
-    P: &mut impl MatrixMut<STATES, STATES, T>,
-    A: &impl Matrix<STATES, OBSERVATIONS, T>,
-    B: &impl Matrix<STATES, OBSERVATIONS, T>,
-) where
-    T: MatrixDataType,
-{
-    // Slices of the static length, so that the loops need no bounds checks.
-    let p = &mut P.as_mut_slice()[..STATES * STATES];
-    let a = &A.as_slice()[..STATES * OBSERVATIONS];
-    let b = &B.as_slice()[..STATES * OBSERVATIONS];
-    for i in 0..STATES {
-        for j in 0..=i {
-            let product: T = (0..OBSERVATIONS)
-                .map(|l| a[i * OBSERVATIONS + l] * b[j * OBSERVATIONS + l])
-                .sum();
-            let value = p[i * STATES + j] + product;
-            p[i * STATES + j] = value;
-            p[j * STATES + i] = value;
-        }
-    }
 }
 
 /// Adapts the measurement noise covariance `R` with the innovation form
@@ -586,9 +560,11 @@ where
     value
 }
 
-/// Subtracts `A + Aᵀ` from the square matrix `P` in place.
+/// Subtracts `A + Aᵀ` from the lower triangle of the square matrix `P` in place.
+///
+/// The upper triangle is left as it was: the caller overwrites it with the mirrored lower one.
 #[allow(non_snake_case)]
-fn subtract_with_transpose<const STATES: usize, T>(
+fn subtract_with_transpose_lower<const STATES: usize, T>(
     P: &mut impl MatrixMut<STATES, STATES, T>,
     A: &impl Matrix<STATES, STATES, T>,
 ) where
@@ -598,7 +574,7 @@ fn subtract_with_transpose<const STATES: usize, T>(
     let p = &mut P.as_mut_slice()[..STATES * STATES];
     let a = &A.as_slice()[..STATES * STATES];
     for i in 0..STATES {
-        for j in 0..STATES {
+        for j in 0..=i {
             p[i * STATES + j] = p[i * STATES + j] - a[i * STATES + j] - a[j * STATES + i];
         }
     }
@@ -1170,6 +1146,92 @@ mod tests {
     fn update_with_innovation_matches_the_old_sequence_fixed() {
         assert_all_shapes::<fixed::types::I16F16>(0.5);
         assert_all_shapes::<fixed::types::I32F32>(1.0);
+    }
+
+    /// The Joseph covariance update as it was before #167: `P − K×H×P − (K×H×P)ᵀ` on every
+    /// entry, then `K×S×Kᵀ` added to the lower triangle and mirrored.
+    #[allow(non_snake_case)]
+    fn old_joseph<const N: usize, const M: usize, T: MatrixDataType>(b: &mut Buffers<T>) {
+        let K = MatrixData::new_ref::<N, M, T>(&b.K);
+        let S = MatrixData::new_ref::<M, M, T>(&b.S);
+        K.mult(
+            &MatrixData::new_ref::<M, N, T>(&b.HP),
+            &mut MatrixData::new_mut::<N, N, T>(&mut b.KHP),
+        );
+        K.mult(&S, &mut MatrixData::new_mut::<N, M, T>(&mut b.PHt));
+
+        let (p, a, ks) = (&mut b.P, &b.KHP, &b.PHt);
+        for i in 0..N {
+            for j in 0..N {
+                p[i * N + j] = p[i * N + j] - a[i * N + j] - a[j * N + i];
+            }
+        }
+
+        for i in 0..N {
+            for j in 0..=i {
+                let product: T = (0..M).map(|l| ks[i * M + l] * b.K[j * M + l]).sum();
+                let value = p[i * N + j] + product;
+                p[i * N + j] = value;
+                p[j * N + i] = value;
+            }
+        }
+    }
+
+    /// Runs `joseph_update_from_hp` and the loops it replaced on the same `K`, `S` and `H×P`,
+    /// and demands bit-identical results.
+    #[allow(non_snake_case)]
+    fn assert_joseph_matches_old<const N: usize, const M: usize, T>(seed: u32, scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let mut new = case::<N, M, T>(seed, scale);
+        new.K = core::array::from_fn(|i| T::from_f64(test_value(seed + 5, i) * scale).unwrap());
+        {
+            let b = &mut new;
+            form_innovation_covariance(
+                &MatrixData::new_ref::<N, N, T>(&b.P),
+                &MatrixData::new_ref::<M, N, T>(&b.H),
+                &MatrixData::new_ref::<M, M, T>(&b.R),
+                &mut MatrixData::new_mut::<M, M, T>(&mut b.S),
+                &mut MatrixData::new_mut::<M, N, T>(&mut b.HP),
+            );
+        }
+
+        let mut old = new;
+        old_joseph::<N, M, T>(&mut old);
+        {
+            let b = &mut new;
+            joseph_update_from_hp(
+                &mut MatrixData::new_mut::<N, N, T>(&mut b.P),
+                &MatrixData::new_ref::<N, M, T>(&b.K),
+                &MatrixData::new_ref::<M, M, T>(&b.S),
+                &MatrixData::new_ref::<M, N, T>(&b.HP),
+                &mut MatrixData::new_mut::<N, M, T>(&mut b.PHt),
+                &mut MatrixData::new_mut::<N, N, T>(&mut b.KHP),
+            );
+        }
+
+        assert_bits_eq(&new.P[..N * N], &old.P[..N * N], "P");
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm"))]
+    fn joseph_update_matches_the_old_loops() {
+        for seed in 0..4 {
+            assert_joseph_matches_old::<2, 1, f32>(seed, 1.0);
+            assert_joseph_matches_old::<4, 2, f32>(seed, 1.0);
+            assert_joseph_matches_old::<6, 3, f64>(seed, 1.0);
+            assert_joseph_matches_old::<3, 4, f64>(seed, 1.0);
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn joseph_update_matches_the_old_loops_fixed() {
+        for seed in 0..4 {
+            assert_joseph_matches_old::<4, 2, fixed::types::I16F16>(seed, 0.5);
+            assert_joseph_matches_old::<6, 3, fixed::types::I32F32>(seed, 1.0);
+        }
     }
 
     /// A non-positive-definite `S` returns early from both paths alike.
