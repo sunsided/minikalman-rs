@@ -66,6 +66,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `_with` variants, and the observation side is exposed as the traits
   `KalmanFilterNonlinearObservationCorrectRecalibrated` and
   `KalmanFilterUnscentedObservationCorrectRecalibrated` ([#60]).
+- Added `innovation_vector()` to the regular and extended observations. It holds the innovation of
+  the prior state after every correction, including gated or rejected ones, as the input for
+  learned-gain filters ([#92]).
 
 ### Fixed
 
@@ -104,6 +107,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
+[#92]: https://github.com/sunsided/minikalman-rs/issues/92
 [#69]: https://github.com/sunsided/minikalman-rs/issues/69
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63

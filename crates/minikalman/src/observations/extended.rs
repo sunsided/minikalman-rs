@@ -387,6 +387,17 @@ impl<
     pub fn kalman_gain_mut(&mut self) -> &mut K {
         &mut self.K
     }
+
+    /// Gets a reference to the innovation vector y.
+    ///
+    /// Every correction writes the innovation `z − h(x)` of the prior state here (after the
+    /// normalization, for the `_with` variants) before it applies, gates or rejects the update,
+    /// so it is also available when the update is skipped. This is the input a learned-gain
+    /// filter computes its gain from.
+    #[inline(always)]
+    pub fn innovation_vector(&self) -> &Y {
+        &self.y
+    }
 }
 
 impl<
