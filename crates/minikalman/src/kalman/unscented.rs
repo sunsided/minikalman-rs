@@ -1047,14 +1047,15 @@ where
         measurement: &mut M,
         observation: F,
         fix: N,
-    ) where
+    ) -> CorrectionStatus
+    where
         M: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBS, NUM_SIGMA, T>,
         F: FnMut(&SigmaPropagated, &mut M::ObservedSigmaPoints),
         N: FnMut(&mut [T]),
     {
         self.refresh_sigma_points();
         let lambda = self.lambda();
-        measurement.correct_with_observed_residuals(
+        let status = measurement.correct_with_observed_residuals(
             &mut self.x,
             &mut self.P,
             &self.sigma_propagated,
@@ -1065,6 +1066,7 @@ where
             fix,
         );
         self.sigma_points_stale = true;
+        status
     }
 }
 

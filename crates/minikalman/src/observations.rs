@@ -1,21 +1,11 @@
 //! # Observations for Regular, Extended, and Unscented Kalman Filters.
 
+use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
 
 pub mod extended;
 pub mod regular;
 pub mod unscented;
-
-/// The outcome of a correction step.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Correction {
-    /// The update was applied to `x` and `P`.
-    Applied,
-    /// The innovation covariance `S` was not positive definite; `x` and `P` are unchanged.
-    NotPositiveDefinite,
-    /// The normalized innovation squared exceeded the gate; `x` and `P` are unchanged.
-    Gated,
-}
 
 /// Computes the normalized innovation squared `NIS = yᵀ×S⁻¹×y`.
 #[allow(non_snake_case)]
@@ -58,7 +48,7 @@ pub(crate) fn update_with_innovation<const STATES: usize, const OBSERVATIONS: us
     temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
     nis: &mut T,
     gate: Option<T>,
-) -> Correction
+) -> CorrectionStatus
 where
     T: MatrixDataType,
 {
@@ -72,14 +62,14 @@ where
 
     // K = P*Hᵀ * S^-1
     if !S.cholesky_decompose_lower() {
-        return Correction::NotPositiveDefinite;
+        return CorrectionStatus::NotPositiveDefinite;
     }
     S.invert_l_cholesky(S_inv); // S_inv = S^-1
 
     // Gate on the normalized innovation squared before anything else is written.
     *nis = normalized_innovation_squared(y, S_inv);
     if gate.is_some_and(|gate| *nis > gate) {
-        return Correction::Gated;
+        return CorrectionStatus::Gated;
     }
 
     // NOTE that to allow aliasing of Sinv and temp_PHt, a copy must be performed here
@@ -100,5 +90,5 @@ where
     H.mult(P, temp_HP); // temp_HP = H*P
     K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
     P.sub_inplace_a(temp_KHP); // P -= temp_KHP
-    Correction::Applied
+    CorrectionStatus::Applied
 }

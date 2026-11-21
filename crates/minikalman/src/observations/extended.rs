@@ -394,7 +394,12 @@ where
     ///   the innovation itself will only be calculated afterward.
     #[inline]
     #[allow(non_snake_case)]
-    pub fn correct_nonlinear<X, P, F>(&mut self, x: &mut X, P: &mut P, observation: F)
+    pub fn correct_nonlinear<X, P, F>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+    ) -> CorrectionStatus
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
@@ -419,7 +424,8 @@ where
         P: &mut P,
         mut observation: F,
         mut fix: N,
-    ) where
+    ) -> CorrectionStatus
+    where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         F: FnMut(&X, &mut Y),
@@ -437,7 +443,7 @@ where
         fix(y.as_mut_slice());
 
         // Perform the remaining update.
-        self.update_with_innovation(x, P);
+        self.update_with_innovation(x, P)
     }
 
     /// Performs the update step. Assumes that the innovation vector is already calculated correctly,
@@ -447,12 +453,13 @@ where
     /// * `x` - The current state vector.
     /// * `P` - The current state estimate covariance matrix.
     #[allow(non_snake_case)]
-    fn update_with_innovation<X, P>(&mut self, x: &mut X, P: &mut P)
+    fn update_with_innovation<X, P>(&mut self, x: &mut X, P: &mut P) -> CorrectionStatus
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
     {
-        // The update is skipped, leaving x and P unchanged, if S cannot be inverted.
+        // The update is skipped, leaving x and P unchanged, if S cannot be inverted or
+        // the innovation is gated.
         crate::observations::update_with_innovation(
             x.as_matrix_mut(),
             P.as_matrix_mut(),
@@ -467,7 +474,7 @@ where
             self.temp_KHP.as_matrix_mut(),
             &mut self.nis,
             self.gate,
-        );
+        )
     }
 }
 
@@ -882,7 +889,13 @@ where
 
     #[inline(always)]
     #[allow(non_snake_case)]
-    fn correct_nonlinear_with<X, P, F, N>(&mut self, x: &mut X, P: &mut P, observation: F, fix: N)
+    fn correct_nonlinear_with<X, P, F, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,

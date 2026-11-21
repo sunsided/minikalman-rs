@@ -490,14 +490,15 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         &mut self,
         measurement: &mut M,
         observation: F,
-    ) where
+    ) -> CorrectionStatus
+    where
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
         F: FnMut(&X, &mut M::ObservationVector),
     {
-        measurement.correct_nonlinear(&mut self.x, &mut self.P, observation);
+        measurement.correct_nonlinear(&mut self.x, &mut self.P, observation)
     }
 
     /// Performs the nonlinear measurement update step, normalizing the innovation before
@@ -521,7 +522,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         measurement: &mut M,
         observation: F,
         fix: N,
-    ) where
+    ) -> CorrectionStatus
+    where
         P: EstimateCovarianceMatrix<STATES, T>,
         X: StateVectorMut<STATES, T>,
         T: MatrixDataType,
@@ -529,7 +531,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         F: FnMut(&X, &mut M::ObservationVector),
         N: FnMut(&mut [T]),
     {
-        measurement.correct_nonlinear_with(&mut self.x, &mut self.P, observation, fix);
+        measurement.correct_nonlinear_with(&mut self.x, &mut self.P, observation, fix)
     }
 }
 
@@ -679,7 +681,8 @@ where
         measurement: &mut M,
         observation: F,
         fix: N,
-    ) where
+    ) -> CorrectionStatus
+    where
         M: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>,
         F: FnMut(&X, &mut M::ObservationVector),
         N: FnMut(&mut [T]),
