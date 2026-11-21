@@ -797,14 +797,16 @@ pub trait KalmanFilterMeasurementNoiseCovarianceMut<const OBSERVATIONS: usize, T
 }
 
 /// UKF parameters (alpha, beta, kappa).
+///
+/// See [Choosing α, β and κ](crate::unscented::UnscentedKalman#choosing-α-β-and-κ).
 pub trait KalmanFilterUnscentedParams<T> {
-    /// Spread parameter (default 1e-3).
+    /// Spread parameter α (builder default 1.0).
     fn alpha(&self) -> T;
 
-    /// Distribution knowledge parameter (2.0 for Gaussian).
+    /// Distribution knowledge parameter β (builder default 2.0, optimal for a Gaussian).
     fn beta(&self) -> T;
 
-    /// Secondary scaling parameter (default 0.0).
+    /// Secondary scaling parameter κ (builder default 1.0).
     fn kappa(&self) -> T;
 
     /// Computed lambda: alpha^2 * (n + kappa) - n.

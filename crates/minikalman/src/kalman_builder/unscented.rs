@@ -44,6 +44,10 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
 
     /// Builds a new UKF filter using heap allocated buffers.
     ///
+    /// The filter starts with `α = 1`, `β = 2` and `κ = 1`. See
+    /// [Choosing α, β and κ](UnscentedKalman#choosing-α-β-and-κ) for other settings, such as
+    /// the cubature Kalman filter (`α = 1`, `β = 0`, `κ = 0`).
+    ///
     /// ## Example
     /// ```rust
     /// use minikalman::unscented::builder::KalmanFilterBuilder;

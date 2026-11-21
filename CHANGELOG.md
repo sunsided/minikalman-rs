@@ -25,6 +25,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `CorrectionStatus` (`Applied`, `NotPositiveDefinite`, `Gated`; `#[non_exhaustive]`), returned by `correct`,
   `correct_with`, `correct_nonlinear`, `correct_nonlinear_with`, `correct_sigma_point` and
   `correct_sigma_point_with`, so callers can tell whether a measurement was skipped ([#65]).
+- Documented how to choose the Unscented Kalman Filter parameters `α`, `β` and `κ`, including the
+  cubature Kalman filter settings (`α = 1, β = 0, κ = 0`) and the default `α = 1, β = 2, κ = 1`
+  ([#64]).
 
 ### Fixed
 
@@ -60,6 +63,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
 [#59]: https://github.com/sunsided/minikalman-rs/issues/59
 [#65]: https://github.com/sunsided/minikalman-rs/issues/65
+[#64]: https://github.com/sunsided/minikalman-rs/issues/64
 
 ## [0.8.1] - 2026-10-30
 
