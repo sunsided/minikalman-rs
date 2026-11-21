@@ -34,7 +34,8 @@ produce your own (see [Reproducing](#reproducing)).
   (2×1, 4×2 and 6×3, states × measurements, `dt = 0.1`, full `R`), and the 4-state
   range–bearing radar for the extended filter (`f32` only).
 - **Element types**: `f32`, `I16F16` and `I32F32` (`fixed` crate). minikalman is built with
-  `libm` and `fixed`, without `alloc`; all buffers are on the stack.
+  `libm`, `fixed` and `unsafe`, without `alloc`; all buffers are on the stack. `unsafe` makes the
+  `f32` square root use `vsqrt.f32` on the M4F (#174).
 - **Operations**, each per call:
   - `predict`, `correct_joseph` (the default) and `correct_standard` of the regular filter,
     and `step_joseph` (predict + correct in one measured section);
@@ -42,7 +43,7 @@ produce your own (see [Reproducing](#reproducing)).
   - `ud_predict`/`ud_correct` (Bierman/Thornton) and `sqrt_predict`/`sqrt_correct`
     (square-root covariance filter);
   - `ekf_radar_4x2/predict` and `correct_joseph`, the latter including the Jacobian and
-    `h(x)` (`sqrtf`, `atan2f`);
+    `h(x)` (`square_root`, `atan2f`);
   - `prim/*`: one `add`, `mul`, `div` and `sqrt` of each type, plus `copy` (only the operand
     loads and the store), to read the filter counts against.
 - **Method** (`src/main.rs`, `renode/bench.py`):
@@ -78,8 +79,13 @@ also needs `llvm-nm` (or `rust-nm` from `cargo-binutils`).
 benches/mcu/run.sh                                   # both cores, both profiles, all types
 BASE=origin/main benches/mcu/run.sh                  # the same against minikalman at a revision
 TARGETS=thumbv7em-none-eabihf PROFILES=release TYPES=f32 benches/mcu/run.sh   # one binary
+TARGETS=thumbv7em-none-eabihf TYPES=sqrt-check benches/mcu/run.sh   # f32 sqrt == libm::sqrtf?
 task bench:mcu
 ```
+
+The `sqrt-check` type first compares minikalman's `f32` square root with `libm::sqrtf`, bit
+for bit, on 65 559 inputs over the whole `u32` range on the target, and logs `sqrt_check/ok`
+only if all match (a mismatch fails the run).
 
 `run.sh` builds one binary per target, profile and type, runs each headless in Renode and
 writes the raw logs to `benches/mcu/results/head/` (and `base/` with `BASE`), then prints the
@@ -113,6 +119,7 @@ not reach its end, and when the stack came too close to the statics.
 - See the box at the top: these are instruction counts, not cycles. On the M4F, one
   `vdiv.f32` counts like one `vadd.f32` but costs 14 times as much; on the M0+, a load from
   flash with wait states counts like a register move.
-- `f32` square roots go through `libm::sqrtf`, which has no Arm intrinsic and runs in
-  software (about 80 instructions) even on the M4F, which has `vsqrt.f32`.
+- `f32` square roots use `vsqrt.f32` on the M4F only because the firmware enables minikalman's
+  `unsafe` feature. Without it they go through `libm::sqrtf`, which has no Arm intrinsic and
+  runs in software (about 80 instructions). The M0+ has no FPU and always uses `libm::sqrtf`.
 - The `opt-level` and the LTO settings change the counts a lot; compare like with like.

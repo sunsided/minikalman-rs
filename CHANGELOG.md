@@ -336,6 +336,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- With the `unsafe` feature, `libm` and no `std`, the `f32` square root on Arm hard-float targets
+  (`target_abi = "eabihf"`, e.g. the Cortex-M4F) uses the FPU's `vsqrt.f32` instead of
+  `libm::sqrtf` in software: 7 instead of 79 instructions per root on the M4F, up to 26 % fewer
+  in the square-root filter's correction, with bit-identical results. Opt-in: without `unsafe`
+  nothing changes, and `micromath` keeps its approximation ([#174]).
 - Made the regular and extended corrections and the dense kernels cheaper, with bit-identical
   results ([#163]):
   - `correct` reuses the `H×P` that the gain needed instead of forming it again, and the Joseph
@@ -441,6 +446,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   deterministic; `BASE=<rev> run.sh` compares against another revision. They are instruction
   counts, not cycles ([#169]).
 
+[#174]: https://github.com/sunsided/minikalman-rs/issues/174
 [#169]: https://github.com/sunsided/minikalman-rs/issues/169
 [#161]: https://github.com/sunsided/minikalman-rs/issues/161
 [#163]: https://github.com/sunsided/minikalman-rs/issues/163

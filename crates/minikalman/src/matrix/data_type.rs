@@ -85,7 +85,21 @@ impl MatrixDataType for f32 {
         {
             self.sqrt()
         }
-        #[cfg(all(feature = "libm", not(feature = "std")))]
+        #[cfg(all(
+            feature = "libm",
+            not(feature = "std"),
+            feature = "unsafe",
+            target_arch = "arm",
+            target_abi = "eabihf"
+        ))]
+        {
+            hardware_sqrtf(self)
+        }
+        #[cfg(all(
+            feature = "libm",
+            not(feature = "std"),
+            not(all(feature = "unsafe", target_arch = "arm", target_abi = "eabihf"))
+        ))]
         {
             libm::sqrtf(self)
         }
@@ -94,6 +108,40 @@ impl MatrixDataType for f32 {
             micromath::F32Ext::sqrt(self)
         }
     }
+}
+
+/// Square root with the FPU's `vsqrt.f32` on Arm hard-float targets.
+///
+/// `libm::sqrtf` has no Arm32 path and runs ~80 instructions in software; core's `f32::sqrt`
+/// is not stable. Every VFP version has `vsqrt.f32`, and the `eabihf` ABI implies a VFP. Both
+/// are IEEE 754 correctly rounded, so the results are bit-identical (NaN payloads aside).
+#[cfg(all(
+    feature = "libm",
+    not(feature = "std"),
+    feature = "unsafe",
+    target_arch = "arm",
+    target_abi = "eabihf"
+))]
+#[inline]
+fn hardware_sqrtf(x: f32) -> f32 {
+    let bits: u32;
+    // SAFETY: the block only computes in registers: no memory, no stack. It borrows `s0` and
+    // restores it, because rustc 1.85 (the MSRV) rejects S-register operands on single-precision
+    // FPUs such as the M4F's (they lack the `vfp2` feature, which implies doubles). `vsqrt.f32` sets FPSCR exception flags,
+    // hence no `preserves_flags`.
+    unsafe {
+        core::arch::asm!(
+            "vmov {saved}, s0",
+            "vmov s0, {bits}",
+            "vsqrt.f32 s0, s0",
+            "vmov {bits}, s0",
+            "vmov s0, {saved}",
+            bits = inout(reg) x.to_bits() => bits,
+            saved = out(reg) _,
+            options(pure, nomem, nostack)
+        );
+    }
+    f32::from_bits(bits)
 }
 
 #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]

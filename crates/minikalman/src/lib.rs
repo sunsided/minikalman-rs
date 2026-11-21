@@ -56,7 +56,10 @@
 //!   `libm` is also enabled, those take precedence; use `default-features = false` to pick micromath.
 //! * `fixed` - Enables fixed-point support via the [fixed](https://crates.io/crates/fixed) crate.
 //! * `unsafe` - Enables some unsafe pointer operations. Disabled by default; when turned off,
-//!   compiles the crate as `#![forbid(unsafe)]`.
+//!   compiles the crate as `#![forbid(unsafe)]`. With `libm` (and without `std`) on Arm
+//!   hard-float targets (`target_abi = "eabihf"`, e.g. `thumbv7em-none-eabihf`), it also computes
+//!   the `f32` square root with the FPU's `vsqrt.f32` instead of `libm::sqrtf` in software. Both are
+//!   correctly rounded, so results do not change. `micromath` keeps its approximation.
 //! * `nalgebra` - Disabled by default. Enables copies between minikalman's matrices and
 //!   [nalgebra](https://crates.io/crates/nalgebra) matrices; see [nalgebra interop](#nalgebra-interop).
 //!   Together with `unsafe`, a `MatrixDataArray` can also back an owned nalgebra matrix.
