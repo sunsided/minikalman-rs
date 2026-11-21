@@ -133,11 +133,8 @@
 //!         z[0] = 42.0;
 //!     });
 //!
-//!     // Update prediction (without controls).
-//!     filter.predict();
-//!
-//!     // Apply any controls to the prediction.
-//!     filter.control(&mut control);
+//!     // Predict, then apply each control input to the prediction.
+//!     filter.predict().control(&mut control);
 //!
 //!     // Apply any measurements.
 //!     filter.correct(&mut measurement);
