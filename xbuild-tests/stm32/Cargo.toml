@@ -13,7 +13,8 @@ rust-version.workspace = true
 
 [features]
 default = ["kalman-fixed", "kalman-float"]
-kalman-float = ["minikalman/libm"]
+# `unsafe` builds the vsqrt.f32 square root (#174), so CI compiles that path.
+kalman-float = ["minikalman/libm", "minikalman/unsafe"]
 kalman-fixed = ["minikalman/fixed"]
 
 [dependencies]

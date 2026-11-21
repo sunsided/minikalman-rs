@@ -57,8 +57,9 @@ pub extern "C" fn mk_done() -> ! {
 #[unsafe(no_mangle)]
 #[inline(never)]
 pub extern "C" fn mk_fail() -> ! {
+    // A body unlike `mk_done`'s, or LTO folds both into one address and a panic reads as DONE.
     loop {
-        black_box(());
+        black_box(0xFA11_u32);
     }
 }
 
@@ -416,7 +417,7 @@ fn ekf_radar() {
     let mut z = |k: usize| {
         let t = DT * k as f32;
         let (px, py) = (10.0 + t, 5.0 + 0.5 * t);
-        let r = libm::sqrtf(px * px + py * py);
+        let r = (px * px + py * py).square_root();
         [
             r + 0.1 * noise.next(),
             libm::atan2f(py, px) + 0.01 * noise.next(),
@@ -440,7 +441,7 @@ fn ekf_radar() {
     ) -> bool {
         let (px, py) = (f.state_vector().get(0, 0), f.state_vector().get(1, 0));
         let r2 = px * px + py * py;
-        let r = libm::sqrtf(r2);
+        let r = r2.square_root();
         o.observation_jacobian_matrix_mut().apply(|h| {
             h.set(0, 0, px / r);
             h.set(0, 1, py / r);
@@ -449,7 +450,7 @@ fn ekf_radar() {
         });
         f.correct_nonlinear(o, |x, obs| {
             let (px, py) = (x.get(0, 0), x.get(1, 0));
-            obs.set(0, 0, libm::sqrtf(px * px + py * py));
+            obs.set(0, 0, (px * px + py * py).square_root());
             obs.set(1, 0, libm::atan2f(py, px));
         })
         .is_applied()
@@ -549,6 +550,30 @@ pub extern "C" fn mk_stack(free_bytes: usize) {
     black_box(free_bytes);
 }
 
+/// Fails the run unless minikalman's `f32` square root matches `libm::sqrtf` bit for bit
+/// (NaN for NaN) on the edge cases and on 65 552 bit patterns spread over all of `u32`.
+#[cfg(feature = "sqrt-check")]
+fn sqrt_check() {
+    let edges = [
+        0.0,
+        -0.0,
+        f32::MIN_POSITIVE,
+        f32::MAX,
+        f32::INFINITY,
+        f32::from_bits(1),
+    ];
+    let stride = (0..=u32::MAX / 65_521).map(|i| f32::from_bits(i * 65_521));
+
+    for x in edges.into_iter().chain(stride) {
+        let (hw, sw) = (black_box(x).square_root(), libm::sqrtf(black_box(x)));
+        if !(hw.to_bits() == sw.to_bits() || hw.is_nan() && sw.is_nan()) {
+            mk_fail();
+        }
+    }
+
+    measure("sqrt_check/ok", || true);
+}
+
 #[entry]
 fn main() -> ! {
     paint_stack();
@@ -556,6 +581,8 @@ fn main() -> ! {
     for _ in 0..4 {
         measure("calib/empty", || black_box(true));
     }
+    #[cfg(feature = "sqrt-check")]
+    sqrt_check();
     primitives();
     #[cfg(feature = "f32")]
     {

@@ -12,7 +12,7 @@ description = "Per-operation instruction counts of minikalman on Cortex-M, measu
 cortex-m-rt = "0.7.5"
 fixed = "1.28"
 libm = "0.2"
-minikalman = { path = "../../crates/minikalman", default-features = false, features = ["libm", "fixed"] }
+minikalman = { path = "../../crates/minikalman", default-features = false, features = ["libm", "fixed", "unsafe"] }
 
 [profile.release]
 opt-level = "s"
@@ -31,3 +31,5 @@ default = ["f32", "i16f16", "i32f32"]
 f32 = []
 i16f16 = []
 i32f32 = []
+# Checks the f32 square root against libm::sqrtf on the target; not measured.
+sqrt-check = ["f32"]

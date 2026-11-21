@@ -193,6 +193,7 @@ jobs:
       - name: Install Rust toolchains
         run: |
           rustup toolchain install stable 1.85 1.88 --profile minimal --no-self-update
+          rustup target add --toolchain 1.85 thumbv7em-none-eabihf
       # Cargo.lock is not committed. Resolver 3 already prefers versions that build on the
       # workspace rust-version, so a plain lockfile suits the MSRV; only the library is checked.
       - name: Resolve dependencies for the MSRV
@@ -203,6 +204,9 @@ jobs:
         run: cargo +1.85 check --locked --package minikalman --lib --no-default-features --features=libm,alloc
       - name: Check (micromath, alloc)
         run: cargo +1.85 check --locked --package minikalman --lib --no-default-features --features=micromath,alloc
+      # The vsqrt.f32 asm (#174): rustc 1.85 rejects S-register operands on this target.
+      - name: Check (libm, unsafe) for thumbv7em-none-eabihf
+        run: cargo +1.85 check --locked --package minikalman --lib --target thumbv7em-none-eabihf --no-default-features --features=libm,unsafe
       # The opt-in `derive` feature pulls proc-macro crates that need Rust 1.88.
       - name: Check (derive) on Rust 1.88
         run: cargo +1.88 check --locked --package minikalman --lib --features=derive
