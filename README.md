@@ -724,12 +724,13 @@ Result: g = 9.804 ± 0.026 m/s² (1σ), true 9.807 m/s², from 60 measurements o
 ```
 
 After one second, the estimate is within 0.05 m/s² of the true value. Its uncertainty keeps
-shrinking, and the true `g` stays inside the band:
+shrinking, and the true `g` (green) stays inside the ±3σ band (amber) around the estimate
+(blue):
 
 ```mermaid
 %%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#16a34a, #f59e0b, #2563eb, #f59e0b"}}}}%%
 xychart-beta
-    title "Estimated g (blue) with its ±3σ band (amber), true g (green)"
+    title "ĝ with ±3σ band vs. true g"
     x-axis "t (s)" ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0"]
     y-axis "g (m/s²)" 4 --> 14
     line [9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81, 9.81]

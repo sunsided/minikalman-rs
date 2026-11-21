@@ -196,7 +196,7 @@ fn print_chart(history: &[Estimate]) {
          \"#16a34a, #f59e0b, #2563eb, #f59e0b\"}}}}}}}}%%"
     );
     println!("xychart-beta");
-    println!("    title \"Estimated g (blue) with its ±3σ band (amber), true g (green)\"");
+    println!("    title \"ĝ with ±3σ band vs. true g\"");
     println!(
         "    x-axis \"t (s)\" [{}]",
         points
