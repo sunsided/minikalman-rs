@@ -37,6 +37,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `smoother::RtsSmoother`, a Rauch-Tung-Striebel backward pass that refines a recorded filter
   history of `x`, `P` and their predictions in place, using the measurements that came later ([#62]).
   It does not allocate and skips steps whose predicted covariance is not positive definite.
+- Added `smoother::FixedLagSmoother`, an online RTS smoother over a sliding window of the last `N`
+  steps in const-generic ring buffers. Each `push` of a filter step returns the step `N−1` steps
+  back, smoothed with the steps after it; it does not allocate ([#88]).
 - Added `correct_with_gain` / `correct_with_gain_with` (regular) and `correct_nonlinear_with_gain` /
   `correct_nonlinear_with_gain_with` (extended) to apply an externally supplied Kalman gain, e.g. a
   precomputed steady-state gain, set via the new `kalman_gain_mut` accessor. They skip the inversion
@@ -107,6 +110,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#64]: https://github.com/sunsided/minikalman-rs/issues/64
 [#67]: https://github.com/sunsided/minikalman-rs/issues/67
 [#62]: https://github.com/sunsided/minikalman-rs/issues/62
+[#88]: https://github.com/sunsided/minikalman-rs/issues/88
 [#66]: https://github.com/sunsided/minikalman-rs/issues/66
 
 ## [0.8.1] - 2026-10-30
