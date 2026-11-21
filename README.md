@@ -349,6 +349,63 @@ let velocity = filter.state_vector().view::<TrackView>().velocity;
 A struct whose field count differs from the vector length fails to build. See the
 `named_vector` module docs for the setup.
 
+### Declaring filters: `filter!`
+
+`minikalman::filter!` declares the parts of a filter by name and generates their storage and
+wiring. Here two filters share one observation and one control:
+
+```rust
+use minikalman::prelude::*;
+
+const DT: f32 = 0.1;
+
+minikalman::filter! {
+    pub state Track(f32) { pos, vel }
+
+    pub control throttle: Throttle for Track { accel } {
+        B[pos, accel] = 0.5 * DT * DT;
+        B[vel, accel] = DT;
+        Q = diag(0.01);
+    }
+
+    pub observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+
+    pub kalman fast for Track { A = identity; A[pos, vel] = DT; Q = diag(0.1); P = diag(10.0); }
+    pub kalman slow for Track { A = identity; A[pos, vel] = DT; Q = diag(0.001); P = diag(10.0); }
+
+    /// One value holding every buffer, its size checked at compile time.
+    pub system tracking { fast, slow, gps, throttle }
+}
+
+fn main() {
+    let mut storage = tracking::new(); // `const fn`: a `static` works too
+    let mut sys = tracking::build(&mut storage); // wires only
+    tracking::model(&mut sys); // writes the declared matrices
+
+    for k in 0..50 {
+        let t = k as f32 * DT;
+        Throttle { accel: 1.0 }.write(sys.throttle.control_vector_mut().as_mut_slice());
+        for filter in [&mut sys.fast, &mut sys.slow] {
+            filter.predict().control(&mut sys.throttle);
+            Gps { pos: 0.5 * t * t }.write(sys.gps.measurement_vector_mut().as_mut_slice());
+            filter.correct(&mut sys.gps);
+        }
+    }
+
+    let velocity = Track::read(sys.fast.state_vector().as_slice()).vel;
+    assert!((velocity - 4.9).abs() < 0.5);
+}
+```
+
+Each item becomes a module (`fast::Storage`, `fast::new`, `fast::build`, `fast::model`) over
+the library's own storage types, so memory stays explicit, and you call the usual API on what
+`build` returns. `build` only wires, like the storage types' `build()`. `model` writes the
+declared values, and calling it again resets them. The `filter!` docs build up from the
+smallest filter to lean observations with a shared scratch, a Luenberger observer, `static`
+placement and fixed point, and end with the grammar.
+[`examples/filter_dsl.rs`](crates/minikalman/examples/filter_dsl.rs) runs the two filters
+above next to an observer with a settled gain.
+
 ### Targets with allocations (`std` or `alloc`)
 
 When the `alloc` crate feature is enabled either directly or implicitly via `std`,

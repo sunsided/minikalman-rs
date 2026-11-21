@@ -76,6 +76,14 @@
 //! enables its own `unsafe` feature; minikalman adds no `unsafe` code. The `named_vector`
 //! module documents the setup.
 //!
+//! ## Declaring Filters
+//!
+//! [`filter!`](crate::filter) declares states, observations, controls, scratch, Kalman filters,
+//! Luenberger observers and systems of them in one block, and generates a module per item
+//! holding the storage type, a `const fn new`, a wiring-only `build` and a `model` that writes
+//! the declared values. It wraps no filter method and needs no feature; its docs have the
+//! grammar.
+//!
 //! ## nalgebra Interop
 //!
 //! minikalman does not depend on nalgebra, and no filter uses it. nalgebra's dependency tree
@@ -337,6 +345,7 @@ mod kalman_builder;
 pub mod angles;
 pub mod buffers;
 mod controls;
+mod filter_macro;
 mod kalman;
 pub mod matrix;
 pub mod models;
@@ -358,6 +367,10 @@ mod test_filter;
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 pub use crate::buffers::builder::BufferBuilder;
+
+/// Support items for the code [`filter!`] generates; not part of the public API.
+#[doc(hidden)]
+pub use crate::filter_macro::support as __dsl;
 
 /// Re-export `num_traits`.
 pub use num_traits;
