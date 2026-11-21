@@ -321,6 +321,21 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let bdata = &b.as_slice()[..COLS * U];
         let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
+        // Rows shorter than ROW_ACCUMULATOR_MIN gain nothing from vectorizing across the row,
+        // so they keep one dot product per entry. U is a constant, so the branch folds away.
+        if U < ROW_ACCUMULATOR_MIN {
+            for i in 0..arows {
+                for j in 0..U {
+                    let mut total = T::zero();
+                    for k in 0..brows {
+                        total += adata[i * COLS + k] * bdata[k * U + j];
+                    }
+                    cdata[i * ccols + j] = total;
+                }
+            }
+            return;
+        }
+
         // i-k-j order with a local row accumulator: every C[i][j] still sums its k terms in
         // ascending order, starting from zero, so the result is bit-identical to a dot product
         // per element; the inner loop runs over contiguous rows that LLVM can vectorize.
@@ -660,6 +675,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     }
 }
 
+/// The shortest output row for which `mult` and the `mult_transb` family accumulate the whole
+/// row at once. Shorter rows keep one dot product per entry: for them the accumulator only adds
+/// overhead (measured with `benches/compare`, e.g. the 2-state, 1-measurement filter). Both
+/// paths sum every entry in the same order, so the results are the same bit for bit.
+const ROW_ACCUMULATOR_MIN: usize = 4;
+
 /// Computes `C = A×Bᵀ` row by row for `A` (`R`×`K`), `B` (`U`×`K`) and `C` (`R`×`U`),
 /// passing each entry to `store`.
 ///
@@ -675,6 +696,20 @@ fn products_transb<const R: usize, const K: usize, const U: usize, T>(
 ) where
     T: MatrixDataType,
 {
+    // Short rows keep one dot product per entry; see `ROW_ACCUMULATOR_MIN`.
+    if U < ROW_ACCUMULATOR_MIN {
+        for i in 0..R {
+            for j in 0..U {
+                let mut total = T::zero();
+                for k in 0..K {
+                    total += a[i * K + k] * b[j * K + k];
+                }
+                store(&mut c[i * U + j], total);
+            }
+        }
+        return;
+    }
+
     for i in 0..R {
         let mut row = [T::zero(); U];
         for k in 0..K {
@@ -1943,7 +1978,10 @@ mod kernel_bit_identity {
     }
 
     fn check_all<T: MatrixDataType + ToBits>(scale: f64) {
+        // U = 1, 2, 3 take the dot-product path, U ≥ ROW_ACCUMULATOR_MIN the row accumulator.
         check_mult::<1, 1, 1, T>(scale);
+        check_mult::<2, 2, 2, T>(scale);
+        check_mult::<3, 3, 3, T>(scale);
         check_mult::<2, 3, 4, T>(scale);
         check_mult::<3, 2, 5, T>(scale);
         check_mult::<4, 4, 4, T>(scale);
@@ -1952,6 +1990,8 @@ mod kernel_bit_identity {
         check_mult::<2, 7, 1, T>(scale);
 
         check_transb::<1, 1, 1, T>(scale);
+        check_transb::<2, 2, 2, T>(scale);
+        check_transb::<3, 3, 3, T>(scale);
         check_transb::<2, 3, 4, T>(scale);
         check_transb::<4, 4, 2, T>(scale);
         check_transb::<3, 5, 3, T>(scale);
