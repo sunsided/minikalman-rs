@@ -3,7 +3,7 @@
 use super::layout::*;
 use crate::kalman::GainForm;
 use crate::matrix::MatrixDataType;
-use crate::regular::{FixedGainObservation, LuenbergerObserver};
+use crate::regular::{FixedGainGate, FixedGainObservation, LuenbergerObserver};
 
 /// A [`LuenbergerObserver`] whose buffers borrow an [`ObserverStorage`].
 pub type BorrowedLuenbergerObserver<'a, const STATES: usize, T> = LuenbergerObserver<
@@ -24,6 +24,20 @@ pub type BorrowedFixedGainObservation<'a, const STATES: usize, const OBSERVATION
         MeasurementVectorRef<'a, OBSERVATIONS, T>,
         InnovationVectorRef<'a, OBSERVATIONS, T>,
         KalmanGainRef<'a, STATES, OBSERVATIONS, T>,
+    >;
+
+/// A gated [`FixedGainObservation`] whose buffers borrow a
+/// [`GatedFixedGainObservationStorage`].
+pub type BorrowedGatedFixedGainObservation<'a, const STATES: usize, const OBSERVATIONS: usize, T> =
+    FixedGainObservation<
+        STATES,
+        OBSERVATIONS,
+        T,
+        ObservationMatrixRef<'a, STATES, OBSERVATIONS, T>,
+        MeasurementVectorRef<'a, OBSERVATIONS, T>,
+        InnovationVectorRef<'a, OBSERVATIONS, T>,
+        KalmanGainRef<'a, STATES, OBSERVATIONS, T>,
+        FixedGainGate<OBSERVATIONS, T, InnovationCovarianceRef<'a, OBSERVATIONS, T>>,
     >;
 
 /// Storage for the buffers of a [`LuenbergerObserver`] with `STATES` states.
@@ -139,5 +153,66 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType>
             flat(&mut self.K).into(),
             form,
         )
+    }
+}
+
+/// Storage for the buffers of a [`FixedGainObservation`] with an innovation gate.
+///
+/// Holds the buffers of a [`FixedGainObservationStorage`] plus `S∞⁻¹`,
+/// `2·STATES·OBSERVATIONS + 2·OBSERVATIONS + OBSERVATIONS²` scalars. The storage keeps the
+/// gain and `S∞⁻¹` across [`build`](Self::build)s, but neither the gain form, nor the gate
+/// threshold, nor the NIS: set the threshold again with
+/// [`set_gate`](FixedGainObservation::set_gate) after each `build`.
+///
+/// ## Example
+///
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman::regular::GatedFixedGainObservationStorage;
+///
+/// let mut storage = GatedFixedGainObservationStorage::<2, 1, f32>::new(0.0);
+/// let mut position = storage.build(GainForm::Current);
+/// position.observation_matrix_mut().set_at(0, 0, 1.0);
+/// position.set_gain_current(&MatrixData::new_array::<2, 1, 2, f32>([0.5, 0.0]));
+/// position.set_innovation_covariance_inverse(&MatrixData::new_array::<1, 1, 1, f32>([1.0]));
+/// position.set_gate(Some(6.63));
+/// ```
+#[allow(non_snake_case)]
+pub struct GatedFixedGainObservationStorage<const STATES: usize, const OBSERVATIONS: usize, T> {
+    /// The buffers of the observation without the gate.
+    observation: FixedGainObservationStorage<STATES, OBSERVATIONS, T>,
+    /// The inverse steady-state innovation covariance `S∞⁻¹`.
+    S_inv: [[T; OBSERVATIONS]; OBSERVATIONS],
+}
+
+impl<const STATES: usize, const OBSERVATIONS: usize, T: Copy>
+    GatedFixedGainObservationStorage<STATES, OBSERVATIONS, T>
+{
+    /// Creates the storage with every entry set to `init`.
+    pub const fn new(init: T) -> Self {
+        Self {
+            observation: FixedGainObservationStorage::new(init),
+            S_inv: [[init; OBSERVATIONS]; OBSERVATIONS],
+        }
+    }
+}
+
+impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType>
+    GatedFixedGainObservationStorage<STATES, OBSERVATIONS, T>
+{
+    /// Wires a gated [`FixedGainObservation`] whose buffers borrow this storage.
+    ///
+    /// The gate starts disabled; `S∞⁻¹` is whatever the storage holds.
+    ///
+    /// ## Arguments
+    /// * `form` - The convention of the gain the storage holds; see
+    ///   [`FixedGainObservationStorage::build`].
+    pub fn build(
+        &mut self,
+        form: GainForm,
+    ) -> BorrowedGatedFixedGainObservation<'_, STATES, OBSERVATIONS, T> {
+        self.observation
+            .build(form)
+            .with_gate(flat(&mut self.S_inv).into())
     }
 }

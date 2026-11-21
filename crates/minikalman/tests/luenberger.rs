@@ -12,10 +12,12 @@ use minikalman::models::motion;
 use minikalman::num_traits::FromPrimitive;
 use minikalman::prelude::*;
 use minikalman::regular::builder::{
-    FixedGainObservationType, KalmanFilterBuilder, KalmanFilterObservationType, KalmanFilterType,
-    LuenbergerObserverType,
+    FixedGainObservationType, GatedFixedGainObservationType, KalmanFilterBuilder,
+    KalmanFilterObservationType, KalmanFilterType, LuenbergerObserverType,
 };
-use minikalman::regular::{FixedGainObservationStorage, ObserverStorage};
+use minikalman::regular::{
+    FixedGainObservationStorage, GatedFixedGainObservationStorage, ObserverStorage,
+};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand_distr::{Distribution, Normal};
@@ -572,4 +574,276 @@ fn fixed_point_observer_tracks_f64() {
 
     eprintln!("I16F16 vs f64: {worst:e} = {:.1} LSB", worst / lsb);
     assert!(worst < bound, "{worst} exceeds LSB/(1−ρ) = {bound}");
+}
+
+/// The chi-square 99% quantile for one degree of freedom, the gate of the gating tests.
+const GATE: f64 = 6.63;
+
+/// A gate so wide (about 5σ) that no clean reading of the seeded noise exceeds it, for tests
+/// that assert every clean step is applied.
+const WIDE_GATE: f64 = 25.0;
+
+/// A design filter and observation settled to `P⁺∞`, so that the next prediction gives `S∞`.
+fn settled() -> (
+    KalmanFilterType<2, f64>,
+    KalmanFilterObservationType<2, 1, f64>,
+) {
+    let (mut filter, mut position) = design::<f64>(1.0);
+    filter
+        .settle_gain(&mut position, 1e-12, 10_000)
+        .expect("detectable model");
+    (filter, position)
+}
+
+/// An `f64` observer and a gated position observation for the CV model, with `K∞` and
+/// `S∞⁻¹` taken from the settled `position` and the gate at [`GATE`].
+fn gated_observer(
+    position: &mut KalmanFilterObservationType<2, 1, f64>,
+) -> (
+    LuenbergerObserverType<2, f64>,
+    GatedFixedGainObservationType<2, 1, f64>,
+) {
+    let builder = KalmanFilterBuilder::<2, f64>::default();
+    let (observer, _) = cv_observer();
+    let mut gated = builder.observations().build_fixed_gain_gated::<1>();
+    gated.observation_matrix_mut().set_at(0, 0, 1.0);
+    gated.set_gain_current(position.kalman_gain());
+    gated
+        .set_innovation_covariance(position.innovation_covariance_mut().as_matrix_mut())
+        .expect("S∞ is positive definite");
+    gated.set_gate(Some(GATE));
+    (observer, gated)
+}
+
+/// `settle_gain`'s `S∞` inverts to SciPy's `1/S∞`, and the fixed-gain NIS equals the
+/// Kalman filter's NIS at every step once the filter has settled.
+#[test]
+#[cfg(any(feature = "std", feature = "libm"))]
+fn gated_nis_matches_the_kalman_filter_in_steady_state() {
+    let (mut filter, mut position) = settled();
+    let (mut observer, mut gated) = gated_observer(&mut position);
+    let s_inv = gated
+        .innovation_covariance_inverse()
+        .as_matrix()
+        .get_at(0, 0);
+    assert!((s_inv - 1.0 / S_INF).abs() < 1e-9, "S∞⁻¹ = {s_inv}");
+    assert_eq!(gated.nis(), 0.0);
+    // No gate: one rejection would widen the Kalman filter's S, but not S∞.
+    gated.set_gate(None);
+
+    let mut sum = 0.0;
+    let mut worst: f64 = 0.0;
+    let data = readings(400);
+    for &z in &data {
+        filter.predict();
+        position.measurement_vector_mut().set_at(0, 0, z);
+        let kalman = filter.correct(&mut position);
+
+        observer.predict();
+        gated.measurement_vector_mut().set_at(0, 0, z);
+        assert_eq!(observer.correct(&mut gated), kalman);
+        worst = worst.max((gated.nis() - position.nis()).abs());
+        sum += gated.nis();
+    }
+
+    let mean = sum / data.len() as f64;
+    eprintln!("NIS gap {worst:e}, mean NIS {mean}");
+    assert!(worst < 1e-9, "NIS differs by {worst}");
+    assert!((mean - 1.0).abs() < 0.25, "mean NIS {mean} is far from 1");
+}
+
+/// An outlier exceeds the gate in both gain forms, is skipped with `Gated` and leaves the
+/// state untouched; in the predictor form, a following `predict` advances the step.
+#[test]
+fn outliers_are_gated_and_leave_the_state_unchanged() {
+    let (mut observer, mut gated) = gated_observer(&mut settled().1);
+    let (mut predictor, mut gated_predictor) = gated_observer(&mut settled().1);
+    gated_predictor.set_gain_predictor(&column(L_INF));
+    gated.set_gate(Some(WIDE_GATE));
+    gated_predictor.set_gate(Some(WIDE_GATE));
+
+    let data = readings(100);
+    for (k, &reading) in data.iter().enumerate() {
+        let outlier = k == 60;
+        let z = if outlier { reading + 10.0 } else { reading };
+
+        observer.predict();
+        let prior = state(observer.state_vector());
+        gated.measurement_vector_mut().set_at(0, 0, z);
+        let status = observer.correct(&mut gated);
+
+        let before = state(predictor.state_vector());
+        gated_predictor.measurement_vector_mut().set_at(0, 0, z);
+        let predictor_status = predictor.predict_from_measurement(&mut gated_predictor);
+
+        if outlier {
+            assert_eq!(status, CorrectionStatus::Gated);
+            assert_eq!(state(observer.state_vector()), prior);
+            assert!(gated.nis() > 300.0, "outlier NIS {}", gated.nis());
+
+            assert_eq!(predictor_status, CorrectionStatus::Gated);
+            assert_eq!(state(predictor.state_vector()), before);
+            assert!(gated_predictor.nis() > 300.0);
+            predictor.predict();
+            let advanced = [before[0] + DT * before[1], before[1]];
+            assert!(gap(state(predictor.state_vector()), advanced) < 1e-15);
+        } else if k > 10 {
+            assert_eq!(status, CorrectionStatus::Applied, "step {k}");
+            assert_eq!(predictor_status, CorrectionStatus::Applied, "step {k}");
+        }
+    }
+}
+
+/// With a wrong initial state, a gate that is on from the first step rejects every
+/// measurement for good, since `S∞` never grows; turning it on after the transient works.
+#[test]
+fn start_up_gate_locks_out_and_delayed_gate_converges() {
+    let (mut locked, mut locked_position) = gated_observer(&mut settled().1);
+    let (mut delayed, mut delayed_position) = gated_observer(&mut settled().1);
+    locked.state_vector_mut().set_at(0, 0, -5.0);
+    delayed.state_vector_mut().set_at(0, 0, -5.0);
+    delayed_position.set_gate(None);
+
+    let mut rejected = 0;
+    let mut false_alarms = 0;
+    let data = readings(400);
+    for (k, &z) in data.iter().enumerate() {
+        locked.predict();
+        locked_position.measurement_vector_mut().set_at(0, 0, z);
+        if locked.correct(&mut locked_position) == CorrectionStatus::Gated {
+            rejected += 1;
+        }
+
+        if k == 100 {
+            delayed_position.set_gate(Some(GATE));
+        }
+
+        delayed.predict();
+        delayed_position.measurement_vector_mut().set_at(0, 0, z);
+        if delayed.correct(&mut delayed_position) == CorrectionStatus::Gated {
+            false_alarms += 1;
+        }
+    }
+
+    // A 99% gate rejects about 3 of the 300 good readings once the observer has settled.
+    eprintln!("delayed gate rejected {false_alarms} of 300");
+    assert!(false_alarms <= 9, "{false_alarms} rejections");
+    assert_eq!(rejected, data.len(), "the gate locked out");
+    let truth = [1.0 + 2.0 * DT * data.len() as f64, 2.0];
+    assert!(gap(state(delayed.state_vector()), truth) < 1.0);
+    assert!(gap(state(locked.state_vector()), truth) > 10.0);
+}
+
+/// A gain-form mismatch neither evaluates the gate nor updates the NIS; a gate of `None`
+/// still computes the NIS.
+#[test]
+fn gain_form_mismatch_keeps_the_nis_and_open_gate_computes_it() {
+    let (mut observer, mut gated) = gated_observer(&mut settled().1);
+    gated.measurement_vector_mut().set_at(0, 0, 100.0);
+    assert_eq!(
+        observer.predict_from_measurement(&mut gated),
+        CorrectionStatus::GainFormMismatch
+    );
+    assert_eq!(gated.nis(), 0.0);
+
+    assert_eq!(gated.gate(), Some(GATE));
+    gated.set_gate(None);
+    assert_eq!(observer.correct(&mut gated), CorrectionStatus::Applied);
+    assert!(gated.nis() > 1000.0);
+}
+
+/// A covariance that is not positive definite is refused and keeps the stored `S∞⁻¹`.
+#[test]
+fn non_positive_definite_innovation_covariance_is_refused() {
+    let (_, mut gated) = gated_observer(&mut settled().1);
+    let before = gated
+        .innovation_covariance_inverse()
+        .as_matrix()
+        .get_at(0, 0);
+    let mut bad = MatrixData::new_array::<1, 1, 1, f64>([-1.0]);
+    assert_eq!(
+        gated.set_innovation_covariance(&mut bad),
+        Err(CorrectionStatus::NotPositiveDefinite)
+    );
+    assert_eq!(
+        gated
+            .innovation_covariance_inverse()
+            .as_matrix()
+            .get_at(0, 0),
+        before
+    );
+}
+
+/// The gated storage keeps `S∞⁻¹` across builds, but not the threshold or the NIS.
+#[test]
+fn gated_storage_keeps_the_inverse_but_not_the_threshold() {
+    let mut storage = GatedFixedGainObservationStorage::<2, 1, f64>::new(0.0);
+    {
+        let mut position = storage.build(GainForm::Current);
+        position.set_innovation_covariance_inverse(&MatrixData::new_array::<1, 1, 1, f64>([
+            1.0 / S_INF
+        ]));
+        position.set_gate(Some(GATE));
+    }
+
+    let position = storage.build(GainForm::Current);
+    assert_eq!(position.gate(), None);
+    assert_eq!(position.nis(), 0.0);
+    assert_eq!(
+        position
+            .innovation_covariance_inverse()
+            .as_matrix()
+            .get_at(0, 0),
+        1.0 / S_INF
+    );
+}
+
+/// An `I16F16` gated observer on statically allocated storage passes the readings and
+/// gates a 10 m outlier, whose NIS of about 330 fits the integer range.
+#[test]
+#[cfg(feature = "fixed")]
+fn fixed_point_gate_rejects_outliers() {
+    use minikalman::prelude::I16F16;
+
+    let mut observer_storage = ObserverStorage::<2, I16F16>::new(I16F16::ZERO);
+    let mut position_storage = GatedFixedGainObservationStorage::<2, 1, I16F16>::new(I16F16::ZERO);
+    let mut observer = observer_storage.build();
+    let mut position = position_storage.build(GainForm::Current);
+    let model = motion::constant_velocity(I16F16::from_num(DT), I16F16::ONE);
+    observer
+        .state_transition_mut()
+        .apply(|a| model.fill_transition(a));
+    position.observation_matrix_mut().set_at(0, 0, I16F16::ONE);
+    position.set_gain_current(&MatrixData::new_array::<2, 1, 2, I16F16>([
+        I16F16::from_num(K_INF[0]),
+        I16F16::from_num(K_INF[1]),
+    ]));
+    let mut s = MatrixData::new_array::<1, 1, 1, I16F16>([I16F16::from_num(S_INF)]);
+    position
+        .set_innovation_covariance(&mut s)
+        .expect("positive definite");
+    position.set_gate(Some(I16F16::from_num(WIDE_GATE)));
+
+    let data = readings(200);
+    observer
+        .state_vector_mut()
+        .set_at(0, 0, I16F16::from_num(data[0]));
+    for (k, &reading) in data.iter().enumerate().skip(1) {
+        let outlier = k == 150;
+        let z = if outlier { reading + 10.0 } else { reading };
+        observer.predict();
+        let prior = observer.state_vector().get_at(0, 0);
+        position
+            .measurement_vector_mut()
+            .set_at(0, 0, I16F16::from_num(z));
+        let status = observer.correct(&mut position);
+
+        if outlier {
+            assert_eq!(status, CorrectionStatus::Gated);
+            assert_eq!(observer.state_vector().get_at(0, 0), prior);
+            assert!(position.nis() > I16F16::from_num(300));
+        } else if k > 20 {
+            assert_eq!(status, CorrectionStatus::Applied, "step {k}");
+        }
+    }
 }

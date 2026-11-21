@@ -527,6 +527,14 @@ observer then stays within about `LSB / (1 − ρ)` of the float one (6 LSB in t
 radius `ρ`. The `ObserverStorage` and `FixedGainObservationStorage` types hold the buffers
 without allocation; see the [`luenberger` example](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/luenberger.rs).
 
+To reject outliers without `P`, build the observation with `build_fixed_gain_gated` (or
+`GatedFixedGainObservationStorage`), store the settled `S∞⁻¹` with
+`set_innovation_covariance` and set a threshold with `set_gate`: corrections whose
+`NIS = yᵀ·S∞⁻¹·y` exceeds it return `CorrectionStatus::Gated` and leave `x̂` unchanged, for
+`m² + m` more multiply-adds. In steady state this is the Kalman filter's gate. During start-up
+the true innovations are larger than `S∞`, and a fixed `S∞` never widens after rejections, so
+keep the gate off until the observer has settled.
+
 ### Recursive least squares: identifying model parameters online
 
 `rls::RecursiveLeastSquares` estimates parameters `θ` of a model whose output is linear in

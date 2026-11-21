@@ -13,6 +13,19 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added NIS gating to the fixed-gain (Luenberger) observer. `FixedGainObservation` takes an
+  optional gate as a defaulted last type parameter: `NoGate` (the default, no extra memory) or a
+  `FixedGainGate` holding a stored steady-state `S∞⁻¹` (`OBSERVATIONS²` scalars), added with
+  `with_gate`, `KalmanFilterObservationBuilder::build_fixed_gain_gated` or
+  `GatedFixedGainObservationStorage`. `set_gate(Some(threshold))` uses the threshold convention of
+  `RegularObservation::set_gate`; a correction or predictor step whose `NIS = yᵀ·S∞⁻¹·y` exceeds it
+  returns `CorrectionStatus::Gated` and leaves `x̂` unchanged, for `m² + m` multiply-adds. Fill
+  `S∞⁻¹` with `set_innovation_covariance` (a Cholesky inverse of the `S∞` that `settle_gain`
+  leaves in the design observation, reachable through the new
+  `RegularObservation::innovation_covariance_mut`) or `set_innovation_covariance_inverse`. In
+  steady state the NIS equals the Kalman filter's to `3e-11`; the docs explain the start-up
+  over-rejection and the lock-out of a fixed `S∞`, and how to avoid them. The trait
+  `KalmanFilterObservationCorrectFixedGain` gains a defaulted `is_gated` method ([#144]).
 - Added a per-call correction scratch, so several observations share their temporaries soundly.
   `CorrectionScratch<STATES, MAX_OBSERVATIONS, T>` (in `regular`, `extended` and the prelude, a
   `const fn new`) holds `S⁻¹`, `H×P`, `P×Hᵀ` and `K×H×P` for any observation with up to
