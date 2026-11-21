@@ -13,6 +13,8 @@ use core::marker::PhantomData;
 
 /// Kalman Filter structure for Unscented Kalman Filter.
 ///
+#[doc = diagram!("unscented-loop.mmd")]
+///
 /// # Choosing α, β and κ
 ///
 /// The parameters set where the sigma points go and how they are weighted. With
@@ -434,6 +436,8 @@ where
 
     /// Enables or disables the online adaptation of the process noise `Q`.
     ///
+    #[doc = diagram!("unscented-correct.mmd", "adapt")]
+    ///
     /// With `Some`, every applied sigma point correction, including the recalibrated one,
     /// replaces `Q` by `α×Q + (1−α)×Δx×Δxᵀ` from the state correction `Δx = x⁺ − x⁻`, then
     /// raises every diagonal entry to at least the floor; `Q` stays symmetric positive
@@ -675,6 +679,10 @@ where
     }
 
     /// Nonlinear prediction using sigma points.
+    ///
+    #[doc = diagram!("unscented-loop.mmd", "sigma", "propagate", "predict")]
+    ///
+    /// `state_transition` is called once per sigma point and transforms it in place.
     pub fn predict_nonlinear<F>(&mut self, state_transition: F)
     where
         F: FnMut(&mut PX),
@@ -688,6 +696,8 @@ where
 
     /// Performs the nonlinear correction step using sigma points, with covariance
     /// recalibration.
+    ///
+    #[doc = diagram!("unscented-correct.mmd", "recalibrate")]
     ///
     /// The gain and the state update are the same as in
     /// [`correct_sigma_point`](KalmanFilterSigmaPointCorrect::correct_sigma_point). The
@@ -716,6 +726,8 @@ where
 
     /// Performs the nonlinear correction step using sigma points, with covariance
     /// recalibration, normalizing differences between measurements before they are used.
+    ///
+    #[doc = diagram!("unscented-correct.mmd", "recalibrate")]
     ///
     /// See [`correct_sigma_point_recalibrated`](Self::correct_sigma_point_recalibrated) and
     /// [`correct_sigma_point_with`](KalmanFilterSigmaPointCorrect::correct_sigma_point_with).

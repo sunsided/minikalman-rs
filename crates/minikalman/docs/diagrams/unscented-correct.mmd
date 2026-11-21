@@ -1,0 +1,26 @@
+flowchart LR
+    %% Correction step of the unscented filter. Style: see docs/diagrams/README.md.
+    %% Node IDs as in regular-correct.mmd, plus observe (callback h) and recalibrate (the
+    %% recalibrated correction). χᵢ are the sigma points, γᵢ the observed sigma points.
+    h[/"observation h"/]
+    z[/"measurement z"/]
+    observe["observe<br/>γᵢ = h(χᵢ)"]
+    covariance["covariances<br/>ẑ = Σ Wᵢᵐ·γᵢ<br/>S = Σ Wᵢᶜ·(γᵢ − ẑ)·(γᵢ − ẑ)ᵀ<br/>+ R<br/>Pxz = Σ Wᵢᶜ·(χᵢ − x̂)·(γᵢ − ẑ)ᵀ"]
+    innovation["innovation<br/>y = z − ẑ"]
+    gate{{"gate<br/>NIS = yᵀ·S⁻¹·y"}}
+    gain["gain<br/>K = Pxz·S⁻¹"]
+    update["update<br/>x̂ ← x̂ + K·y<br/>P ← P − Pxz·Kᵀ"]
+    recalibrate["recalibrate<br/>χᵢ ← χᵢ + K·y<br/>γᵢ = h(χᵢ)<br/>S₂ = Pzz₂ + R, Pxz₂<br/>x̂ ← x̂ + K·y<br/>P ← P + K·S₂·Kᵀ<br/>− Pxz₂·Kᵀ − K·Pxz₂ᵀ"]
+    adapt["adapt R, then Q<br/>(optional)"]
+    applied("Applied")
+    npd("NotPositiveDefinite")
+    gated("Gated")
+    backed("BackedOut")
+    h --> observe --> covariance --> innovation --> gate --> gain --> update --> adapt --> applied
+    z --> innovation
+    covariance -.->|"S not positive definite"| npd
+    gate -.->|"NIS above threshold"| gated
+    gain -.->|"recalibrated"| recalibrate
+    recalibrate -.-> adapt
+    recalibrate -.->|"trace P would grow"| backed
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

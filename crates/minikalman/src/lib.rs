@@ -317,6 +317,15 @@ pub mod extended {
 }
 
 /// Unscented Kalman Filters (UKF)
+///
+/// A nonlinear Kalman filter without Jacobians: it propagates a set of sigma points through
+/// the state transition `f` and the observation `h` and fits a mean and covariance to them.
+/// Each step predicts with
+/// [`UnscentedKalman::predict_nonlinear`](unscented::UnscentedKalman::predict_nonlinear) and
+/// corrects with one or more [`UnscentedObservation`](unscented::UnscentedObservation)s
+/// through
+/// [`correct_sigma_point`](unscented::KalmanFilterSigmaPointCorrect::correct_sigma_point):
+#[doc = diagram!("unscented-loop.mmd")]
 pub mod unscented {
     pub use crate::kalman::unscented::*;
     pub use crate::kalman::{
