@@ -128,12 +128,30 @@ fn unscented_gate_rejects_outlier() {
     check_gating(unscented_after_one_reading);
 }
 
+/// Checks the initial NIS and gate of an observation, and that `set_gate` round-trips.
+macro_rules! check_defaults {
+    ($measurement:expr) => {{
+        let mut measurement = $measurement;
+        assert_eq!(measurement.nis(), 0.0);
+        assert_eq!(measurement.gate(), None);
+        measurement.set_gate(Some(GATE));
+        assert_eq!(measurement.gate(), Some(GATE));
+        measurement.set_gate(None);
+        assert_eq!(measurement.gate(), None);
+    }};
+}
+
 #[test]
 fn nis_is_zero_before_the_first_correction_and_gate_is_off_by_default() {
-    let builder = RegularBuilder::<1, f64>::default();
-    let measurement = builder.observations().build::<1>();
-    assert_eq!(measurement.nis(), 0.0);
-    assert_eq!(measurement.gate(), None);
+    check_defaults!(RegularBuilder::<1, f64>::default()
+        .observations()
+        .build::<1>());
+    check_defaults!(ExtendedBuilder::<1, f64>::default()
+        .observations()
+        .build::<1>());
+    check_defaults!(UnscentedBuilder::<1, f64>::default()
+        .observations()
+        .build::<1, 3>());
 }
 
 /// A correctly tuned linear filter is consistent: its NIS averages to the number of
