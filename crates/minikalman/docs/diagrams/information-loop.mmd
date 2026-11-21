@@ -22,4 +22,7 @@ flowchart LR
     posterior -.->|"on demand"| recover -.-> estimate
     predict -.->|"Y or P⁻ not positive definite"| rejected
     fuse1 -.->|"R not positive definite"| rejected
+    fuse2 -.->|"R not positive definite"| rejected
+    init -.->|"P not positive definite"| rejected
+    recover -.->|"Y not positive definite"| rejected
     classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
