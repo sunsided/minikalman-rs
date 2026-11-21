@@ -440,7 +440,16 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `I32F32`; 2×1, 4×2, 6×3) on an emulated Cortex-M4F and Cortex-M0+ in Renode. The counts are
   deterministic; `BASE=<rev> run.sh` compares against another revision. They are instruction
   counts, not cycles ([#169]).
+- Moved the innovation-form measurement noise adaptation, the process noise adaptation, the
+  settle-gain comparison, the recalibration copies and traces, the robust correction's helpers
+  and the triangular solves from `get`/`set` onto slices of the static length, which removes
+  their bounds checks ([#168]). Results are bit-identical, pinned by tests against the old
+  loops. The residual-form adaptation and the `Δx` copies of the process noise adaptation stay
+  on `get`/`set`: their slice versions changed the instruction counts of the filter step on
+  Cortex-M4F although they only run with the adaptation on. The filter operations of
+  `benches/mcu` and the `thumbv7em-none-eabihf` code size of `benches/compare` are unchanged.
 
+[#168]: https://github.com/sunsided/minikalman-rs/issues/168
 [#169]: https://github.com/sunsided/minikalman-rs/issues/169
 [#161]: https://github.com/sunsided/minikalman-rs/issues/161
 [#163]: https://github.com/sunsided/minikalman-rs/issues/163
