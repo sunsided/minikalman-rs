@@ -84,7 +84,7 @@ task bench:mcu
 ```
 
 The `sqrt-check` type first compares minikalman's `f32` square root with `libm::sqrtf`, bit
-for bit, on 65 559 inputs over the whole `u32` range on the target, and logs `sqrt_check/ok`
+for bit, on 65 558 inputs over the whole `u32` range on the target, and logs `sqrt_check/ok`
 only if all match (a mismatch fails the run).
 
 `run.sh` builds one binary per target, profile and type, runs each headless in Renode and

@@ -551,7 +551,7 @@ pub extern "C" fn mk_stack(free_bytes: usize) {
 }
 
 /// Fails the run unless minikalman's `f32` square root matches `libm::sqrtf` bit for bit
-/// (NaN for NaN) on the edge cases and on 65 553 bit patterns spread over all of `u32`.
+/// (NaN for NaN) on the edge cases and on 65 552 bit patterns spread over all of `u32`.
 #[cfg(feature = "sqrt-check")]
 fn sqrt_check() {
     let edges = [
