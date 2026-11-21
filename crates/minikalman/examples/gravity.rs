@@ -1,260 +1,214 @@
-//! Tracking a free-falling object.
+//! Estimating the gravitational acceleration from a dropped object.
 //!
-//! This example sets up a filter to estimate the acceleration of a free-falling object
-//! under earth conditions (i.e. a ≈ 9.807 m/s²) through position observations only.
+//! An object is dropped from 25 m and a range sensor above it measures its height at 30 Hz with
+//! a noise of σ = 3 cm, for 2 s. The filter tracks height, velocity and `g` as a state, starting
+//! from a poor guess of `g = 5 ± 5 m/s²`. It prints a summary table with the estimate and its
+//! 1σ uncertainty from `P`, and fails if the true `g` ever leaves the 3σ band.
+//!
+//! The measurements are seeded, so the output is the same on every run. With `-- --chart`, it
+//! also prints the mermaid chart shown in the README.
+//!
+//! Run with `cargo run --example gravity --features=std`.
 
 #![forbid(unsafe_code)]
 
-#[cfg(feature = "std")]
-#[allow(unused)]
-use colored::Colorize;
-
-use minikalman::regular::builder::KalmanFilterBuilder;
+use minikalman::prelude::*;
+use minikalman::regular::builder::{KalmanFilterBuilder, KalmanFilterType};
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use rand_distr::{Distribution, Normal};
 
-use minikalman::prelude::*;
+/// States: height (m), upwards velocity (m/s), and `g` (m/s², pointing down).
+const NUM_STATES: usize = 3;
 
-const NUM_STATES: usize = 3; // height, upwards velocity, upwards acceleration
-const NUM_CONTROLS: usize = 1; // constant velocity
-const NUM_OBSERVATIONS: usize = 1; // position
+/// Observations: the height (m).
+const NUM_OBSERVATIONS: usize = 1;
 
-#[allow(non_snake_case)]
+/// The true gravitational acceleration (m/s²) the simulation drops the object with.
+const TRUE_G: f32 = 9.807;
+
+/// Height (m) the object is dropped from, at rest.
+const DROP_HEIGHT: f32 = 25.0;
+
+/// Sensor rate (Hz).
+const RATE: usize = 30;
+
+/// Time step (s) between two measurements.
+const DT: f32 = 1.0 / RATE as f32;
+
+/// Number of measurements: 2 s of data.
+const NUM_STEPS: usize = 2 * RATE;
+
+/// Standard deviation (m) of the height sensor.
+const SENSOR_SIGMA: f32 = 0.03;
+
+/// Initial guess for `g` (m/s²) and its standard deviation.
+const G_GUESS: (f32, f32) = (5.0, 5.0);
+
+/// Every how many steps a row goes into the summary table.
+const TABLE_EVERY: usize = 6;
+
+/// The first step in the chart; before it, the 3σ band is wider than the chart.
+const CHART_START: usize = 9;
+
+/// Every how many steps a point goes into the chart.
+const CHART_EVERY: usize = 3;
+
+/// The estimate of `g` after one correction.
+struct Estimate {
+    /// Time (s) since the drop.
+    t: f32,
+    /// The measured height (m).
+    z: f32,
+    /// The estimated `g` (m/s²).
+    g: f32,
+    /// The standard deviation (m/s²) of the estimated `g`, from `P`.
+    sigma: f32,
+}
+
+impl Estimate {
+    /// The distance of the true `g` from the estimate, in standard deviations.
+    fn error_in_sigmas(&self) -> f32 {
+        (self.g - TRUE_G).abs() / self.sigma
+    }
+}
+
 fn main() {
-    let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
-    let mut filter = builder.build();
-    let mut control = builder.controls().build::<NUM_CONTROLS>();
-    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+    let history = run_filter();
+    print_table(&history);
 
-    // Set initial state.
-    initialize_state_vector(filter.state_vector_mut());
-    initialize_state_transition_matrix(filter.state_transition_mut());
-    initialize_state_covariance_matrix(filter.estimate_covariance_mut());
-
-    // Set up controls.
-    initialize_control_vector(control.control_vector_mut());
-    initialize_control_matrix(control.control_matrix_mut());
-    initialize_control_covariance_matrix(control.process_noise_covariance_mut());
-
-    // Set up measurements.
-    initialize_position_measurement_transformation_matrix(measurement.observation_matrix_mut());
-    initialize_position_measurement_process_noise_matrix(
-        measurement.measurement_noise_covariance_mut(),
+    let last = history.last().expect("at least one step");
+    println!(
+        "\nResult: g = {:.3} ± {:.3} m/s² (1σ), true 9.807 m/s², from {} measurements over {:.1} s",
+        last.g, last.sigma, NUM_STEPS, last.t
     );
 
-    // Generate the data.
-    let measurements = generate_values(100);
-    let measurement_noise = generate_error(100);
-
-    // Filter!
-    for (t, (m, err)) in measurements
-        .iter()
-        .copied()
-        .zip(measurement_noise)
-        .enumerate()
-    {
-        // Update prediction and apply the controls.
-        filter.predict();
-        filter.control(&mut control);
-        print_state_prediction(t, filter.state_vector());
-
-        // Measure ...
-        measurement
-            .measurement_vector_mut()
-            .apply(|z| z[0] = m + err);
-        print_measurement(t, m, err);
-
-        // Update.
-        filter.correct(&mut measurement);
-        print_state_correction(t, filter.state_vector());
+    if std::env::args().any(|arg| arg == "--chart") {
+        print_chart(&history);
     }
 
-    // Fetch estimated gravity constant.
-    let gravity_x = filter.state_vector();
-    let g_estimated = gravity_x.as_matrix().get_at(0, 2);
-    assert!(g_estimated > 9.0 && g_estimated < 10.0);
+    let worst = history
+        .iter()
+        .map(Estimate::error_in_sigmas)
+        .fold(0.0, f32::max);
+    assert!(worst < 3.0, "true g left the 3σ band ({worst:.2}σ)");
+    assert!(last.sigma < 0.1, "g did not converge (σ = {})", last.sigma);
 }
 
-fn generate_values(n: usize) -> Vec<f32> {
-    let g = 9.81;
-    let delta_t = 1.0;
+/// Simulates the drop, runs the filter over it and returns the estimate after every step.
+fn run_filter() -> Vec<Estimate> {
+    let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
+    let mut filter = builder.build();
+    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+    set_up_filter(&mut filter);
+    measurement.observation_matrix_mut().set(0, 0, 1.0);
+    measurement
+        .measurement_noise_covariance_mut()
+        .set(0, 0, SENSOR_SIGMA * SENSOR_SIGMA);
 
-    let mut s = 0.0;
-    let mut v = 0.0;
+    let mut rng = StdRng::seed_from_u64(9807);
+    let noise = Normal::new(0.0, SENSOR_SIGMA).expect("valid standard deviation");
 
-    (0..n)
-        .map(|_| {
-            s = s + v * delta_t + g * 0.5 * delta_t * delta_t;
-            v += g * delta_t;
-            s
-        })
-        .collect()
+    let mut history = Vec::with_capacity(NUM_STEPS);
+    for step in 1..=NUM_STEPS {
+        let t = step as f32 * DT;
+        let z = DROP_HEIGHT - 0.5 * TRUE_G * t * t + noise.sample(&mut rng);
+
+        filter.predict();
+        measurement.measurement_vector_mut().set(0, 0, z);
+        filter.correct(&mut measurement);
+
+        history.push(Estimate {
+            t,
+            z,
+            g: filter.state_vector().get(2, 0),
+            sigma: filter.estimate_covariance().get(2, 2).sqrt(),
+        });
+    }
+
+    history
 }
 
-/// Generate measurement error with variance 0.5
-/// MATLAB source: noise = 0.5^2*randn(15,1);
-fn generate_error(n: usize) -> Vec<f32> {
-    let normal = Normal::new(0.0, 0.1).unwrap();
-    let mut rng = rand::thread_rng();
-
-    (0..n)
-        .map(|_| 0.5 * 0.5 * normal.sample(&mut rng))
-        .collect()
-}
-
-/// Initializes the state vector with initial assumptions.
-fn initialize_state_vector(filter: &mut impl StateVectorMut<NUM_STATES, f32>) {
-    filter.as_matrix_mut().apply(|state| {
-        state[0] = 0 as _; // position
-        state[1] = 0 as _; // velocity
-        state[2] = 6 as _; // acceleration (guess)
-    });
-}
-
-/// Initializes the state transition matrix.
+/// Sets the free-fall model, the initial guess and its uncertainty.
 ///
-/// This sets up the differential equations for
 /// ```math
-/// s₁ = 1×s₀ + T×v₀ + 0.5×T²×a₀
-/// v₁ = 1×v₀ + T×a₀
-/// a₁ = 1×a₀
+/// h₁ = h₀ + Δt×v₀ − ½×Δt²×g
+/// v₁ = v₀ − Δt×g
+/// g₁ = g
 /// ```
-fn initialize_state_transition_matrix(filter: &mut impl StateTransitionMatrixMut<NUM_STATES, f32>) {
-    filter.as_matrix_mut().apply(|a| {
-        // Time constant.
-        const T: f32 = 1 as _;
+fn set_up_filter(filter: &mut KalmanFilterType<NUM_STATES, f32>) {
+    filter.state_transition_mut().apply(|a| {
+        a.make_identity();
+        a.set(0, 1, DT);
+        a.set(0, 2, -0.5 * DT * DT);
+        a.set(1, 2, -DT);
+    });
 
-        // Transition of x to s.
-        a.set_at(0, 0, 1 as _); // 1
-        a.set_at(0, 1, T as _); // T
-        a.set_at(0, 2, 0.5 * T * T); // 0.5 × T²
-
-        // Transition of x to v.
-        a.set_at(1, 0, 0 as _); // 0
-        a.set_at(1, 1, 1 as _); // 1
-        a.set_at(1, 2, T as _); // T
-
-        // Transition of b to g.
-        a.set_at(2, 0, 0 as _); // 0
-        a.set_at(2, 1, 0 as _); // 0
-        a.set_at(2, 2, 1 as _); // 1
+    // The height is roughly known, the object starts at rest, g is a poor guess.
+    filter.state_vector_mut().apply(|x| {
+        x.set(0, 0, DROP_HEIGHT + 0.5);
+        x.set(1, 0, 0.0);
+        x.set(2, 0, G_GUESS.0);
+    });
+    filter.estimate_covariance_mut().apply(|p| {
+        p.set(0, 0, 1.0);
+        p.set(1, 1, 0.1);
+        p.set(2, 2, G_GUESS.1 * G_GUESS.1);
     });
 }
 
-/// Initializes the system covariance matrix.
-///
-/// This defines how different states (linearly) influence each other
-/// over time. In this setup we claim that position, velocity and acceleration
-/// are linearly independent.
-fn initialize_state_covariance_matrix(filter: &mut impl EstimateCovarianceMatrix<NUM_STATES, f32>) {
-    filter.as_matrix_mut().apply(|p| {
-        p.set_at(0, 0, 0.1 as _); // var(s)
-        p.set_at(0, 1, 0 as _); // cov(s, v)
-        p.set_at(0, 2, 0 as _); // cov(s, g)
-
-        p.set_at(1, 1, 1 as _); // var(v)
-        p.set_at(1, 2, 0 as _); // cov(v, g)
-
-        p.set_at(2, 2, 1 as _); // var(g)
-    });
+/// Prints every [`TABLE_EVERY`]th estimate and the last one.
+fn print_table(history: &[Estimate]) {
+    println!("  t (s)  height (m)  g (m/s²)  ± 1σ    |ĝ − g|");
+    for (i, e) in history.iter().enumerate() {
+        if (i + 1) % TABLE_EVERY == 0 || i + 1 == history.len() {
+            println!(
+                "  {:5.2}  {:10.3}  {:8.3}  ± {:5.3}  {:4.2}σ",
+                e.t,
+                e.z,
+                e.g,
+                e.sigma,
+                e.error_in_sigmas()
+            );
+        }
+    }
 }
 
-/// Initializes the control vector.
-fn initialize_control_vector(filter: &mut impl ControlVectorMut<NUM_CONTROLS, f32>) {
-    filter.as_matrix_mut().apply(|state| {
-        state[0] = 0.0 as _; // acceleration
-    });
-}
+/// Prints a mermaid `xychart-beta` of the estimate and its 3σ band, for the README.
+fn print_chart(history: &[Estimate]) {
+    let points: Vec<&Estimate> = history
+        .iter()
+        .skip(CHART_START - 1)
+        .step_by(CHART_EVERY)
+        .collect();
+    let series = |f: &dyn Fn(&Estimate) -> f32| {
+        points
+            .iter()
+            .map(|e| format!("{:.2}", f(e)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
 
-/// Initializes the control transformation matrix.
-fn initialize_control_matrix(filter: &mut impl ControlMatrixMut<NUM_STATES, NUM_CONTROLS, f32>) {
-    filter.as_matrix_mut().apply(|mat| {
-        mat[0] = 0.0;
-        mat[1] = 0.0;
-        mat[2] = 1.0;
-    });
-}
-
-/// Initializes the control covariance.
-fn initialize_control_covariance_matrix(
-    filter: &mut impl ControlProcessNoiseCovarianceMatrixMut<NUM_CONTROLS, f32>,
-) {
-    filter.as_matrix_mut().apply(|mat| {
-        mat[0] = 1.0; // :)
-    });
-}
-
-/// Initializes the measurement transformation matrix.
-///
-/// This matrix describes how a single measurement is obtained from the
-/// state vector. In our case, we directly observe one of the states, namely position.
-/// ```math
-/// z = 1×s + 0×v + 0×a
-/// ```
-fn initialize_position_measurement_transformation_matrix(
-    measurement: &mut impl ObservationMatrixMut<NUM_OBSERVATIONS, NUM_STATES, f32>,
-) {
-    measurement.as_matrix_mut().apply(|h| {
-        h.set_at(0, 0, 1 as _); // z = 1*s
-        h.set_at(0, 1, 0 as _); //   + 0*v
-        h.set_at(0, 2, 0 as _); //   + 0*g
-    });
-}
-
-/// Initializes the measurement noise / uncertainty matrix.
-///
-/// This matrix describes the measurement covariances as well as the
-/// individual variation components. It is the measurement counterpart
-/// of the state covariance matrix.
-fn initialize_position_measurement_process_noise_matrix(
-    measurement: &mut impl MeasurementNoiseCovarianceMatrix<NUM_OBSERVATIONS, f32>,
-) {
-    measurement.as_matrix_mut().apply(|r| {
-        r.set_at(0, 0, 0.5 as _); // var(s)
-    });
-}
-
-/// Print the state prediction. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_state_prediction<T>(t: usize, x: T)
-where
-    T: AsRef<[f32]>,
-{
-    let x = x.as_ref();
-    #[cfg(feature = "std")]
+    // Line colours in order: true g (green), +3σ (amber), estimate (blue), −3σ (amber).
+    println!("\n```mermaid");
     println!(
-        "At t = {}, predicted state: s = {}, v = {}, a = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", x[0]).magenta(),
-        format!("{} m/s", x[1]).magenta(),
-        format!("{} m/s²", x[2]).magenta(),
+        "%%{{init: {{\"themeVariables\": {{\"xyChart\": {{\"plotColorPalette\": \
+         \"#16a34a, #f59e0b, #2563eb, #f59e0b\"}}}}}}}}%%"
     );
-}
-
-/// Print the measurement corrected state. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_state_correction<T>(t: usize, x: T)
-where
-    T: AsRef<[f32]>,
-{
-    let x = x.as_ref();
-    #[cfg(feature = "std")]
+    println!("xychart-beta");
+    println!("    title \"ĝ with ±3σ band vs. true g\"");
     println!(
-        "At t = {}, corrected state: s = {}, v = {}, a = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", x[0]).yellow(),
-        format!("{} m/s", x[1]).yellow(),
-        format!("{} m/s²", x[2]).yellow(),
+        "    x-axis \"t (s)\" [{}]",
+        points
+            .iter()
+            .map(|e| format!("\"{:.1}\"", e.t))
+            .collect::<Vec<_>>()
+            .join(", ")
     );
-}
-
-/// Print the current measurement. Will do nothing on `no_std` features.
-#[allow(unused)]
-fn print_measurement(t: usize, real: f32, error: f32) {
-    #[cfg(feature = "std")]
-    println!(
-        "At t = {}, measurement: s = {}, noise ε = {}",
-        format!("{}", t).bright_white(),
-        format!("{} m", real).green(),
-        format!("{} m", error).blue()
-    );
+    println!("    y-axis \"g (m/s²)\" 4 --> 14");
+    println!("    line [{}]", series(&|_| TRUE_G));
+    println!("    line [{}]", series(&|e| e.g + 3.0 * e.sigma));
+    println!("    line [{}]", series(&|e| e.g));
+    println!("    line [{}]", series(&|e| e.g - 3.0 * e.sigma));
+    println!("```");
 }
