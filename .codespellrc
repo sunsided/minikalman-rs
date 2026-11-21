@@ -1,3 +1,3 @@
 [codespell]
-ignore-words-list = crate,nees
+ignore-words-list = crate,nees,statics
 skip = .git,*.lock

@@ -179,6 +179,11 @@ tasks:
     cmds:
       - "{{.CARGO}} clean"
 
+  bench:mcu:
+    desc: Count instructions per filter operation on Cortex-M4F and M0+ in Renode (BASE=<rev> to compare)
+    cmds:
+      - benches/mcu/run.sh
+
   # ── Examples ──────────────────────────────────────────────────────────────
 
   # Unscented Kalman Filter examples

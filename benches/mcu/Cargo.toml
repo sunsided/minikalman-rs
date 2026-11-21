@@ -1,0 +1,33 @@
+[package]
+name = "kalman-mcu"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Per-operation instruction counts of minikalman on Cortex-M, measured in Renode"
+
+# Standalone: not part of the minikalman workspace.
+[workspace]
+
+[dependencies]
+cortex-m-rt = "0.7.5"
+fixed = "1.28"
+libm = "0.2"
+minikalman = { path = "../../crates/minikalman", default-features = false, features = ["libm", "fixed"] }
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+debug = true
+
+[profile.o3]
+inherits = "release"
+opt-level = 3
+
+[features]
+# One binary per element type fits the 192 KiB flash of the M0+ platform.
+default = ["f32", "i16f16", "i32f32"]
+f32 = []
+i16f16 = []
+i32f32 = []

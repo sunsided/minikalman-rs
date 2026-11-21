@@ -417,7 +417,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   pinned versions) on fixed problems, counts allocations per step, and measures the
   `thumbv7em-none-eabihf` code size of one step. `run.sh` reproduces everything; the README
   describes the method. A CI job only compiles it ([#161]).
+- Added `benches/mcu/`, a `no_std` firmware that counts the instructions of each filter
+  operation (predict, correct, step, observer, UD, square root, EKF; `f32`, `I16F16`,
+  `I32F32`; 2×1, 4×2, 6×3) on an emulated Cortex-M4F and Cortex-M0+ in Renode. The counts are
+  deterministic; `BASE=<rev> run.sh` compares against another revision. They are instruction
+  counts, not cycles ([#169]).
 
+[#169]: https://github.com/sunsided/minikalman-rs/issues/169
 [#161]: https://github.com/sunsided/minikalman-rs/issues/161
 [#163]: https://github.com/sunsided/minikalman-rs/issues/163
 [#167]: https://github.com/sunsided/minikalman-rs/issues/167
