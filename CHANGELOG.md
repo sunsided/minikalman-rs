@@ -390,8 +390,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the level of rounding. `D⁻¹` is applied with one reciprocal per pivot, except for a single
   measurement, which divides by `s` to keep `K` correctly rounded. Where the square-root free
   factorization rejects a pivot (also a subnormal one, whose reciprocal overflows), the
-  Cholesky factorization of a copy decides, so `NotPositiveDefinite` is returned exactly where
-  Cholesky rejects `S`. The factor's local storage is fixed at fifteen values for any
+  Cholesky factorization of a copy decides, so a rejection that Cholesky would accept is no
+  longer reported. The factor's local storage is fixed at fifteen values for any
   `OBSERVATIONS`. A correction whose NIS is `NaN`, which every gate lets through, now returns
   `NotPositiveDefinite` without applying. The robust corrections take their prior NIS from the
   same factorization, falling back to the Cholesky factor they already have. A 4×2

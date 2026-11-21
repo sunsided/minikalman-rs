@@ -339,10 +339,11 @@ impl<
     /// the NIS unchanged.
     ///
     /// With fixed-point types, large innovations can overflow `yᵀ×S⁻¹×y`; choose a type with
-    /// enough integer bits for the expected outliers. A `NaN` NIS (from a `NaN` in `y`, `P`, `H`
-    /// or `R`) is stored, and the correction returns
+    /// enough integer bits for the expected outliers. A `NaN` NIS (from a `NaN` in `y`) is stored, and the
+    /// correction returns
     /// [`CorrectionStatus::NotPositiveDefinite`] without applying it, as a gate could not reject
     /// it.
+    /// A `NaN` in `P`, `H` or `R` makes `S` fail to factor, so the NIS keeps its previous value.
     #[inline(always)]
     pub fn nis(&self) -> T
     where
