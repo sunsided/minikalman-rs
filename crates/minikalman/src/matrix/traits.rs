@@ -321,17 +321,21 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let bdata = &b.as_slice()[..COLS * U];
         let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
-        for j in (0..bcols).rev() {
-            let mut index_a: usize = 0;
-            for i in 0..arows {
-                let mut total = T::zero();
-                for k in 0..brows {
-                    total += adata[idx!(index_a)] * bdata[idx!(k * bcols + j)];
-                    index_a += 1;
+        // i-k-j order with a local row accumulator: every C[i][j] still sums its k terms in
+        // ascending order, starting from zero, so the result is bit-identical to a dot product
+        // per element; the inner loop runs over contiguous rows that LLVM can vectorize.
+        for i in 0..arows {
+            let mut row = [T::zero(); U];
+            for k in 0..brows {
+                let a_ik = adata[i * COLS + k];
+                let b_k = &bdata[k * U..(k + 1) * U];
+                for (acc, &b_kj) in row.iter_mut().zip(b_k) {
+                    *acc += a_ik * b_kj;
                 }
-                cdata[idx!(i * ccols + j)] = total;
             }
+            cdata[i * ccols..(i + 1) * ccols].copy_from_slice(&row);
         }
+        let _ = bcols;
     }
 
     /// Performs a matrix multiplication such that `C = A * x`.
@@ -475,26 +479,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let bdata = &b.as_slice()[..U * COLS];
         let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
-        let mut c_index: usize = 0;
-        let mut a_index_start: usize = 0;
-
-        for _ in 0..arows {
-            let end = a_index_start + bcols;
-            let mut index_b: usize = 0;
-
-            for _ in 0..brows {
-                let mut index_a = a_index_start;
-                let mut total: T = T::zero();
-                while index_a < end {
-                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
-                    index_a += 1;
-                    index_b += 1;
-                }
-                cdata[idx!(c_index)] = total;
-                c_index += 1;
-            }
-            a_index_start += acols;
-        }
+        products_transb::<ROWS, COLS, U, T>(adata, bdata, cdata, |c, total| *c = total);
+        let _ = (arows, acols, bcols, brows);
     }
 
     /// Performs a matrix multiplication with transposed `B` and adds the result to
@@ -535,26 +521,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         let bdata = &b.as_slice()[..U * COLS];
         let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
-        let mut c_index: usize = 0;
-        let mut a_index_start: usize = 0;
-
-        for _ in 0..arows {
-            let end = a_index_start + bcols;
-            let mut index_b: usize = 0;
-
-            for _ in 0..brows {
-                let mut index_a = a_index_start;
-                let mut total: T = T::zero();
-                while index_a < end {
-                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
-                    index_a += 1;
-                    index_b += 1;
-                }
-                cdata[idx!(c_index)] += total;
-                c_index += 1;
-            }
-            a_index_start += acols;
-        }
+        products_transb::<ROWS, COLS, U, T>(adata, bdata, cdata, |c, total| *c += total);
+        let _ = (arows, acols, bcols, brows);
     }
 
     /// Performs a matrix multiplication with transposed `B` and scales the result such that
@@ -598,26 +566,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(COLS, bcols);
         }
 
-        let mut c_index: usize = 0;
-        let mut a_index_start: usize = 0;
-
-        for _ in 0..arows {
-            let end = a_index_start + bcols;
-            let mut index_b: usize = 0;
-
-            for _ in 0..brows {
-                let mut index_a = a_index_start;
-                let mut total: T = T::zero();
-                while index_a < end {
-                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
-                    index_a += 1;
-                    index_b += 1;
-                }
-                cdata[idx!(c_index)] = total * scale;
-                c_index += 1;
-            }
-            a_index_start += acols;
-        }
+        products_transb::<ROWS, COLS, U, T>(adata, bdata, cdata, |c, total| *c = total * scale);
+        let _ = (arows, acols, bcols, brows);
     }
 
     /// Subtracts two matrices, using `C = A - B`.
@@ -706,6 +656,35 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
+        }
+    }
+}
+
+/// Computes `C = A×Bᵀ` row by row for `A` (`R`×`K`), `B` (`U`×`K`) and `C` (`R`×`U`),
+/// passing each entry to `store`.
+///
+/// All `U` dot products of a row of `A` run at once (i-k-j order with a local accumulator).
+/// Every entry still sums its `K` terms in ascending order from zero, so the result is
+/// bit-identical to one dot product per entry, but the inner loop can be vectorized.
+#[inline(always)]
+fn products_transb<const R: usize, const K: usize, const U: usize, T>(
+    a: &[T],
+    b: &[T],
+    c: &mut [T],
+    mut store: impl FnMut(&mut T, T),
+) where
+    T: MatrixDataType,
+{
+    for i in 0..R {
+        let mut row = [T::zero(); U];
+        for k in 0..K {
+            let a_ik = a[i * K + k];
+            for (j, acc) in row.iter_mut().enumerate() {
+                *acc += a_ik * b[j * K + k];
+            }
+        }
+        for (c_ij, &total) in c[i * U..(i + 1) * U].iter_mut().zip(&row) {
+            store(c_ij, total);
         }
     }
 }
@@ -1821,5 +1800,190 @@ mod tests {
                 0.0, 0.0, 0.0, 1.0,
             ]
         );
+    }
+}
+
+/// Pins the vectorizable kernels to the loops they replaced: same results, bit for bit.
+#[cfg(test)]
+mod kernel_bit_identity {
+    use super::*;
+    use crate::matrix::MatrixData;
+    use crate::test_bits::{ToBits, assert_bits_eq, test_value};
+
+    /// Longer than every operand, which `is_valid` allows.
+    const CAP: usize = 64;
+
+    /// The former `mult`: j (descending), i, k, one dot product per entry.
+    fn old_mult<T: MatrixDataType>(a: &[T], b: &[T], c: &mut [T], r: usize, k: usize, u: usize) {
+        for j in (0..u).rev() {
+            let mut index_a = 0;
+            for i in 0..r {
+                let mut total = T::zero();
+                for l in 0..k {
+                    total += a[index_a] * b[l * u + j];
+                    index_a += 1;
+                }
+                c[i * u + j] = total;
+            }
+        }
+    }
+
+    /// The former `mult_transb` family: one dot product per entry, stored by `store`.
+    fn old_transb<T: MatrixDataType>(
+        a: &[T],
+        b: &[T],
+        c: &mut [T],
+        (r, k, u): (usize, usize, usize),
+        store: impl Fn(&mut T, T),
+    ) {
+        for i in 0..r {
+            for j in 0..u {
+                let mut total = T::zero();
+                for l in 0..k {
+                    total += a[i * k + l] * b[j * k + l];
+                }
+                store(&mut c[i * u + j], total);
+            }
+        }
+    }
+
+    /// The former `mult_rowvector` family: starts from `A[i][0]×x[0]`.
+    fn old_rowvector<T: MatrixDataType>(
+        a: &[T],
+        x: &[T],
+        c: &mut [T],
+        (r, k): (usize, usize),
+        store: impl Fn(&mut T, T),
+    ) {
+        for i in 0..r {
+            let mut total = a[i * k] * x[0];
+            for l in 1..k {
+                total += a[i * k + l] * x[l];
+            }
+            store(&mut c[i], total);
+        }
+    }
+
+    /// `CAP` deterministic values in `[-scale, scale)`.
+    fn values<T: MatrixDataType>(seed: u32, scale: f64) -> [T; CAP] {
+        core::array::from_fn(|i| T::from_f64(test_value(seed, i) * scale).unwrap())
+    }
+
+    fn check_mult<const R: usize, const K: usize, const U: usize, T>(scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, b, c0) = (
+            values::<T>(1, scale),
+            values::<T>(2, scale),
+            values::<T>(3, scale),
+        );
+        let mut want = c0;
+        old_mult(&a, &b, &mut want, R, K, U);
+        let mut got = c0;
+        MatrixData::new_ref::<R, K, T>(&a).mult(
+            &MatrixData::new_ref::<K, U, T>(&b),
+            &mut MatrixData::new_mut::<R, U, T>(&mut got),
+        );
+        // Entries past R×U must stay untouched as well.
+        assert_bits_eq(&got, &want, "mult");
+    }
+
+    fn check_transb<const R: usize, const K: usize, const U: usize, T>(scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, b, c0) = (
+            values::<T>(4, scale),
+            values::<T>(5, scale),
+            values::<T>(6, scale),
+        );
+        let s = T::from_f64(0.75).unwrap();
+        let shape = (R, K, U);
+        let am = MatrixData::new_ref::<R, K, T>(&a);
+        let bm = MatrixData::new_ref::<U, K, T>(&b);
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c = t);
+        am.mult_transb(&bm, &mut MatrixData::new_mut::<R, U, T>(&mut got));
+        assert_bits_eq(&got, &want, "mult_transb");
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c += t);
+        am.multadd_transb(&bm, &mut MatrixData::new_mut::<R, U, T>(&mut got));
+        assert_bits_eq(&got, &want, "multadd_transb");
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c = t * s);
+        am.multscale_transb(&bm, s, &mut MatrixData::new_mut::<R, U, T>(&mut got));
+        assert_bits_eq(&got, &want, "multscale_transb");
+    }
+
+    fn check_rowvector<const R: usize, const K: usize, T>(scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, x, c0) = (
+            values::<T>(7, scale),
+            values::<T>(8, scale),
+            values::<T>(9, scale),
+        );
+        let am = MatrixData::new_ref::<R, K, T>(&a);
+        let xm = MatrixData::new_ref::<K, 1, T>(&x);
+
+        let (mut want, mut got) = (c0, c0);
+        old_rowvector(&a, &x, &mut want, (R, K), |c, t| *c = t);
+        am.mult_rowvector(&xm, &mut MatrixData::new_mut::<R, 1, T>(&mut got));
+        assert_bits_eq(&got, &want, "mult_rowvector");
+
+        let (mut want, mut got) = (c0, c0);
+        old_rowvector(&a, &x, &mut want, (R, K), |c, t| *c += t);
+        am.multadd_rowvector(&xm, &mut MatrixData::new_mut::<R, 1, T>(&mut got));
+        assert_bits_eq(&got, &want, "multadd_rowvector");
+    }
+
+    fn check_all<T: MatrixDataType + ToBits>(scale: f64) {
+        check_mult::<1, 1, 1, T>(scale);
+        check_mult::<2, 3, 4, T>(scale);
+        check_mult::<3, 2, 5, T>(scale);
+        check_mult::<4, 4, 4, T>(scale);
+        check_mult::<5, 1, 3, T>(scale);
+        check_mult::<6, 6, 6, T>(scale);
+        check_mult::<2, 7, 1, T>(scale);
+
+        check_transb::<1, 1, 1, T>(scale);
+        check_transb::<2, 3, 4, T>(scale);
+        check_transb::<4, 4, 2, T>(scale);
+        check_transb::<3, 5, 3, T>(scale);
+        check_transb::<6, 6, 6, T>(scale);
+        check_transb::<5, 1, 2, T>(scale);
+
+        check_rowvector::<1, 1, T>(scale);
+        check_rowvector::<4, 2, T>(scale);
+        check_rowvector::<2, 5, T>(scale);
+        check_rowvector::<6, 6, T>(scale);
+        check_rowvector::<7, 3, T>(scale);
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    fn kernels_match_the_old_loops_f32() {
+        check_all::<f32>(1.0);
+        // Large magnitudes, where the summation order matters most.
+        check_all::<f32>(1e6);
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    fn kernels_match_the_old_loops_f64() {
+        check_all::<f64>(1.0);
+        check_all::<f64>(1e12);
+    }
+
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn kernels_match_the_old_loops_fixed() {
+        check_all::<fixed::types::I16F16>(1.0);
+        check_all::<fixed::types::I32F32>(100.0);
     }
 }
