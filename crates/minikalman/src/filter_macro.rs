@@ -294,16 +294,33 @@ pub mod support {
 /// ```
 ///
 /// To get a `&'static mut` without `static mut`, go through a take-once cell such as
-/// `static_cell::ConstStaticCell`. That crate is not a dependency of this one, so this
-/// snippet is not compiled here:
+/// [`static_cell::ConstStaticCell`](https://docs.rs/static_cell) (a crate of its own, not a
+/// dependency of this one):
 ///
-/// ```ignore
+/// ```
+/// use minikalman::prelude::*;
 /// use static_cell::ConstStaticCell;
+///
+/// minikalman::filter! {
+///     state Track(f32) { pos, vel }
+///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+///     kalman tracker for Track { A = identity; P = identity; }
+///     system tracking { tracker, gps }
+/// }
 ///
 /// static STORAGE: ConstStaticCell<tracking::Storage> = ConstStaticCell::new(tracking::new());
 ///
-/// let mut sys = tracking::build(STORAGE.take()); // .bss, nothing moved at runtime
-/// tracking::model(&mut sys);
+/// fn main() {
+///     let storage: &'static mut tracking::Storage = STORAGE.take(); // once; .bss, nothing moved
+///     let mut sys = tracking::build(storage);
+///     tracking::model(&mut sys);
+///     assert!(STORAGE.try_take().is_none()); // a second take is refused
+///
+///     sys.tracker.predict();
+///     Gps { pos: 1.0 }.write(sys.gps.measurement_vector_mut().as_mut_slice());
+///     sys.tracker.correct(&mut sys.gps);
+///     assert!(Track::read(sys.tracker.state_vector().as_slice()).pos > 0.0);
+/// }
 /// ```
 ///
 /// An RTIC `#[local]` resource and a `Box::new(tracking::new())` work the same way. You can
