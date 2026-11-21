@@ -129,7 +129,8 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
             temp_HP,
             temp_PHt,
             temp_KHP,
-            _phantom: Default::default(),
+            nis: T::zero(),
+            gate: None,
         }
     }
 }
@@ -201,7 +202,11 @@ pub struct ExtendedObservation<
     /// - The backing field for this temporary MUST NOT be aliased with temporary [`tmp_HP`].
     pub(crate) temp_KHP: TempKHP,
 
-    _phantom: PhantomData<T>,
+    /// Normalized innovation squared `yᵀ×S⁻¹×y` of the last correction.
+    pub(crate) nis: T,
+
+    /// Upper bound on the normalized innovation squared above which a correction is skipped.
+    pub(crate) gate: Option<T>,
 }
 
 impl<
@@ -235,6 +240,48 @@ impl<
         TempKHP,
     >
 {
+    /// Returns the normalized innovation squared `NIS = yᵀ×S⁻¹×y` of the last correction.
+    ///
+    /// For a consistent filter, the NIS averages to `OBSERVATIONS` over time; a larger average
+    /// indicates an overconfident filter. The value is updated by every correction whose
+    /// innovation covariance `S` is positive definite, including corrections rejected by the
+    /// [gate](Self::set_gate), and is `0` before the first such correction.
+    ///
+    /// With fixed-point types, large innovations can overflow `yᵀ×S⁻¹×y`; choose a type with
+    /// enough integer bits for the expected outliers.
+    #[inline(always)]
+    pub fn nis(&self) -> T
+    where
+        T: Copy,
+    {
+        self.nis
+    }
+
+    /// Returns the gate set by [`set_gate`](Self::set_gate).
+    #[inline(always)]
+    pub fn gate(&self) -> Option<T>
+    where
+        T: Copy,
+    {
+        self.gate
+    }
+
+    /// Sets an innovation gate: a correction whose [normalized innovation squared](Self::nis)
+    /// exceeds `threshold` is skipped and leaves the state and covariance unchanged.
+    ///
+    /// A common choice is a chi-square quantile for `OBSERVATIONS` degrees of freedom,
+    /// e.g. `6.63` (one measurement) or `9.21` (two measurements) to reject about 1% of
+    /// measurements of a consistent filter. `None` (the default) disables the gate.
+    ///
+    /// The gate compares the NIS after it has been computed in `T`, so it does not protect
+    /// against overflow: with fixed-point types, an outlier large enough to overflow
+    /// `yᵀ×S⁻¹×y` panics in debug builds and wraps in release builds, where the wrapped value
+    /// may pass the gate. Choose a type with enough integer bits for the expected outliers.
+    #[inline(always)]
+    pub fn set_gate(&mut self, threshold: Option<T>) {
+        self.gate = threshold;
+    }
+
     /// Returns then number of measurements.
     #[inline(always)]
     pub const fn measurements(&self) -> usize {
@@ -418,6 +465,8 @@ where
             self.temp_HP.as_matrix_mut(),
             self.temp_PHt.as_matrix_mut(),
             self.temp_KHP.as_matrix_mut(),
+            &mut self.nis,
+            self.gate,
         );
     }
 }

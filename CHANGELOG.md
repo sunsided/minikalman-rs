@@ -17,6 +17,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   first-order Gauss-Markov state, e.g. for sensor bias drift or colored noise, from its time constant and
   steady-state variance. Fixed-point types use `models::gauss_markov::from_coefficient` with a precomputed
   `exp(−∆t/τ)` ([#63]).
+- Added the normalized innovation squared `NIS = yᵀ×S⁻¹×y` of the last correction as `nis()` on
+  the regular, extended and unscented observations, to check filter consistency ([#59]).
+- Added `set_gate` to the regular, extended and unscented observations. A correction whose NIS
+  exceeds the gate, e.g. a chi-square quantile, is skipped and leaves `x` and `P` unchanged.
+  The gate is off by default ([#59]).
 
 ### Fixed
 
@@ -41,6 +46,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [#68]: https://github.com/sunsided/minikalman-rs/issues/68
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
+[#59]: https://github.com/sunsided/minikalman-rs/issues/59
 
 ## [0.8.1] - 2026-10-30
 
