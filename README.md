@@ -233,41 +233,51 @@ const NUM_STATES: usize = 3;
 const NUM_CONTROLS: usize = 2;
 const NUM_OBSERVATIONS: usize = 1;
 
-fn example() {
-    let builder = regular::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
-    let mut filter = builder.build();
-    let mut control = builder.controls().build::<NUM_CONTROLS>();
-    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+let builder = regular::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
+let mut filter = builder.build();
+let mut control = builder.controls().build::<NUM_CONTROLS>();
+let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
-    // Set up the system dynamics, control matrices, observation matrices, ...
+// Set up the system dynamics, control matrices, observation matrices, ...
+filter.state_transition_mut().make_identity();
+filter.estimate_covariance_mut().make_scalar(100.0);
+control.control_matrix_mut().apply(|b| {
+    b.set(1, 0, 1.0); // u[0] drives the second state
+    b.set(2, 1, 1.0); // u[1] drives the third state
+});
+control.process_noise_covariance_mut().make_scalar(0.01);
+measurement.observation_matrix_mut().set(0, 0, 1.0); // we measure the first state
+measurement.measurement_noise_covariance_mut().set(0, 0, 1.0);
 
-    // Filter!
-    loop {
-        // Update your control vector(s).
-        control.control_vector_mut().apply(|u| {
-            u[0] = 0.0;
-            u[1] = 1.0;
-        });
+// Filter!
+for _ in 0..50 {
+    // Update your control vector(s).
+    control.control_vector_mut().apply(|u| {
+        u[0] = 0.0;
+        u[1] = 1.0;
+    });
 
-        // Update your measurement vectors.
-        measurement.measurement_vector_mut().apply(|z| {
-            z[0] = 42.0;
-        });
+    // Update your measurement vectors.
+    measurement.measurement_vector_mut().apply(|z| {
+        z[0] = 42.0;
+    });
 
-        // Update prediction (without controls).
-        filter.predict();
+    // Update prediction (without controls).
+    filter.predict();
 
-        // Apply any controls to the prediction.
-        filter.control(&mut control);
+    // Apply any controls to the prediction.
+    filter.control(&mut control);
 
-        // Apply any measurements.
-        filter.correct(&mut measurement);
-
-        // Access the state
-        let state = filter.state_vector();
-        let covariance = filter.estimate_covariance();
-    }
+    // Apply any measurements.
+    filter.correct(&mut measurement);
 }
+
+// Access the state and its covariance.
+let state = filter.state_vector();
+let covariance = filter.estimate_covariance();
+assert!((state.get(0, 0) - 42.0).abs() < 1.0);
+assert!((state.get(2, 0) - 50.0).abs() < 1.0); // u[1] = 1 added in each of the 50 steps
+assert!(covariance.get(0, 0) < 1.0);
 ```
 
 ### Information filter: fusing sensors
@@ -371,98 +381,93 @@ replaced with their nonlinear counterparts:
 ```rust
 use minikalman::prelude::*;
 use minikalman::extended;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use rand_distr::{Distribution, Normal};
 
-const NUM_STATES: usize = 3;
-const NUM_OBSERVATIONS: usize = 1;
+const NUM_STATES: usize = 4; // position x, y; velocity x, y
+const NUM_OBSERVATIONS: usize = 1; // distance from the origin
 
-fn example() {
-    let builder = extended::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
-    let mut filter = builder.build();
-    let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+let builder = extended::builder::KalmanFilterBuilder::<NUM_STATES, f32>::default();
+let mut filter = builder.build();
+let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
 
-    // The time step of our simulation.
-    const DELTA_T: f32 = 0.1;
+// The time step of our simulation.
+const DELTA_T: f32 = 0.1;
 
-    // Set up the initial state vector.
-    filter.state_vector_mut().apply(|vec| {
-        vec.set_row(0, 0.0);
-        vec.set_row(1, 0.0);
-        vec.set_row(2, 1.0);
-        vec.set_row(3, 1.0);
+// Set up the initial state vector: a rough guess of where the object is and how it moves.
+filter.state_vector_mut().apply(|vec| {
+    vec.set_row(0, 1.0);
+    vec.set_row(1, 1.0);
+    vec.set_row(2, 0.5);
+    vec.set_row(3, 0.5);
+});
+
+// Set up the initial estimate covariance as an identity matrix.
+filter.estimate_covariance_mut().make_identity();
+
+// Set up the process noise covariance matrix.
+filter.direct_process_noise_mut().make_scalar(1e-4);
+
+// Set up the measurement noise covariance.
+measurement.measurement_noise_covariance_mut().apply(|mat| {
+    mat.set_value(0.25); // matrix is 1x1
+});
+
+// The object starts at (1, 1) m and moves at (1, 1) m/s; the sensor noise is seeded.
+let mut rng = StdRng::seed_from_u64(42);
+let measurement_noise = Normal::new(0.0, 0.5).unwrap();
+let true_distance = |time: f32| 2.0f32.sqrt() * (1.0 + time);
+
+// Simulate
+for step in 1..=100 {
+    let time = step as f32 * DELTA_T;
+
+    // Update the system transition Jacobian matrix.
+    filter.state_transition_jacobian_mut().apply(|mat| {
+        mat.make_identity();
+        mat.set(0, 2, DELTA_T);
+        mat.set(1, 3, DELTA_T);
     });
 
-    // Set up the initial estimate covariance as an identity matrix.
-    filter.estimate_covariance_mut().make_identity();
-
-    // Set up the process noise covariance matrix as an identity matrix.
-    measurement
-        .measurement_noise_covariance_mut()
-        .make_scalar(1.0);
-
-    // Set up the measurement noise covariance.
-    measurement.measurement_noise_covariance_mut().apply(|mat| {
-        mat.set_value(1.0); // matrix is 1x1
+    // Perform a nonlinear prediction step.
+    filter.predict_nonlinear(|state, next| {
+        // Simple constant velocity model.
+        next[0] = state[0] + state[2] * DELTA_T;
+        next[1] = state[1] + state[3] * DELTA_T;
+        next[2] = state[2];
+        next[3] = state[3];
     });
 
-    // Simulate
-    for step in 1..=100 {
-        let time = step as f32 * DELTA_T;
+    // Perform a noisy measurement of the (simulated) distance.
+    let z = true_distance(time) + measurement_noise.sample(&mut rng);
+    measurement.measurement_vector_mut().apply(|vec| vec.set_value(z));
 
-        // Update the system transition Jacobian matrix.
-        filter.state_transition_jacobian_mut().apply(|mat| {
-            mat.make_identity();
-            mat.set(0, 2, DELTA_T);
-            mat.set(1, 3, DELTA_T);
-        });
+    // Update the observation Jacobian.
+    measurement.observation_jacobian_matrix_mut().apply(|mat| {
+        let x = filter.state_vector().get_row(0);
+        let y = filter.state_vector().get_row(1);
 
-        // Perform a nonlinear prediction step.
-        filter.predict_nonlinear(|state, next| {
-            // Simple constant velocity model.
-            next[0] = state[0] + state[2] * DELTA_T;
-            next[1] = state[1] + state[3] * DELTA_T;
-            next[2] = state[2];
-            next[3] = state[3];
-        });
+        let norm = (x.powi(2) + y.powi(2)).sqrt();
+        mat.set_col(0, x / norm);
+        mat.set_col(1, y / norm);
+        mat.set_col(2, 0.0);
+        mat.set_col(3, 0.0);
+    });
 
-        // Prepare a measurement.
-        measurement.measurement_vector_mut().apply(|vec| {
-            // Noise setup.
-            let mut rng = rand::thread_rng();
-            let measurement_noise = Normal::new(0.0, 0.5).unwrap();
-
-            // Perform a noisy measurement of the (simulated) position.
-            let z = (time.powi(2) + time.powi(2)).sqrt();
-            let noise = measurement_noise.sample(&mut rng);
-
-            vec.set_value(z + noise);
-        });
-
-        // Update the observation Jacobian.
-        measurement.observation_jacobian_matrix_mut().apply(|mat| {
-            let x = filter.state_vector().get_row(0);
-            let y = filter.state_vector().get_row(1);
-
-            let norm = (x.powi(2) + y.powi(2)).sqrt();
-            let dx = x / norm;
-            let dy = y / norm;
-
-            mat.set_col(0, dx);
-            mat.set_col(1, dy);
-            mat.set_col(2, 0.0);
-            mat.set_col(3, 0.0);
-        });
-
-        // Apply nonlinear correction step.
-        filter.correct_nonlinear(&mut measurement, |state, observation| {
-            // Transform the state into an observation.
-            let x = state.get_row(0);
-            let y = state.get_row(1);
-            let z = (x.powi(2) + y.powi(2)).sqrt();
-            observation.set_value(z);
-        });
-    }
+    // Apply nonlinear correction step.
+    filter.correct_nonlinear(&mut measurement, |state, observation| {
+        // Transform the state into an observation.
+        let x = state.get_row(0);
+        let y = state.get_row(1);
+        let z = (x.powi(2) + y.powi(2)).sqrt();
+        observation.set_value(z);
+    });
 }
+
+// The estimated distance follows the true one.
+let (x, y) = (filter.state_vector().get_row(0), filter.state_vector().get_row(1));
+assert!(((x.powi(2) + y.powi(2)).sqrt() - true_distance(10.0)).abs() < 1.0);
 ```
 
 For a slightly more realistic EKF example that simulates radar measurements of a moving object,
