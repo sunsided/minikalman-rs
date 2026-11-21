@@ -63,6 +63,7 @@ use core::marker::PhantomData;
 
 /// A linear Kalman filter in information form.
 ///
+#[doc = diagram!("information-loop.mmd")]
 /// See the [module documentation](self) for the math. Construct it with
 /// [`InformationFilter::new`] from caller-provided buffers, or with
 /// [`KalmanFilterBuilder::build_information`](crate::regular::builder::KalmanFilterBuilder::build_information)
@@ -191,6 +192,7 @@ where
 
     /// Sets the filter from a state `x` and estimate covariance `P`: `Y = P⁻¹`, `ŷ = Y×x`.
     ///
+    #[doc = diagram!("information-loop.mmd", "init")]
     /// Costs one `STATES` × `STATES` Cholesky inversion. Returns `false`, leaving the filter
     /// unchanged, if `P` is not positive definite.
     #[allow(non_snake_case)]
@@ -216,6 +218,7 @@ where
 
     /// Recovers the state `x = Y⁻¹×ŷ` and estimate covariance `P = Y⁻¹` into the given buffers.
     ///
+    #[doc = diagram!("information-loop.mmd", "recover")]
     /// Costs one `STATES` × `STATES` Cholesky inversion. Returns `false`, leaving `x` and `P`
     /// unchanged, if `Y` is not positive definite, e.g. while some state is still unobserved.
     #[allow(non_snake_case)]
@@ -240,6 +243,7 @@ where
 
     /// Adds one sensor's measurement: `Y ← Y + Hᵀ×R⁻¹×H`, `ŷ ← ŷ + Hᵀ×R⁻¹×z`.
     ///
+    #[doc = diagram!("information-loop.mmd", "fuse1", "fuse2")]
     /// Uses the observation matrix `H`, measurement noise `R` and measurement `z` of a regular
     /// observation; its innovation covariance, inverted-covariance, gain and `P×Hᵀ` buffers
     /// serve as scratch space. Independent sensors can be fused in any order.
@@ -305,6 +309,7 @@ where
 
     /// Performs the time update / prediction step.
     ///
+    #[doc = diagram!("information-loop.mmd", "predict")]
     /// The information form has no direct time update, so this recovers the state and
     /// covariance, predicts them, and converts back:
     ///

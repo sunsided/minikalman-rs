@@ -273,6 +273,13 @@ pub mod regular {
 }
 
 /// Information Filters: linear Kalman filters in information form, for additive sensor fusion.
+///
+/// The [`InformationFilter`](information::InformationFilter) keeps the information matrix
+/// `Y = P⁻¹` and the information vector `ŷ = Y·x̂` instead of `x̂` and `P`. Each step predicts
+/// with [`predict`](information::InformationFilter::predict), then adds every sensor with
+/// [`fuse`](information::InformationFilter::fuse); [`state`](information::InformationFilter::state)
+/// converts back to `x̂` and `P` when needed:
+#[doc = diagram!("information-loop.mmd")]
 pub mod information {
     pub use crate::kalman::information::*;
 }

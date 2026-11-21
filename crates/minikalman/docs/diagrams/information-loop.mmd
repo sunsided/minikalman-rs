@@ -1,0 +1,25 @@
+flowchart LR
+    %% One step of the information filter. Style: see docs/diagrams/README.md.
+    %% Node IDs: init (set_state), prior, predict, fuse1/fuse2 (one per sensor; any number, in
+    %% any order), posterior, recover (state), estimate, rejected (each fallible step returns
+    %% false and leaves the filter unchanged).
+    initial[/"x̂, P (optional)"/]
+    init["set_state<br/>Y = P⁻¹<br/>ŷ = Y·x̂"]
+    prior(["information<br/>Yₖ₋₁, ŷₖ₋₁"])
+    predict["predict<br/>P = Y⁻¹, x̂ = P·ŷ<br/>x̂⁻ = A·x̂<br/>P⁻ = A·P·Aᵀ + Q<br/>Y ← (P⁻)⁻¹<br/>ŷ ← Y·x̂⁻"]
+    fuse1["fuse sensor 1<br/>Y ← Y + Hᵀ·R⁻¹·H<br/>ŷ ← ŷ + Hᵀ·R⁻¹·z"]
+    fuse2["fuse sensor 2<br/>Y ← Y + Hᵀ·R⁻¹·H<br/>ŷ ← ŷ + Hᵀ·R⁻¹·z"]
+    posterior(["information<br/>Yₖ, ŷₖ"])
+    recover["state<br/>P = Y⁻¹<br/>x̂ = P·ŷ"]
+    estimate(["estimate<br/>x̂ₖ, Pₖ"])
+    z1[/"sensor 1<br/>H, R, z"/]
+    z2[/"sensor 2<br/>H, R, z"/]
+    rejected("false, unchanged")
+    initial -.-> init -.-> prior
+    prior --> predict --> fuse1 --> fuse2 --> posterior
+    z1 --> fuse1
+    z2 --> fuse2
+    posterior -.->|"on demand"| recover -.-> estimate
+    predict -.->|"Y or P⁻ not positive definite"| rejected
+    fuse1 -.->|"R not positive definite"| rejected
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

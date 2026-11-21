@@ -1,0 +1,16 @@
+flowchart LR
+    %% Fixed-interval RTS smoother over a recorded run of N steps. Style: see
+    %% docs/diagrams/README.md. Deviation: not one filter step from x̂ₖ₋₁ to x̂ₖ but a whole run,
+    %% a forward filter pass followed by a backward pass from k = N−2 down to 0; the backward
+    %% recursion is written into the node labels instead of drawn as a cycle edge.
+    %% Node IDs: z, forward, history, gain, update, smoothed, kept.
+    z[/"measurements z₀ … zₙ₋₁"/]
+    forward["forward pass<br/>predict, then correct,<br/>for k = 0 … N−1"]
+    history(["recorded history<br/>x̂⁻ₖ, P⁻ₖ after predict<br/>x̂ₖ, Pₖ after correct"])
+    gain["smoother gain<br/>k = N−2 … 0<br/>Cₖ = Pₖ·Aᵀ·(P⁻ₖ₊₁)⁻¹"]
+    update["backward update<br/>Δx̂ = x̂ₖ₊₁|N − x̂⁻ₖ₊₁<br/>ΔP = Pₖ₊₁|N − P⁻ₖ₊₁<br/>x̂ₖ ← x̂ₖ + Cₖ·Δx̂<br/>Pₖ ← Pₖ + Cₖ·ΔP·Cₖᵀ"]
+    smoothed(["smoothed<br/>x̂ₖ|N, Pₖ|N"])
+    kept("step keeps x̂ₖ, Pₖ<br/>(returns false)")
+    z --> forward --> history --> gain --> update --> smoothed
+    gain -.->|"P⁻ₖ₊₁ not positive definite"| kept
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

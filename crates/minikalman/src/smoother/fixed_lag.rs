@@ -5,13 +5,7 @@
 //! and, after every new step `t`, runs the RTS backward pass over that window. The result is the
 //! estimate `x_t−N+1|t` of the step `N−1` steps back, refined with the `N−1` measurements that
 //! came after it. That is the same value the fixed-interval smoother computes for that step over
-//! the history `0..=t`.
-//!
-//! ```mermaid
-//! flowchart LR
-//!     filter["filter step t"] -->|"x̂⁻ₜ, P⁻ₜ, x̂ₜ, Pₜ"| ring["ring of N steps"]
-//!     ring -->|"backward pass t → t−N+1"| out["x_t−N+1|t, P_t−N+1|t"]
-//! ```
+//! the history `0..=t`. The [`FixedLagSmoother`] docs show this as a block diagram.
 //!
 //! Each push costs `N−1` RTS steps, each with a Cholesky inversion of a `STATES × STATES`
 //! matrix.
@@ -81,6 +75,7 @@ use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
 /// Smooths each filter step with the `N−1` steps that follow it, online, over a ring buffer of
 /// the last `N` steps.
 ///
+#[doc = diagram!("fixed-lag-smoother.mmd", "ring")]
 /// All buffers are sized at compile time through `N`, so the smoother does not allocate. The
 /// state transition matrix `A` is constant, as for the [`RtsSmoother`].
 pub struct FixedLagSmoother<const STATES: usize, const N: usize, T, X, P, Gain, Inv, Temp, TempX> {
@@ -147,6 +142,7 @@ where
 
     /// Adds filter step `t` and smooths the step `N−1` steps back.
     ///
+    #[doc = diagram!("fixed-lag-smoother.mmd", "push", "gain", "update")]
     /// * `x`, `p` — the filtered `x_t|t`, `P_t|t`, recorded after `correct()`.
     /// * `x_predicted`, `p_predicted` — the predicted `x_t|t−1`, `P_t|t−1`, recorded after
     ///   `predict()` (and any `control()`) but before `correct()`.
