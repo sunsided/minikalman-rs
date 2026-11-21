@@ -167,9 +167,10 @@ fn model_resets_an_owned_filter() {
 fn extern_buffers_are_used_in_place() {
     use external::{Gps, Push, gps, push, tracker};
 
-    let mut p = [0.0_f32; 4];
+    // Stale contents: whole-matrix statements must overwrite every entry of an extern buffer.
+    let mut p = [7.0_f32; 4];
     let mut x = [0.0_f32; 2];
-    let mut h = [0.0_f32; 2];
+    let mut h = [9.0_f32; 2];
     let mut z = [0.0_f32; 1];
     let mut u = [0.0_f32; 1];
     let (mut filter_storage, mut gps_storage, mut push_storage) =
@@ -184,7 +185,7 @@ fn extern_buffers_are_used_in_place() {
         push::model(&mut control);
     }
 
-    // model() wrote the declared values into the caller's arrays.
+    // model() wrote the declared values into the caller's arrays, replacing the stale ones.
     assert_eq!(p, [10.0, 0.0, 0.0, 10.0]);
     assert_eq!(h, [1.0, 0.0]);
 
