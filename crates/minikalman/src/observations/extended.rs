@@ -772,6 +772,14 @@ where
     /// instead, see
     /// [`correct_nonlinear_predictively_oriented_iterated`](Self::correct_nonlinear_predictively_oriented_iterated).
     ///
+    /// ## Limits of the single linearization
+    /// After an outlier, the PrO covariance can grow past the prior, and the next corrections
+    /// then linearize `h` over a wide region. Where `h` is ambiguous, this can lock the filter
+    /// onto the wrong branch: in a range-only tracking simulation with Student-t noise whose
+    /// target passed the sensor (vanishing Jacobian, mirror-symmetric range), one of 20 runs
+    /// flipped to the mirror track, where neither the EKF nor the relinearized variant did.
+    /// Prefer the relinearized variant for strongly nonlinear or ambiguous `h`.
+    ///
     /// ## Arguments
     /// * `x` - The current state vector.
     /// * `P` - The current state estimate covariance matrix.
@@ -829,9 +837,9 @@ where
     /// Applies a predictively oriented (PrO) correction step, relinearizing the observation at
     /// the PrO mean in iterated-EKF style.
     ///
-    /// The papers (Shen, Duran-Martin, Oates, [arXiv:2606.03230](https://arxiv.org/abs/2606.03230),
-    /// Section 2.4; Kean, Shen, Oates, [arXiv:2610.14773](https://arxiv.org/abs/2610.14773),
-    /// Appendix A) linearize `h` at the current PrO mean `m` instead of the prior `x̃`:
+    /// Shen, Duran-Martin and Oates ([arXiv:2606.03230](https://arxiv.org/abs/2606.03230),
+    /// Section 2.4) linearize `h` at the current PrO mean `m` instead of the prior `x̃`,
+    /// analogous to the iterated EKF:
     /// `h(x) ≈ h(m) + H_m×(x − m)`. The linearized problem is a regular PrO update with the
     /// Jacobian `H_m` and the prior innovation
     ///
@@ -849,7 +857,9 @@ where
     /// ## Limits
     /// - The rounds are a fixed budget without a convergence test. Like the iterated EKF, the
     ///   relinearization is a Gauss-Newton-style fixed-point iteration that is not guaranteed to
-    ///   converge for strongly nonlinear `h`; a few rounds (e.g. 3 to 5) are typical.
+    ///   converge for strongly nonlinear `h`. For mildly nonlinear `h` (e.g. a range far from
+    ///   the sensor) a few rounds change the result little; reaching the fixed point to
+    ///   working precision can take tens of rounds.
     /// - The papers alternate relinearization with an L-BFGS solve of the full objective; here
     ///   each round solves the linearized problem exactly with the scalar Newton iteration.
     /// - Gating and the [NIS](Self::nis) use the prior innovation `z − h(x̃)` and the Jacobian
