@@ -609,6 +609,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     ///
     /// ```
+    /// # #[cfg(feature = "alloc")] {
     /// use minikalman::extended::builder::KalmanFilterBuilder;
     /// use minikalman::prelude::*;
     ///
@@ -629,6 +630,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///     |x, h| h.set_at(0, 0, 2.0 * x.get_at(0, 0)),
     /// );
     /// assert_eq!(status, CorrectionStatus::Applied);
+    /// # }
     /// ```
     pub fn correct_nonlinear_recalibrated<M, F, J, const OBSERVATIONS: usize>(
         &mut self,

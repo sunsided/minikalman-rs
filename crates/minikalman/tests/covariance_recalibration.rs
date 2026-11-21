@@ -208,6 +208,7 @@ fn run_ukf(run: &Run, recalibrate: bool) -> (State, Vec<CorrectionStatus>) {
     let builder = UnscentedBuilder::<2, f64>::default();
     let mut filter = builder.build::<5>();
     let mut measurement = builder.observations().build::<1, 5>();
+    // The builder's defaults α = 1, β = 2, κ = 1; the paper's text gives no UKF parameters.
     filter.state_vector_mut().apply(|x| {
         x.set_at(0, 0, run.initial_estimate[0]);
         x.set_at(1, 0, run.initial_estimate[1]);
@@ -305,6 +306,7 @@ fn monte_carlo() -> Results {
     results
 }
 
+/// The paper's pendulum: recalibration lowers the final-state RMSE of both filters.
 #[test]
 fn pendulum_recalibration_lowers_the_rmse() {
     let r = monte_carlo();
@@ -504,6 +506,7 @@ fn cubic_nis() -> f64 {
     cubic(0.0).powi(2) / s
 }
 
+/// The paper's Eq. 27 example is backed out by the extended filter on every entry point.
 #[test]
 fn cubic_example_is_backed_out_by_the_extended_filter() {
     // Section 2.3: the slope at the prior points away from the true state, so the
@@ -516,6 +519,7 @@ fn cubic_example_is_backed_out_by_the_extended_filter() {
     }
 }
 
+/// The paper's Eq. 27 example is backed out by the unscented filter; the plain one applies it.
 #[test]
 fn cubic_example_is_backed_out_by_the_unscented_filter() {
     let (x, p, nis, status) = cubic_ukf(
@@ -541,6 +545,7 @@ fn cubic_example_is_backed_out_by_the_unscented_filter() {
     assert_eq!(nis, plain_nis);
 }
 
+/// A small, nearly linear step is applied by both recalibrated filters.
 #[test]
 fn recalibrated_corrections_apply_a_small_step() {
     // With a tight prior, h is nearly linear over the step and the update is applied.
@@ -562,6 +567,7 @@ fn recalibrated_corrections_apply_a_small_step() {
     assert!(cov > 0.0 && cov < p, "P = {cov}");
 }
 
+/// The `fix` callback of the `_with` variants normalizes the innovation.
 #[test]
 fn recalibrated_corrections_apply_the_fix() {
     // A fix that zeroes the innovation leaves the state at the prior, while the
@@ -579,6 +585,7 @@ fn recalibrated_corrections_apply_the_fix() {
     assert_eq!((x, cov), (0.0, p));
 }
 
+/// The gate rejects an outlier on the first pass and leaves `x` and `P` unchanged.
 #[test]
 fn recalibrated_corrections_respect_the_gate() {
     // The gate is checked on the first pass, at the prior.
@@ -604,6 +611,7 @@ fn recalibrated_corrections_respect_the_gate() {
     assert_eq!((x, p), (0.0, CUBIC_PRIOR_VARIANCE));
 }
 
+/// A singular innovation covariance skips the correction before the second pass.
 #[test]
 fn recalibrated_corrections_skip_a_singular_innovation_covariance() {
     let (x, p, _, status) = cubic_ekf(Ekf::Filter, 0.0, 0.0, None);
@@ -718,6 +726,7 @@ fn assert_close(a: Flat, b: Flat) {
     }
 }
 
+/// For a linear observation, recalibration agrees with the conventional update.
 #[test]
 fn recalibration_of_a_linear_observation_changes_nothing() {
     // Section 2.3: for a linear h, the recalibrated and the conventional filter agree.
