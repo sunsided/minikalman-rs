@@ -56,6 +56,11 @@ path = "examples/compass.rs"
 required-features = ["std"]
 
 [[example]]
+name = "battery-soc"
+path = "examples/battery_soc.rs"
+required-features = ["std"]
+
+[[example]]
 name = "radar-2d-ukf"
 path = "examples/radar_2d_ukf.rs"
 required-features = ["std"]

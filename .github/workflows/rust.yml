@@ -109,6 +109,8 @@ jobs:
         run: cargo run --example=radar-2d --no-default-features --features=std
       - name: Run compass example
         run: cargo run --example=compass --no-default-features --features=std
+      - name: Run battery SoC EKF example
+        run: cargo run --example=battery-soc --no-default-features --features=std
       - name: Run tests (std)
         run: cargo nextest run --verbose --package minikalman --no-default-features --features=std
       - name: Run tests (libm)

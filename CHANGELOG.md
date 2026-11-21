@@ -10,6 +10,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added a `compass` example: a heading filter whose heading crosses north, corrected with
   `correct_with` and `angles::wrap_180`, next to an unwrapped filter that swings the long way
   around. See [#40].
+- Added a `battery-soc` example: an Extended Kalman Filter that estimates a battery cell's state of
+  charge from its terminal voltage with a first-order RC equivalent-circuit model and a nonlinear
+  open-circuit voltage curve. It runs in CI and fails if the estimate does not converge ([#68]).
 
 ### Fixed
 
@@ -31,6 +34,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Removed `UnscentedObservation::correct_nonlinear`. It averaged the sigma points with equal weights,
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
+
+[#68]: https://github.com/sunsided/minikalman-rs/issues/68
 
 ## [0.8.1] - 2026-10-30
 
