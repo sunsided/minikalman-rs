@@ -13,10 +13,11 @@ use minikalman::num_traits::FromPrimitive;
 use minikalman::prelude::*;
 use minikalman::regular::builder::{
     FixedGainObservationType, GatedFixedGainObservationType, KalmanFilterBuilder,
-    KalmanFilterObservationType, KalmanFilterType, LuenbergerObserverType,
+    KalmanFilterObservationType, KalmanFilterType, LuenbergerObserverType, PredictorObserverType,
 };
 use minikalman::regular::{
     FixedGainObservationStorage, GatedFixedGainObservationStorage, ObserverStorage,
+    PredictorObserverStorage,
 };
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -82,7 +83,7 @@ fn cv_observer() -> (
 ) {
     let builder = KalmanFilterBuilder::<2, f64>::default();
     let mut observer = builder.build_observer();
-    let mut position = builder.observations().build_fixed_gain::<1>();
+    let mut position = builder.observations().build_fixed_gain::<1, Current>();
     let model = motion::constant_velocity(DT, ACCELERATION_VARIANCE);
     observer
         .state_transition_mut()
@@ -235,7 +236,7 @@ fn settle_gain_reports_not_positive_definite() {
 fn observer_converges_to_the_kalman_filter() {
     let (mut filter, mut position) = design::<f64>(10.0);
     let (mut observer, mut fixed) = cv_observer();
-    fixed.set_gain_current(&column(K_INF));
+    fixed.set_gain(&column(K_INF));
     filter.state_vector_mut().set_at(0, 0, 5.0);
     observer.state_vector_mut().set_at(0, 0, 5.0);
 
@@ -265,15 +266,66 @@ fn observer_converges_to_the_kalman_filter() {
     assert!((rate - RHO).abs() < 0.01, "gap decays at {rate}, ρ = {RHO}");
 }
 
+/// An `f64` predictor-form observer and its position observation for the CV model, with the
+/// gain `gain` set.
+fn cv_predictor(
+    gain: [f64; 2],
+) -> (
+    PredictorObserverType<2, f64>,
+    FixedGainObservationType<2, 1, f64, Predictor>,
+) {
+    let builder = KalmanFilterBuilder::<2, f64>::default();
+    let mut observer = builder.build_predictor_observer();
+    let mut position = builder.observations().build_fixed_gain::<1, Predictor>();
+    let model = motion::constant_velocity(DT, ACCELERATION_VARIANCE);
+    observer
+        .state_transition_mut()
+        .apply(|a| model.fill_transition(a));
+    position.observation_matrix_mut().set_at(0, 0, 1.0);
+    position.set_gain(&column(gain));
+    (observer, position)
+}
+
+/// The fused predictor recursion `x̂ ← A·x̂ + L·(z − H·x̂)` of the CV model with `H = [1, 0]`,
+/// written with the same floating-point operations as the observer's matrix kernels.
+fn fused_predictor_step(x: [f64; 2], z: f64, gain: [f64; 2]) -> [f64; 2] {
+    let y = z - (1.0 * x[0] + 0.0 * x[1]);
+    let ax = [1.0 * x[0] + DT * x[1], 0.0 * x[0] + 1.0 * x[1]];
+    [ax[0] + gain[0] * y, ax[1] + gain[1] * y]
+}
+
+/// The deferred predictor-form correction followed by `predict` is bit-for-bit the fused
+/// recursion `x̂ₖ₊₁ = A·x̂ₖ + L·(zₖ − H·x̂ₖ)`, and `correct` alone leaves the prior untouched.
+#[test]
+fn deferred_predictor_correction_equals_the_fused_recursion() {
+    let (mut observer, mut position) = cv_predictor(L_INF);
+    let mut reference = [3.0, -1.0];
+    observer.state_vector_mut().apply(|x| {
+        x.set_at(0, 0, reference[0]);
+        x.set_at(1, 0, reference[1]);
+    });
+
+    for z in readings(400) {
+        position.measurement_vector_mut().set_at(0, 0, z);
+        assert_eq!(observer.correct(&mut position), CorrectionStatus::Applied);
+        assert_eq!(state(observer.state_vector()), reference, "still the prior");
+        let pending = observer.pending_correction();
+        assert_ne!(pending.get_at(1, 0), 0.0);
+
+        observer.predict();
+        reference = fused_predictor_step(reference, z, L_INF);
+        assert_eq!(state(observer.state_vector()), reference);
+        assert_eq!(observer.pending_correction().get_at(0, 0), 0.0);
+    }
+}
+
 /// The predictor form with `L = A·K` runs one step ahead of the current form: its state is
 /// `A·x̂⁺` of the current-form run at every step.
 #[test]
 fn predictor_form_is_current_form_one_step_ahead() {
     let (mut current, mut current_position) = cv_observer();
-    let (mut predictor, mut predictor_position) = cv_observer();
-    current_position.set_gain_current(&column(K_INF));
-    predictor_position.set_gain_predictor(&column(L_INF));
-    assert_eq!(predictor_position.gain_form(), GainForm::Predictor);
+    let (mut predictor, mut predictor_position) = cv_predictor(L_INF);
+    current_position.set_gain(&column(K_INF));
 
     // Both start from x̂₀ = [0, 0]; the predictor form starts from its prior A·x̂₀ = x̂₀.
     for z in readings(200) {
@@ -282,11 +334,8 @@ fn predictor_form_is_current_form_one_step_ahead() {
         assert!(current.correct(&mut current_position).is_applied());
 
         predictor_position.measurement_vector_mut().set_at(0, 0, z);
-        assert!(
-            predictor
-                .predict_from_measurement(&mut predictor_position)
-                .is_applied()
-        );
+        assert!(predictor.correct(&mut predictor_position).is_applied());
+        predictor.predict();
 
         let [p, v] = state(current.state_vector());
         let ahead = [p + DT * v, v];
@@ -294,7 +343,7 @@ fn predictor_form_is_current_form_one_step_ahead() {
     }
 }
 
-/// With a control input, the predictor step followed by `control` is
+/// With a control input, the predictor step `correct`, `predict().control(..)` is
 /// `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`: the current-form prior `A·x̂⁺ + B·u` of the next step,
 /// from a nonzero start.
 #[test]
@@ -310,9 +359,8 @@ fn predictor_form_with_control_is_the_next_current_prior() {
     let b_u = [0.25 * DT * DT, 0.5 * DT];
 
     let (mut current, mut current_position) = cv_observer();
-    let (mut predictor, mut predictor_position) = cv_observer();
-    current_position.set_gain_current(&column(K_INF));
-    predictor_position.set_gain_predictor(&column(L_INF));
+    let (mut predictor, mut predictor_position) = cv_predictor(L_INF);
+    current_position.set_gain(&column(K_INF));
     current.state_vector_mut().apply(|x| {
         x.set_at(0, 0, x0[0]);
         x.set_at(1, 0, x0[1]);
@@ -325,8 +373,7 @@ fn predictor_form_with_control_is_the_next_current_prior() {
     });
 
     for z in readings(200) {
-        current.predict();
-        current.control(&mut control);
+        current.predict().control(&mut control);
         assert!(
             gap(
                 state(current.state_vector()),
@@ -338,48 +385,106 @@ fn predictor_form_with_control_is_the_next_current_prior() {
         assert!(current.correct(&mut current_position).is_applied());
 
         predictor_position.measurement_vector_mut().set_at(0, 0, z);
-        assert!(
-            predictor
-                .predict_from_measurement(&mut predictor_position)
-                .is_applied()
-        );
-        predictor.control(&mut control);
+        assert!(predictor.correct(&mut predictor_position).is_applied());
+        predictor.predict().control(&mut control);
     }
 }
 
-/// A storage keeps the gain across builds, and `build` states its form.
+/// Two predictor-form corrections in one step add their terms, each formed at the same prior:
+/// together they equal one stacked observation with `H = I` and `L = [L₁ L₂]`.
 #[test]
-fn storage_rebuild_keeps_the_stated_form() {
-    let mut position_storage = FixedGainObservationStorage::<2, 1, f64>::new(0.0);
-    position_storage
-        .build(GainForm::Current)
-        .set_gain_predictor(&column(L_INF));
+fn predictor_corrections_accumulate_like_a_stacked_observation() {
+    let builder = KalmanFilterBuilder::<2, f64>::default();
+    let (mut observer, mut position) = cv_predictor(L_INF);
+    let mut velocity = builder.observations().build_fixed_gain::<1, Predictor>();
+    velocity.observation_matrix_mut().set_at(0, 1, 1.0);
+    velocity.set_gain(&column([0.05, 0.3]));
 
-    let position = position_storage.build(GainForm::Predictor);
-    assert_eq!(position.gain_form(), GainForm::Predictor);
-    assert_eq!(position.gain().get_at(0, 0), L_INF[0]);
+    let mut stacked_observer = builder.build_predictor_observer();
+    let mut stacked = builder.observations().build_fixed_gain::<2, Predictor>();
+    let model = motion::constant_velocity(DT, ACCELERATION_VARIANCE);
+    stacked_observer
+        .state_transition_mut()
+        .apply(|a| model.fill_transition(a));
+    stacked.observation_matrix_mut().make_identity();
+    stacked.set_gain(&MatrixData::new_array::<2, 2, 4, f64>([
+        L_INF[0], 0.05, L_INF[1], 0.3,
+    ]));
+
+    for (k, z) in readings(100).into_iter().enumerate() {
+        let speed = 2.0 + 0.01 * k as f64;
+        position.measurement_vector_mut().set_at(0, 0, z);
+        velocity.measurement_vector_mut().set_at(0, 0, speed);
+        let prior = state(observer.state_vector());
+        assert!(observer.correct(&mut position).is_applied());
+        assert!(observer.correct(&mut velocity).is_applied());
+        assert_eq!(state(observer.state_vector()), prior);
+        observer.predict();
+
+        stacked.measurement_vector_mut().apply(|m| {
+            m.set_at(0, 0, z);
+            m.set_at(1, 0, speed);
+        });
+        assert!(stacked_observer.correct(&mut stacked).is_applied());
+        stacked_observer.predict();
+
+        let gap = gap(
+            state(observer.state_vector()),
+            state(stacked_observer.state_vector()),
+        );
+        assert!(gap < 1e-12, "step {k}: {gap}");
+    }
 }
 
-/// A gain is only run in the recursion of its form; the other one is refused.
+/// The time-step handle applies several distinct controls: `x̂ ← A·x̂ + B₁·u₁ + B₂·u₂`.
 #[test]
-fn gain_form_mismatch_is_refused() {
-    let (mut observer, mut position) = cv_observer();
-    position.measurement_vector_mut().set_at(0, 0, 3.0);
+fn time_update_applies_two_controls() {
+    let builder = KalmanFilterBuilder::<2, f64>::default();
+    let mut throttle = builder.controls().build::<1>();
+    throttle.control_matrix_mut().apply(|b| {
+        b.set_at(0, 0, 0.5 * DT * DT);
+        b.set_at(1, 0, DT);
+    });
+    throttle.control_vector_mut().set_at(0, 0, 0.5);
+    let mut wind = builder.controls().build::<2>();
+    wind.control_matrix_mut().apply(|b| {
+        b.set_at(0, 0, 0.1);
+        b.set_at(1, 1, -0.2);
+    });
+    wind.control_vector_mut().apply(|u| {
+        u.set_at(0, 0, 3.0);
+        u.set_at(1, 0, 4.0);
+    });
 
-    position.set_gain_predictor(&column(L_INF));
-    assert_eq!(
-        observer.correct(&mut position),
-        CorrectionStatus::GainFormMismatch
-    );
-    assert!(!CorrectionStatus::GainFormMismatch.is_applied());
+    let (mut observer, _) = cv_observer();
+    let (mut predictor, _) = cv_predictor(L_INF);
+    for x in [observer.state_vector_mut(), predictor.state_vector_mut()] {
+        x.set_at(0, 0, 3.0);
+        x.set_at(1, 0, -1.0);
+    }
 
-    position.set_gain_current(&column(K_INF));
-    assert_eq!(
-        observer.predict_from_measurement(&mut position),
-        CorrectionStatus::GainFormMismatch
-    );
-    assert_eq!(state(observer.state_vector()), [0.0, 0.0]);
-    assert_eq!(position.gain().get_at(0, 0), K_INF[0]);
+    observer.predict().control(&mut throttle).control(&mut wind);
+    predictor
+        .predict()
+        .control(&mut throttle)
+        .control(&mut wind);
+
+    let expected = [
+        3.0 - DT + 0.25 * DT * DT + 0.3,
+        -1.0 + 0.5 * DT - 0.8,
+    ];
+    assert!(gap(state(observer.state_vector()), expected) < 1e-15);
+    assert!(gap(state(predictor.state_vector()), expected) < 1e-15);
+}
+
+/// A storage keeps the gain across builds, in the form of its type.
+#[test]
+fn storage_rebuild_keeps_the_gain() {
+    let mut position_storage = FixedGainObservationStorage::<2, 1, f64, Predictor>::new(0.0);
+    position_storage.build().set_gain(&column(L_INF));
+
+    let position = position_storage.build();
+    assert_eq!(position.gain().get_at(0, 0), L_INF[0]);
 }
 
 /// The worked example of the docs: the deadbeat predictor gain `L = [2, 10]` settles the error
@@ -388,22 +493,18 @@ fn gain_form_mismatch_is_refused() {
 fn deadbeat_gain_in_the_wrong_form_diverges() {
     let truth = |k: usize| [1.0 + 2.0 * DT * k as f64, 2.0];
 
-    let (mut right, mut right_position) = cv_observer();
-    right_position.set_gain_predictor(&column([2.0, 10.0]));
+    let (mut right, mut right_position) = cv_predictor([2.0, 10.0]);
     for k in 0..2 {
         right_position
             .measurement_vector_mut()
             .set_at(0, 0, truth(k)[0]);
-        assert!(
-            right
-                .predict_from_measurement(&mut right_position)
-                .is_applied()
-        );
+        assert!(right.correct(&mut right_position).is_applied());
+        right.predict();
     }
     assert!(gap(state(right.state_vector()), truth(2)) < 1e-12);
 
     let (mut wrong, mut wrong_position) = cv_observer();
-    wrong_position.set_gain_current(&column([2.0, 10.0]));
+    wrong_position.set_gain(&column([2.0, 10.0]));
     for k in 1..=20 {
         wrong.predict();
         wrong_position
@@ -430,7 +531,7 @@ fn control_moves_the_state_like_the_kalman_filter() {
 
     let (mut filter, mut position) = design::<f64>(10.0);
     let (mut observer, mut fixed) = cv_observer();
-    fixed.set_gain_current(&column(K_INF));
+    fixed.set_gain(&column(K_INF));
 
     let mut last = f64::MAX;
     for z in readings(300) {
@@ -439,8 +540,7 @@ fn control_moves_the_state_like_the_kalman_filter() {
         position.measurement_vector_mut().set_at(0, 0, z);
         filter.correct(&mut position);
 
-        observer.predict();
-        observer.control(&mut control);
+        observer.predict().control(&mut control);
         fixed.measurement_vector_mut().set_at(0, 0, z);
         assert!(observer.correct(&mut fixed).is_applied());
         last = gap(state(filter.state_vector()), state(observer.state_vector()));
@@ -448,25 +548,24 @@ fn control_moves_the_state_like_the_kalman_filter() {
 
     assert!(last < 1e-9, "{last}");
 
-    // Without a correction, the control alone is x ← x + B·u.
+    // From x̂ = 0, the step is x ← B·u.
     let (mut open_loop, _) = cv_observer();
-    open_loop.control(&mut control);
+    open_loop.predict().control(&mut control);
     assert_eq!(state(open_loop.state_vector()), [0.25 * DT * DT, 0.5 * DT]);
 }
 
-/// The storage types wire the same observer as the builders, and the trait impls expose it.
+/// The storage types wire the same observers as the builders, and the trait impls expose them.
 #[test]
 fn storage_and_traits() {
     let mut observer_storage = ObserverStorage::<2, f64>::new(0.0);
     let mut position_storage = FixedGainObservationStorage::<2, 1, f64>::new(0.0);
     let mut observer = observer_storage.build();
-    let mut position = position_storage.build(GainForm::Current);
-    assert_eq!(position.gain_form(), GainForm::Current);
+    let mut position = position_storage.build();
     assert_eq!((observer.states(), position.states()), (2, 2));
     assert_eq!(position.measurements(), 1);
 
     generic_setup(&mut observer, &mut position);
-    position.set_gain_current(&column([0.5, 0.0]));
+    position.set_gain(&column([0.5, 0.0]));
     observer.predict();
     position.measurement_vector_mut().set_at(0, 0, 2.0);
     let status = observer.correct_with(&mut position, |y| y[0] *= 2.0);
@@ -477,10 +576,22 @@ fn storage_and_traits() {
     assert_eq!(position.observation_matrix().get_at(0, 0), 1.0);
     assert_eq!(observer.state_transition().get_at(0, 1), DT);
 
-    position.set_gain_predictor(&column([0.5, 0.0]));
-    let status = observer.predict_from_measurement_with(&mut position, |y| y[0] = 0.0);
+    let mut predictor_storage = PredictorObserverStorage::<2, f64>::new(0.0);
+    let mut predictor_position_storage =
+        FixedGainObservationStorage::<2, 1, f64, Predictor>::new(0.0);
+    let mut predictor = predictor_storage.build();
+    let mut predictor_position = predictor_position_storage.build();
+    generic_setup(&mut predictor, &mut predictor_position);
+    predictor_position.set_gain(&column([0.5, 0.0]));
+    predictor_position
+        .measurement_vector_mut()
+        .set_at(0, 0, 2.0);
+    let status = predictor.correct_with(&mut predictor_position, |y| y[0] *= 2.0);
     assert!(status.is_applied());
-    assert_eq!(observer.state_vector().get_at(0, 0), 2.0);
+    assert_eq!(predictor.state_vector().get_at(0, 0), 0.0);
+    assert_eq!(predictor.pending_correction().get_at(0, 0), 2.0);
+    KalmanFilterPredict::predict(&mut predictor);
+    assert_eq!(predictor.state_vector().get_at(0, 0), 2.0);
 }
 
 /// Sets up the CV observer through the generic traits only.
@@ -512,7 +623,6 @@ where
     assert_eq!(observer.state_transition().as_matrix().get_at(0, 1), DT);
     assert_eq!(position.measurement_vector().as_matrix().get_at(0, 0), 0.0);
     assert_eq!(position.observation_matrix().as_matrix().get_at(0, 0), 1.0);
-    assert_eq!(position.gain_form(), GainForm::Current);
 }
 
 /// An `I16F16` observer with the `f64`-designed gain stays within the quantization bound
@@ -525,7 +635,7 @@ fn fixed_point_observer_tracks_f64() {
     let mut observer_storage = ObserverStorage::<2, I16F16>::new(I16F16::ZERO);
     let mut position_storage = FixedGainObservationStorage::<2, 1, I16F16>::new(I16F16::ZERO);
     let mut fixed_observer = observer_storage.build();
-    let mut fixed_position = position_storage.build(GainForm::Current);
+    let mut fixed_position = position_storage.build();
     let model = motion::constant_velocity(I16F16::from_num(DT), I16F16::ONE);
     fixed_observer
         .state_transition_mut()
@@ -533,13 +643,13 @@ fn fixed_point_observer_tracks_f64() {
     fixed_position
         .observation_matrix_mut()
         .set_at(0, 0, I16F16::ONE);
-    fixed_position.set_gain_current(&MatrixData::new_array::<2, 1, 2, I16F16>([
+    fixed_position.set_gain(&MatrixData::new_array::<2, 1, 2, I16F16>([
         I16F16::from_num(K_INF[0]),
         I16F16::from_num(K_INF[1]),
     ]));
 
     let (mut observer, mut position) = cv_observer();
-    position.set_gain_current(&column(K_INF));
+    position.set_gain(&column(K_INF));
 
     let data = readings(400);
     // Seed both from the first measurement to keep the start-up innovations small.
@@ -605,9 +715,11 @@ fn gated_observer(
 ) {
     let builder = KalmanFilterBuilder::<2, f64>::default();
     let (observer, _) = cv_observer();
-    let mut gated = builder.observations().build_fixed_gain_gated::<1>();
+    let mut gated = builder
+        .observations()
+        .build_fixed_gain_gated::<1, Current>();
     gated.observation_matrix_mut().set_at(0, 0, 1.0);
-    gated.set_gain_current(position.kalman_gain());
+    gated.set_gain(position.kalman_gain());
     gated
         .set_innovation_covariance(position.innovation_covariance_mut().as_matrix_mut())
         .expect("S∞ is positive definite");
@@ -653,12 +765,19 @@ fn gated_nis_matches_the_kalman_filter_in_steady_state() {
 }
 
 /// An outlier exceeds the gate in both gain forms, is skipped with `Gated` and leaves the
-/// state untouched; in the predictor form, a following `predict` advances the step.
+/// state untouched; in the predictor form, it leaves no pending correction, so the following
+/// `predict` is a pure model step.
 #[test]
 fn outliers_are_gated_and_leave_the_state_unchanged() {
     let (mut observer, mut gated) = gated_observer(&mut settled().1);
-    let (mut predictor, mut gated_predictor) = gated_observer(&mut settled().1);
-    gated_predictor.set_gain_predictor(&column(L_INF));
+    let (mut predictor, _) = cv_predictor(L_INF);
+    let mut gated_predictor = KalmanFilterBuilder::<2, f64>::default()
+        .observations()
+        .build_fixed_gain_gated::<1, Predictor>();
+    gated_predictor.observation_matrix_mut().set_at(0, 0, 1.0);
+    gated_predictor.set_gain(&column(L_INF));
+    gated_predictor
+        .set_innovation_covariance_inverse(&MatrixData::new_array::<1, 1, 1, f64>([1.0 / S_INF]));
     gated.set_gate(Some(WIDE_GATE));
     gated_predictor.set_gate(Some(WIDE_GATE));
 
@@ -674,7 +793,8 @@ fn outliers_are_gated_and_leave_the_state_unchanged() {
 
         let before = state(predictor.state_vector());
         gated_predictor.measurement_vector_mut().set_at(0, 0, z);
-        let predictor_status = predictor.predict_from_measurement(&mut gated_predictor);
+        let predictor_status = predictor.correct(&mut gated_predictor);
+        assert_eq!(state(predictor.state_vector()), before);
 
         if outlier {
             assert_eq!(status, CorrectionStatus::Gated);
@@ -682,14 +802,21 @@ fn outliers_are_gated_and_leave_the_state_unchanged() {
             assert!(gated.nis() > 300.0, "outlier NIS {}", gated.nis());
 
             assert_eq!(predictor_status, CorrectionStatus::Gated);
-            assert_eq!(state(predictor.state_vector()), before);
             assert!(gated_predictor.nis() > 300.0);
+            assert_eq!(state(predictor.pending_correction()), [0.0, 0.0]);
             predictor.predict();
-            let advanced = [before[0] + DT * before[1], before[1]];
-            assert!(gap(state(predictor.state_vector()), advanced) < 1e-15);
+            let model_step = [
+                1.0 * before[0] + DT * before[1],
+                0.0 * before[0] + 1.0 * before[1],
+            ];
+            assert_eq!(state(predictor.state_vector()), model_step);
         } else if k > 10 {
             assert_eq!(status, CorrectionStatus::Applied, "step {k}");
             assert_eq!(predictor_status, CorrectionStatus::Applied, "step {k}");
+        }
+
+        if !outlier {
+            predictor.predict();
         }
     }
 }
@@ -734,18 +861,12 @@ fn start_up_gate_locks_out_and_delayed_gate_converges() {
     assert!(gap(state(locked.state_vector()), truth) > 10.0);
 }
 
-/// A gain-form mismatch neither evaluates the gate nor updates the NIS; a gate of `None`
-/// still computes the NIS.
+/// A gate of `None` still computes the NIS.
 #[test]
-fn gain_form_mismatch_keeps_the_nis_and_open_gate_computes_it() {
+fn open_gate_computes_the_nis() {
     let (mut observer, mut gated) = gated_observer(&mut settled().1);
     gated.measurement_vector_mut().set_at(0, 0, 100.0);
-    assert_eq!(
-        observer.predict_from_measurement(&mut gated),
-        CorrectionStatus::GainFormMismatch
-    );
     assert_eq!(gated.nis(), 0.0);
-
     assert_eq!(gated.gate(), Some(GATE));
     gated.set_gate(None);
     assert_eq!(observer.correct(&mut gated), CorrectionStatus::Applied);
@@ -779,14 +900,14 @@ fn non_positive_definite_innovation_covariance_is_refused() {
 fn gated_storage_keeps_the_inverse_but_not_the_threshold() {
     let mut storage = GatedFixedGainObservationStorage::<2, 1, f64>::new(0.0);
     {
-        let mut position = storage.build(GainForm::Current);
+        let mut position = storage.build();
         position.set_innovation_covariance_inverse(&MatrixData::new_array::<1, 1, 1, f64>([
             1.0 / S_INF
         ]));
         position.set_gate(Some(GATE));
     }
 
-    let position = storage.build(GainForm::Current);
+    let position = storage.build();
     assert_eq!(position.gate(), None);
     assert_eq!(position.nis(), 0.0);
     assert_eq!(
@@ -808,13 +929,13 @@ fn fixed_point_gate_rejects_outliers() {
     let mut observer_storage = ObserverStorage::<2, I16F16>::new(I16F16::ZERO);
     let mut position_storage = GatedFixedGainObservationStorage::<2, 1, I16F16>::new(I16F16::ZERO);
     let mut observer = observer_storage.build();
-    let mut position = position_storage.build(GainForm::Current);
+    let mut position = position_storage.build();
     let model = motion::constant_velocity(I16F16::from_num(DT), I16F16::ONE);
     observer
         .state_transition_mut()
         .apply(|a| model.fill_transition(a));
     position.observation_matrix_mut().set_at(0, 0, I16F16::ONE);
-    position.set_gain_current(&MatrixData::new_array::<2, 1, 2, I16F16>([
+    position.set_gain(&MatrixData::new_array::<2, 1, 2, I16F16>([
         I16F16::from_num(K_INF[0]),
         I16F16::from_num(K_INF[1]),
     ]));

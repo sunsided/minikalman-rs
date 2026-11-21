@@ -18,8 +18,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `FixedGainGate` holding a stored steady-state `S∞⁻¹` (`OBSERVATIONS²` scalars), added with
   `with_gate`, `KalmanFilterObservationBuilder::build_fixed_gain_gated` or
   `GatedFixedGainObservationStorage`. `set_gate(Some(threshold))` uses the threshold convention of
-  `RegularObservation::set_gate`; a correction or predictor step whose `NIS = yᵀ·S∞⁻¹·y` exceeds it
-  returns `CorrectionStatus::Gated` and leaves `x̂` unchanged, for `m² + m` multiply-adds. Fill
+  `RegularObservation::set_gate`; a correction whose `NIS = yᵀ·S∞⁻¹·y` exceeds it returns
+  `CorrectionStatus::Gated` and leaves `x̂` unchanged (in the predictor form it leaves no pending
+  correction, so the next `predict` is a pure model step), for `m² + m` multiply-adds. Fill
   `S∞⁻¹` with `set_innovation_covariance` (a Cholesky inverse of the `S∞` that `settle_gain`
   leaves in the design observation, reachable through the new
   `RegularObservation::innovation_covariance_mut`) or `set_innovation_covariance_inverse`. In
@@ -56,18 +57,26 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added the fixed-gain (Luenberger) observer `regular::LuenbergerObserver` (doc alias
   `steady_state_kalman`) with `regular::FixedGainObservation`: the steady-state Kalman filter
   without `P`, `Q` or `R`, at `n² + 2·n·m` multiply-adds per step with no square root, division or
-  data-dependent branch. The gain is stored together with its convention: `set_gain_current(K)`
-  for the crate's predict-then-correct form (`predict`, `correct`) and `set_gain_predictor(L)` for
-  the textbook form `x̂ₖ₊₁ = A·x̂ₖ + L·(zₖ − H·x̂ₖ)` that `place` and python-control `dlqe` return
-  (`predict_from_measurement`); running a gain in the other form returns the new
-  `CorrectionStatus::GainFormMismatch` and leaves the state unchanged.
+  data-dependent branch. The gain convention is a type parameter (`GainForm`, sealed, with the
+  zero-sized `Current` and `Predictor`): `FixedGainObservation<…, Current>` holds the crate's
+  predict-then-correct gain `K`, `FixedGainObservation<…, Predictor>` the textbook gain `L` of
+  `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)` that `place` and python-control `dlqe` return, and an
+  observer of one form does not compile with an observation of the other. The time and the
+  measurement update stay separate calls in both forms: `predict()` returns a `TimeUpdate`
+  handle through which any number of distinct controls are applied
+  (`observer.predict().control(&mut throttle).control(&mut steering)`), only before the
+  corrections of the step, and `correct` updates. In the predictor form (`new_predictor`,
+  `KalmanFilterBuilder::build_predictor_observer`, `PredictorObserverStorage`), `correct` defers
+  `L·y` into a pending correction (one extra `n`-vector) without touching `x̂`, and the next
+  `predict` applies `x̂ ← A·x̂ + Σ L·y`, bit-for-bit the fused recursion.
   `RegularKalman::settle_gain` iterates the filter's own covariance recursion until the
   observation's gain settles and reproduces SciPy's DARE (`K∞` to `2e-12` in `f64`); it
   overwrites the filter's `P` and the observation's `S` and `K` and leaves `x`, the gate and the
   noise adaptation alone. Also new: `Control::apply_control_to_state` (trait
   `KalmanFilterControlApplyToState`), `RegularObservation::innovation_covariance`, the storage
-  types `regular::{ObserverStorage, FixedGainObservationStorage}`, the builders
-  `KalmanFilterBuilder::build_observer` and `build_fixed_gain`, and the `luenberger` example.
+  types `regular::{ObserverStorage, PredictorObserverStorage, FixedGainObservationStorage}`, the
+  builders `KalmanFilterBuilder::build_observer`, `build_predictor_observer` and
+  `build_fixed_gain::<M, F>`, and the `luenberger` example.
   NIS gating for the fixed-gain observation is tracked in [#144] ([#143]).
 - Added recursive least squares, `rls::RecursiveLeastSquares` (storage: `rls::EstimatorStorage`),
   an online estimator of model parameters `θ` in `y = φᵀ·θ + v`: the Kalman filter with `A = I`,
