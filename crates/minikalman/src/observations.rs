@@ -246,9 +246,10 @@ pub struct NoiseAdaptation<T> {
 /// ## Cost
 ///
 /// [`Joseph`](Self::Joseph) needs no extra buffer. For `N` states and `m` measurements it adds
-/// about `2×N×m² + N²×m/2` multiply-adds per correction: it forms `S = H×P×Hᵀ + R` again
-/// (after the gain, the `S` buffer holds its Cholesky factor), then `K×S` and the lower
-/// triangle of `K×S×Kᵀ`.
+/// about `N×m² + N²×m/2` multiply-adds per correction: `K×S` and the lower triangle of
+/// `K×S×Kᵀ`. Both forms reuse the `H×P` the gain needed. The factorization of the gain
+/// overwrites `S`, so for `m ≤ N` the Joseph form keeps a copy of `S` in the `K×H×P`
+/// temporary; for `m > N` it forms `S = (H×P)×Hᵀ + R` again, another `N×m²`.
 ///
 /// ## What it buys
 ///
@@ -295,13 +296,16 @@ pub(crate) fn normalized_innovation_squared<const OBSERVATIONS: usize, T>(
 where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let s_inv = &S_inv.as_slice()[..OBSERVATIONS * OBSERVATIONS];
+    let y = &y.as_slice()[..OBSERVATIONS];
     let mut nis = T::zero();
     for i in 0..OBSERVATIONS {
         let mut row = T::zero();
         for j in 0..OBSERVATIONS {
-            row += S_inv.get(i, j) * y.get(j, 0);
+            row += s_inv[i * OBSERVATIONS + j] * y[j];
         }
-        nis += y.get(i, 0) * row;
+        nis += y[i] * row;
     }
     nis
 }
@@ -335,7 +339,18 @@ pub(crate) fn update_with_innovation<const STATES: usize, const OBSERVATIONS: us
 where
     T: MatrixDataType,
 {
-    let status = compute_kalman_gain(P, H, R, y, K, S, S_inv, temp_HP, temp_PHt, nis, gate);
+    // S = H*P*Hᵀ + R; temp_HP keeps H*P of the prior P for the covariance update below.
+    form_innovation_covariance(P, H, R, S, temp_HP);
+
+    // The factorization overwrites S, and the Joseph form needs it again. temp_KHP is not
+    // touched until the Joseph update, so it keeps a copy if S fits; otherwise S is formed again.
+    let keep_s = covariance_update == CovarianceUpdate::Joseph && OBSERVATIONS <= STATES;
+    let s_len = OBSERVATIONS * OBSERVATIONS;
+    if keep_s {
+        temp_KHP.as_mut_slice()[..s_len].copy_from_slice(&S.as_slice()[..s_len]);
+    }
+
+    let status = gain_from_innovation_covariance(P, H, y, K, S, S_inv, temp_PHt, nis, gate);
     if !status.is_applied() {
         return status;
     }
@@ -346,6 +361,7 @@ where
     // x = x + K*y
     K.multadd_rowvector(y, x);
 
+    // P is still the prior here, so temp_HP still holds H*P.
     match covariance_update {
         CovarianceUpdate::Standard => {
             //* Correct state covariances
@@ -353,13 +369,18 @@ where
             //*   = P - K*(H*P)
 
             // P = P - K*(H*P)
-            H.mult(P, temp_HP); // temp_HP = H*P
             K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
             P.sub_inplace_a(temp_KHP); // P -= temp_KHP
         }
         CovarianceUpdate::Joseph => {
-            // S holds its Cholesky factor by now, so Joseph forms S again.
-            joseph_update(P, H, R, K, S, temp_HP, temp_PHt, temp_KHP);
+            // Restore S = H*P*Hᵀ + R before temp_KHP is overwritten.
+            if keep_s {
+                S.as_mut_slice()[..s_len].copy_from_slice(&temp_KHP.as_slice()[..s_len]);
+            } else {
+                temp_HP.mult_transb(H, S); // S = temp_HP*Hᵀ
+                S.add_inplace_a(R); // S += R
+            }
+            joseph_update_from_hp(P, K, S, temp_HP, temp_PHt, temp_KHP);
         }
     }
 
@@ -430,17 +451,48 @@ fn joseph_update<const STATES: usize, const OBSERVATIONS: usize, T>(
     T: MatrixDataType,
 {
     // S = H*P*H' + R, from the prior P
-    H.mult(P, temp_HP); // temp_HP = H*P
-    temp_HP.mult_transb(H, S); // S = temp_HP*Hᵀ
-    S.add_inplace_a(R); // S += R
+    form_innovation_covariance(P, H, R, S, temp_HP);
+    joseph_update_from_hp(P, K, S, temp_HP, temp_PHt, temp_KHP);
+}
 
+/// The Joseph update of [`joseph_update`] once `HP = H×P` and `S = H×P×Hᵀ + R` of the prior
+/// `P` are formed: `P = P - K×HP - (K×HP)ᵀ + K×S×Kᵀ`.
+///
+/// `temp_PHt` is only written once `temp_KHP` is consumed.
+#[allow(non_snake_case)]
+fn joseph_update_from_hp<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    K: &impl Matrix<STATES, OBSERVATIONS, T>,
+    S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    HP: &impl Matrix<OBSERVATIONS, STATES, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
+) where
+    T: MatrixDataType,
+{
     // P = P - K*H*P - (K*H*P)ᵀ
-    K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
+    K.mult(HP, temp_KHP); // temp_KHP = K*HP
     subtract_with_transpose(P, temp_KHP);
 
     // P = P + K*S*Kᵀ, once temp_KHP is consumed.
     K.mult(S, temp_PHt); // temp_PHt = K*S
     add_lower_product_mirrored(P, temp_PHt, K); // P += temp_PHt*Kᵀ
+}
+
+/// Forms the innovation covariance `S = H×P×Hᵀ + R`, leaving `H×P` in `temp_HP`.
+#[allow(non_snake_case)]
+fn form_innovation_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &impl Matrix<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
+) where
+    T: MatrixDataType,
+{
+    H.mult(P, temp_HP); // temp_HP = H*P
+    temp_HP.mult_transb(H, S); // S = temp_HP*Hᵀ
+    S.add_inplace_a(R); // S += R
 }
 
 /// Adds `A×Bᵀ` to `P`, computing only the lower triangle of the sum and mirroring it into
@@ -456,12 +508,18 @@ fn add_lower_product_mirrored<const STATES: usize, const OBSERVATIONS: usize, T>
 ) where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let p = &mut P.as_mut_slice()[..STATES * STATES];
+    let a = &A.as_slice()[..STATES * OBSERVATIONS];
+    let b = &B.as_slice()[..STATES * OBSERVATIONS];
     for i in 0..STATES {
         for j in 0..=i {
-            let product: T = (0..OBSERVATIONS).map(|l| A.get(i, l) * B.get(j, l)).sum();
-            let value = P.get(i, j) + product;
-            P.set(i, j, value);
-            P.set(j, i, value);
+            let product: T = (0..OBSERVATIONS)
+                .map(|l| a[i * OBSERVATIONS + l] * b[j * OBSERVATIONS + l])
+                .sum();
+            let value = p[i * STATES + j] + product;
+            p[i * STATES + j] = value;
+            p[j * STATES + i] = value;
         }
     }
 }
@@ -536,10 +594,12 @@ fn subtract_with_transpose<const STATES: usize, T>(
 ) where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let p = &mut P.as_mut_slice()[..STATES * STATES];
+    let a = &A.as_slice()[..STATES * STATES];
     for i in 0..STATES {
         for j in 0..STATES {
-            let value = P.get(i, j) - A.get(i, j) - A.get(j, i);
-            P.set(i, j, value);
+            p[i * STATES + j] = p[i * STATES + j] - a[i * STATES + j] - a[j * STATES + i];
         }
     }
 }
@@ -627,11 +687,29 @@ fn compute_kalman_gain<const STATES: usize, const OBSERVATIONS: usize, T>(
 where
     T: MatrixDataType,
 {
-    // S = H*P*H' + R
-    H.mult(P, temp_HP); // temp = H*P
-    temp_HP.mult_transb(H, S); // S = temp*Hᵀ
-    S.add_inplace_a(R); // S += R
+    form_innovation_covariance(P, H, R, S, temp_HP);
+    gain_from_innovation_covariance(P, H, y, K, S, S_inv, temp_PHt, nis, gate)
+}
 
+/// The second half of [`compute_kalman_gain`]: factors and inverts `S = H×P×Hᵀ + R`, which
+/// [`form_innovation_covariance`] formed, gates on the NIS and forms `K = P×Hᵀ×S⁻¹`.
+///
+/// On return, `S` holds its Cholesky factor. Neither `x` nor `P` is written.
+#[allow(non_snake_case, clippy::too_many_arguments)]
+fn gain_from_innovation_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &impl Matrix<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+    K: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    S_inv: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    nis: &mut T,
+    gate: Option<T>,
+) -> CorrectionStatus
+where
+    T: MatrixDataType,
+{
     // K = P*Hᵀ * S^-1
     if !S.cholesky_decompose_lower() {
         return CorrectionStatus::NotPositiveDefinite;
@@ -893,6 +971,214 @@ pub(crate) fn sub_symmetric_part<const STATES: usize, T>(
     for i in 0..STATES {
         for j in 0..STATES {
             P.set(i, j, P.get(i, j) - M.get(i, j) - M.get(j, i));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::matrix::MatrixData;
+    use crate::test_bits::{ToBits, assert_bits_eq, test_value};
+
+    /// Largest buffer the cases need (6×6); the buffers are longer than most matrices, which
+    /// `is_valid` allows.
+    const CAP: usize = 36;
+
+    /// The inputs of one correction, row-major in `CAP`-long buffers.
+    #[allow(non_snake_case)]
+    #[derive(Clone, Copy)]
+    struct Buffers<T> {
+        x: [T; CAP],
+        P: [T; CAP],
+        H: [T; CAP],
+        R: [T; CAP],
+        y: [T; CAP],
+        K: [T; CAP],
+        S: [T; CAP],
+        S_inv: [T; CAP],
+        HP: [T; CAP],
+        PHt: [T; CAP],
+        KHP: [T; CAP],
+    }
+
+    /// A well-conditioned correction: `P = B×Bᵀ + I`, `R = D×Dᵀ + I/2`, `H`, `x`, `y` from
+    /// [`test_value`], all scaled by `scale` so that they fit fixed point.
+    fn case<const N: usize, const M: usize, T: MatrixDataType>(
+        seed: u32,
+        scale: f64,
+    ) -> Buffers<T> {
+        let c = |v: f64| T::from_f64(v * scale).unwrap();
+        let spd = |n: usize, s: u32, diag: f64, i: usize, j: usize| {
+            let dot: f64 = (0..n)
+                .map(|k| test_value(s, i * n + k) * test_value(s, j * n + k))
+                .sum();
+            dot + if i == j { diag } else { 0.0 }
+        };
+        let z = [T::zero(); CAP];
+        let mut b = Buffers {
+            x: z,
+            P: z,
+            H: z,
+            R: z,
+            y: z,
+            K: z,
+            S: z,
+            S_inv: z,
+            HP: z,
+            PHt: z,
+            KHP: z,
+        };
+        for i in 0..N {
+            b.x[i] = c(test_value(seed, i));
+            for j in 0..N {
+                b.P[i * N + j] = c(spd(N, seed + 1, 1.0, i, j));
+            }
+        }
+        for i in 0..M {
+            b.y[i] = c(test_value(seed + 2, i));
+            for j in 0..N {
+                b.H[i * N + j] = c(test_value(seed + 3, i * N + j));
+            }
+            for j in 0..M {
+                b.R[i * M + j] = c(spd(M, seed + 4, 0.5, i, j));
+            }
+        }
+        b
+    }
+
+    /// Runs `update_with_innovation` and, on a copy, the sequence it replaced (the gain, then
+    /// `H×P` formed again, and for the Joseph form `S` too), and demands bit-identical results.
+    #[allow(non_snake_case)]
+    fn assert_matches_old_sequence<const N: usize, const M: usize, T>(
+        seed: u32,
+        scale: f64,
+        update: CovarianceUpdate,
+        gate: Option<T>,
+    ) where
+        T: MatrixDataType + ToBits,
+    {
+        let mut new = case::<N, M, T>(seed, scale);
+        let mut old = new;
+        let (mut nis_new, mut nis_old) = (T::zero(), T::zero());
+
+        let status_new = {
+            let b = &mut new;
+            update_with_innovation(
+                &mut MatrixData::new_mut::<N, 1, T>(&mut b.x),
+                &mut MatrixData::new_mut::<N, N, T>(&mut b.P),
+                &MatrixData::new_ref::<M, N, T>(&b.H),
+                &mut MatrixData::new_mut::<M, M, T>(&mut b.R),
+                &MatrixData::new_ref::<M, 1, T>(&b.y),
+                &mut MatrixData::new_mut::<N, M, T>(&mut b.K),
+                &mut MatrixData::new_mut::<M, M, T>(&mut b.S),
+                &mut MatrixData::new_mut::<M, M, T>(&mut b.S_inv),
+                &mut MatrixData::new_mut::<M, N, T>(&mut b.HP),
+                &mut MatrixData::new_mut::<N, M, T>(&mut b.PHt),
+                &mut MatrixData::new_mut::<N, N, T>(&mut b.KHP),
+                &mut nis_new,
+                gate,
+                None,
+                update,
+            )
+        };
+
+        let status_old = {
+            let b = &mut old;
+            let mut x = MatrixData::new_mut::<N, 1, T>(&mut b.x);
+            let mut P = MatrixData::new_mut::<N, N, T>(&mut b.P);
+            let H = MatrixData::new_ref::<M, N, T>(&b.H);
+            let R = MatrixData::new_ref::<M, M, T>(&b.R);
+            let y = MatrixData::new_ref::<M, 1, T>(&b.y);
+            let mut K = MatrixData::new_mut::<N, M, T>(&mut b.K);
+            let mut S = MatrixData::new_mut::<M, M, T>(&mut b.S);
+            let mut S_inv = MatrixData::new_mut::<M, M, T>(&mut b.S_inv);
+            let mut HP = MatrixData::new_mut::<M, N, T>(&mut b.HP);
+            let mut PHt = MatrixData::new_mut::<N, M, T>(&mut b.PHt);
+            let mut KHP = MatrixData::new_mut::<N, N, T>(&mut b.KHP);
+            let status = compute_kalman_gain(
+                &P,
+                &H,
+                &R,
+                &y,
+                &mut K,
+                &mut S,
+                &mut S_inv,
+                &mut HP,
+                &mut PHt,
+                &mut nis_old,
+                gate,
+            );
+            if status.is_applied() {
+                K.multadd_rowvector(&y, &mut x);
+                match update {
+                    CovarianceUpdate::Standard => {
+                        H.mult(&P, &mut HP);
+                        K.mult(&HP, &mut KHP);
+                        P.sub_inplace_a(&KHP);
+                    }
+                    CovarianceUpdate::Joseph => {
+                        joseph_update(&mut P, &H, &R, &K, &mut S, &mut HP, &mut PHt, &mut KHP);
+                    }
+                }
+            }
+            status
+        };
+
+        assert_eq!(status_new, status_old);
+        assert_bits_eq(&new.x[..N], &old.x[..N], "x");
+        assert_bits_eq(&new.P[..N * N], &old.P[..N * N], "P");
+        assert_bits_eq(&new.R[..M * M], &old.R[..M * M], "R");
+        assert_bits_eq(&new.S[..M * M], &old.S[..M * M], "S");
+        assert_bits_eq(&[nis_new], &[nis_old], "nis");
+        if status_new.is_applied() {
+            assert_bits_eq(&new.K[..N * M], &old.K[..N * M], "K");
+        }
+    }
+
+    /// Every shape class: `M < N` (S kept in `temp_KHP`), `M = N`, and `M > N` (S formed
+    /// again), plus a gated correction.
+    fn assert_all_shapes<T: MatrixDataType + ToBits>(scale: f64) {
+        for update in [CovarianceUpdate::Standard, CovarianceUpdate::Joseph] {
+            for seed in 0..4 {
+                assert_matches_old_sequence::<2, 1, T>(seed, scale, update, None);
+                assert_matches_old_sequence::<4, 2, T>(seed, scale, update, None);
+                assert_matches_old_sequence::<6, 3, T>(seed, scale, update, None);
+                assert_matches_old_sequence::<3, 3, T>(seed, scale, update, None);
+                assert_matches_old_sequence::<2, 3, T>(seed, scale, update, None);
+                assert_matches_old_sequence::<1, 2, T>(seed, scale, update, None);
+                // A gate of zero rejects every correction once the NIS is formed.
+                assert_matches_old_sequence::<4, 2, T>(seed, scale, update, Some(T::zero()));
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm"))]
+    fn update_with_innovation_matches_the_old_sequence_f32() {
+        assert_all_shapes::<f32>(1.0);
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm"))]
+    fn update_with_innovation_matches_the_old_sequence_f64() {
+        assert_all_shapes::<f64>(1.0);
+    }
+
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn update_with_innovation_matches_the_old_sequence_fixed() {
+        assert_all_shapes::<fixed::types::I16F16>(0.5);
+        assert_all_shapes::<fixed::types::I32F32>(1.0);
+    }
+
+    /// A non-positive-definite `S` returns early from both paths alike.
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm"))]
+    fn update_with_innovation_rejects_an_indefinite_s_like_before() {
+        // Negating P and R makes S negative definite.
+        for update in [CovarianceUpdate::Standard, CovarianceUpdate::Joseph] {
+            assert_matches_old_sequence::<4, 2, f64>(7, -1.0, update, None);
         }
     }
 }

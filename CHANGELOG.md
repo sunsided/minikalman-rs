@@ -336,6 +336,20 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Made the regular and extended corrections and the dense kernels cheaper, with bit-identical
+  results ([#163]):
+  - `correct` reuses the `H×P` that the gain needed instead of forming it again, and the Joseph
+    form keeps a copy of `S = H×P×Hᵀ + R` (in the `K×H×P` temporary, when `m ≤ N`) instead of
+    forming it again after the Cholesky factorization.
+  - The kernels (`mult`, `mult_transb`, `multadd_transb`, `multscale_transb`, the row-vector
+    products, the element-wise sums, Cholesky and its inverse) and the Joseph helpers take their
+    slices at the static length once per call, which removes the per-element bounds checks.
+    `buffer_len()` and `is_valid()` are unchanged; a buffer shorter than the matrix now panics
+    before the first write instead of part-way.
+  - `mult` and the `mult_transb` family accumulate a whole output row at once (i-k-j order),
+    which LLVM vectorizes; every entry still sums its terms in the same order.
+  - A 4×2 `f32` Joseph step on `thumbv7em-none-eabihf` (`opt-level = "s"`) shrinks from 2558 to
+    2202 bytes of `.text`.
 - **Breaking:** the `nalgebra` feature now uses nalgebra 0.33 (was 0.32), the newest release that
   builds on the MSRV 1.80. The commented-out `nalgebra_std`/`nalgebra_alloc`/`nalgebra_libm` features
   are gone ([#135]).
@@ -376,6 +390,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   describes the method. A CI job only compiles it ([#161]).
 
 [#161]: https://github.com/sunsided/minikalman-rs/issues/161
+[#163]: https://github.com/sunsided/minikalman-rs/issues/163
 [#159]: https://github.com/sunsided/minikalman-rs/issues/159
 [#157]: https://github.com/sunsided/minikalman-rs/issues/157
 [#153]: https://github.com/sunsided/minikalman-rs/issues/153

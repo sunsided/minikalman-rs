@@ -359,6 +359,8 @@ mod static_macros;
 mod storage;
 
 #[cfg(test)]
+mod test_bits;
+#[cfg(test)]
 mod test_dummies;
 
 #[cfg(all(test, feature = "alloc"))]

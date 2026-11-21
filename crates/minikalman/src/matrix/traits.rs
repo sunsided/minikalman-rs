@@ -149,8 +149,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = target.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &mut target.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..=(count - 1)).rev() {
             bdata[idx!(index)] = adata[idx![index]];
@@ -239,8 +239,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(baux.len(), brows);
         }
 
-        let adata = self.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
         for j in (0..bcols).rev() {
             // create a copy of the column in B to avoid cache issues
@@ -317,21 +317,40 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(bcols, ccols);
         }
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..COLS * U];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
-        for j in (0..bcols).rev() {
-            let mut index_a: usize = 0;
+        // Rows shorter than ROW_ACCUMULATOR_MIN gain nothing from vectorizing across the row,
+        // so they keep one dot product per entry. U is a constant, so the branch folds away.
+        if U < ROW_ACCUMULATOR_MIN {
             for i in 0..arows {
-                let mut total = T::zero();
-                for k in 0..brows {
-                    total += adata[idx!(index_a)] * bdata[idx!(k * bcols + j)];
-                    index_a += 1;
+                for j in 0..U {
+                    let mut total = T::zero();
+                    for k in 0..brows {
+                        total += adata[i * COLS + k] * bdata[k * U + j];
+                    }
+                    cdata[i * ccols + j] = total;
                 }
-                cdata[idx!(i * ccols + j)] = total;
             }
+            return;
         }
+
+        // i-k-j order with a local row accumulator: every C[i][j] still sums its k terms in
+        // ascending order, starting from zero, so the result is bit-identical to a dot product
+        // per element; the inner loop runs over contiguous rows that LLVM can vectorize.
+        for i in 0..arows {
+            let mut row = [T::zero(); U];
+            for k in 0..brows {
+                let a_ik = adata[i * COLS + k];
+                let b_k = &bdata[k * U..(k + 1) * U];
+                for (acc, &b_kj) in row.iter_mut().zip(b_k) {
+                    *acc += a_ik * b_kj;
+                }
+            }
+            cdata[i * ccols..(i + 1) * ccols].copy_from_slice(&row);
+        }
+        let _ = bcols;
     }
 
     /// Performs a matrix multiplication such that `C = A * x`.
@@ -367,9 +386,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(ccols, 1);
         }
 
-        let adata = self.as_slice();
-        let xdata = x.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let xdata = &x.as_slice()[..COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS];
 
         let mut index_a: usize = 0;
         let b0 = xdata[0];
@@ -419,9 +438,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(ccols, 1);
         }
 
-        let adata = self.as_slice();
-        let xdata = x.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let xdata = &x.as_slice()[..COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS];
 
         let mut index_a: usize = 0;
         let b0 = xdata[0];
@@ -471,30 +490,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(b.rows(), ccols);
         }
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..U * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
-        let mut c_index: usize = 0;
-        let mut a_index_start: usize = 0;
-
-        for _ in 0..arows {
-            let end = a_index_start + bcols;
-            let mut index_b: usize = 0;
-
-            for _ in 0..brows {
-                let mut index_a = a_index_start;
-                let mut total: T = T::zero();
-                while index_a < end {
-                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
-                    index_a += 1;
-                    index_b += 1;
-                }
-                cdata[idx!(c_index)] = total;
-                c_index += 1;
-            }
-            a_index_start += acols;
-        }
+        products_transb::<ROWS, COLS, U, T>(adata, bdata, cdata, |c, total| *c = total);
+        let _ = (arows, acols, bcols, brows);
     }
 
     /// Performs a matrix multiplication with transposed `B` and adds the result to
@@ -531,30 +532,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(brows, ccols);
         }
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..U * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
-        let mut c_index: usize = 0;
-        let mut a_index_start: usize = 0;
-
-        for _ in 0..arows {
-            let end = a_index_start + bcols;
-            let mut index_b: usize = 0;
-
-            for _ in 0..brows {
-                let mut index_a = a_index_start;
-                let mut total: T = T::zero();
-                while index_a < end {
-                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
-                    index_a += 1;
-                    index_b += 1;
-                }
-                cdata[idx!(c_index)] += total;
-                c_index += 1;
-            }
-            a_index_start += acols;
-        }
+        products_transb::<ROWS, COLS, U, T>(adata, bdata, cdata, |c, total| *c += total);
+        let _ = (arows, acols, bcols, brows);
     }
 
     /// Performs a matrix multiplication with transposed `B` and scales the result such that
@@ -588,9 +571,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(brows, ccols);
         }
 
-        let adata = &self.as_slice();
-        let bdata = &b.as_slice();
-        let cdata = &mut c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..U * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * U];
 
         // test dimensions of a and b
         #[cfg(not(feature = "no_assert"))]
@@ -598,26 +581,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
             debug_assert_eq!(COLS, bcols);
         }
 
-        let mut c_index: usize = 0;
-        let mut a_index_start: usize = 0;
-
-        for _ in 0..arows {
-            let end = a_index_start + bcols;
-            let mut index_b: usize = 0;
-
-            for _ in 0..brows {
-                let mut index_a = a_index_start;
-                let mut total: T = T::zero();
-                while index_a < end {
-                    total += adata[idx!(index_a)] * bdata[idx!(index_b)];
-                    index_a += 1;
-                    index_b += 1;
-                }
-                cdata[idx!(c_index)] = total * scale;
-                c_index += 1;
-            }
-            a_index_start += acols;
-        }
+        products_transb::<ROWS, COLS, U, T>(adata, bdata, cdata, |c, total| *c = total * scale);
+        let _ = (arows, acols, bcols, brows);
     }
 
     /// Subtracts two matrices, using `C = A - B`.
@@ -644,9 +609,9 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = b.as_slice();
-        let cdata = c.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..ROWS * COLS];
+        let cdata = &mut c.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             cdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
@@ -673,8 +638,8 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = b.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &mut b.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             bdata[idx!(index)] += adata[idx!(index)];
@@ -701,11 +666,60 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_slice();
-        let bdata = b.as_mut_slice();
+        let adata = &self.as_slice()[..ROWS * COLS];
+        let bdata = &mut b.as_mut_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             bdata[idx!(index)] = adata[idx!(index)] - bdata[idx![index]];
+        }
+    }
+}
+
+/// The shortest output row for which `mult` and the `mult_transb` family accumulate the whole
+/// row at once. Shorter rows keep one dot product per entry: for them the accumulator only adds
+/// overhead (measured with `benches/compare`, e.g. the 2-state, 1-measurement filter). Both
+/// paths sum every entry in the same order, so the results are the same bit for bit.
+const ROW_ACCUMULATOR_MIN: usize = 4;
+
+/// Computes `C = A×Bᵀ` row by row for `A` (`R`×`K`), `B` (`U`×`K`) and `C` (`R`×`U`),
+/// passing each entry to `store`.
+///
+/// All `U` dot products of a row of `A` run at once (i-k-j order with a local accumulator).
+/// Every entry still sums its `K` terms in ascending order from zero, so the result is
+/// bit-identical to one dot product per entry, but the inner loop can be vectorized.
+#[inline(always)]
+fn products_transb<const R: usize, const K: usize, const U: usize, T>(
+    a: &[T],
+    b: &[T],
+    c: &mut [T],
+    mut store: impl FnMut(&mut T, T),
+) where
+    T: MatrixDataType,
+{
+    // Short rows keep one dot product per entry; see `ROW_ACCUMULATOR_MIN`.
+    if U < ROW_ACCUMULATOR_MIN {
+        for i in 0..R {
+            for j in 0..U {
+                let mut total = T::zero();
+                for k in 0..K {
+                    total += a[i * K + k] * b[j * K + k];
+                }
+                store(&mut c[i * U + j], total);
+            }
+        }
+        return;
+    }
+
+    for i in 0..R {
+        let mut row = [T::zero(); U];
+        for k in 0..K {
+            let a_ik = a[i * K + k];
+            for (j, acc) in row.iter_mut().enumerate() {
+                *acc += a_ik * b[j * K + k];
+            }
+        }
+        for (c_ij, &total) in c[i * U..(i + 1) * U].iter_mut().zip(&row) {
+            store(c_ij, total);
         }
     }
 }
@@ -773,8 +787,8 @@ pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T>
         T: MatrixDataType,
     {
         let n = N;
-        let mat = self.as_slice(); // t
-        let inv = inverse.as_mut_slice(); // a
+        let mat = &self.as_slice()[..N * N]; // t
+        let inv = &mut inverse.as_mut_slice()[..N * N]; // a
 
         // Inverts the lower triangular system and saves the result
         // in the upper triangle to minimize cache misses.
@@ -943,7 +957,7 @@ pub trait SquareMatrixMut<const N: usize, T = f32>:
     where
         T: Copy,
     {
-        let data = self.as_mut_slice();
+        let data = &mut self.as_mut_slice()[..N * N];
         for i in 0..N {
             data[i * N + i] = value;
         }
@@ -959,7 +973,7 @@ pub trait SquareMatrixMut<const N: usize, T = f32>:
     where
         T: Copy,
     {
-        let data = self.as_mut_slice();
+        let data = &mut self.as_mut_slice()[..N * N];
         for i in 0..N {
             for j in 0..N {
                 data[i * N + j] = if i == j { diagonal } else { off_diagonal };
@@ -1136,8 +1150,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_mut_slice();
-        let bdata = b.as_slice();
+        let adata = &mut self.as_mut_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             adata[idx!(index)] += bdata[idx![index]];
@@ -1164,8 +1178,8 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
 
         let count = self.len();
 
-        let adata = self.as_mut_slice();
-        let bdata = b.as_slice();
+        let adata = &mut self.as_mut_slice()[..ROWS * COLS];
+        let bdata = &b.as_slice()[..ROWS * COLS];
 
         for index in (0..count).rev() {
             adata[idx!(index)] -= bdata[idx![index]];
@@ -1216,7 +1230,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
         T: MatrixDataType,
     {
         let n = self.rows();
-        let t: &mut [T] = self.as_mut_slice();
+        let t: &mut [T] = &mut self.as_mut_slice()[..ROWS * COLS];
 
         let mut div_el_ii = T::zero();
 
@@ -1821,5 +1835,195 @@ mod tests {
                 0.0, 0.0, 0.0, 1.0,
             ]
         );
+    }
+}
+
+/// Pins the vectorizable kernels to the loops they replaced: same results, bit for bit.
+#[cfg(test)]
+mod kernel_bit_identity {
+    use super::*;
+    use crate::matrix::MatrixData;
+    use crate::test_bits::{ToBits, assert_bits_eq, test_value};
+
+    /// Longer than every operand, which `is_valid` allows.
+    const CAP: usize = 64;
+
+    /// The former `mult`: j (descending), i, k, one dot product per entry.
+    fn old_mult<T: MatrixDataType>(a: &[T], b: &[T], c: &mut [T], r: usize, k: usize, u: usize) {
+        for j in (0..u).rev() {
+            let mut index_a = 0;
+            for i in 0..r {
+                let mut total = T::zero();
+                for l in 0..k {
+                    total += a[index_a] * b[l * u + j];
+                    index_a += 1;
+                }
+                c[i * u + j] = total;
+            }
+        }
+    }
+
+    /// The former `mult_transb` family: one dot product per entry, stored by `store`.
+    fn old_transb<T: MatrixDataType>(
+        a: &[T],
+        b: &[T],
+        c: &mut [T],
+        (r, k, u): (usize, usize, usize),
+        store: impl Fn(&mut T, T),
+    ) {
+        for i in 0..r {
+            for j in 0..u {
+                let mut total = T::zero();
+                for l in 0..k {
+                    total += a[i * k + l] * b[j * k + l];
+                }
+                store(&mut c[i * u + j], total);
+            }
+        }
+    }
+
+    /// The former `mult_rowvector` family: starts from `A[i][0]×x[0]`.
+    fn old_rowvector<T: MatrixDataType>(
+        a: &[T],
+        x: &[T],
+        c: &mut [T],
+        (r, k): (usize, usize),
+        store: impl Fn(&mut T, T),
+    ) {
+        for i in 0..r {
+            let mut total = a[i * k] * x[0];
+            for l in 1..k {
+                total += a[i * k + l] * x[l];
+            }
+            store(&mut c[i], total);
+        }
+    }
+
+    /// `CAP` deterministic values in `[-scale, scale)`.
+    fn values<T: MatrixDataType>(seed: u32, scale: f64) -> [T; CAP] {
+        core::array::from_fn(|i| T::from_f64(test_value(seed, i) * scale).unwrap())
+    }
+
+    fn check_mult<const R: usize, const K: usize, const U: usize, T>(scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, b, c0) = (
+            values::<T>(1, scale),
+            values::<T>(2, scale),
+            values::<T>(3, scale),
+        );
+        let mut want = c0;
+        old_mult(&a, &b, &mut want, R, K, U);
+        let mut got = c0;
+        MatrixData::new_ref::<R, K, T>(&a).mult(
+            &MatrixData::new_ref::<K, U, T>(&b),
+            &mut MatrixData::new_mut::<R, U, T>(&mut got),
+        );
+        // Entries past R×U must stay untouched as well.
+        assert_bits_eq(&got, &want, "mult");
+    }
+
+    fn check_transb<const R: usize, const K: usize, const U: usize, T>(scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, b, c0) = (
+            values::<T>(4, scale),
+            values::<T>(5, scale),
+            values::<T>(6, scale),
+        );
+        let s = T::from_f64(0.75).unwrap();
+        let shape = (R, K, U);
+        let am = MatrixData::new_ref::<R, K, T>(&a);
+        let bm = MatrixData::new_ref::<U, K, T>(&b);
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c = t);
+        am.mult_transb(&bm, &mut MatrixData::new_mut::<R, U, T>(&mut got));
+        assert_bits_eq(&got, &want, "mult_transb");
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c += t);
+        am.multadd_transb(&bm, &mut MatrixData::new_mut::<R, U, T>(&mut got));
+        assert_bits_eq(&got, &want, "multadd_transb");
+
+        let (mut want, mut got) = (c0, c0);
+        old_transb(&a, &b, &mut want, shape, |c, t| *c = t * s);
+        am.multscale_transb(&bm, s, &mut MatrixData::new_mut::<R, U, T>(&mut got));
+        assert_bits_eq(&got, &want, "multscale_transb");
+    }
+
+    fn check_rowvector<const R: usize, const K: usize, T>(scale: f64)
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, x, c0) = (
+            values::<T>(7, scale),
+            values::<T>(8, scale),
+            values::<T>(9, scale),
+        );
+        let am = MatrixData::new_ref::<R, K, T>(&a);
+        let xm = MatrixData::new_ref::<K, 1, T>(&x);
+
+        let (mut want, mut got) = (c0, c0);
+        old_rowvector(&a, &x, &mut want, (R, K), |c, t| *c = t);
+        am.mult_rowvector(&xm, &mut MatrixData::new_mut::<R, 1, T>(&mut got));
+        assert_bits_eq(&got, &want, "mult_rowvector");
+
+        let (mut want, mut got) = (c0, c0);
+        old_rowvector(&a, &x, &mut want, (R, K), |c, t| *c += t);
+        am.multadd_rowvector(&xm, &mut MatrixData::new_mut::<R, 1, T>(&mut got));
+        assert_bits_eq(&got, &want, "multadd_rowvector");
+    }
+
+    fn check_all<T: MatrixDataType + ToBits>(scale: f64) {
+        // U = 1, 2, 3 take the dot-product path, U ≥ ROW_ACCUMULATOR_MIN the row accumulator.
+        check_mult::<1, 1, 1, T>(scale);
+        check_mult::<2, 2, 2, T>(scale);
+        check_mult::<3, 3, 3, T>(scale);
+        check_mult::<2, 3, 4, T>(scale);
+        check_mult::<3, 2, 5, T>(scale);
+        check_mult::<4, 4, 4, T>(scale);
+        check_mult::<5, 1, 3, T>(scale);
+        check_mult::<6, 6, 6, T>(scale);
+        check_mult::<2, 7, 1, T>(scale);
+
+        check_transb::<1, 1, 1, T>(scale);
+        check_transb::<2, 2, 2, T>(scale);
+        check_transb::<3, 3, 3, T>(scale);
+        check_transb::<2, 3, 4, T>(scale);
+        check_transb::<4, 4, 2, T>(scale);
+        check_transb::<3, 5, 3, T>(scale);
+        check_transb::<6, 6, 6, T>(scale);
+        check_transb::<5, 1, 2, T>(scale);
+
+        check_rowvector::<1, 1, T>(scale);
+        check_rowvector::<4, 2, T>(scale);
+        check_rowvector::<2, 5, T>(scale);
+        check_rowvector::<6, 6, T>(scale);
+        check_rowvector::<7, 3, T>(scale);
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    fn kernels_match_the_old_loops_f32() {
+        check_all::<f32>(1.0);
+        // Large magnitudes, where the summation order matters most.
+        check_all::<f32>(1e6);
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    fn kernels_match_the_old_loops_f64() {
+        check_all::<f64>(1.0);
+        check_all::<f64>(1e12);
+    }
+
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn kernels_match_the_old_loops_fixed() {
+        check_all::<fixed::types::I16F16>(1.0);
+        check_all::<fixed::types::I32F32>(100.0);
     }
 }
