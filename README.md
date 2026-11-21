@@ -395,6 +395,27 @@ cargo test -p minikalman --features std --test proptest_filter
 cargo test -p minikalman --no-default-features --features libm,alloc
 ```
 
+### Conformance suite
+
+The conformance suite checks that the filters compute what the math says. It compares them
+against reference vectors from an independent NumPy/SciPy implementation, against analytic
+identities (for example, the EKF equals the KF on a linear model, and the RTS smoother equals
+the batch least-squares solution), and against chi-square bounds on NEES and NIS over Monte
+Carlo runs. It also checks invariants and regression baselines, with stated tolerances for
+`f64`, `f32`, `I32F32` and `I16F16`. Run it to convince yourself the crate works, and see
+[`tests/conformance/README.md`] for what each check proves and how to regenerate the
+references.
+
+```shell
+cargo test -p minikalman --test conformance --features std,fixed
+cargo test -p minikalman --test conformance --no-default-features --features libm,alloc
+cargo test -p minikalman --test conformance --no-default-features --features micromath,alloc
+# or all three:
+task conformance
+```
+
+[`tests/conformance/README.md`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/tests/conformance/README.md
+
 ### Fuzzing (nightly)
 
 Fuzz targets require a nightly toolchain and `cargo-fuzz`. They live under

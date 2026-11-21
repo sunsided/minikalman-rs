@@ -146,6 +146,15 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   test with `R` twelve orders of magnitude below `P`, it keeps `P` positive definite where the
   regular filter's variance turns negative. Build it with `KalmanFilterBuilder::build_square_root`
   or from static buffers with `impl_buffer_temp_prearray!` for the `2N × N` prearray ([#110]).
+- Added a conformance suite (`cargo test -p minikalman --test conformance`, `task conformance`).
+  It checks the regular, extended and unscented filters, the information filter and the RTS
+  smoother against reference vectors from an independent NumPy/SciPy implementation, against
+  analytic identities (EKF = KF, information filter = KF, RTS = batch least squares, the
+  `solve_discrete_are` steady state), against chi-square bounds on NEES and NIS over Monte Carlo
+  runs, against invariants (`P` symmetric positive semidefinite, rejected corrections leave the
+  estimate untouched, bit-identical reruns), and against regression baselines. Tolerances are
+  stated per number type (`f64`, `f32`, `I32F32`, `I16F16`), and CI runs it on `std`, `libm` and
+  `micromath` ([#131]).
 
 ### Fixed
 
@@ -193,6 +202,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#111]: https://github.com/sunsided/minikalman-rs/issues/111
 [#108]: https://github.com/sunsided/minikalman-rs/issues/108
 [#107]: https://github.com/sunsided/minikalman-rs/issues/107
+[#131]: https://github.com/sunsided/minikalman-rs/issues/131
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92
 [#86]: https://github.com/sunsided/minikalman-rs/issues/86

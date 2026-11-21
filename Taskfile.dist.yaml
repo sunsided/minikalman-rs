@@ -78,6 +78,18 @@ tasks:
     cmds:
       - "{{.CARGO}} test --no-default-features"
 
+  conformance:
+    desc: Run the conformance suite on the std, libm and micromath backends
+    cmds:
+      - "{{.CARGO}} test -p minikalman --test conformance --features std,fixed"
+      - "{{.CARGO}} test -p minikalman --test conformance --no-default-features --features libm,alloc"
+      - "{{.CARGO}} test -p minikalman --test conformance --no-default-features --features micromath,alloc"
+
+  conformance:generate:
+    desc: Regenerate the conformance reference vectors (needs Python with numpy and scipy)
+    cmds:
+      - python3 crates/minikalman/tests/conformance/generate.py
+
   fuzz:list:
     desc: List available fuzz targets
     cmds:
