@@ -38,6 +38,8 @@ flowchart LR
     %% Checks are hexagons; answers are rectangles naming the module and the type or method.
     model[/"process and measurement model"/]
     linear{{"linear?"}}
+    steady{{"fixed model and rate,<br/>no P needed?"}}
+    luenberger["regular<br/>LuenbergerObserver<br/>(fixed gain, no covariance,<br/>MCU-cheap; gain from settle_gain)"]
     fusion{{"many sensors,<br/>fused independently?"}}
     jacobians{{"Jacobians available,<br/>mild nonlinearity?"}}
     definite{{"P loses definiteness?<br/>(f32, fixed point)"}}
@@ -54,7 +56,9 @@ flowchart LR
     offline{{"offline or<br/>lagged estimate?"}}
     smoother["smoother<br/>RtsSmoother, FixedLagSmoother"]
     model --> linear
-    linear -- yes --> fusion
+    linear -- yes --> steady
+    steady -- yes --> luenberger
+    steady -- no --> fusion
     fusion -- no --> definite
     definite -- no --> regular
     definite -- yes --> square_root
@@ -96,6 +100,8 @@ targets. The others use the `alloc` builders and follow the order of
 - [Regular filter](#targets-with-allocations-std-or-alloc) for linear models
 - [Information filter](#information-filter-fusing-sensors) for fusing many independent sensors
 - [UD filter](#ud-filter) for fixed-point or ill-conditioned problems
+- [Fixed-gain (Luenberger) observer](#fixed-gain-luenberger-observer) for a steady-state gain
+  without a covariance, designed from `Q` and `R`
 - [Extended Kalman filter](#extended-kalman-filters) for nonlinear models with Jacobians
 - [Unscented Kalman filter](#unscented-kalman-filter) for nonlinear models without Jacobians
 - [Robust corrections](#robust-corrections-gating-and-noise-adaptation): NIS gate, predictively
@@ -458,6 +464,61 @@ assert!(p.get(0, 0) > 0.0 && p.get(0, 0) < 1.0);
 
 The [`ud`](https://docs.rs/minikalman/latest/minikalman/ud/index.html) module docs give the
 value ranges that fit `I16F16`.
+
+### Fixed-gain (Luenberger) observer
+
+A Kalman filter tunes *trust*: `Q` and `R` say how far the model and the sensor are trusted,
+and the filter recomputes the optimal gain every step, carrying `P` to do so. A Luenberger
+observer tunes *dynamics*: the gain is fixed and sets how fast the estimation error dies out.
+On a time-invariant model the two meet, since the Kalman gain converges to a constant `K∞`.
+`RegularKalman::settle_gain` iterates the filter's own covariance recursion to that gain
+(it overwrites the filter's `P` and the observation's `S` and `K`, so run it at design or boot
+time), and `regular::LuenbergerObserver` then runs it with no `P`, `Q` or `R`: `n² + 2·n·m`
+multiply-adds per step, no square root, no division, the same work every step.
+
+```rust
+use minikalman::models::motion;
+use minikalman::prelude::*;
+use minikalman::regular::builder::KalmanFilterBuilder;
+
+let builder = KalmanFilterBuilder::<2, f32>::default();
+let model = motion::constant_velocity(0.1, 1.0);
+
+// Design once with Q and R.
+let mut design = builder.build();
+let mut gps = builder.observations().build::<1>();
+design.state_transition_mut().apply(|a| model.fill_transition(a));
+design.direct_process_noise_mut().apply(|q| model.fill_process_noise(q));
+design.estimate_covariance_mut().make_identity();
+gps.observation_matrix_mut().set(0, 0, 1.0);
+gps.measurement_noise_covariance_mut().set(0, 0, 0.25);
+design.settle_gain(&mut gps, 1e-6, 10_000).expect("detectable model");
+
+// Run with the fixed gain K∞ ≈ [0.1812, 0.1810].
+let mut observer = builder.build_observer();
+let mut gps_fixed = builder.observations().build_fixed_gain::<1>();
+observer.state_transition_mut().apply(|a| model.fill_transition(a));
+gps_fixed.observation_matrix_mut().set(0, 0, 1.0);
+gps_fixed.set_gain_current(gps.kalman_gain());
+
+for z in [0.1, 0.25, 0.3, 0.45] {
+    observer.predict();
+    gps_fixed.measurement_vector_mut().set(0, 0, z);
+    assert!(observer.correct(&mut gps_fixed).is_applied());
+}
+```
+
+Mind the gain convention. The crate's order (`predict`, then `correct`) is the *current* form
+`x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`, and `settle_gain` returns that `K`. `place`, `acker` and
+python-control `dlqe` return the *predictor*-form gain `L = A·K` of
+`x̂ₖ₊₁ = A·x̂ₖ + L·(zₖ − H·x̂ₖ)`. Store it with `set_gain_predictor` and step with
+`predict_from_measurement` instead; the observer refuses to run a gain in the other form
+(`CorrectionStatus::GainFormMismatch`), because a deadbeat `L = [2, 10]` run as a current-form
+gain diverges. For fixed point, compute the gain in `f32` or `f64` and convert it: an `I16F16`
+observer then stays within about `LSB / (1 − ρ)` of the float one (6 LSB in the
+[`luenberger`](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/luenberger.rs) test), with the closed-loop spectral
+radius `ρ`. The `ObserverStorage` and `FixedGainObservationStorage` types hold the buffers
+without allocation; see the [`luenberger` example](https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/luenberger.rs).
 
 ### Extended Kalman Filters
 

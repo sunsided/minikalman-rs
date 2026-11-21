@@ -4,6 +4,7 @@ pub use matrix_types::*;
 pub mod extended;
 mod filter_trait;
 pub mod information;
+pub mod luenberger;
 mod matrix_types;
 pub(crate) mod process_noise;
 pub mod regular;

@@ -1,4 +1,5 @@
 use crate::kalman::*;
+use crate::matrix::{Matrix, MatrixMut};
 use crate::prelude::{AsMatrix, AsMatrixMut};
 
 /// The outcome of a correction step.
@@ -35,7 +36,20 @@ pub enum CorrectionStatus {
     /// measurement **was applied** with the last iterate, which is a valid posterior with a
     /// positive definite covariance, but it is not the exact solution.
     /// [`is_applied`](Self::is_applied) returns `true`.
+    ///
+    /// [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain) reports it
+    /// when the gain did not settle within its iteration budget; there it means that `P`, `S`
+    /// and `K` hold the last iterate, not that a measurement was applied.
     NotConverged,
+    /// A [`LuenbergerObserver`](crate::regular::LuenbergerObserver) step was called with a
+    /// [`FixedGainObservation`](crate::regular::FixedGainObservation) whose gain is in the other
+    /// [`GainForm`], so the measurement was skipped and the state left unchanged.
+    ///
+    /// A current-form gain `K` belongs to
+    /// [`correct`](crate::regular::LuenbergerObserver::correct), a predictor-form gain `L` to
+    /// [`predict_from_measurement`](crate::regular::LuenbergerObserver::predict_from_measurement).
+    /// Running one with the other would silently give the wrong error dynamics.
+    GainFormMismatch,
 }
 
 impl CorrectionStatus {
@@ -1045,6 +1059,91 @@ pub trait KalmanFilterObservationCorrectWithGain<const STATES: usize, T> {
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         N: FnMut(&mut [T]);
+}
+
+/// The convention a fixed observer gain is written in.
+///
+/// Both forms run the same observer and have the same poles; they differ in which state the
+/// innovation is formed from and therefore in the gain. With the state transition `A`, the
+/// predictor-form gain is `L = A·K`.
+///
+/// | Form | Recursion | Error dynamics | Typical source |
+/// |---|---|---|---|
+/// | [`Current`](Self::Current) | `x̂⁻ = A·x̂⁺ + B·u`, `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)` | `(I − K·H)·A` | this crate's [`settle_gain`](crate::regular::RegularKalman::settle_gain), MATLAB `kalman`'s `Mx` |
+/// | [`Predictor`](Self::Predictor) | `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)` | `A − L·H` | `place`/`acker` on `(Aᵀ, Hᵀ)`, python-control `dlqe` |
+///
+/// See [`LuenbergerObserver`](crate::regular::LuenbergerObserver#the-gain-convention-trap)
+/// for a worked example of mixing them up.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GainForm {
+    /// The current (filtered) form `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`, applied after the prediction.
+    /// This is the crate's `predict` then `correct` order and the gain `K` of the Kalman filter.
+    Current,
+    /// The predictor (delayed) form `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`: one call forms the
+    /// innovation from the prior state and propagates it, so the estimate is one step ahead.
+    Predictor,
+}
+
+/// A control input that can move a state vector without touching a covariance.
+///
+/// Used by the [`LuenbergerObserver`](crate::regular::LuenbergerObserver), which has no `P`.
+pub trait KalmanFilterControlApplyToState<const STATES: usize, T> {
+    /// Applies the control to the state only: `x ← x + B·u`.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    fn apply_to_state<X>(&mut self, x: &mut X)
+    where
+        X: StateVectorMut<STATES, T>;
+}
+
+/// A fixed-gain observation for the [`LuenbergerObserver`](crate::regular::LuenbergerObserver):
+/// it forms the innovation and adds the gain times the innovation, without any covariance.
+pub trait KalmanFilterObservationCorrectFixedGain<const STATES: usize, T> {
+    /// Returns the convention the stored gain is written in.
+    fn gain_form(&self) -> GainForm;
+
+    /// Forms the innovation `y = z − H·x` and normalizes it in place with `fix`.
+    ///
+    /// ## Arguments
+    /// * `x` - The state the innovation is formed from.
+    /// * `fix` - Normalizes the innovation, e.g. by wrapping angles.
+    fn compute_innovation<X, N>(&mut self, x: &X, fix: N)
+    where
+        X: Matrix<STATES, 1, T>,
+        N: FnMut(&mut [T]);
+
+    /// Adds the gain times the last innovation to `target`: `target ← target + K·y`.
+    ///
+    /// ## Arguments
+    /// * `target` - The state vector to move.
+    fn add_gain_times_innovation<V>(&self, target: &mut V)
+    where
+        V: MatrixMut<STATES, 1, T>;
+}
+
+/// An observation whose Kalman gain can be iterated to its steady state with
+/// [`RegularKalman::settle_gain`](crate::regular::RegularKalman::settle_gain).
+pub trait KalmanFilterObservationSettleGain<const STATES: usize, T> {
+    /// Runs one correction of the covariance recursion: `S = H·P·Hᵀ + R`, `K = P·Hᵀ·S⁻¹`
+    /// and `P ← P⁺`, without touching a state, the gate or the noise adaptation.
+    ///
+    /// Afterwards, `K` holds the new gain and `S` the unfactored `H·P·Hᵀ + R` of the `P` that
+    /// was passed in.
+    ///
+    /// ## Arguments
+    /// * `P` - The predicted estimate covariance; replaced by the corrected one.
+    /// * `tolerance` - The relative tolerance `|ΔKᵢⱼ| ≤ tolerance·max(1, |Kᵢⱼ|)`.
+    ///
+    /// ## Errors
+    /// Returns [`CorrectionStatus::NotPositiveDefinite`] if `S` is not positive definite;
+    /// `P`, `S` and `K` may then hold intermediate values.
+    ///
+    /// Returns `Ok(true)` if every entry of `K` changed by at most the tolerance.
+    #[allow(non_snake_case)]
+    fn settle_gain_step<P>(&mut self, P: &mut P, tolerance: T) -> Result<bool, CorrectionStatus>
+    where
+        P: EstimateCovarianceMatrix<STATES, T>;
 }
 
 /// A nonlinear (Extended Kalman Filter) observation that can be applied with an externally

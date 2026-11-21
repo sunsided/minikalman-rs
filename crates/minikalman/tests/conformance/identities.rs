@@ -190,6 +190,30 @@ fn converges_to_the_riccati_steady_state() {
     assert_close("steady K", &gain, &cv::K_STEADY, IDENTITY);
 }
 
+/// `settle_gain` reaches the same DARE steady state without a measurement, and an observer
+/// with that fixed gain then runs the KF's steady-state recursion.
+#[test]
+fn settle_gain_reaches_the_riccati_steady_state() {
+    let (mut filter, mut measurement) = scenarios::regular::<2, 1, f64>(&CV);
+    let iterations = filter
+        .settle_gain(&mut measurement, 1e-14, 10_000)
+        .expect("the CV model is detectable");
+    eprintln!("settle_gain: {iterations} iterations");
+
+    let gain = read(measurement.kalman_gain());
+    let posterior = read(filter.estimate_covariance());
+    // S∞ = H·P⁻∞·Hᵀ + R with H = [1, 0].
+    let innovation = cv::P_STEADY_PRIOR[0] + cv::R[0];
+    assert_close("settled P_k|k", &posterior, &cv::P_STEADY_POST, IDENTITY);
+    assert_close("settled K", &gain, &cv::K_STEADY, IDENTITY);
+    assert_close(
+        "settled S",
+        &read(measurement.innovation_covariance()),
+        &[innovation],
+        IDENTITY,
+    );
+}
+
 /// A scalar random walk `x_k = x_k−1 + w`, `z_k = x_k + v`, with `Q = 0.1` and `R = 1`.
 const WALK: Linear = Linear {
     a: &[1.0],

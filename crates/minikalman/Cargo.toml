@@ -71,6 +71,11 @@ path = "examples/radar_2d_ukf.rs"
 required-features = ["std"]
 
 [[example]]
+name = "luenberger"
+path = "examples/luenberger.rs"
+required-features = ["fixed", "std"]
+
+[[example]]
 name = "radar_2d_ukf_builder"
 path = "examples/radar_2d_ukf_builder.rs"
 required-features = ["alloc"]

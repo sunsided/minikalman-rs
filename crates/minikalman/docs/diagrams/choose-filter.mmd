@@ -4,6 +4,8 @@ flowchart LR
     %% Checks are hexagons; answers are rectangles naming the module and the type or method.
     model[/"process and measurement model"/]
     linear{{"linear?"}}
+    steady{{"fixed model and rate,<br/>no P needed?"}}
+    luenberger["regular<br/>LuenbergerObserver<br/>(fixed gain, no covariance,<br/>MCU-cheap; gain from settle_gain)"]
     fusion{{"many sensors,<br/>fused independently?"}}
     jacobians{{"Jacobians available,<br/>mild nonlinearity?"}}
     definite{{"P loses definiteness?<br/>(f32, fixed point)"}}
@@ -20,7 +22,9 @@ flowchart LR
     offline{{"offline or<br/>lagged estimate?"}}
     smoother["smoother<br/>RtsSmoother, FixedLagSmoother"]
     model --> linear
-    linear -- yes --> fusion
+    linear -- yes --> steady
+    steady -- yes --> luenberger
+    steady -- no --> fusion
     fusion -- no --> definite
     definite -- no --> regular
     definite -- yes --> square_root
