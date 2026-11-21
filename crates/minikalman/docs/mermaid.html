@@ -33,7 +33,12 @@
         diagram.removeAttribute("data-processed");
         diagram.textContent = diagram.dataset.source;
       }
-      mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
+      // Wider than the default 200 px, so formulas stay on one line.
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: dark ? "dark" : "default",
+        flowchart: { wrappingWidth: 320 },
+      });
       await mermaid.run({ nodes: diagrams });
     };
 
