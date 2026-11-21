@@ -327,6 +327,7 @@ pub mod matrix;
 pub mod models;
 mod observations;
 pub mod smoother;
+mod state_macro;
 mod static_macros;
 mod storage;
 

@@ -277,6 +277,27 @@ the stack, and take the `&'static mut` through a take-once cell such as
 tool for custom layouts, such as buffers in different memory sections.
 
 
+`minikalman::state!` names the entries, so models and Jacobians index by name instead of by
+number:
+
+```rust
+use minikalman::prelude::*;
+use minikalman::extended::FilterStorage;
+
+minikalman::state! { struct Track(f32) { position, velocity } }
+
+let mut filter_storage = FilterStorage::<{ Track::N }, f32>::new(0.0);
+let mut filter = filter_storage.build();
+filter.state_transition_jacobian_mut().apply(|a| {
+    a.make_identity();
+    a.set_at(Track::position, Track::velocity, 0.1);
+});
+filter.predict_nonlinear(|x, next| {
+    let s = Track::read(x.as_slice());
+    Track { position: s.position + 0.1 * s.velocity, ..s }.write(next.as_mut_slice());
+});
+```
+
 ### Targets with allocations (`std` or `alloc`)
 
 When the `alloc` crate feature is enabled either directly or implicitly via `std`,
