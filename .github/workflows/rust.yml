@@ -118,7 +118,9 @@ jobs:
       - name: Run doctests
         run: cargo test --doc --verbose --package minikalman --no-default-features --features=std
       - name: Run doctests (libm)
-        run: cargo test --doc --verbose --package minikalman --no-default-features --features=std
+        run: cargo test --doc --verbose --package minikalman --no-default-features --features=libm,alloc
+      - name: Run doctests (micromath)
+        run: cargo test --doc --verbose --package minikalman --no-default-features --features=micromath,alloc
 
   build-fixed:
     needs:
