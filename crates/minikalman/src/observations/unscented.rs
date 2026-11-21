@@ -106,6 +106,11 @@ where
     /// A common choice is a chi-square quantile for `OBSERVATIONS` degrees of freedom,
     /// e.g. `6.63` (one measurement) or `9.21` (two measurements) to reject about 1% of
     /// measurements of a consistent filter. `None` (the default) disables the gate.
+    ///
+    /// The gate compares the NIS after it has been computed in `T`, so it does not protect
+    /// against overflow: with fixed-point types, an outlier large enough to overflow
+    /// `yᵀ×S⁻¹×y` panics in debug builds and wraps in release builds, where the wrapped value
+    /// may pass the gate. Choose a type with enough integer bits for the expected outliers.
     #[inline(always)]
     pub fn set_gate(&mut self, threshold: Option<T>) {
         self.gate = threshold;
