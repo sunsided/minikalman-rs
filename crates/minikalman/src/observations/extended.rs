@@ -4,6 +4,7 @@ use core::marker::PhantomData;
 
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, RowMajorSequentialDataMut};
+use crate::observations::NoiseAdaptation;
 
 /// A builder for a Kalman filter [`ExtendedObservation`] instances.
 #[allow(clippy::type_complexity)]
@@ -131,6 +132,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
             temp_KHP,
             nis: T::zero(),
             gate: None,
+            noise_adaptation: None,
         }
     }
 }
@@ -207,6 +209,9 @@ pub struct ExtendedObservation<
 
     /// Upper bound on the normalized innovation squared above which a correction is skipped.
     pub(crate) gate: Option<T>,
+
+    /// Online adaptation of `R` after applied corrections; `None` disables it.
+    pub(crate) noise_adaptation: Option<NoiseAdaptation<T>>,
 }
 
 impl<
@@ -282,6 +287,27 @@ impl<
     #[inline(always)]
     pub fn set_gate(&mut self, threshold: Option<T>) {
         self.gate = threshold;
+    }
+
+    /// Returns the measurement noise adaptation set by
+    /// [`set_noise_adaptation`](Self::set_noise_adaptation).
+    #[inline(always)]
+    pub fn noise_adaptation(&self) -> Option<NoiseAdaptation<T>>
+    where
+        T: Copy,
+    {
+        self.noise_adaptation
+    }
+
+    /// Enables online adaptation of the measurement noise covariance `R` from the residuals
+    /// of the corrections; `None` (the default) disables it.
+    ///
+    /// After every applied correction, `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual
+    /// `ε = z − H×x⁺`; gated and skipped corrections leave `R` unchanged. See
+    /// [`NoiseAdaptation`] for the method, the choice of `α` and when the estimate diverges.
+    #[inline(always)]
+    pub fn set_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>) {
+        self.noise_adaptation = adaptation;
     }
 
     /// Returns then number of measurements.
@@ -560,7 +586,7 @@ where
             x.as_matrix_mut(),
             P.as_matrix_mut(),
             self.H.as_matrix(),
-            self.R.as_matrix(),
+            self.R.as_matrix_mut(),
             self.y.as_matrix(),
             self.K.as_matrix_mut(),
             self.S.as_matrix_mut(),
@@ -570,6 +596,7 @@ where
             self.temp_KHP.as_matrix_mut(),
             &mut self.nis,
             self.gate,
+            self.noise_adaptation,
         )
     }
 }
