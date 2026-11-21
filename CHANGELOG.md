@@ -44,6 +44,17 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   types `regular::{ObserverStorage, FixedGainObservationStorage}`, the builders
   `KalmanFilterBuilder::build_observer` and `build_fixed_gain`, and the `luenberger` example.
   NIS gating for the fixed-gain observation is tracked in [#144] ([#143]).
+- Added recursive least squares, `rls::RecursiveLeastSquares` (storage: `rls::EstimatorStorage`),
+  an online estimator of model parameters `θ` in `y = φᵀ·θ + v`: the Kalman filter with `A = I`,
+  `Q = 0` and `H = φᵀ`, `O(N²)` per sample and no matrix inversion. The forgetting factor `μ`
+  matches `RegularKalman::predict_tuned(λ)` with `μ = λ²` while the windup guard is inactive. By
+  default `P` is kept as `U·D·Uᵀ` and updated with Bierman's update from the UD filter, so it stays
+  positive semi-definite in `f32` and `I16F16`; a plain covariance form is available. A covariance
+  windup guard is on by default: it bounds `tr(P)` by slowing, and at the bound stopping,
+  forgetting (variable-rate forgetting with `μ ≤ μₖ ≤ 1`). Gating and the
+  NIS behave as on observations. The `rls-adaptive` example feeds the estimate into a Kalman
+  filter's `A` and `B` each step; after a mid-run change of the plant, its speed RMSE is 0.09
+  against 0.70 for the fixed-model filter ([#145]).
 - With the opt-in `nalgebra` feature, every matrix and buffer gets `to_nalgebra()` (a stack copy
   into `SMatrix`, trait `ToNalgebra`), and mutable ones also get `copy_from_nalgebra()` (trait
   `CopyFromNalgebra`). They do not need the `unsafe` feature, and nalgebra stays out of the
@@ -280,6 +291,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [#144]: https://github.com/sunsided/minikalman-rs/issues/144
 [#143]: https://github.com/sunsided/minikalman-rs/issues/143
+[#145]: https://github.com/sunsided/minikalman-rs/issues/145
 [#138]: https://github.com/sunsided/minikalman-rs/issues/138
 [#123]: https://github.com/sunsided/minikalman-rs/issues/123
 [#135]: https://github.com/sunsided/minikalman-rs/issues/135

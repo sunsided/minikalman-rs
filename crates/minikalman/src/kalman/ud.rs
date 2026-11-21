@@ -512,8 +512,10 @@ where
 }
 
 /// Writes `P = U·D·Uᵀ` from the UD factors `ud` into `p`.
-fn reconstruct_ud<const N: usize, T>(ud: &impl Matrix<N, N, T>, p: &mut impl MatrixMut<N, N, T>)
-where
+pub(crate) fn reconstruct_ud<const N: usize, T>(
+    ud: &impl Matrix<N, N, T>,
+    p: &mut impl MatrixMut<N, N, T>,
+) where
     T: MatrixDataType,
 {
     for i in 0..N {
@@ -740,7 +742,7 @@ where
 /// unnormalized gain; on return, `k` holds the state correction `Δx = k/α·ν`. Returns the
 /// innovation variance `α = h·U·D·Uᵀ·hᵀ + r` of the prior.
 #[allow(non_snake_case, clippy::too_many_arguments)]
-fn bierman_update<const STATES: usize, const OBSERVATIONS: usize, T>(
+pub(crate) fn bierman_update<const STATES: usize, const OBSERVATIONS: usize, T>(
     UD: &mut impl MatrixMut<STATES, STATES, T>,
     x: &mut impl MatrixMut<STATES, 1, T>,
     h_rows: &impl Matrix<OBSERVATIONS, STATES, T>,
