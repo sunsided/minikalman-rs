@@ -57,8 +57,9 @@ pub extern "C" fn mk_done() -> ! {
 #[unsafe(no_mangle)]
 #[inline(never)]
 pub extern "C" fn mk_fail() -> ! {
+    // A body unlike `mk_done`'s, or LTO folds both into one address and a panic reads as DONE.
     loop {
-        black_box(());
+        black_box(0xFA11_u32);
     }
 }
 
@@ -562,12 +563,14 @@ fn sqrt_check() {
         f32::from_bits(1),
     ];
     let stride = (0..=u32::MAX / 65_521).map(|i| f32::from_bits(i * 65_521));
+
     for x in edges.into_iter().chain(stride) {
         let (hw, sw) = (black_box(x).square_root(), libm::sqrtf(black_box(x)));
         if !(hw.to_bits() == sw.to_bits() || hw.is_nan() && sw.is_nan()) {
             mk_fail();
         }
     }
+
     measure("sqrt_check/ok", || true);
 }
 

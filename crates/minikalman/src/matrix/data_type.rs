@@ -125,9 +125,10 @@ impl MatrixDataType for f32 {
 #[inline]
 fn hardware_sqrtf(x: f32) -> f32 {
     let bits: u32;
+
     // SAFETY: the block only computes in registers: no memory, no stack. It borrows `s0` and
-    // restores it, because rustc 1.85 (the MSRV) rejects S-register operands on single-precision
-    // FPUs such as the M4F's (they lack the `vfp2` feature, which implies doubles). `vsqrt.f32` sets FPSCR exception flags,
+    // restores it, because rustc 1.85 (the MSRV) rejects S-register operands on the M4F
+    // ("register class `sreg` requires the `vfp2` target feature"). `vsqrt.f32` sets FPSCR exception flags,
     // hence no `preserves_flags`.
     unsafe {
         core::arch::asm!(
