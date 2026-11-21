@@ -1549,7 +1549,8 @@ pub trait KalmanFilterUnscentedObservationCorrectRobust<
     ///
     /// `observation`, `fix_state` and `fix_measurement` are used as in
     /// [`correct_with_observed_residuals`](KalmanFilterUnscentedObservationCorrectFilter::correct_with_observed_residuals);
-    /// `workspace` is one `OBSERVATIONS × OBSERVATIONS` scratch matrix.
+    /// `workspace` is one `OBSERVATIONS × OBSERVATIONS` scratch matrix that must not alias any
+    /// buffer of the observation.
     ///
     /// Returns whether the measurement was applied and the weight converged; see
     /// [`CorrectionStatus`].

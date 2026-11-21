@@ -795,7 +795,8 @@ where
     /// ## Arguments
     /// * `measurement` - The measurement.
     /// * `observation` - Writes the images of the sigma points under `h`.
-    /// * `workspace` - One `OBS × OBS` scratch matrix.
+    /// * `workspace` - One `OBS × OBS` scratch matrix. It must not alias any buffer of the
+    ///   observation.
     /// * `robust` - The noise model and the iteration budget, e.g. `20`.
     pub fn correct_sigma_point_robust<M, F, W, const OBS: usize>(
         &mut self,

@@ -32,9 +32,10 @@
 //! ```
 //!
 //! Neither `R⁻¹` nor a division by `w` is needed, so a weight near zero (a huge outlier) stays
-//! representable in fixed-point types. `bᵀ×R×b` grows with the squared outlier size; it is
-//! evaluated with `b` scaled to at most `1` in magnitude, and `w` is formed from the scaled
-//! terms, so it does not overflow either. The final gain is `K = P⁻×Hᵀ×(w×S_w⁻¹)`.
+//! representable in fixed-point types. `b` grows like `R⁻¹×y` and `bᵀ×R×b` with the squared
+//! outlier size; both are evaluated from `y` and `b` scaled to at most `1` in magnitude, and
+//! `w` is formed from the scaled terms, so they do not overflow either. `S_w⁻¹` itself is
+//! bounded by `R⁻¹`, so `R⁻¹` must be representable. The final gain is `K = P⁻×Hᵀ×(w×S_w⁻¹)`.
 //!
 //! The loop stops once the weight changes by at most `10⁻⁶×w + ε` (with the machine epsilon
 //! `ε` of `T`), or after the caller's iteration budget. Every iterate is a valid posterior.
@@ -194,9 +195,11 @@ where
 /// Returns the refreshed weight `(ν + m)/(ν + γ)` with `γ = bᵀ×R×b + tr(G×S_w⁻¹)` and
 /// `b = S_w⁻¹×y`, given `S_inv = S_w⁻¹`.
 ///
-/// `b` is scaled by `s = max(1, maxᵢ |bᵢ|)` first, and the weight is formed as
-/// `((ν + m)/s²) / ((ν + τ)/s² + b̃ᵀ×R×b̃)` with `b̃ = b/s` and `τ = tr(G×S_w⁻¹)`, so that the
-/// squared outlier size is never formed on its own.
+/// `b` is formed from `y/s` with `s = max(1, maxᵢ |yᵢ|)`, then scaled by
+/// `t = max(1, maxᵢ |bᵢ|)`, and the weight is formed as
+/// `((ν + m)/(s·t)²) / ((ν + τ)/(s·t)² + b̃ᵀ×R×b̃)` with `b̃ = b/(s·t)` and `τ = tr(G×S_w⁻¹)`.
+/// Neither `b` itself (about `R⁻¹×y` for an outlier, which can exceed the range of a
+/// fixed-point type while the prior NIS still fits) nor the squared outlier size is formed.
 #[allow(non_snake_case)]
 fn student_t_weight<const M: usize, T>(
     dof: T,
@@ -208,17 +211,15 @@ fn student_t_weight<const M: usize, T>(
 where
     T: MatrixDataType,
 {
+    let s = (0..M).map(|j| abs(y.get(j, 0))).fold(T::one(), max);
     let mut b = [T::zero(); M];
     for (i, value) in b.iter_mut().enumerate() {
-        *value = (0..M).map(|j| S_inv.get(i, j) * y.get(j, 0)).sum();
+        *value = (0..M).map(|j| S_inv.get(i, j) * (y.get(j, 0) / s)).sum();
     }
 
-    let s = b
-        .iter()
-        .map(|&v| abs(v))
-        .fold(T::one(), |a, v| if v > a { v } else { a });
+    let t = b.iter().map(|&v| abs(v)).fold(T::one(), max);
     for value in b.iter_mut() {
-        *value = *value / s;
+        *value = *value / t;
     }
 
     let mut quadratic = T::zero();
@@ -231,8 +232,8 @@ where
     }
 
     let m = T::from_usize(M).unwrap_or_else(T::one);
-    let numerator = (dof + m) / s / s;
-    numerator / ((dof + trace) / s / s + quadratic)
+    let numerator = (dof + m) / s / s / t / t;
+    numerator / ((dof + trace) / s / s / t / t + quadratic)
 }
 
 /// Returns whether the weight moved from `previous` to `next` by at most
@@ -255,6 +256,18 @@ where
         for j in 0..M {
             A.set(i, j, A.get(i, j) * factor);
         }
+    }
+}
+
+/// Returns the larger of `a` and `b`.
+fn max<T>(a: T, b: T) -> T
+where
+    T: MatrixDataType,
+{
+    if b > a {
+        b
+    } else {
+        a
     }
 }
 
@@ -520,5 +533,43 @@ mod tests {
         assert!(x > I16F16::ZERO && x < one, "x = {x}");
         let p = filter.estimate_covariance().as_matrix().get(0, 0);
         assert!(p > I16F16::from_num(0.9) && p <= one, "P = {p}");
+    }
+
+    /// Regression: with a tiny `R` in `I16F16`, `b = S_w⁻¹×y ≈ R⁻¹×y ≈ 35000` overflowed
+    /// once the weight dropped, although the prior NIS (about `28000`) still fit. `y` is scaled
+    /// before `b` is formed now.
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn tiny_noise_does_not_overflow_b_in_fixed_point() {
+        use fixed::types::I16F16;
+
+        let tiny = I16F16::from_bits(3); // 3 ULP, about 4.6e-5
+        let mut g = [I16F16::ZERO; 4];
+        g[0] = tiny;
+        g[3] = tiny;
+        let r = g;
+        let y = [I16F16::from_num(1.6), I16F16::ZERO];
+        let (mut s, mut s_inv, mut nis) = ([I16F16::ZERO; 4], [I16F16::ZERO; 4], I16F16::ZERO);
+        let robust = RobustCorrection {
+            weight: RobustWeight::StudentT {
+                dof: I16F16::from_num(4),
+            },
+            iterations: 20,
+        };
+
+        let solution = solve_weight(
+            &MatrixData::new_ref::<2, 2, I16F16>(&g),
+            &MatrixData::new_ref::<2, 2, I16F16>(&r),
+            &MatrixData::new_ref::<2, 1, I16F16>(&y),
+            &mut MatrixData::new_mut::<2, 2, I16F16>(&mut s),
+            &mut MatrixData::new_mut::<2, 2, I16F16>(&mut s_inv),
+            &mut nis,
+            None,
+            robust,
+        )
+        .expect("positive definite");
+
+        assert!(nis > I16F16::from_num(20_000), "NIS = {nis}");
+        assert!(solution.weight >= I16F16::ZERO && solution.weight < I16F16::from_num(0.001));
     }
 }
