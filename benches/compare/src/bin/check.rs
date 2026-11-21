@@ -57,7 +57,13 @@ fn err(a: &[f64], b: &[f64]) -> f64 {
         .zip(b)
         .map(|(a, b)| (a - b).abs() / (1.0 + b.abs()))
         // `f64::max` would drop NaN; a diverged (NaN) filter must fail the gate.
-        .fold(0.0, |max, e| if e.is_nan() { f64::INFINITY } else { max.max(e) })
+        .fold(0.0, |max, e| {
+            if e.is_nan() {
+                f64::INFINITY
+            } else {
+                max.max(e)
+            }
+        })
 }
 
 /// Tolerances on the state and covariance error for `T`.
