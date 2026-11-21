@@ -1,5 +1,6 @@
 flowchart LR
     %% One step of the regular Kalman filter. Style: see docs/diagrams/README.md.
+    %% The root README.md holds a copy; keep the two in sync.
     prior(["estimate<br/>x̂ₖ₋₁, Pₖ₋₁"])
     predict["predict<br/>x̂ ← A·x̂<br/>P ← A·P·Aᵀ + Q"]
     control["control<br/>x̂ ← x̂ + B·u<br/>P ← P + B·Qᵤ·Bᵀ"]

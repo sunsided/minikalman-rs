@@ -13,6 +13,34 @@
 //! [`Control`](regular::Control) and [`Observation`](regular::RegularObservation) instances.
 //! Similar types exist for Extended Kalman Filters.
 //!
+//! ## Choosing a Filter
+//!
+//! Pick the filter from the model, then add what the measurements need:
+// `diagram!` is defined below and cannot be used in crate-level attributes.
+#![doc = concat!(
+    "\n```mermaid\n",
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/diagrams/choose-filter.mmd")),
+    "```\n\n"
+)]
+//! Gating and noise adaptation are set on the observation
+//! ([`RegularObservation::set_gate`](regular::RegularObservation::set_gate),
+//! [`RegularObservation::set_noise_adaptation`](regular::RegularObservation::set_noise_adaptation)
+//! and their extended and unscented counterparts). The predictively oriented correction is
+//! [`RegularKalman::correct_predictively_oriented`](regular::RegularKalman::correct_predictively_oriented)
+//! or [`ExtendedKalman::correct_nonlinear_predictively_oriented`](extended::ExtendedKalman::correct_nonlinear_predictively_oriented).
+//! The [`smoother`] module refines a recorded run ([`RtsSmoother`](smoother::RtsSmoother))
+//! or a sliding window ([`FixedLagSmoother`](smoother::FixedLagSmoother)).
+//!
+//! ## Wiring Up a Filter
+//!
+//! Filters, controls and observations own their matrices as buffers. Without allocation, the
+//! `impl_buffer_*` macros create them as static arrays; with the `alloc` feature, the builders
+//! allocate them:
+#![doc = concat!(
+    "\n```mermaid\n",
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/diagrams/regular-setup.mmd")),
+    "```\n\n"
+)]
 //! ## Crate Features
 //!
 //! * `std` - Disabled by default. Disables the `no_std` configuration attribute (enabling `std` support).

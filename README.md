@@ -24,6 +24,47 @@ Unscented Kalman filters, compiled to WebAssembly, side by side on a radar track
     <img src="https://raw.githubusercontent.com/sunsided/minikalman-rs/main/docs/hero.webp" width="780" alt="Kalman Filter Library Hero Picture" />
 </div>
 
+## Which filter do I need?
+
+Pick the filter from the model, then add what the measurements need: an innovation gate or the
+predictively oriented correction against outliers, noise adaptation when `R` is unknown, and a
+smoother when the estimate may lag behind the measurements.
+
+```mermaid
+flowchart LR
+    %% Which filter fits a problem. Style: see crates/minikalman/docs/diagrams/README.md.
+    %% Copy of crates/minikalman/docs/diagrams/choose-filter.mmd; keep the two in sync.
+    %% Checks are hexagons; answers are rectangles naming the module and the type or method.
+    model[/"process and measurement model"/]
+    linear{{"linear?"}}
+    fusion{{"many sensors,<br/>fused independently?"}}
+    jacobians{{"Jacobians available,<br/>mild nonlinearity?"}}
+    regular["regular<br/>RegularKalman"]
+    information["information<br/>InformationFilter::fuse"]
+    extended["extended<br/>ExtendedKalman"]
+    unscented["unscented<br/>UnscentedKalman<br/>(CKF: α=1, β=0, κ=0)"]
+    outliers{{"outliers or<br/>heavy tails?"}}
+    gate["set_gate<br/>correct_predictively_oriented (regular)<br/>correct_nonlinear_predictively_oriented (extended)"]
+    noise{{"R unknown?"}}
+    adapt["set_noise_adaptation"]
+    offline{{"offline or<br/>lagged estimate?"}}
+    smoother["smoother<br/>RtsSmoother, FixedLagSmoother"]
+    model --> linear
+    linear -- yes --> fusion
+    fusion -- no --> regular
+    fusion -- yes --> information
+    linear -- no --> jacobians
+    jacobians -- yes --> extended
+    jacobians -- no --> unscented
+    regular & extended & unscented --> outliers
+    outliers -. yes .-> gate
+    outliers --> noise
+    noise -. yes .-> adapt
+    noise --> offline
+    offline -. yes .-> smoother
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
+```
+
 ## `no_std` vs `std`, `alloc`
 
 This crate builds as `no_std` by default. To build with `std` support, run:
@@ -39,6 +80,56 @@ cargo build --features=alloc
 ```
 
 ## Examples
+
+Each step of the regular filter predicts, applies the optional control, and corrects with
+each measurement.
+
+```mermaid
+flowchart LR
+    %% One step of the regular Kalman filter. Style: see crates/minikalman/docs/diagrams/README.md.
+    %% Copy of crates/minikalman/docs/diagrams/regular-loop.mmd; keep the two in sync.
+    prior(["estimate<br/>x̂ₖ₋₁, Pₖ₋₁"])
+    predict["predict<br/>x̂ ← A·x̂<br/>P ← A·P·Aᵀ + Q"]
+    control["control<br/>x̂ ← x̂ + B·u<br/>P ← P + B·Qᵤ·Bᵀ"]
+    correct["correct<br/>y = z − H·x̂<br/>K = P·Hᵀ·S⁻¹<br/>x̂ ← x̂ + K·y<br/>P ← P − K·H·P"]
+    posterior(["estimate<br/>x̂ₖ, Pₖ"])
+    u[/"control input u"/]
+    z[/"measurement z"/]
+    prior --> predict --> control --> correct --> posterior
+    u -.-> control
+    z --> correct
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
+```
+
+Filters, controls and observations own their matrices as buffers. On embedded targets, the
+`impl_buffer_*` macros create them as static arrays; with `alloc`, the builders allocate them:
+
+```mermaid
+flowchart LR
+    %% How the regular filter's types are wired up. Style: see crates/minikalman/docs/diagrams/README.md.
+    %% Copy of crates/minikalman/docs/diagrams/regular-setup.mmd; keep the two in sync.
+    %% Without alloc, buffers come from the impl_buffer_* macros; with alloc, the
+    %% KalmanFilterBuilder allocates them.
+    alloc["KalmanFilterBuilder<br/>(alloc feature)"]
+    macros[/"impl_buffer_* macros<br/>static arrays"/]
+    buffers["*Buffer::from(slice)"]
+    filterBuilder["RegularKalmanBuilder::new"]
+    controlBuilder["ControlBuilder::new"]
+    observationBuilder["RegularObservationBuilder::new"]
+    filter(["RegularKalman<br/>A, x̂, P, Q"])
+    control["Control<br/>B, u, Qᵤ"]
+    observation["RegularObservation<br/>H, z, R"]
+    macros --> buffers --> filterBuilder & controlBuilder & observationBuilder
+    filterBuilder --> filter
+    controlBuilder --> control
+    observationBuilder --> observation
+    alloc -. "build()" .-> filter
+    alloc -. "controls().build()" .-> control
+    alloc -. "observations().build()" .-> observation
+    control -- "filter.control()" --> filter
+    observation -- "filter.correct()" --> filter
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
+```
 
 ### Targets with allocations (`std` or `alloc`)
 
