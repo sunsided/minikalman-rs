@@ -18,7 +18,7 @@ flowchart LR
     backed("BackedOut")
     h --> observe --> covariance --> innovation --> gate --> gain --> update --> adapt --> applied
     z --> innovation
-    innovation -.->|"S not positive definite"| npd
+    covariance -.->|"S not positive definite"| npd
     gate -.->|"NIS above threshold"| gated
     gain -.->|"recalibrated"| recalibrate
     recalibrate -.-> adapt
