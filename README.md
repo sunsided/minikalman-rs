@@ -32,7 +32,7 @@ smoother when the estimate may lag behind the measurements.
 
 ```mermaid
 flowchart LR
-    %% Which filter fits a problem. Style: see docs/diagrams/README.md.
+    %% Which filter fits a problem. Style: see crates/minikalman/docs/diagrams/README.md.
     %% Copy of crates/minikalman/docs/diagrams/choose-filter.mmd; keep the two in sync.
     %% Checks are hexagons; answers are rectangles naming the module and the type or method.
     model[/"process and measurement model"/]
@@ -44,7 +44,7 @@ flowchart LR
     extended["extended<br/>ExtendedKalman"]
     unscented["unscented<br/>UnscentedKalman<br/>(CKF: α=1, β=0, κ=0)"]
     outliers{{"outliers or<br/>heavy tails?"}}
-    gate["set_gate<br/>correct_predictively_oriented<br/>(regular, extended)"]
+    gate["set_gate<br/>correct_predictively_oriented (regular)<br/>correct_nonlinear_predictively_oriented (extended)"]
     noise{{"R unknown?"}}
     adapt["set_noise_adaptation"]
     offline{{"offline or<br/>lagged estimate?"}}
@@ -86,7 +86,8 @@ each measurement.
 
 ```mermaid
 flowchart LR
-    %% One step of the regular Kalman filter. Style: see docs/diagrams/README.md.
+    %% One step of the regular Kalman filter. Style: see crates/minikalman/docs/diagrams/README.md.
+    %% Copy of crates/minikalman/docs/diagrams/regular-loop.mmd; keep the two in sync.
     prior(["estimate<br/>x̂ₖ₋₁, Pₖ₋₁"])
     predict["predict<br/>x̂ ← A·x̂<br/>P ← A·P·Aᵀ + Q"]
     control["control<br/>x̂ ← x̂ + B·u<br/>P ← P + B·Qᵤ·Bᵀ"]
@@ -105,7 +106,7 @@ Filters, controls and observations own their matrices as buffers. On embedded ta
 
 ```mermaid
 flowchart LR
-    %% How the regular filter's types are wired up. Style: see docs/diagrams/README.md.
+    %% How the regular filter's types are wired up. Style: see crates/minikalman/docs/diagrams/README.md.
     %% Copy of crates/minikalman/docs/diagrams/regular-setup.mmd; keep the two in sync.
     %% Without alloc, buffers come from the impl_buffer_* macros; with alloc, the
     %% KalmanFilterBuilder allocates them.

@@ -11,7 +11,7 @@ flowchart LR
     extended["extended<br/>ExtendedKalman"]
     unscented["unscented<br/>UnscentedKalman<br/>(CKF: α=1, β=0, κ=0)"]
     outliers{{"outliers or<br/>heavy tails?"}}
-    gate["set_gate<br/>correct_predictively_oriented<br/>(regular, extended)"]
+    gate["set_gate<br/>correct_predictively_oriented (regular)<br/>correct_nonlinear_predictively_oriented (extended)"]
     noise{{"R unknown?"}}
     adapt["set_noise_adaptation"]
     offline{{"offline or<br/>lagged estimate?"}}
