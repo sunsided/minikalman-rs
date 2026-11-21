@@ -30,9 +30,11 @@ pub enum CorrectionStatus {
     BackedOut,
     /// An iterative correction (e.g.
     /// [`correct_predictively_oriented_vector`](crate::regular::RegularObservation::correct_predictively_oriented_vector))
-    /// ran out of its iteration budget before it converged. The measurement **was applied**
-    /// with the last iterate, which is a valid posterior with a positive definite covariance,
-    /// but it is not the exact solution. [`is_applied`](Self::is_applied) returns `true`.
+    /// stopped before it converged: it ran out of its iteration budget, or its line search
+    /// stalled at the working precision of the number type (e.g. huge outliers in `f32`). The
+    /// measurement **was applied** with the last iterate, which is a valid posterior with a
+    /// positive definite covariance, but it is not the exact solution.
+    /// [`is_applied`](Self::is_applied) returns `true`.
     NotConverged,
 }
 

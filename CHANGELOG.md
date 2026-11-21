@@ -75,8 +75,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the joint update. Single measurements still use the scalar Newton solver. The iteration needs
   three caller-provided `m×m` scratch matrices, bundled in the new
   `PredictivelyOrientedWorkspace`; the observation buffers are unchanged. A correction that runs
-  out of its iteration budget is still applied and returns the new
-  `CorrectionStatus::NotConverged`, for which `is_applied()` is `true` ([#87]).
+  out of its iteration budget, or whose line search stalls at the working precision, is still
+  applied and returns the new `CorrectionStatus::NotConverged`, for which `is_applied()` is
+  `true` ([#87]).
 - Added covariance recalibration after Jiang, Shi and Moura, "Mitigating Overconfidence in Nonlinear
   Kalman Filters via Covariance Recalibration" (Automatica, 2026, arXiv:2407.05717):
   `ExtendedKalman::correct_nonlinear_recalibrated` re-linearizes the observation at the updated

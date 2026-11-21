@@ -109,19 +109,16 @@ impl<W> PredictivelyOrientedWorkspace<W> {
 /// `temp_PHt` may be aliased with `temp_KHP`, so it is copied into `K` before `temp_KHP` is
 /// written. The covariance term is formed before `K` is scaled to the gain, which keeps every
 /// intermediate of the order of the inputs even for huge outliers.
-///
-/// Generic over `OBSERVATIONS` only so that vector-capable callers can dispatch to it; it must
-/// be called with `OBSERVATIONS = 1`.
 #[allow(non_snake_case, clippy::too_many_arguments)]
-pub(crate) fn update_scalar<const STATES: usize, const OBSERVATIONS: usize, T>(
+pub(crate) fn update_scalar<const STATES: usize, T>(
     x: &mut impl MatrixMut<STATES, 1, T>,
     P: &mut impl MatrixMut<STATES, STATES, T>,
-    H: &impl Matrix<OBSERVATIONS, STATES, T>,
-    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
-    y: &impl Matrix<OBSERVATIONS, 1, T>,
-    K: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
-    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
-    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    H: &impl Matrix<1, STATES, T>,
+    R: &impl Matrix<1, 1, T>,
+    y: &impl Matrix<1, 1, T>,
+    K: &mut impl MatrixMut<STATES, 1, T>,
+    S: &mut impl MatrixMut<1, 1, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, 1, T>,
     temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
     nis: &mut T,
     gate: Option<T>,
@@ -130,8 +127,6 @@ pub(crate) fn update_scalar<const STATES: usize, const OBSERVATIONS: usize, T>(
 where
     T: MatrixDataType,
 {
-    debug_assert_eq!(OBSERVATIONS, 1);
-
     // g = H*P*Hᵀ, kept in S.
     P.mult_transb(H, temp_PHt);
     H.mult(temp_PHt, S);

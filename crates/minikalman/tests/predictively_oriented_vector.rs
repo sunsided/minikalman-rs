@@ -603,6 +603,16 @@ fn gate_rejects_outliers() {
 
     assert_eq!(status, CorrectionStatus::Gated);
     assert!((measurement.nis() - 18.0).abs() < 1e-12);
+    for i in 0..2 {
+        for j in 0..2 {
+            assert_eq!(
+                measurement.kalman_gain().get_at(i, j),
+                0.0,
+                "K is left unchanged"
+            );
+        }
+    }
+
     let pro = posterior(&filter, status);
     assert_eq!((pro.x, pro.p), (problem.x, problem.p));
 }

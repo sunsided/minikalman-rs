@@ -3,7 +3,10 @@
 use core::marker::PhantomData;
 
 use crate::kalman::*;
-use crate::matrix::{Matrix, MatrixDataType, RowMajorSequentialDataMut};
+use crate::matrix::{
+    Matrix, MatrixDataMut, MatrixDataRef, MatrixDataType, RowMajorSequentialData,
+    RowMajorSequentialDataMut,
+};
 use crate::observations::NoiseAdaptation;
 
 /// A builder for a Kalman filter [`RegularObservation`] instances.
@@ -608,8 +611,14 @@ where
     /// row rank); otherwise it returns [`CorrectionStatus::NotPositiveDefinite`] and leaves
     /// `x` and `P` unchanged.
     ///
-    /// Afterwards, `K` holds the gain `P̃×Hᵀ×(H×P×Hᵀ + R + H×P̃×Hᵀ)⁻¹` that moved the state,
-    /// and `S` holds `H×P×Hᵀ + R` of the posterior.
+    /// After an applied correction (including [`CorrectionStatus::NotConverged`]), `K` holds
+    /// the gain that moved the state, `P̃×Hᵀ×(H×P×Hᵀ + R + H×P̃×Hᵀ)⁻¹`. `S` then holds
+    /// `H×P×Hᵀ + R` of the posterior for vector observations, and the prior `H×P̃×Hᵀ` for a
+    /// scalar observation, as in
+    /// [`correct_predictively_oriented`](RegularObservation::correct_predictively_oriented). A
+    /// [gated](CorrectionStatus::Gated) or
+    /// [not positive definite](CorrectionStatus::NotPositiveDefinite) correction leaves `K`
+    /// unchanged, while `S` may hold intermediate values.
     ///
     /// With fixed-point types, large innovations can overflow intermediate values; choose a
     /// type with enough integer bits for the expected outliers.
@@ -640,20 +649,7 @@ where
         self.z.as_matrix().sub_inplace_b(y);
 
         if OBSERVATIONS == 1 {
-            return crate::observations::predictively_oriented::update_scalar(
-                x.as_matrix_mut(),
-                P.as_matrix_mut(),
-                self.H.as_matrix(),
-                self.R.as_matrix(),
-                self.y.as_matrix(),
-                self.K.as_matrix_mut(),
-                self.S.as_matrix_mut(),
-                self.temp_PHt.as_matrix_mut(),
-                self.temp_KHP.as_matrix_mut(),
-                &mut self.nis,
-                self.gate,
-                max_iterations,
-            );
+            return self.update_scalar_predictively_oriented(x, P, max_iterations);
         }
 
         crate::observations::predictively_oriented::vector::update_vector(
@@ -671,6 +667,42 @@ where
             workspace.factor.as_matrix_mut(),
             workspace.iterate.as_matrix_mut(),
             workspace.trial.as_matrix_mut(),
+            &mut self.nis,
+            self.gate,
+            max_iterations,
+        )
+    }
+
+    /// Runs the scalar PrO update of an observation with `OBSERVATIONS = 1` through 1-wide
+    /// views of its buffers, so that the scalar solver keeps its `1`-sized signature.
+    ///
+    /// Must only be called with `OBSERVATIONS = 1`; the views would otherwise cover only the
+    /// first measurement.
+    #[allow(non_snake_case)]
+    fn update_scalar_predictively_oriented<X, P>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+    {
+        assert_eq!(
+            OBSERVATIONS, 1,
+            "the scalar PrO update needs one measurement"
+        );
+        crate::observations::predictively_oriented::update_scalar(
+            x.as_matrix_mut(),
+            P.as_matrix_mut(),
+            &MatrixDataRef::<1, STATES, T>::from(self.H.as_matrix().as_slice()),
+            &MatrixDataRef::<1, 1, T>::from(self.R.as_matrix().as_slice()),
+            &MatrixDataRef::<1, 1, T>::from(self.y.as_matrix().as_slice()),
+            &mut MatrixDataMut::<STATES, 1, T>::from(self.K.as_matrix_mut().as_mut_slice()),
+            &mut MatrixDataMut::<1, 1, T>::from(self.S.as_matrix_mut().as_mut_slice()),
+            &mut MatrixDataMut::<STATES, 1, T>::from(self.temp_PHt.as_matrix_mut().as_mut_slice()),
+            self.temp_KHP.as_matrix_mut(),
             &mut self.nis,
             self.gate,
             max_iterations,

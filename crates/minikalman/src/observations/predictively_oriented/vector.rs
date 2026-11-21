@@ -63,8 +63,10 @@ use crate::matrix::{
 /// The Armijo constant `σ` of the sufficient-decrease condition.
 const ARMIJO: f32 = 1e-4;
 
-/// The maximum number of step doublings per line search, i.e. the largest `β` is `2⁴⁰`.
-const MAX_EXPANSIONS: usize = 40;
+/// The maximum number of step doublings per line search, i.e. the largest `β` is `2¹⁴`.
+///
+/// Kept below `2¹⁵` so that `β` fits `I16F16`, whose largest value is about `32767`.
+const MAX_EXPANSIONS: usize = 14;
 
 /// A safety cap on the step halvings per line search.
 ///
@@ -121,10 +123,24 @@ pub(crate) fn update_vector<const STATES: usize, const OBSERVATIONS: usize, T>(
 where
     T: MatrixDataType,
 {
-    // K = P̃*Hᵀ, G = H*P̃*Hᵀ
+    // G = H*P̃*Hᵀ; K is only written once the checks pass, as in the regular update.
     P.mult_transb(H, temp_PHt);
+    H.mult(temp_PHt, factor);
+    let checked = prepare::<OBSERVATIONS, T>(
+        factor.as_mut_slice(),
+        S.as_mut_slice(),
+        &mut trial.as_mut_slice()[..OBSERVATIONS],
+        R.as_slice(),
+        y.as_slice(),
+        nis,
+        gate,
+    );
+    if let Err(status) = checked {
+        return status;
+    }
+
+    // K = P̃*Hᵀ, kept until the end since temp_PHt is scratch during the iteration.
     K.copy_from(temp_PHt);
-    H.mult(K, factor);
 
     let converged = {
         let mut solver = Solver::<OBSERVATIONS, T> {
@@ -137,10 +153,6 @@ where
             r: MatrixDataRef::from(R.as_slice()),
             v: MatrixDataRef::from(y.as_slice()),
         };
-
-        if let Err(status) = solver.prepare(nis, gate) {
-            return status;
-        }
 
         let Some(converged) = solver.solve(max_iterations) else {
             return CorrectionStatus::NotPositiveDefinite;
@@ -168,6 +180,53 @@ where
     } else {
         CorrectionStatus::NotConverged
     }
+}
+
+/// Checks that `G + R`, `R` and `G` are positive definite, stores the NIS `vᵀ×(G + R)⁻¹×v` and
+/// applies the gate, then replaces `G` by its lower Cholesky factor.
+///
+/// All arguments are row-major: `g` and `work` are `M×M`, `scratch` and `v` hold `M` values,
+/// and `r` is `M×M`. `work` and `scratch` are overwritten. The NIS is only formed once the
+/// Cholesky factor of `G + R` exists, so no division by a zero pivot happens (which panics for
+/// fixed-point types). Returns the status to report if the correction must be skipped.
+fn prepare<const M: usize, T>(
+    g: &mut [T],
+    work: &mut [T],
+    scratch: &mut [T],
+    r: &[T],
+    v: &[T],
+    nis: &mut T,
+    gate: Option<T>,
+) -> Result<(), CorrectionStatus>
+where
+    T: MatrixDataType,
+{
+    // NIS = vᵀ(G+R)⁻¹v = |L⁻¹v|² with G + R = L×Lᵀ.
+    for ((w, &g), &r) in work.iter_mut().zip(g.iter()).zip(r) {
+        *w = g + r;
+    }
+
+    if !MatrixDataMut::<M, M, T>::from(&mut *work).cholesky_decompose_lower() {
+        return Err(CorrectionStatus::NotPositiveDefinite);
+    }
+
+    scratch.copy_from_slice(v);
+    forward_substitute::<M, T>(work, scratch, 1);
+    let value = scratch.iter().map(|&a| a * a).sum::<T>();
+
+    work.copy_from_slice(r);
+    let positive = MatrixDataMut::<M, M, T>::from(&mut *work).cholesky_decompose_lower()
+        && MatrixDataMut::<M, M, T>::from(&mut *g).cholesky_decompose_lower();
+    if !positive {
+        return Err(CorrectionStatus::NotPositiveDefinite);
+    }
+
+    *nis = value;
+    if gate.is_some_and(|gate| *nis > gate) {
+        return Err(CorrectionStatus::Gated);
+    }
+
+    Ok(())
 }
 
 /// The damped measurement-space iteration for the PrO weight `W` on borrowed `m×m` row-major
@@ -198,35 +257,6 @@ impl<'a, const M: usize, T> Solver<'a, M, T>
 where
     T: MatrixDataType,
 {
-    /// Checks that `R` and `G` are positive definite, stores the NIS and applies the gate,
-    /// then replaces `G` by its Cholesky factor.
-    ///
-    /// Returns the status to report if the correction must be skipped.
-    fn prepare(&mut self, nis: &mut T, gate: Option<T>) -> Result<(), CorrectionStatus> {
-        // NIS = vᵀ(G+R)⁻¹v = |L⁻¹v|² with G + R = L×Lᵀ.
-        self.work.copy_from(&self.l);
-        self.work.add_inplace_a(&self.r);
-        let innovation_pd = self.work.cholesky_decompose_lower();
-        self.a.as_mut_slice().copy_from_slice(self.v.as_slice());
-        forward_substitute::<M, T>(self.work.as_slice(), self.a.as_mut_slice(), 1);
-        let value = self.a.as_slice().iter().map(|&a| a * a).sum::<T>();
-
-        self.work.as_mut_slice().copy_from_slice(self.r.as_slice());
-        let positive = innovation_pd
-            && self.work.cholesky_decompose_lower()
-            && self.l.cholesky_decompose_lower();
-        if !positive {
-            return Err(CorrectionStatus::NotPositiveDefinite);
-        }
-
-        *nis = value;
-        if gate.is_some_and(|gate| *nis > gate) {
-            return Err(CorrectionStatus::Gated);
-        }
-
-        Ok(())
-    }
-
     /// Runs the damped iteration from the [`start`](Self::start) for at most `max_iterations`
     /// accepted steps, or until the line search cannot make progress.
     ///
@@ -297,7 +327,7 @@ where
 
         for _ in 0..MAX_HALVINGS {
             if let Some(candidate) = self.evaluate() {
-                if candidate <= objective - slope.decrease(beta, half_sigma) {
+                if slope.armijo_holds(objective, candidate, beta, half_sigma) {
                     if beta == T::one() {
                         return self.expand(objective, slope, candidate);
                     }
@@ -335,7 +365,7 @@ where
             match self.evaluate() {
                 Some(candidate)
                     if candidate < best
-                        && candidate <= objective - slope.decrease(beta, half_sigma) =>
+                        && slope.armijo_holds(objective, candidate, beta, half_sigma) =>
                 {
                     best = candidate;
                 }
@@ -533,15 +563,37 @@ where
         Self { scale, normalized }
     }
 
-    /// Returns whether `tr(D×C×D×C) ≤ tolerance`. An overflowing slope is never below.
+    /// Returns whether `tr(D×C×D×C) ≤ tolerance`, for a `tolerance` below one.
+    ///
+    /// Never forms `scale²`, which overflows (and panics for fixed-point types) for large
+    /// slopes: above `scale = 1` it compares `normalized ≤ tolerance/scale²` by division.
     fn is_below(self, tolerance: T) -> bool {
-        self.scale * self.scale * self.normalized <= tolerance
+        if self.normalized <= T::zero() {
+            return true;
+        }
+
+        if self.scale <= T::one() {
+            self.scale * self.scale * self.normalized <= tolerance
+        } else {
+            self.normalized <= tolerance / self.scale / self.scale
+        }
     }
 
-    /// Returns the Armijo decrease `σ/2 × β × tr(D×C×D×C)`, ordered to avoid overflow for
-    /// the small `β` that large slopes need.
-    fn decrease(self, beta: T, half_sigma: T) -> T {
-        (beta * self.scale * half_sigma) * (self.scale * self.normalized)
+    /// Returns whether the trial objective `candidate` satisfies the Armijo condition
+    /// `candidate ≤ objective − σ/2 × β × tr(D×C×D×C)` against the objective of `W`.
+    ///
+    /// Never forms `scale²`. Up to `scale = 1` (the case near convergence), the condition is
+    /// evaluated as written, so a decrease below the rounding of `objective` still accepts a
+    /// trial that does not increase the objective. Above, `objective − candidate` is divided
+    /// by `scale` twice instead. The other factor, `β·σ/2·normalized`, stays below
+    /// `2¹⁴·σ/2·M²` (see [`MAX_EXPANSIONS`]), so nothing overflows.
+    fn armijo_holds(self, objective: T, candidate: T, beta: T, half_sigma: T) -> bool {
+        let weight = beta * half_sigma * self.normalized;
+        if self.scale <= T::one() {
+            candidate <= objective - weight * self.scale * self.scale
+        } else {
+            (objective - candidate) / self.scale / self.scale >= weight
+        }
     }
 }
 
@@ -740,6 +792,65 @@ mod tests {
     use super::*;
     use crate::matrix::MatrixData;
 
+    impl<'a, const M: usize, T> Solver<'a, M, T>
+    where
+        T: MatrixDataType,
+    {
+        /// Runs [`prepare`] on the solver's own views, with `trial` as scratch and no gate.
+        fn prepare(&mut self, nis: &mut T) -> Result<(), CorrectionStatus> {
+            super::prepare::<M, T>(
+                self.l.as_mut_slice(),
+                self.work.as_mut_slice(),
+                &mut self.trial.as_mut_slice()[..M],
+                self.r.as_slice(),
+                self.v.as_slice(),
+                nis,
+                None,
+            )
+        }
+    }
+
+    /// A singular `G + R` is rejected before the NIS divides by its zero pivot, which would
+    /// panic for fixed-point types.
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn singular_noise_is_rejected_in_fixed_point() {
+        use fixed::types::I16F16;
+
+        let one = I16F16::from_num(1);
+        let mut g = [one; 4];
+        let mut work = [I16F16::ZERO; 4];
+        let mut scratch = [I16F16::ZERO; 2];
+        let r = [one; 4];
+        let v = [one, I16F16::ZERO];
+        let mut nis = I16F16::ZERO;
+
+        let status = prepare::<2, I16F16>(&mut g, &mut work, &mut scratch, &r, &v, &mut nis, None);
+
+        assert_eq!(status, Err(CorrectionStatus::NotPositiveDefinite));
+        assert_eq!(nis, I16F16::ZERO);
+    }
+
+    /// Slopes whose square overflows `I16F16` are still compared without panicking.
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn huge_slopes_do_not_overflow_in_fixed_point() {
+        use fixed::types::I16F16;
+
+        let slope = Slope {
+            scale: I16F16::from_num(30_000),
+            normalized: I16F16::from_num(2),
+        };
+        let tolerance = I16F16::from_num(0.001);
+        let half_sigma = I16F16::from_num(0.00005);
+
+        assert!(!slope.is_below(tolerance));
+        let (objective, one) = (I16F16::from_num(30_000), I16F16::from_num(1));
+        assert!(!slope.armijo_holds(objective, objective - one, one, half_sigma));
+        let tiny_step = I16F16::from_num(0.0001);
+        assert!(slope.armijo_holds(objective, I16F16::ZERO, tiny_step, half_sigma));
+    }
+
     /// Runs the solver on `G`, `R` and `v` (all `f64`) and returns `C = H×P×Hᵀ` of the result
     /// together with whether it converged.
     fn solve(g: [f64; 4], r: [f64; 4], v: [f64; 2], max_iterations: usize) -> ([f64; 4], bool) {
@@ -759,7 +870,7 @@ mod tests {
         };
 
         let mut nis = 0.0;
-        assert!(solver.prepare(&mut nis, None).is_ok());
+        assert!(solver.prepare(&mut nis).is_ok());
         let converged = solver.solve(max_iterations).expect("start evaluates");
         solver.trial.copy_from(&solver.w);
         solver.evaluate().expect("result evaluates");
@@ -832,7 +943,7 @@ mod tests {
             v: MatrixDataRef::from(&v[..]),
         };
         let mut nis = 0.0;
-        assert!(solver.prepare(&mut nis, None).is_ok());
+        assert!(solver.prepare(&mut nis).is_ok());
 
         let base = [0.3, 0.05, 0.05, 0.2];
         solver.trial.as_mut_slice().copy_from_slice(&base);
@@ -890,7 +1001,7 @@ mod tests {
         };
 
         let mut nis = T::zero();
-        let usable = solver.prepare(&mut nis, None).is_ok()
+        let usable = solver.prepare(&mut nis).is_ok()
             && solver.solve(BUDGET_FOR_SMOKE).is_some()
             && solver.finish();
         usable
