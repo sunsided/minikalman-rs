@@ -5,6 +5,8 @@
 //! [`RtsSmoother`] refines every estimate with the measurements that came after it by running
 //! a backward pass over the recorded filter history.
 //!
+#![doc = diagram!("rts-smoother.mmd")]
+//!
 //! For `k = N−2` down to `0`, with `x̂ₖ = x_k|k` and `Pₖ = P_k|k` the filtered values and
 //! `x̂⁻ₖ₊₁ = x_k+1|k` and `P⁻ₖ₊₁ = P_k+1|k` the predicted values of the next step:
 //!
@@ -17,7 +19,9 @@
 //! The last step is already smoothed (`x_N−1|N = x_N−1|N−1`).
 //!
 //! For online use, the [`FixedLagSmoother`] runs the same pass over a sliding window of the last
-//! `N` steps and yields each step smoothed with the `N−1` steps after it.
+//! `N` steps and yields each step smoothed with the `N−1` steps after it:
+//!
+#![doc = diagram!("fixed-lag-smoother.mmd")]
 //!
 //! ## Example
 //!
@@ -85,6 +89,7 @@ pub use fixed_lag::FixedLagSmoother;
 
 /// Runs the Rauch-Tung-Striebel backward pass over a recorded filter history.
 ///
+#[doc = diagram!("rts-smoother.mmd", "gain", "update")]
 /// Holds only the scratch buffers of the pass, so it does not allocate and can be reused for
 /// several runs. The state transition matrix `A` is constant over the run, matching the
 /// [`RegularKalman`](crate::regular::RegularKalman) filter, which also keeps a single `A`.
@@ -123,6 +128,7 @@ where
 
     /// Smooths a recorded filter history in place.
     ///
+    #[doc = diagram!("rts-smoother.mmd", "history", "kept")]
     /// All slices are indexed by step `k = 0..N`:
     /// * `x[k]`, `p[k]` — the filtered `x_k|k`, `P_k|k`, recorded after `correct()`.
     ///   Overwritten with the smoothed `x_k|N`, `P_k|N`.

@@ -1,0 +1,19 @@
+flowchart LR
+    %% Fixed-lag RTS smoother, one push per filter step t. Style: see docs/diagrams/README.md.
+    %% Deviation: the step runs from filter step t to the smoothed estimate N−1 steps back, not
+    %% from x̂ₖ₋₁ to x̂ₖ; the backward recursion over the window is written into the node labels.
+    %% Node IDs: step, push, ring, full, gain, update (as in rts-smoother.mmd), smoothed,
+    %% pending, kept.
+    step[/"filter step t<br/>x̂⁻ₜ, P⁻ₜ, x̂ₜ, Pₜ"/]
+    push["push<br/>overwrite the<br/>oldest slot"]
+    ring(["ring of the last N steps<br/>t−N+1 … t"])
+    full{{"window full?"}}
+    gain["smoother gain<br/>k = t−1 … t−N+1<br/>Cₖ = Pₖ·Aᵀ·(P⁻ₖ₊₁)⁻¹"]
+    update["backward update<br/>Δx̂ = x̂ₖ₊₁|t − x̂⁻ₖ₊₁<br/>ΔP = Pₖ₊₁|t − P⁻ₖ₊₁<br/>x̂ₖ ← x̂ₖ + Cₖ·Δx̂<br/>Pₖ ← Pₖ + Cₖ·ΔP·Cₖᵀ"]
+    smoothed(["smoothed, Some(true)<br/>x̂ₜ₋ₙ₊₁|ₜ, Pₜ₋ₙ₊₁|ₜ"])
+    pending("None")
+    kept("Some(false)<br/>step keeps x̂ₖ, Pₖ")
+    step --> push --> ring --> full --> gain --> update --> smoothed
+    full -.->|"fewer than N steps"| pending
+    gain -.->|"P⁻ₖ₊₁ not positive definite"| kept
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917
