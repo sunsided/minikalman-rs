@@ -206,6 +206,21 @@
 extern crate alloc;
 extern crate core;
 
+/// Expands to a mermaid block for a doc comment, from the diagram `docs/diagrams/<file>`, with
+/// the given nodes highlighted. See `docs/diagrams/README.md` for the visual language.
+///
+/// Use it as `#[doc = diagram!("regular-loop.mmd", "predict")]`.
+macro_rules! diagram {
+    ($file:literal $(, $focus:literal)*) => {
+        concat!(
+            "\n```mermaid\n",
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/diagrams/", $file)),
+            $("    class ", $focus, " focus\n",)*
+            "```\n\n"
+        )
+    };
+}
+
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 #[cfg(feature = "alloc")]
 mod kalman_builder;
@@ -239,6 +254,12 @@ pub use num_traits;
 pub struct ReadmeDoctests;
 
 /// Regular Kalman Filters
+///
+/// A linear Kalman filter for `x̂ₖ = A·x̂ₖ₋₁ + B·u` and `z = H·x̂ + v`. Each step predicts with
+/// [`RegularKalman::predict`](regular::RegularKalman::predict), optionally applies a
+/// [`Control`](regular::Control), and corrects with one or more
+/// [`RegularObservation`](regular::RegularObservation)s:
+#[doc = diagram!("regular-loop.mmd")]
 pub mod regular {
     pub use crate::controls::*;
     pub use crate::kalman::regular::*;

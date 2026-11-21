@@ -1,0 +1,19 @@
+<!-- Rendered into every rustdoc page via `--html-in-header`.
+     rustdoc emits ```mermaid blocks as <pre class="language-mermaid"> (not doctested);
+     this turns them into diagrams, following the rustdoc light/dark theme. -->
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs";
+
+  const theme = document.documentElement.getAttribute("data-theme") || "";
+  const dark = theme === "dark" || theme === "ayu";
+
+  for (const pre of document.querySelectorAll("pre.language-mermaid")) {
+    const diagram = document.createElement("pre");
+    diagram.className = "mermaid";
+    diagram.textContent = pre.textContent;
+    pre.replaceWith(diagram);
+  }
+
+  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
+  await mermaid.run({ querySelector: "pre.mermaid" });
+</script>

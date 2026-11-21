@@ -48,6 +48,8 @@ impl<B, U, Q, TempBQ> ControlBuilder<B, U, Q, TempBQ> {
 }
 
 /// Control Filter structure.  See [`ControlBuilder`] for construction.
+///
+#[doc = diagram!("regular-loop.mmd", "control")]
 #[allow(non_snake_case, unused)]
 pub struct Control<const STATES: usize, const CONTROLS: usize, T, B, U, Q, TempBQ> {
     /// Control vector.

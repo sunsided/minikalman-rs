@@ -1,0 +1,13 @@
+flowchart LR
+    %% One step of the regular Kalman filter. Style: see docs/diagrams/README.md.
+    prior(["estimate<br/>x̂ₖ₋₁, Pₖ₋₁"])
+    predict["predict<br/>x̂ ← A·x̂<br/>P ← A·P·Aᵀ + Q"]
+    control["control<br/>x̂ ← x̂ + B·u<br/>P ← P + B·Qᵤ·Bᵀ"]
+    correct["correct<br/>y = z − H·x̂<br/>K = P·Hᵀ·S⁻¹<br/>x̂ ← x̂ + K·y<br/>P ← P − K·H·P"]
+    posterior(["estimate<br/>x̂ₖ, Pₖ"])
+    u[/"control input u"/]
+    z[/"measurement z"/]
+    prior --> predict --> control --> correct --> posterior
+    u -.-> control
+    z --> correct
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

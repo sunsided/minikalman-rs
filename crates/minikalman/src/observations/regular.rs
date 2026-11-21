@@ -141,6 +141,8 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
 }
 
 /// Kalman Filter measurement structure. See [`RegularObservationBuilder`] for construction.
+///
+#[doc = diagram!("regular-correct.mmd")]
 #[allow(non_snake_case, unused)]
 pub struct RegularObservation<
     const STATES: usize,
@@ -279,6 +281,8 @@ impl<
     /// Sets an innovation gate: a correction whose [normalized innovation squared](Self::nis)
     /// exceeds `threshold` is skipped and leaves the state and covariance unchanged.
     ///
+    #[doc = diagram!("regular-correct.mmd", "gate")]
+    ///
     /// A common choice is a chi-square quantile for `OBSERVATIONS` degrees of freedom,
     /// e.g. `6.63` (one measurement) or `9.21` (two measurements) to reject about 1% of
     /// measurements of a consistent filter. `None` (the default) disables the gate.
@@ -304,6 +308,8 @@ impl<
 
     /// Enables online adaptation of the measurement noise covariance `R` from the residuals
     /// of the corrections; `None` (the default) disables it.
+    ///
+    #[doc = diagram!("regular-correct.mmd", "adapt")]
     ///
     /// After every correction applied by `correct` and `correct_with`,
     /// `R ← α×R + (1−α)×(ε×εᵀ + H×P⁺×Hᵀ)` with the residual `ε = z − H×x⁺`. See

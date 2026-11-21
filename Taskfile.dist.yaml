@@ -234,14 +234,14 @@ tasks:
     aliases:
       - doc
     cmds:
-      - cargo doc --no-deps --all-features
+      - RUSTDOCFLAGS="--html-in-header {{.ROOT_DIR}}/crates/minikalman/docs/mermaid.html" cargo doc --no-deps --all-features
 
   docs:open:
     desc: Build rustdoc (and open them)
     aliases:
       - doc:open
     cmds:
-      - cargo doc --no-deps --all-features --open
+      - RUSTDOCFLAGS="--html-in-header {{.ROOT_DIR}}/crates/minikalman/docs/mermaid.html" cargo doc --no-deps --all-features --open
 
   coverage:
     desc: Generate code coverage report (HTML)

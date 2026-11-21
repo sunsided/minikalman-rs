@@ -91,6 +91,8 @@ impl<A, X, P, Q, PX, TempP> RegularKalmanBuilder<A, X, P, Q, PX, TempP> {
 }
 
 /// Kalman Filter structure.  See [`RegularKalmanBuilder`] for construction.
+///
+#[doc = diagram!("regular-loop.mmd")]
 #[allow(non_snake_case, unused)]
 pub struct RegularKalman<const STATES: usize, T, A, X, P, Q, PX, TempP> {
     /// State vector.
@@ -232,6 +234,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 {
     /// Performs the time update / prediction step.
     ///
+    #[doc = diagram!("regular-loop.mmd", "predict")]
+    ///
     /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
     /// ## Example
@@ -324,6 +328,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     }
 
     /// Performs the time update / prediction step.
+    ///
+    #[doc = diagram!("regular-loop.mmd", "predict")]
     ///
     /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
@@ -491,6 +497,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     }
 
     /// Applies a control input.
+    ///
+    #[doc = diagram!("regular-loop.mmd", "control")]
     #[inline(always)]
     pub fn control<I>(&mut self, control: &mut I)
     where
@@ -503,6 +511,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     }
 
     /// Performs the measurement update step.
+    ///
+    #[doc = diagram!("regular-correct.mmd")]
     ///
     /// ## Arguments
     /// * `measurement` - The measurement.
@@ -593,6 +603,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
 
     /// Performs the measurement update step, normalizing the innovation before it is applied.
     ///
+    #[doc = diagram!("regular-correct.mmd")]
+    ///
     /// The innovation `y = z - H×x` is computed by plain subtraction. For measurements that
     /// wrap around, such as a compass heading, `fix` can wrap each entry back into range:
     ///
@@ -643,6 +655,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Performs the measurement update step with the externally supplied Kalman gain
     /// stored in the measurement, instead of computing it.
     ///
+    #[doc = diagram!("regular-loop.mmd", "correct")]
+    ///
     /// See [`KalmanFilterObservationCorrectWithGain`]: `P` is updated with the Joseph form,
     /// the gate is not evaluated and the NIS is not updated.
     ///
@@ -661,6 +675,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Performs the measurement update step with the externally supplied Kalman gain
     /// stored in the measurement, normalizing the innovation before it is applied.
     ///
+    #[doc = diagram!("regular-loop.mmd", "correct")]
+    ///
     /// See [`correct_with_gain`](Self::correct_with_gain).
     ///
     /// ## Arguments
@@ -678,6 +694,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     }
 
     /// Performs a predictively oriented (PrO) measurement update step.
+    ///
+    #[doc = diagram!("regular-loop.mmd", "correct")]
     ///
     /// More conservative than [`correct`](Self::correct) under large innovations, which makes
     /// it robust to heavy-tailed noise and outliers at a small cost under Gaussian noise. See

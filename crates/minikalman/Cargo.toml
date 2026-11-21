@@ -116,7 +116,7 @@ rand_distr = "0.4.3"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "docs/mermaid.html"]
 
 [package.metadata.release]
 # Turn "## Unreleased" into a dated release section with its link, and open a new

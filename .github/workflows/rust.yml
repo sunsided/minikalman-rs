@@ -48,6 +48,8 @@ jobs:
         with:
           persist-credentials: false
       - name: Build documentation
+        env:
+          RUSTDOCFLAGS: --html-in-header ${{ github.workspace }}/crates/minikalman/docs/mermaid.html
         run: cargo doc
 
   codecov:
