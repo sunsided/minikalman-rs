@@ -16,6 +16,17 @@ pub enum CorrectionStatus {
     /// The normalized innovation squared exceeded the observation's gate, so the measurement
     /// was rejected as an outlier.
     Gated,
+    /// A recalibrated correction (e.g.
+    /// [`correct_nonlinear_recalibrated`](crate::extended::ExtendedKalman::correct_nonlinear_recalibrated))
+    /// would have increased the trace of the estimate covariance, so the measurement was backed
+    /// out and the prior state and covariance were kept.
+    ///
+    /// This follows the back-out step of Jiang, Shi and Moura, "Mitigating Overconfidence in
+    /// Nonlinear Kalman Filters via Covariance Recalibration", Automatica (2026),
+    /// [arXiv:2407.05717](https://arxiv.org/abs/2407.05717): a measurement that makes the
+    /// recalibrated estimate less certain than the prediction is taken as a sign that the
+    /// linearization at the prior was poor.
+    BackedOut,
 }
 
 impl CorrectionStatus {
@@ -804,6 +815,95 @@ pub trait KalmanFilterNonlinearObservationCorrectWithGain<
         N: FnMut(&mut [T]);
 }
 
+/// Recalibrated nonlinear measurement update for Extended Kalman Filters.
+///
+/// Implements the covariance recalibration of Jiang, Shi and Moura, "Mitigating
+/// Overconfidence in Nonlinear Kalman Filters via Covariance Recalibration", Automatica 194
+/// (2026) 113295, [arXiv:2407.05717](https://arxiv.org/abs/2407.05717), Algorithm 2:
+///
+/// 1. The gain `K` and the state `x⁺ = x + K×y` are computed at the prior, exactly as in
+///    [`correct_nonlinear`](KalmanFilterNonlinearObservationCorrectFilter::correct_nonlinear).
+/// 2. The observation is linearized again at `x⁺`, giving `H₂`, and the covariance is
+///    recalibrated with the Joseph form `P⁺ = P − K×H₂×P − (K×H₂×P)ᵀ + K×(H₂×P×H₂ᵀ + R)×Kᵀ`.
+/// 3. If `trace(P⁺) > trace(P)`, the measurement is backed out: `x` and `P` keep their prior
+///    values and [`CorrectionStatus::BackedOut`] is returned.
+///
+/// The conventional update takes `P` from the linearization at the prior, which makes the
+/// filter overconfident when the prior is far from the truth. For a linear observation,
+/// `H₂ = H` and the result equals the conventional update.
+pub trait KalmanFilterNonlinearObservationCorrectRecalibrated<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    T,
+>: KalmanFilterNonlinearObservationCorrectFilter<STATES, OBSERVATIONS, T>
+{
+    /// The type of the observation Jacobian `H` that the `jacobian` callback fills.
+    type ObservationJacobian: ObservationMatrixMut<OBSERVATIONS, STATES, T>;
+
+    /// Performs the recalibrated nonlinear measurement update step.
+    ///
+    /// The observation Jacobian must be set up at the prior `x`, as for
+    /// [`correct_nonlinear`](KalmanFilterNonlinearObservationCorrectFilter::correct_nonlinear).
+    /// `jacobian` is then called once with the updated state `x⁺` and overwrites the Jacobian
+    /// with `H₂`; it is not called if the measurement is skipped before `x⁺` exists. Gating
+    /// uses the normalized innovation squared at the prior.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    fn correct_nonlinear_recalibrated<X, P, F, J>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        J: FnMut(&X, &mut Self::ObservationJacobian),
+    {
+        self.correct_nonlinear_recalibrated_with(x, P, observation, jacobian, |_| {})
+    }
+
+    /// Performs the recalibrated nonlinear measurement update step, normalizing the
+    /// innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_recalibrated`](Self::correct_nonlinear_recalibrated) and
+    /// [`correct_nonlinear_with`](KalmanFilterNonlinearObservationCorrectFilter::correct_nonlinear_with).
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `observation` - The nonlinear observation function.
+    /// * `jacobian` - Writes the observation Jacobian at the given state.
+    /// * `fix` - Normalizes the innovation vector in place.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_nonlinear_recalibrated_with<X, P, F, J, N>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        observation: F,
+        jacobian: J,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        F: FnMut(&X, &mut Self::ObservationVector),
+        J: FnMut(&X, &mut Self::ObservationJacobian),
+        N: FnMut(&mut [T]);
+}
+
 pub trait KalmanFilterMeasurementVector<const OBSERVATIONS: usize, T> {
     type MeasurementVector: MeasurementVector<OBSERVATIONS, T>;
 
@@ -1095,6 +1195,59 @@ pub trait KalmanFilterUnscentedObservationCorrectFilter<
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>,
         SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+        NX: FnMut(&mut [T]),
+        NZ: FnMut(&mut [T]);
+}
+
+/// Recalibrated sigma point correction for Unscented Kalman Filters.
+///
+/// Implements the covariance recalibration of Jiang, Shi and Moura, "Mitigating
+/// Overconfidence in Nonlinear Kalman Filters via Covariance Recalibration", Automatica 194
+/// (2026) 113295, [arXiv:2407.05717](https://arxiv.org/abs/2407.05717), Eq. 22–23, for the
+/// unscented transform:
+///
+/// 1. The gain `K` and the innovation `y` are computed from the sigma points as in
+///    [`correct_with_observed_residuals`](KalmanFilterUnscentedObservationCorrectFilter::correct_with_observed_residuals).
+/// 2. The sigma points are shifted by `K×y`, which places them around `x⁺ = x + K×y` with the
+///    prior spread, and observed again. This gives `S₂ = Pzz₂ + R` and `Pxz₂`, and the
+///    covariance becomes `P⁺ = P + K×S₂×Kᵀ − Pxz₂×Kᵀ − K×Pxz₂ᵀ`.
+/// 3. If `trace(P⁺) > trace(P)`, the measurement is backed out: `x` and `P` keep their prior
+///    values and [`CorrectionStatus::BackedOut`] is returned.
+pub trait KalmanFilterUnscentedObservationCorrectRecalibrated<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    const NUM_SIGMA: usize,
+    T,
+>: KalmanFilterUnscentedObservationCorrectFilter<STATES, OBSERVATIONS, NUM_SIGMA, T>
+{
+    /// Performs the recalibrated correction, normalizing state and measurement differences
+    /// before they are used.
+    ///
+    /// `observation` runs twice if the first pass is applied: once on the sigma points and
+    /// once on the shifted sigma points. Gating uses the normalized innovation squared of the
+    /// first pass. Unless the measurement is skipped before the second pass,
+    /// `sigma_predicted` is left shifted by `K×y` on return, so it must be regenerated before
+    /// it is used again.
+    ///
+    /// Returns whether the measurement was applied; see [`CorrectionStatus`].
+    #[allow(non_snake_case, clippy::too_many_arguments)]
+    fn correct_with_observed_recalibrated_residuals<X, P, SP, F, W, NX, NZ>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_predicted: &mut SP,
+        weights: &W,
+        lambda: T,
+        observation: F,
+        fix_state: NX,
+        fix_measurement: NZ,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
         W: AsMatrix<NUM_SIGMA, 1, T>,
         F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
         NX: FnMut(&mut [T]),

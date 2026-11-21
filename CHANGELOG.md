@@ -53,6 +53,16 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is larger than predicted. This makes the filter robust to heavy-tailed noise and outliers, at a
   small accuracy cost under Gaussian noise. It costs a few scalar Newton steps on top of a regular
   correction and needs no extra buffers ([#69]).
+- Added covariance recalibration after Jiang, Shi and Moura, "Mitigating Overconfidence in Nonlinear
+  Kalman Filters via Covariance Recalibration" (Automatica, 2026, arXiv:2407.05717):
+  `ExtendedKalman::correct_nonlinear_recalibrated` re-linearizes the observation at the updated
+  state through a Jacobian callback, and `UnscentedKalman::correct_sigma_point_recalibrated`
+  observes the sigma points again after shifting them by `K×y`. The covariance then comes from the
+  second pass, which keeps the filters from becoming overconfident. If the trace of `P` would grow,
+  the measurement is backed out and the new `CorrectionStatus::BackedOut` is returned. Both have
+  `_with` variants, and the observation side is exposed as the traits
+  `KalmanFilterNonlinearObservationCorrectRecalibrated` and
+  `KalmanFilterUnscentedObservationCorrectRecalibrated` ([#60]).
 
 ### Fixed
 
@@ -92,6 +102,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#63]: https://github.com/sunsided/minikalman-rs/issues/63
 [#59]: https://github.com/sunsided/minikalman-rs/issues/59
 [#61]: https://github.com/sunsided/minikalman-rs/issues/61
+[#60]: https://github.com/sunsided/minikalman-rs/issues/60
 [#65]: https://github.com/sunsided/minikalman-rs/issues/65
 [#64]: https://github.com/sunsided/minikalman-rs/issues/64
 [#67]: https://github.com/sunsided/minikalman-rs/issues/67

@@ -129,29 +129,10 @@ pub(crate) fn update_with_innovation<const STATES: usize, const OBSERVATIONS: us
 where
     T: MatrixDataType,
 {
-    // S = H*P*H' + R
-    H.mult(P, temp_HP); // temp = H*P
-    temp_HP.mult_transb(H, S); // S = temp*Hᵀ
-    S.add_inplace_a(R); // S += R
-
-    //* Calculate Kalman gain
-    //* K = P*Hᵀ * S^-1
-
-    // K = P*Hᵀ * S^-1
-    if !S.cholesky_decompose_lower() {
-        return CorrectionStatus::NotPositiveDefinite;
+    let status = compute_kalman_gain(P, H, R, y, K, S, S_inv, temp_HP, temp_PHt, nis, gate);
+    if !status.is_applied() {
+        return status;
     }
-    S.invert_l_cholesky(S_inv); // S_inv = S^-1
-
-    // Gate on the normalized innovation squared before anything else is written.
-    *nis = normalized_innovation_squared(y, S_inv);
-    if gate.is_some_and(|gate| *nis > gate) {
-        return CorrectionStatus::Gated;
-    }
-
-    // NOTE that to allow aliasing of Sinv and temp_PHt, a copy must be performed here
-    P.mult_transb(H, temp_PHt); // temp = P*H'
-    temp_PHt.mult(S_inv, K); // K = temp*Sinv
 
     //* Correct state prediction
     //* x = x + K*y
@@ -291,6 +272,194 @@ fn adapt_measurement_noise<const STATES: usize, const OBSERVATIONS: usize, T>(
     for i in 0..OBSERVATIONS {
         if R.get(i, i) < adaptation.floor {
             R.set(i, i, adaptation.floor);
+        }
+    }
+}
+
+/// Computes the Kalman gain `K = P×Hᵀ×S⁻¹` of the linear and extended observations.
+///
+/// Stores the normalized innovation squared in `nis` whenever `S = H×P×Hᵀ + R` can be
+/// inverted, and leaves `K` unchanged if `S` is not positive definite or `nis` exceeds
+/// `gate`. Neither `x` nor `P` is written. On return, `S` holds its Cholesky factor.
+#[allow(non_snake_case, clippy::too_many_arguments)]
+fn compute_kalman_gain<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &impl Matrix<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+    K: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    S_inv: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    nis: &mut T,
+    gate: Option<T>,
+) -> CorrectionStatus
+where
+    T: MatrixDataType,
+{
+    // S = H*P*H' + R
+    H.mult(P, temp_HP); // temp = H*P
+    temp_HP.mult_transb(H, S); // S = temp*Hᵀ
+    S.add_inplace_a(R); // S += R
+
+    // K = P*Hᵀ * S^-1
+    if !S.cholesky_decompose_lower() {
+        return CorrectionStatus::NotPositiveDefinite;
+    }
+    S.invert_l_cholesky(S_inv); // S_inv = S^-1
+
+    // Gate on the normalized innovation squared before anything else is written.
+    *nis = normalized_innovation_squared(y, S_inv);
+    if gate.is_some_and(|gate| *nis > gate) {
+        return CorrectionStatus::Gated;
+    }
+
+    // NOTE that to allow aliasing of Sinv and temp_PHt, a copy must be performed here
+    P.mult_transb(H, temp_PHt); // temp = P*H'
+    temp_PHt.mult(S_inv, K); // K = temp*Sinv
+    CorrectionStatus::Applied
+}
+
+/// Performs the first pass of the recalibrated update of the extended observations from an
+/// innovation `y = z - h(x)` that is already computed.
+///
+/// Computes the gain `K` at the prior as [`update_with_innovation`] does, keeps the prior `x`
+/// in the first column of `temp_KHP` and moves the state to `x⁺ = x + K×y`. The caller then
+/// writes the Jacobian `H₂` at `x⁺` into `H` and calls [`recalibrate_covariance`]. Returns
+/// early, leaving `x` and `P` unchanged, if `S` is not positive definite or the innovation
+/// is gated.
+#[allow(non_snake_case, clippy::too_many_arguments)]
+pub(crate) fn update_state_for_recalibration<const STATES: usize, const OBSERVATIONS: usize, T>(
+    x: &mut impl MatrixMut<STATES, 1, T>,
+    P: &impl Matrix<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+    K: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    S_inv: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
+    nis: &mut T,
+    gate: Option<T>,
+) -> CorrectionStatus
+where
+    T: MatrixDataType,
+{
+    let status = compute_kalman_gain(P, H, R, y, K, S, S_inv, temp_HP, temp_PHt, nis, gate);
+    if !status.is_applied() {
+        return status;
+    }
+
+    // temp_KHP may alias temp_PHt and S_inv, so the prior is only stored once K exists.
+    for i in 0..STATES {
+        temp_KHP.set(i, 0, x.get(i, 0));
+    }
+
+    K.multadd_rowvector(y, x);
+    CorrectionStatus::Applied
+}
+
+/// Performs the second pass of the recalibrated update of the extended observations, after
+/// [`update_state_for_recalibration`] moved `x` to `x⁺` and `H` holds the Jacobian `H₂` at
+/// `x⁺`.
+///
+/// Recalibrates the covariance with the Joseph form
+/// `P⁺ = P − K×H₂×P − (K×H₂×P)ᵀ + K×(H₂×P×H₂ᵀ + R)×Kᵀ`. If `trace(P⁺) > trace(P)`, both `x`
+/// and `P` are restored and [`CorrectionStatus::BackedOut`] is returned. The trace is
+/// compared before `P` is written. Only `temp_HP` and `temp_KHP` are used, since `temp_PHt`
+/// and `S_inv` may alias either of them.
+#[allow(non_snake_case, clippy::too_many_arguments)]
+pub(crate) fn recalibrate_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
+    x: &mut impl MatrixMut<STATES, 1, T>,
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    K: &impl Matrix<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
+    temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
+) -> CorrectionStatus
+where
+    T: MatrixDataType,
+{
+    // S₂ = H₂*P*H₂ᵀ + R, with temp_HP = H₂*P.
+    H.mult(P, temp_HP);
+    temp_HP.mult_transb(H, S);
+    S.add_inplace_a(R);
+
+    // trace(P⁺) - trace(P) = trace(K*S₂*Kᵀ) - 2*trace(K*H₂*P)
+    let cross = trace_of_product(K, temp_HP);
+    if trace_of_gain_sandwich(K, S) - cross - cross > T::zero() {
+        for i in 0..STATES {
+            x.set(i, 0, temp_KHP.get(i, 0));
+        }
+        return CorrectionStatus::BackedOut;
+    }
+
+    // P = P - K*H₂*P - (K*H₂*P)ᵀ + K*S₂*Kᵀ
+    K.mult(temp_HP, temp_KHP);
+    sub_symmetric_part(P, temp_KHP);
+    S.mult_transb(K, temp_HP); // temp_HP = S₂*Kᵀ
+    K.mult(temp_HP, temp_KHP);
+    P.add_inplace_a(temp_KHP);
+    CorrectionStatus::Applied
+}
+
+/// Computes `trace(K×S×Kᵀ)` without forming the `STATES × STATES` product.
+#[allow(non_snake_case)]
+pub(crate) fn trace_of_gain_sandwich<const STATES: usize, const OBSERVATIONS: usize, T>(
+    K: &impl Matrix<STATES, OBSERVATIONS, T>,
+    S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+) -> T
+where
+    T: MatrixDataType,
+{
+    let mut trace = T::zero();
+    for i in 0..STATES {
+        for j in 0..OBSERVATIONS {
+            let mut row = T::zero();
+            for l in 0..OBSERVATIONS {
+                row += S.get(j, l) * K.get(i, l);
+            }
+            trace += K.get(i, j) * row;
+        }
+    }
+    trace
+}
+
+/// Computes `trace(A×B)` of a `STATES × OBSERVATIONS` matrix `A` and an
+/// `OBSERVATIONS × STATES` matrix `B` without forming the product.
+#[allow(non_snake_case)]
+fn trace_of_product<const STATES: usize, const OBSERVATIONS: usize, T>(
+    A: &impl Matrix<STATES, OBSERVATIONS, T>,
+    B: &impl Matrix<OBSERVATIONS, STATES, T>,
+) -> T
+where
+    T: MatrixDataType,
+{
+    let mut trace = T::zero();
+    for i in 0..STATES {
+        for j in 0..OBSERVATIONS {
+            trace += A.get(i, j) * B.get(j, i);
+        }
+    }
+    trace
+}
+
+/// Subtracts `M + Mᵀ` from `P` in place.
+#[allow(non_snake_case)]
+pub(crate) fn sub_symmetric_part<const STATES: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    M: &impl Matrix<STATES, STATES, T>,
+) where
+    T: MatrixDataType,
+{
+    for i in 0..STATES {
+        for j in 0..STATES {
+            P.set(i, j, P.get(i, j) - M.get(i, j) - M.get(j, i));
         }
     }
 }

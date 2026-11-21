@@ -5,7 +5,9 @@ use crate::matrix::{
     AsMatrix, AsMatrixMut, Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut,
     SquareMatrix,
 };
-use crate::observations::normalized_innovation_squared;
+use crate::observations::{
+    normalized_innovation_squared, sub_symmetric_part, trace_of_gain_sandwich,
+};
 
 /// Kalman Filter measurement structure for Unscented Kalman Filter.
 #[allow(non_snake_case)]
@@ -369,17 +371,8 @@ where
         NX: FnMut(&mut [T]),
         NZ: FnMut(&mut [T]),
     {
-        let n = T::from_usize(STATES).unwrap();
-        let w0_m = lambda / (n + lambda);
-        let z_pred = anchored_mean(
-            self.sigma_observed.as_matrix(),
-            weights,
-            w0_m,
-            &mut fix_measurement,
-        );
-        self.compute_innovation_covariance_weighted(&z_pred, weights, &mut fix_measurement);
-        self.compute_cross_covariance_weighted(
-            &z_pred,
+        let w0_m = mean_weight::<STATES, T>(lambda);
+        let z_pred = self.compute_covariances(
             sigma_propagated,
             weights,
             w0_m,
@@ -394,6 +387,104 @@ where
             self.apply_correction(x, P);
         }
         status
+    }
+
+    /// Computes the predicted measurement `ẑ` from the observed sigma points, then the
+    /// innovation covariance `S = Pzz + R` and the cross covariance `Pxz` against
+    /// `sigma_propagated`. Returns `ẑ`.
+    fn compute_covariances<SP, W, NX, NZ>(
+        &mut self,
+        sigma_propagated: &SP,
+        weights: &W,
+        w0_m: T,
+        fix_state: &mut NX,
+        fix_measurement: &mut NZ,
+    ) -> [T; OBSERVATIONS]
+    where
+        SP: AsMatrix<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
+        NX: FnMut(&mut [T]),
+        NZ: FnMut(&mut [T]),
+    {
+        let z_pred = anchored_mean(
+            self.sigma_observed.as_matrix(),
+            weights,
+            w0_m,
+            fix_measurement,
+        );
+        self.compute_innovation_covariance_weighted(&z_pred, weights, fix_measurement);
+        self.compute_cross_covariance_weighted(
+            &z_pred,
+            sigma_propagated,
+            weights,
+            w0_m,
+            fix_state,
+            fix_measurement,
+        );
+        z_pred
+    }
+
+    /// Returns the state correction `K×y`.
+    #[allow(non_snake_case)]
+    fn state_correction(&self) -> [T; STATES] {
+        let y = self.y.as_matrix();
+        let K = self.K.as_matrix();
+
+        let mut correction = [T::default(); STATES];
+        for (i, c) in correction.iter_mut().enumerate() {
+            for j in 0..OBSERVATIONS {
+                *c += K.get(i, j) * y.get(j, 0);
+            }
+        }
+        correction
+    }
+
+    /// Applies the recalibrated covariance `P⁺ = P + K×S₂×Kᵀ − Pxz₂×Kᵀ − K×Pxz₂ᵀ` and the
+    /// state `x⁺ = x + K×y`, unless `trace(P⁺) > trace(P)`; then `x` and `P` are left
+    /// unchanged and [`CorrectionStatus::BackedOut`] is returned.
+    ///
+    /// Expects `S` and the cross covariance to hold `S₂` and `Pxz₂` of the shifted sigma
+    /// points, and `K` the gain of the first pass. Overwrites the cross covariance.
+    #[allow(non_snake_case)]
+    fn apply_recalibrated_correction<XVec, PCov>(
+        &mut self,
+        x: &mut XVec,
+        P: &mut PCov,
+        correction: &[T; STATES],
+    ) -> CorrectionStatus
+    where
+        XVec: StateVectorMut<STATES, T>,
+        PCov: EstimateCovarianceMatrix<STATES, T>,
+    {
+        let K = self.K.as_matrix();
+        let S = self.S.as_matrix();
+        let cross_cov = self.cross_covariance.as_matrix_mut();
+
+        // trace(P⁺) - trace(P) = trace(K*S₂*Kᵀ) - 2*trace(Pxz₂*Kᵀ)
+        let mut cross = T::zero();
+        for i in 0..STATES {
+            for j in 0..OBSERVATIONS {
+                cross += cross_cov.get(i, j) * K.get(i, j);
+            }
+        }
+        if trace_of_gain_sandwich(K, S) - cross - cross > T::zero() {
+            return CorrectionStatus::BackedOut;
+        }
+
+        let x_mat = x.as_matrix_mut();
+        for (i, c) in correction.iter().enumerate() {
+            x_mat.set(i, 0, x_mat.get(i, 0) + *c);
+        }
+
+        // P = P - Pxz₂*Kᵀ - K*Pxz₂ᵀ + K*S₂*Kᵀ
+        let P_mat = P.as_matrix_mut();
+        let temp_P = self.temp_P.as_matrix_mut();
+        cross_cov.mult_transb(K, temp_P);
+        sub_symmetric_part(P_mat, temp_P);
+        K.mult(S, cross_cov); // cross_cov = K*S₂
+        cross_cov.mult_transb(K, temp_P);
+        P_mat.add_inplace_a(temp_P);
+        CorrectionStatus::Applied
     }
 
     /// Computes the innovation `y = fix(z - ẑ)`.
@@ -855,6 +946,132 @@ where
             fix_state,
             fix_measurement,
         )
+    }
+}
+
+impl<
+        const STATES: usize,
+        const OBSERVATIONS: usize,
+        const NUM_SIGMA: usize,
+        T,
+        SigmaObserved,
+        CrossCov,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempP,
+    > KalmanFilterUnscentedObservationCorrectRecalibrated<STATES, OBSERVATIONS, NUM_SIGMA, T>
+    for UnscentedObservation<
+        STATES,
+        OBSERVATIONS,
+        NUM_SIGMA,
+        T,
+        SigmaObserved,
+        CrossCov,
+        Z,
+        R,
+        Y,
+        S,
+        K,
+        TempSInv,
+        TempP,
+    >
+where
+    T: MatrixDataType
+        + Copy
+        + core::ops::Add<Output = T>
+        + core::ops::Mul<Output = T>
+        + core::ops::Sub<Output = T>
+        + core::ops::Div<Output = T>
+        + num_traits::FromPrimitive
+        + Default,
+    Z: MeasurementVectorMut<OBSERVATIONS, T>,
+    R: MeasurementNoiseCovarianceMatrix<OBSERVATIONS, T>,
+    Y: InnovationVector<OBSERVATIONS, T>,
+    S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    K: KalmanGainMatrix<STATES, OBSERVATIONS, T>,
+    TempSInv: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>,
+    SigmaObserved:
+        SigmaObservedMatrix<OBSERVATIONS, NUM_SIGMA, T> + AsMatrixMut<OBSERVATIONS, NUM_SIGMA, T>,
+    CrossCov: CrossCovarianceMatrix<STATES, OBSERVATIONS, T>,
+    TempP: TempSigmaPMatrix<STATES, T>,
+{
+    #[allow(non_snake_case)]
+    fn correct_with_observed_recalibrated_residuals<X, P, SP, F, W, NX, NZ>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        sigma_propagated: &mut SP,
+        weights: &W,
+        lambda: T,
+        mut observation: F,
+        mut fix_state: NX,
+        mut fix_measurement: NZ,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        SP: AsMatrixMut<STATES, NUM_SIGMA, T>,
+        W: AsMatrix<NUM_SIGMA, 1, T>,
+        F: FnMut(&SP, &mut Self::ObservedSigmaPoints),
+        NX: FnMut(&mut [T]),
+        NZ: FnMut(&mut [T]),
+    {
+        let w0_m = mean_weight::<STATES, T>(lambda);
+
+        // First pass: gain and innovation at the prior.
+        observation(sigma_propagated, &mut self.sigma_observed);
+        let z_pred = self.compute_covariances(
+            sigma_propagated,
+            weights,
+            w0_m,
+            &mut fix_state,
+            &mut fix_measurement,
+        );
+        self.compute_innovation(&z_pred, &mut fix_measurement);
+        let status = self.compute_kalman_gain();
+        if !status.is_applied() {
+            return status;
+        }
+
+        // Second pass: S₂ and Pxz₂ from the sigma points shifted to x⁺, keeping K and y.
+        let correction = self.state_correction();
+        shift_columns(sigma_propagated.as_matrix_mut(), &correction);
+        observation(sigma_propagated, &mut self.sigma_observed);
+        self.compute_covariances(
+            sigma_propagated,
+            weights,
+            w0_m,
+            &mut fix_state,
+            &mut fix_measurement,
+        );
+
+        self.apply_recalibrated_correction(x, P, &correction)
+    }
+}
+
+/// The weight `λ/(n+λ)` of the centre sigma point in the mean.
+fn mean_weight<const STATES: usize, T>(lambda: T) -> T
+where
+    T: MatrixDataType,
+{
+    let n = T::from_usize(STATES).unwrap();
+    lambda / (n + lambda)
+}
+
+/// Adds `offset` to every column of `points`.
+fn shift_columns<const ROWS: usize, const COLS: usize, T, M>(points: &mut M, offset: &[T; ROWS])
+where
+    T: MatrixDataType,
+    M: MatrixMut<ROWS, COLS, T>,
+{
+    for k in 0..COLS {
+        for (i, o) in offset.iter().enumerate() {
+            points.set(i, k, points.get(i, k) + *o);
+        }
     }
 }
 
