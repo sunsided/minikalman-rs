@@ -53,6 +53,56 @@ pub mod support {
 /// [`TimeUpdate`](crate::regular::TimeUpdate), `correct_in`, `settle_gain`, the observer's
 /// typed gain forms) works unchanged.
 ///
+/// The examples below build up from the smallest filter. The [reference](#reference) at the
+/// end has the grammar and the expansion of each item.
+///
+/// ## The smallest filter
+///
+/// One state, one observation and one Kalman filter. `build` wires each part to its storage,
+/// `model` writes the declared matrices, and from there it is the library API:
+///
+/// ```
+/// use minikalman::prelude::*;
+///
+/// minikalman::filter! {
+///     state Track(f32) { pos, vel }
+///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.01); }
+///     kalman tracker for Track {
+///         A = identity;
+///         A[pos, vel] = 0.1;
+///         Q[vel, vel] = 0.01;
+///         P = diag(10.0);
+///     }
+/// }
+///
+/// fn main() {
+///     let (mut filter_storage, mut gps_storage) = (tracker::new(), gps::new());
+///     let mut filter = tracker::build(&mut filter_storage);
+///     let mut gps = gps::build(&mut gps_storage);
+///     tracker::model(&mut filter);
+///     gps::model(&mut gps);
+///
+///     for pos in [0.1, 0.2, 0.32, 0.4, 0.49, 0.61, 0.7, 0.79] {
+///         filter.predict();
+///         Gps { pos }.write(gps.measurement_vector_mut().as_mut_slice());
+///         filter.correct(&mut gps);
+///     }
+///
+///     let track = Track::read(filter.state_vector().as_slice());
+///     assert!(track.vel > 0.5 && track.vel < 1.5);
+/// }
+/// ```
+///
+/// Invoke `filter!` at module level, not in a function body: each generated module imports
+/// its parent with `use super::*`, which is how the statements see your constants and
+/// functions.
+///
+/// ## A control, and two filters sharing it
+///
+/// A `system` puts every part in one value, and its handle has one field per part. The fields
+/// are disjoint borrows, so the same observation and control serve both filters, one call at
+/// a time:
+///
 /// ```
 /// use minikalman::models::motion::constant_velocity;
 /// use minikalman::prelude::*;
@@ -60,249 +110,211 @@ pub mod support {
 /// const DT: f32 = 0.1;
 ///
 /// minikalman::filter! {
-///     /// Position and velocity on a line.
-///     pub state Track(f32) { pos, vel }
-///
-///     /// A position fix.
-///     pub observation gps: Gps for Track { pos } {
-///         H = [pos];
-///         R = diag(0.5);
-///     }
+///     state Track(f32) { pos, vel }
 ///
 ///     /// Commanded acceleration.
-///     pub control throttle: Throttle for Track { accel } {
+///     control throttle: Throttle for Track { accel } {
 ///         B[pos, accel] = 0.5 * DT * DT;
 ///         B[vel, accel] = DT;
 ///         Q = diag(0.01);
 ///     }
 ///
-///     pub kalman tracker for Track {
+///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+///
+///     /// Reacts quickly.
+///     kalman fast for Track {
 ///         A = |a| constant_velocity(DT, 1.0).fill_transition(a);
 ///         Q = |q| constant_velocity(DT, 1.0).fill_process_noise(q);
 ///         P = identity;
 ///     }
 ///
-///     /// Everything in one value.
-///     pub system tracking { tracker, gps, throttle }
-/// }
-///
-/// fn main() {
-///     let mut storage = tracking::new(); // or a `static`, see below
-///     let mut sys = tracking::build(&mut storage); // wiring only
-///     tracking::model(&mut sys); // writes A, Q, P, H, R, B and Qᵤ
-///
-///     for k in 0..50 {
-///         let t = k as f32 * DT;
-///         Throttle { accel: 1.0 }.write(sys.throttle.control_vector_mut().as_mut_slice());
-///         sys.tracker.predict().control(&mut sys.throttle);
-///         Gps { pos: 0.5 * t * t }.write(sys.gps.measurement_vector_mut().as_mut_slice());
-///         sys.tracker.correct(&mut sys.gps);
+///     /// Smooths.
+///     kalman slow for Track {
+///         A = |a| constant_velocity(DT, 0.01).fill_transition(a);
+///         Q = |q| constant_velocity(DT, 0.01).fill_process_noise(q);
+///         P = identity;
 ///     }
 ///
-///     let track = Track::read(sys.tracker.state_vector().as_slice());
-///     assert!((track.vel - 4.9).abs() < 0.5);
-/// }
-/// ```
-///
-/// Invoke it at module level, not in a function body: each generated module imports its
-/// parent with `use super::*`, which is how the statements see your constants and functions
-/// (`DT`, `constant_velocity` above).
-///
-/// ## Grammar
-///
-/// ```text
-/// filter!     := item*
-/// item        := attr* vis? ( state | observation | control | scratch
-///                           | kalman | luenberger | system )
-///
-/// state       := 'state' Name '(' Scalar ')' '{' field,* '}'
-/// observation := 'observation' 'lean'? mod ':' Name 'for' StatePath
-///                '{' field,* '}' '{' stmt* '}'
-/// control     := 'control' mod ':' Name 'for' StatePath '{' field,* '}' '{' stmt* '}'
-/// scratch     := 'scratch' mod 'for' '[' obsmod,+ ']' ';'
-/// kalman      := 'kalman' mod 'for' StatePath '{' stmt* '}'
-/// luenberger  := 'luenberger' 'predictor'? mod 'for' StatePath '{' stmt* '}'
-///                'gains' '{' ( obsmod '{' stmt* '}' )* '}'
-/// system      := 'system' mod '{' member,+ '}'
-///
-/// field       := attr* ident                    -- doc comments allowed, as in state!
-/// stmt        := M '=' 'identity' ';'
-///              | M '=' 'diag' '(' expr ')' ';'
-///              | M '[' row ',' col ']' '=' expr ';'
-///              | M '=' '[' state,* ']' ';'      -- H only: row i selects state i
-///              | M '=' '|' ident '|' expr ';'   -- any filler, e.g. models::*
-///              | v '=' expr ';'                 -- vectors x, z, u: a Name { .. } value
-/// ```
-///
-/// The matrices each block accepts, and the names that index their rows and columns:
-///
-/// | Block | Matrix | Rows × columns named by |
-/// |---|---|---|
-/// | `kalman` | `A`, `P`, `Q` / vector `x` | state × state / state |
-/// | `luenberger` | `A` / vector `x` | state × state / state |
-/// | `luenberger … gains { gps { … } }` | `K` (current form), `L` (`predictor` form) | state × `gps::Value` |
-/// | `observation` | `H` / `R` / vector `z` | measurement × state / measurement × measurement / measurement |
-/// | `control` | `B` / `Q` / vector `u` | state × control / control × control / control |
-///
-/// So in `A[pos, vel] = DT;` both names are constants of the state, in `H[pos, pos]` the row
-/// is `Gps::pos` and the column `Track::pos`, and in `B[vel, accel]` the column is
-/// `Throttle::accel`. The role of the matrix picks the namespace; you never qualify a name.
-///
-/// ## What each item expands to
-///
-/// | Item | Module contents |
-/// |---|---|
-/// | `state Track(f32) { pos, vel }` | no module: a [`state!`](crate::state) struct `Track` |
-/// | `observation gps: Gps for Track { pos } { … }` | `Storage` = [`ObservationStorage`](crate::regular::ObservationStorage), `Handle` = [`BorrowedObservation`](crate::regular::BorrowedObservation), `Value`, `STATES`, `OBSERVATIONS`, `fill_h`; plus a `state!` struct `Gps` |
-/// | `observation lean gps: …` | the same over [`LeanObservationStorage`](crate::regular::LeanObservationStorage) and [`BorrowedLeanObservation`](crate::regular::BorrowedLeanObservation) |
-/// | `control throttle: Throttle for Track { accel } { … }` | `Storage` = [`ControlStorage`](crate::regular::ControlStorage), `Handle` = [`BorrowedControl`](crate::regular::BorrowedControl), `Value`, `STATES`, `CONTROLS`; plus a `state!` struct `Throttle` |
-/// | `scratch shared for [gps, lidar];` | `Storage` = [`CorrectionScratch`](crate::regular::CorrectionScratch) sized for the largest, `Handle` = `&mut Storage`, `MAX_OBSERVATIONS` |
-/// | `kalman fast for Track { … }` | `Storage` = [`FilterStorage`](crate::regular::FilterStorage), `Handle` = [`BorrowedKalman`](crate::regular::BorrowedKalman) |
-/// | `luenberger steady for Track { … } gains { gps { … } }` | struct `Storage { observer, gps }` of [`ObserverStorage`](crate::regular::ObserverStorage) and [`FixedGainObservationStorage`](crate::regular::FixedGainObservationStorage), struct `Handle { observer, gps }` |
-/// | `luenberger predictor steady …` | the same over [`PredictorObserverStorage`](crate::regular::PredictorObserverStorage) and [`Predictor`](crate::prelude::Predictor)-form observations |
-/// | `system tracking { fast, gps, … }` | struct `Storage` of the members' `Storage`, struct `Handle` of their `Handle` |
-///
-/// Every module (all items but `state`) has `Scalar`, `STATES`, `pub const fn new() ->
-/// Storage`, `pub fn build(&mut Storage) -> Handle<'_>` and `pub fn model(&mut Handle<'_>)`.
-/// The generated code contains no `unsafe`, no `static` and no allocation, only paths you
-/// could write by hand; `cargo expand` shows it.
-///
-/// ## `build()` wires, `model()` writes
-///
-/// `build()` is pure wiring, exactly like the storage types' own `build()`: it writes nothing,
-/// so what the storage held stays. `model()` writes the declared values (`A`, `Q`, `P`, `x₀`,
-/// `H`, `R`, `B`, `Qᵤ`, `u`, `z` and the gains) and nothing else:
-///
-/// * Call it once after the first `build()`; `system::model` calls the model of every member.
-/// * Call it again to reset a filter to its declared model and initial values.
-/// * It writes only what is declared: `P = identity;` sets every entry of `P`, while
-///   `A[pos, vel] = DT;` sets one entry and leaves the others as they are. Entries you never
-///   declare (e.g. an `x` without `x = …`) keep their value, which is zero after `new()`.
-/// * In a `luenberger` block, `model()` writes each observation's `H` from its declaration
-///   (`fill_h`) and the gain only when the gain block is non-empty, so `gains { gps {} }`
-///   keeps a gain you set yourself, e.g. one from `settle_gain`.
-///
-/// The declared values are code that runs at start-up, not data: the storage stays zeroed,
-/// so a `static` of it lands in `.bss`.
-///
-/// ## Observations: full or lean
-///
-/// An `observation` owns its temporaries by default, so it works with every correction:
-/// `correct`, `correct_with_gain`, `settle_gain` and the robust variants. `observation lean`
-/// stores only `H`, `z`, `R`, `y`, `S` and `K`; correct it through `correct_in` with a
-/// `scratch` that lists it. One scratch serves every lean observation it lists, of every
-/// filter over the same state:
-///
-/// ```
-/// use minikalman::prelude::*;
-///
-/// minikalman::filter! {
-///     state Track(f32) { pos, vel }
-///     observation lean gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
-///     observation lean odometry: Odometry for Track { pos, vel } {
-///         H = identity;
-///         R = diag(0.1);
-///     }
-///     scratch shared for [gps, odometry];
-///     kalman tracker for Track { A = identity; A[pos, vel] = 0.1; P = identity; Q = diag(0.01); }
-///     system tracking { tracker, gps, odometry, shared }
+///     system tracking { fast, slow, gps, throttle }
 /// }
 ///
 /// fn main() {
 ///     let mut storage = tracking::new();
 ///     let mut sys = tracking::build(&mut storage);
-///     tracking::model(&mut sys);
-///     assert_eq!(shared::MAX_OBSERVATIONS, 2);
+///     tracking::model(&mut sys); // every member's model
 ///
-///     sys.tracker.predict();
-///     Gps { pos: 1.0 }.write(sys.gps.measurement_vector_mut().as_mut_slice());
-///     assert!(sys.tracker.correct_in(&mut sys.gps, sys.shared).is_applied());
+///     for k in 0..50 {
+///         let t = k as f32 * DT;
+///         Throttle { accel: 1.0 }.write(sys.throttle.control_vector_mut().as_mut_slice());
+///         for filter in [&mut sys.fast, &mut sys.slow] {
+///             filter.predict().control(&mut sys.throttle);
+///             Gps { pos: 0.5 * t * t }.write(sys.gps.measurement_vector_mut().as_mut_slice());
+///             filter.correct(&mut sys.gps);
+///         }
+///     }
+///
+///     let fast = Track::read(sys.fast.state_vector().as_slice());
+///     assert!((fast.vel - 4.9).abs() < 0.5);
 /// }
 /// ```
 ///
-/// ## Sharing
+/// Each correction rewrites `y`, `S` and `K` in the shared observation, so afterwards they
+/// describe the last filter corrected. If you read the NIS or the gain per filter, use one
+/// observation per filter.
 ///
-/// * **Objects.** A `system` handle is a struct of disjoint `pub` fields, so
-///   `sys.fast.correct(&mut sys.gps)` borrows `sys.fast` and `sys.gps` separately, and the
-///   same observation and control can serve several filters over the same state, one call at
-///   a time. Each correction rewrites `y`, `S` and `K` in the observation, so they describe the
-///   last filter corrected; use one observation per filter when you read the NIS or the gain
-///   per filter.
-/// * **Declarations.** Items refer to each other only by Rust paths (`gps::OBSERVATIONS`,
-///   `gps::fill_h`, `fast::Storage`), so rustc does the name resolution and the shape checks,
-///   and items can be split across `filter!` blocks, modules and crates. Declare the state,
-///   observations and controls once, and the filters wherever they are used: a `for` clause
-///   takes any path, resolved from inside the generated module, so write a name in scope or
-///   an absolute path (`kalman third for crate::shared::Track { … }`, not `super::…`), while `scratch`,
-///   `luenberger … gains` and `system` name their members as modules in scope, so `use` the
-///   shared ones first (`use crate::shared::{gps, throttle};`).
-/// * A `luenberger` block shares the *declaration* of an observation (its value type and its
-///   `H`), not the object: its fixed-gain observations are a different library type.
+/// ## A fixed-gain observer with a settled gain
 ///
-/// ## Memory and placement
-///
-/// Every `Storage` is the library storage type or a plain struct of them. A `luenberger` and
-/// a `system` storage carry a compile-time assert that their size is exactly the sum of their
-/// parts. It can fail for a `system` whose members mix scalars of different alignment, e.g.
-/// `f32` and `f64`, when the struct needs padding; use one `system` per scalar.
-///
-/// `filter!` creates no `static` and allocates nothing: you place one value, on the stack as
-/// above or in a `static` through a take-once cell such as `static_cell::ConstStaticCell` (not
-/// a dependency of this crate) rather than a `static mut`:
-///
-/// ```ignore
-/// static STORAGE: ConstStaticCell<tracking::Storage> = ConstStaticCell::new(tracking::new());
-///
-/// let mut sys = tracking::build(STORAGE.take()); // .bss, nothing moved at runtime
-/// tracking::model(&mut sys);
-/// ```
-///
-/// An RTIC `#[local]` resource or a `Box::new(tracking::new())` work the same way. Each item's
-/// `Storage` can also be placed on its own, e.g. the scratch on the stack and the filters in
-/// a separate RAM section.
-///
-/// ## Fixed-gain observers
-///
-/// A `luenberger` block runs a [`LuenbergerObserver`](crate::regular::LuenbergerObserver): no
-/// covariance, a fixed gain per observation, written in the current form `K` by default or in
-/// the predictor form `L` with `luenberger predictor`. Writing `L` in a current-form block (or
-/// `K` in a predictor-form one) is a compile error, as is correcting with a gain of the other
-/// form. The observation's `H` comes from its `observation` declaration:
+/// A `luenberger` block runs a [`LuenbergerObserver`](crate::regular::LuenbergerObserver), with
+/// no covariance and a fixed gain per observation. The observation's `H` comes from its
+/// `observation` declaration. Here the gain comes from
+/// [`settle_gain`](crate::regular::RegularKalman::settle_gain) on a Kalman filter. The empty
+/// gain block `gps {}` tells `model` to leave that gain alone:
 ///
 /// ```
+/// use minikalman::models::motion::constant_velocity;
 /// use minikalman::prelude::*;
 ///
 /// const DT: f32 = 0.1;
 ///
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
-///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.25); }
 ///
+///     /// The design filter: only run to settle the gain.
+///     kalman design for Track {
+///         A = |a| constant_velocity(DT, 1.0).fill_transition(a);
+///         Q = |q| constant_velocity(DT, 1.0).fill_process_noise(q);
+///         P = identity;
+///     }
+///
+///     /// The run-time observer: `A`, `x` and one temporary, no covariance.
 ///     luenberger steady for Track {
-///         A = identity;
-///         A[pos, vel] = DT;
+///         A = |a| constant_velocity(DT, 1.0).fill_transition(a);
 ///     } gains {
-///         gps { K[pos, pos] = 0.5; K[vel, pos] = 0.8; }
+///         gps {}
 ///     }
 /// }
 ///
 /// fn main() {
+///     let (mut design_storage, mut gps_storage) = (design::new(), gps::new());
+///     let mut design = design::build(&mut design_storage);
+///     let mut gps = gps::build(&mut gps_storage);
+///     design::model(&mut design);
+///     gps::model(&mut gps);
+///     design.settle_gain(&mut gps, 1e-6, 10_000).expect("the gain settles");
+///
 ///     let mut storage = steady::new();
 ///     let mut observer = steady::build(&mut storage);
-///     steady::model(&mut observer);
+///     observer.gps.set_gain(gps.kalman_gain());
+///     steady::model(&mut observer); // writes A and H; the empty gain block keeps K∞
 ///
 ///     observer.observer.predict();
 ///     Gps { pos: 1.0 }.write(observer.gps.measurement_vector_mut().as_mut_slice());
 ///     assert!(observer.observer.correct(&mut observer.gps).is_applied());
-///     assert_eq!(Track::read(observer.observer.state_vector().as_slice()).pos, 0.5);
+///     assert!(Track::read(observer.observer.state_vector().as_slice()).pos > 0.0);
 /// }
 /// ```
+///
+/// You can also write the gain itself, as `gps { K[pos, pos] = 0.5; K[vel, pos] = 0.8; }`.
+/// The gain's name depends on the form, by design:
+///
+/// * A current-form block (`luenberger`) takes `K`, for `x̂⁺ = x̂⁻ + K·(z − H·x̂⁻)`.
+/// * A predictor-form block (`luenberger predictor`) takes `L`, for
+///   `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`.
+///
+/// The names follow the library's own. The other name is a compile error, which catches
+/// [the gain convention trap](crate::regular::LuenbergerObserver#the-gain-convention-trap):
+/// a gain written in one form and run in the other.
+///
+/// ## Lean observations and a shared scratch, to save memory
+///
+/// An `observation` owns its correction temporaries by default, so it works with every
+/// correction: `correct`, `correct_with_gain`, `settle_gain` and the robust variants.
+/// `observation lean` stores only `H`, `z`, `R`, `y`, `S` and `K`. It corrects through
+/// `correct_in`, which borrows the temporaries from a `scratch` sized for the largest
+/// observation the scratch lists. One scratch serves every lean observation it lists, in
+/// every filter over the same state.
+///
+/// Here the two lean observations and their scratch take 176 bytes instead of 212. Every
+/// further lean observation saves its temporaries again:
+///
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman::regular::ObservationStorage;
+///
+/// minikalman::filter! {
+///     state Track(f32) { pos, vel }
+///     observation lean gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+///     observation lean odometry: Odometry for Track { pos, vel } { H = identity; R = diag(0.1); }
+///     scratch shared for [gps, odometry];
+///     kalman tracker for Track { A = identity; A[pos, vel] = 0.1; P = identity; Q = diag(0.01); }
+///     system tracking { tracker, gps, odometry, shared }
+/// }
+///
+/// fn main() {
+///     use core::mem::size_of;
+///     let lean = size_of::<gps::Storage>() + size_of::<odometry::Storage>()
+///         + size_of::<shared::Storage>();
+///     let full = size_of::<ObservationStorage<2, 1, f32>>()
+///         + size_of::<ObservationStorage<2, 2, f32>>();
+///     assert_eq!((lean, full), (176, 212));
+///
+///     let mut storage = tracking::new();
+///     let mut sys = tracking::build(&mut storage);
+///     tracking::model(&mut sys);
+///
+///     sys.tracker.predict();
+///     Gps { pos: 1.0 }.write(sys.gps.measurement_vector_mut().as_mut_slice());
+///     assert!(sys.tracker.correct_in(&mut sys.gps, sys.shared).is_applied());
+///     Odometry { pos: 1.0, vel: 0.5 }.write(sys.odometry.measurement_vector_mut().as_mut_slice());
+///     assert!(sys.tracker.correct_in(&mut sys.odometry, sys.shared).is_applied());
+/// }
+/// ```
+///
+/// ## Placement: on the stack or in a `static`
+///
+/// `filter!` creates no `static` and allocates nothing. You place one value, and `new()` is a
+/// `const fn` that zeroes it, so a `static` of it lands in `.bss`. For a local, write
+/// `let mut storage = tracking::new();` as above. A `static` can be initialized directly:
+///
+/// ```
+/// minikalman::filter! {
+///     state Track(f32) { pos, vel }
+///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
+///     kalman tracker for Track { A = identity; P = identity; }
+///     system tracking { tracker, gps }
+/// }
+///
+/// static STORAGE: tracking::Storage = tracking::new();
+///
+/// fn main() {
+///     // 20 + 17 f32: FilterStorage<2> and ObservationStorage<2, 1>, nothing else.
+///     assert_eq!(core::mem::size_of_val(&STORAGE), 37 * 4);
+/// }
+/// ```
+///
+/// To get a `&'static mut` without `static mut`, go through a take-once cell such as
+/// `static_cell::ConstStaticCell`. That crate is not a dependency of this one, so this
+/// snippet is not compiled here:
+///
+/// ```ignore
+/// use static_cell::ConstStaticCell;
+///
+/// static STORAGE: ConstStaticCell<tracking::Storage> = ConstStaticCell::new(tracking::new());
+///
+/// let mut sys = tracking::build(STORAGE.take()); // .bss, nothing moved at runtime
+/// tracking::model(&mut sys);
+/// ```
+///
+/// An RTIC `#[local]` resource and a `Box::new(tracking::new())` work the same way. You can
+/// also place each item's `Storage` on its own, e.g. the scratch on the stack and the filters
+/// in a separate RAM section.
 ///
 /// ## Fixed point
 ///
 /// Any [`MatrixDataType`](crate::matrix::MatrixDataType) scalar that implements
-/// [`num_traits::ConstZero`] works; for the `fixed` feature, that needs `fixed` 1.28 or newer.
-/// The statements take the values as written, so write typed constants:
+/// [`num_traits::ConstZero`] works. With the `fixed` feature, that needs `fixed` 1.28 or
+/// newer. The statements take values as written, so declare typed constants:
 ///
 /// ```
 /// # fn main() {
@@ -336,13 +348,12 @@ pub mod support {
 /// # }
 /// ```
 ///
-/// ## Compile-time checks
+/// ## What a mistake looks like
 ///
 /// Shapes are never written as numbers: they come from the `state!` entry counts, and matrix
-/// entries are addressed only by name. What remains is checked at compile time.
+/// entries are addressed only by name. Anything left over is checked at compile time.
 ///
-/// An unknown index name is rustc's own E0599, "no … named `vz` found for struct `Track`",
-/// pointing at the name:
+/// A typo in an index name is rustc's own error, pointing at the name:
 ///
 /// ```compile_fail
 /// minikalman::filter! {
@@ -352,8 +363,15 @@ pub mod support {
 /// fn main() {}
 /// ```
 ///
-/// An `H = [...]` that does not name one state per measurement fails with "`H = [...]` must
-/// name exactly one state per measurement", also under `cargo check`:
+/// ```text
+/// error[E0599]: no associated function or constant named `vz` found for struct `Track` in the current scope
+///   |
+/// 3 |     kalman bad for Track { A[pos, vz] = 0.1; }
+///   |                                   ^^ associated function or constant not found in `Track`
+/// ```
+///
+/// An `H = [...]` that does not name exactly one state per measurement fails a const assert,
+/// which also fires under `cargo check`:
 ///
 /// ```compile_fail
 /// minikalman::filter! {
@@ -363,63 +381,171 @@ pub mod support {
 /// fn main() {}
 /// ```
 ///
-/// A matrix of another block fails with "filter!: `R` is not a matrix of a `kalman` block":
-///
-/// ```compile_fail
-/// minikalman::filter! {
-///     state Track(f32) { pos, vel }
-///     kalman bad for Track { R = diag(0.5); }
-/// }
-/// fn main() {}
+/// ```text
+/// error[E0080]: evaluation panicked: `H = [...]` must name exactly one state per measurement
 /// ```
 ///
-/// A gain written in the other form fails with "filter!: a current-form gain is `K`; `L` is
-/// the gain of a `luenberger predictor` block" (and the reverse):
+/// The other checked mistakes:
 ///
-/// ```compile_fail
-/// minikalman::filter! {
-///     state Track(f32) { pos, vel }
-///     observation gps: Gps for Track { pos } { H = [pos]; }
-///     luenberger bad for Track { A = identity; } gains { gps { L[pos, pos] = 0.5; } }
-/// }
-/// fn main() {}
+/// * A matrix of another block fails with "filter!: `R` is not a matrix of a `kalman` block":
+///
+///   ```compile_fail
+///   minikalman::filter! {
+///       state Track(f32) { pos, vel }
+///       kalman bad for Track { R = diag(0.5); }
+///   }
+///   fn main() {}
+///   ```
+///
+/// * A gain in the wrong form fails with "filter!: a current-form gain is `K`; `L` is the gain
+///   of a `luenberger predictor` block", and the reverse for `K` in a predictor-form block:
+///
+///   ```compile_fail
+///   minikalman::filter! {
+///       state Track(f32) { pos, vel }
+///       observation gps: Gps for Track { pos } { H = [pos]; }
+///       luenberger bad for Track { A = identity; } gains { gps { L[pos, pos] = 0.5; } }
+///   }
+///   fn main() {}
+///   ```
+///
+/// * An observation of another state type fails on the library's trait bound: E0277,
+///   `KalmanFilterObservationCorrectFilter<2, f32>` is not satisfied for an observation of 3
+///   states:
+///
+///   ```compile_fail
+///   minikalman::filter! {
+///       state Track(f32) { pos, vel }
+///       state Pose(f32) { x, y, heading }
+///       observation compass: Compass for Pose { heading } { H = [heading]; }
+///       kalman fast for Track { A = identity; }
+///   }
+///
+///   fn main() {
+///       let (mut filter_storage, mut compass_storage) = (fast::new(), compass::new());
+///       let mut filter = fast::build(&mut filter_storage);
+///       let mut compass = compass::build(&mut compass_storage);
+///       filter.correct(&mut compass);
+///   }
+///   ```
+///
+/// * A misspelled keyword fails with "filter!: expected `state`, `observation`, …, found: …".
+///   Syntax errors point at the whole block, not at the bad token; the `found:` text shows
+///   where parsing stopped.
+///
+/// ## How it works
+///
+/// ### `build()` wires, `model()` writes
+///
+/// `build()` is pure wiring, exactly like the storage types' own `build()`. It writes nothing,
+/// so whatever the storage held stays. `model()` writes the declared values (`A`, `Q`, `P`,
+/// `x₀`, `H`, `R`, `B`, `Qᵤ`, `u`, `z` and the gains) and nothing else:
+///
+/// * Call it once after the first `build()`. `system::model` calls the model of every member.
+/// * Call it again to reset a filter to its declared model and initial values.
+/// * It writes only what is declared. `P = identity;` sets every entry of `P`, while
+///   `A[pos, vel] = DT;` sets one entry and leaves the others as they are. Entries you never
+///   declare, such as an `x` without `x = …`, keep their value, which is zero after `new()`.
+/// * In a `luenberger` block, `model()` writes each observation's `H` from its declaration
+///   (`fill_h`). It writes the gain only when the gain block is non-empty.
+///
+/// The declared values are code that runs at start-up, not data. The storage stays zeroed, so
+/// a `static` of it lands in `.bss`.
+///
+/// ### Sharing declarations
+///
+/// Items refer to each other only by Rust paths (`gps::OBSERVATIONS`, `gps::fill_h`,
+/// `fast::Storage`). Rustc therefore does the name resolution and the shape checks, and you
+/// can split items across `filter!` blocks, modules and crates: declare the state,
+/// observations and controls once, and the filters wherever they are used.
+///
+/// * A `for` clause takes any path, resolved from inside the generated module. Write a name in
+///   scope or an absolute path (`kalman third for crate::shared::Track { … }`), not `super::…`.
+/// * `scratch`, `luenberger … gains` and `system` name their members as modules in scope, so
+///   `use` the shared ones first (`use crate::shared::{gps, throttle};`).
+/// * A `luenberger` block shares the *declaration* of an observation (its value type and its
+///   `H`), not the object. Its fixed-gain observations are a different library type.
+///
+/// ### Memory
+///
+/// Every `Storage` is the library storage type or a plain struct of them. A `luenberger` and a
+/// `system` storage carry a compile-time assert that their size is exactly the sum of their
+/// parts. The assert can fail for a `system` whose members mix scalars of different alignment,
+/// e.g. `f32` and `f64`, when the struct needs padding; use one `system` per scalar. The
+/// generated code contains no `unsafe`, no `static` and no allocation, only paths you could
+/// write by hand; `cargo expand` shows it.
+///
+/// ## Reference
+///
+/// ### Grammar
+///
+/// ```text
+/// filter!     := item*
+/// item        := attr* vis? ( state | observation | control | scratch
+///                           | kalman | luenberger | system )
+///
+/// state       := 'state' Name '(' Scalar ')' '{' field,* '}'
+/// observation := 'observation' 'lean'? mod ':' Name 'for' StatePath
+///                '{' field,* '}' '{' stmt* '}'
+/// control     := 'control' mod ':' Name 'for' StatePath '{' field,* '}' '{' stmt* '}'
+/// scratch     := 'scratch' mod 'for' '[' obsmod,+ ']' ';'
+/// kalman      := 'kalman' mod 'for' StatePath '{' stmt* '}'
+/// luenberger  := 'luenberger' 'predictor'? mod 'for' StatePath '{' stmt* '}'
+///                'gains' '{' ( obsmod '{' stmt* '}' )* '}'
+/// system      := 'system' mod '{' member,+ '}'
+///
+/// field       := attr* ident                    -- doc comments allowed, as in state!
+/// stmt        := M '=' 'identity' ';'
+///              | M '=' 'diag' '(' expr ')' ';'
+///              | M '[' row ',' col ']' '=' expr ';'
+///              | M '=' '[' state,* ']' ';'      -- H only: row i selects state i
+///              | M '=' '|' ident '|' expr ';'   -- any filler, e.g. models::*
+///              | v '=' expr ';'                 -- vectors x, z, u: a Name { .. } value
 /// ```
 ///
-/// An observation of another state type fails on the library's trait bound
-/// (`KalmanFilterObservationCorrectFilter<2, f32>` is not satisfied for an observation of 3
-/// states):
+/// ### Matrices per block
 ///
-/// ```compile_fail
-/// minikalman::filter! {
-///     state Track(f32) { pos, vel }
-///     state Pose(f32) { x, y, heading }
-///     observation compass: Compass for Pose { heading } { H = [heading]; }
-///     kalman fast for Track { A = identity; }
-/// }
+/// | Block | Matrix | Rows × columns named by |
+/// |---|---|---|
+/// | `kalman` | `A`, `P`, `Q` / vector `x` | state × state / state |
+/// | `luenberger` | `A` / vector `x` | state × state / state |
+/// | `luenberger … gains { gps { … } }` | `K` (current form), `L` (`predictor` form) | state × `gps::Value` |
+/// | `observation` | `H` / `R` / vector `z` | measurement × state / measurement × measurement / measurement |
+/// | `control` | `B` / `Q` / vector `u` | state × control / control × control / control |
 ///
-/// fn main() {
-///     let (mut filter_storage, mut compass_storage) = (fast::new(), compass::new());
-///     let mut filter = fast::build(&mut filter_storage);
-///     let mut compass = compass::build(&mut compass_storage);
-///     filter.correct(&mut compass);
-/// }
-/// ```
+/// The role of the matrix picks the namespace, so you never qualify a name. In
+/// `A[pos, vel] = DT;` both names are constants of the state. In `H[pos, pos]` the row is
+/// `Gps::pos` and the column `Track::pos`. In `B[vel, accel]` the column is `Throttle::accel`.
 ///
-/// A misspelled keyword fails with "filter!: expected `state`, `observation`, …, found: …".
-/// Syntax errors point at the whole block rather than at the bad token; the `found:` text
-/// shows where parsing stopped.
+/// ### What each item expands to
 ///
-/// ## Limits
+/// | Item | Module contents |
+/// |---|---|
+/// | `state Track(f32) { pos, vel }` | no module: a [`state!`](crate::state) struct `Track` |
+/// | `observation gps: Gps for Track { pos } { … }` | `Storage` = [`ObservationStorage`](crate::regular::ObservationStorage), `Handle` = [`BorrowedObservation`](crate::regular::BorrowedObservation), `Value`, `STATES`, `OBSERVATIONS`, `fill_h`; plus a `state!` struct `Gps` |
+/// | `observation lean gps: …` | the same over [`LeanObservationStorage`](crate::regular::LeanObservationStorage) and [`BorrowedLeanObservation`](crate::regular::BorrowedLeanObservation) |
+/// | `control throttle: Throttle for Track { accel } { … }` | `Storage` = [`ControlStorage`](crate::regular::ControlStorage), `Handle` = [`BorrowedControl`](crate::regular::BorrowedControl), `Value`, `STATES`, `CONTROLS`; plus a `state!` struct `Throttle` |
+/// | `scratch shared for [gps, lidar];` | `Storage` = [`CorrectionScratch`](crate::regular::CorrectionScratch) sized for the largest, `Handle` = `&mut Storage`, `MAX_OBSERVATIONS` |
+/// | `kalman fast for Track { … }` | `Storage` = [`FilterStorage`](crate::regular::FilterStorage), `Handle` = [`BorrowedKalman`](crate::regular::BorrowedKalman) |
+/// | `luenberger steady for Track { … } gains { gps { … } }` | struct `Storage { observer, gps }` of [`ObserverStorage`](crate::regular::ObserverStorage) and [`FixedGainObservationStorage`](crate::regular::FixedGainObservationStorage), struct `Handle { observer, gps }`, `Form` |
+/// | `luenberger predictor steady …` | the same over [`PredictorObserverStorage`](crate::regular::PredictorObserverStorage) and [`Predictor`](crate::prelude::Predictor)-form observations |
+/// | `system tracking { fast, gps, … }` | struct `Storage` of the members' `Storage`, struct `Handle` of their `Handle` |
 ///
-/// * Only the regular Kalman filter and the Luenberger observer, so far; the other filters
-///   are wired by hand from their storage types.
+/// Every module (all items but `state`) has `Scalar`, `STATES`, `pub const fn new() ->
+/// Storage`, `pub fn build(&mut Storage) -> Handle<'_>` and `pub fn model(&mut Handle<'_>)`.
+///
+/// ### Limits
+///
+/// * So far, only the regular Kalman filter and the Luenberger observer. Wire the other
+///   filters by hand from their storage types.
 /// * Matrices are set by the statement forms above; there are no matrix literals.
-/// * Closures stay at the call site (`predict_nonlinear` and friends are not generated), and
-///   named indices inside a closure body are written as `m.set_at(Track::pos, Track::vel, v)`.
-/// * Statements and `for` paths expand inside the generated module: they see the parent's
-///   items (through `use super::*`), not function locals, and `self::` / `super::` are
-///   relative to the generated module. Its own names (`Storage`, `Handle`, `Scalar`, `STATES`,
-///   `new`, `build`, `model`, `fill_h`, …) shadow parent items of the same name.
+/// * Closures stay at the call site: `predict_nonlinear` and friends are not generated. Inside
+///   a closure body, write named indices as `m.set_at(Track::pos, Track::vel, v)`.
+/// * Statements and `for` paths expand inside the generated module:
+///   * They see the parent's items (through `use super::*`), not function locals.
+///   * `self::` and `super::` are relative to the generated module.
+///   * The module's own names (`Storage`, `Handle`, `Scalar`, `STATES`, `new`, `build`,
+///     `model`, `fill_h`, …) shadow parent items of the same name.
 /// * Put `#[cfg]` on the `filter!` invocation, not on an item inside it.
 /// * The statements of one item expand recursively, about 120 per item at the default
 ///   `recursion_limit`.
