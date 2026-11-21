@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::matrix::MatrixDataType;
+use crate::matrix::{MatrixData, MatrixDataBoxed, MatrixDataType};
 
 use crate::buffers::builder::*;
 
@@ -9,6 +9,7 @@ use crate::regular::{
     Control, ControlBuilder, RegularKalman, RegularKalmanBuilder, RegularObservation,
     RegularObservationBuilder,
 };
+use crate::ud::UdKalman;
 
 /// A simple builder for [`RegularKalman`] instances.
 #[derive(Copy, Clone)]
@@ -55,6 +56,21 @@ pub type InformationFilterType<const STATES: usize, T> = InformationFilter<
     TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
     TemporaryStateMatrixBufferOwnedType<STATES, T>,
     TemporaryStateMatrixBufferOwnedType<STATES, T>,
+>;
+
+/// The type of UD filters with owned buffers.
+///
+/// See also [`KalmanFilterBuilder::build_ud`].
+pub type UdKalmanType<const STATES: usize, const TWO_STATES: usize, T> = UdKalman<
+    STATES,
+    TWO_STATES,
+    T,
+    SystemMatrixMutBufferOwnedType<STATES, T>,
+    StateVectorBufferOwnedType<STATES, T>,
+    EstimateCovarianceMatrixBufferOwnedType<STATES, T>,
+    DirectProcessNoiseCovarianceMatrixBufferOwnedType<STATES, T>,
+    MatrixDataBoxed<STATES, TWO_STATES, T>,
+    MatrixDataBoxed<TWO_STATES, 1, T>,
 >;
 
 impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
@@ -121,6 +137,31 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
             BufferBuilder::state_prediction_temp_x::<STATES>().new(),
             BufferBuilder::temp_system_covariance_P::<STATES>().new(),
             BufferBuilder::temp_system_covariance_P::<STATES>().new(),
+        )
+    }
+
+    /// Builds a new UD filter using heap allocated buffers.
+    ///
+    /// `TWO_STATES` must be `2 × STATES`. The filter starts with `x = 0`, `P = 0` and `Q = 0`;
+    /// set them with [`UdKalman::set_state`] and [`UdKalman::set_process_noise`]. Observations
+    /// built with [`observations`](Self::observations) are applied with [`UdKalman::correct`].
+    ///
+    /// ## Panics
+    /// Panics if `TWO_STATES` is not `2 × STATES`, unless the `no_assert` feature is enabled.
+    pub fn build_ud<const TWO_STATES: usize>(&self) -> UdKalmanType<STATES, TWO_STATES, T>
+    where
+        T: MatrixDataType + Default,
+    {
+        UdKalman::new(
+            BufferBuilder::system_matrix_A::<STATES>().new(),
+            BufferBuilder::state_vector_x::<STATES>().new(),
+            BufferBuilder::estimate_covariance_P::<STATES>().new(),
+            BufferBuilder::direct_process_noise_covariance_Q::<STATES>().new(),
+            MatrixData::new_boxed::<STATES, TWO_STATES, T, _>(alloc::vec![
+                T::default();
+                STATES * TWO_STATES
+            ]),
+            MatrixData::new_boxed::<TWO_STATES, 1, T, _>(alloc::vec![T::default(); TWO_STATES]),
         )
     }
 

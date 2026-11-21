@@ -1,0 +1,22 @@
+flowchart LR
+    %% One step of the UD filter. Style: see docs/diagrams/README.md.
+    %% Node IDs: init (set_state), prior, predict, correct (once per observation), posterior,
+    %% recover (state), estimate, rejected and gated (correct leaves the filter unchanged).
+    initial[/"x̂, P"/]
+    init["set_state<br/>P = U·D·Uᵀ"]
+    prior(["state, factors<br/>x̂ₖ₋₁, U, D"])
+    predict["predict (MWGS)<br/>x̂⁻ = A·x̂<br/>W = [A·U, U_q]<br/>U⁻·D⁻·U⁻ᵀ = W·D̆·Wᵀ"]
+    correct["correct (Bierman)<br/>R = U_R·D_R·U_Rᵀ<br/>row by row of U_R⁻¹·H:<br/>U, D, x̂ ← scalar update"]
+    z[/"observation<br/>H, R, z"/]
+    posterior(["state, factors<br/>x̂ₖ, U, D"])
+    recover["state<br/>P = U·D·Uᵀ"]
+    estimate(["estimate<br/>x̂ₖ, Pₖ"])
+    rejected("NotPositiveDefinite")
+    gated("Gated")
+    initial -.-> init -.-> prior
+    prior --> predict --> correct --> posterior
+    z --> correct
+    posterior -.->|"on demand"| recover -.-> estimate
+    correct -.->|"R or S not positive definite"| rejected
+    correct -.->|"NIS > gate"| gated
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

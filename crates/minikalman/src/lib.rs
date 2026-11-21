@@ -312,6 +312,18 @@ pub mod information {
     pub use crate::kalman::information::*;
 }
 
+/// UD Filters: linear Kalman filters with the covariance factored as `P = U·D·Uᵀ`, without
+/// square roots, for fixed-point targets and ill-conditioned problems.
+///
+/// The [`UdKalman`](ud::UdKalman) keeps `P` positive semi-definite by construction. Each step
+/// predicts with [`predict`](ud::UdKalman::predict) (Thornton's MWGS) and corrects with
+/// [`correct`](ud::UdKalman::correct) (Bierman's sequential update) from regular observations;
+/// [`state`](ud::UdKalman::state) recovers `P` when needed:
+#[doc = diagram!("ud-loop.mmd")]
+pub mod ud {
+    pub use crate::kalman::ud::*;
+}
+
 /// Extended Kalman Filters (EKF)
 ///
 /// A Kalman filter for `x̂ₖ = f(x̂ₖ₋₁)` and `z = h(x̂) + v` with nonlinear `f` and `h`. Before each
@@ -426,7 +438,7 @@ pub mod prelude {
         impl_buffer_sigma_propagated, impl_buffer_sigma_weights, impl_buffer_temp_BQ,
         impl_buffer_temp_HP, impl_buffer_temp_KHP, impl_buffer_temp_P, impl_buffer_temp_PHt,
         impl_buffer_temp_S_inv, impl_buffer_temp_sigma_P, impl_buffer_temp_x, impl_buffer_u,
-        impl_buffer_x, impl_buffer_y, impl_buffer_z,
+        impl_buffer_ud_D, impl_buffer_ud_W, impl_buffer_x, impl_buffer_y, impl_buffer_z,
     };
 
     pub use crate::{

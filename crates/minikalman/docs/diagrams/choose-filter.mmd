@@ -8,6 +8,7 @@ flowchart LR
     jacobians{{"Jacobians available,<br/>mild nonlinearity?"}}
     regular["regular<br/>RegularKalman"]
     information["information<br/>InformationFilter::fuse"]
+    ud["ud<br/>UdKalman"]
     extended["extended<br/>ExtendedKalman"]
     unscented["unscented<br/>UnscentedKalman<br/>(CKF: α=1, β=0, κ=0)"]
     outliers{{"outliers or<br/>heavy tails?"}}
@@ -20,6 +21,7 @@ flowchart LR
     linear -- yes --> fusion
     fusion -- no --> regular
     fusion -- yes --> information
+    regular -. "fixed-point or<br/>ill-conditioned" .-> ud
     linear -- no --> jacobians
     jacobians -- yes --> extended
     jacobians -- no --> unscented
