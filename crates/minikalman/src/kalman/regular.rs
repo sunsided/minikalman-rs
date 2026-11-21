@@ -330,6 +330,8 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// Performs the time update / prediction step.
     ///
     #[doc = diagram!("regular-loop.mmd", "predict")]
+    /// Unlike the plain [`predict`](Self::predict) shown above, this scales the propagated
+    /// covariance by `1/λ²` before adding `Q`: `P ← A·P·Aᵀ/λ² + Q`.
     ///
     /// This call assumes that the control covariance and variables are already set in the filter structure.
     ///
