@@ -1,0 +1,20 @@
+flowchart LR
+    %% One step of an error-state / invariant EKF on a Lie group. Style: see docs/diagrams/README.md.
+    %% The filter holds the error ξ = x̂ and P; the caller holds the nominal state X̂ on the group.
+    %% `inject` is the caller's step after each correction. No cycle edge.
+    prior(["X̂ₖ₋₁, ξ = 0, Pₖ₋₁"])
+    nominal["caller: move nominal<br/>X̂ ← X̂·Exp(u)"]
+    predict["predict<br/>ξ ← 0<br/>P ← A·P·Aᵀ + Q"]
+    correct["correct<br/>y = fix(z − h(X̂))<br/>ξ ← K·y<br/>P ← P − K·H·P"]
+    inject["caller: inject<br/>X̂ ← X̂·Exp(ξ)<br/>P ← J·P·Jᵀ, ξ ← 0"]
+    posterior(["X̂ₖ, ξ = 0, Pₖ"])
+    u[/"input u"/]
+    ajac[/"error Jacobian A, e.g. Ad_Exp(u)⁻¹"/]
+    hjac[/"invariant Jacobian H"/]
+    z[/"measurement z"/]
+    prior --> nominal --> predict --> correct --> inject --> posterior
+    u --> nominal
+    ajac --> predict
+    hjac --> correct
+    z --> correct
+    classDef focus fill:#fbbf24,stroke:#b45309,stroke-width:3px,color:#1c1917

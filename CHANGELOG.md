@@ -13,6 +13,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added a `battery-soc` example: an Extended Kalman Filter that estimates a battery cell's state of
   charge from its terminal voltage with a first-order RC equivalent-circuit model and a nonlinear
   open-circuit voltage curve. It runs in CI and fails if the estimate does not converge ([#68]).
+- Added an `se2-iekf` example and an "error-state and invariant EKF" section in the `extended` docs:
+  `ExtendedKalman` estimates a body-frame error on SE(2) while the caller keeps the pose on the group,
+  next to a plain EKF started with the same 170° heading error. It runs in CI and fails if the
+  invariant filter does not converge ([#112]).
 - Added `models::gauss_markov::first_order` to fill the state transition and process noise entries of a
   first-order Gauss-Markov state, e.g. for sensor bias drift or colored noise, from its time constant and
   steady-state variance. Fixed-point types use `models::gauss_markov::from_coefficient` with a precomputed
@@ -151,6 +155,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignoring the UKF weights, and read observed sigma points that callers could not set. Use
   `correct_sigma_point` / `correct_sigma_point_with` on the filter instead.
 
+[#112]: https://github.com/sunsided/minikalman-rs/issues/112
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92
 [#86]: https://github.com/sunsided/minikalman-rs/issues/86
