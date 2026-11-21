@@ -28,6 +28,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Documented how to choose the Unscented Kalman Filter parameters `α`, `β` and `κ`, including the
   cubature Kalman filter settings (`α = 1, β = 0, κ = 0`) and the default `α = 1, β = 2, κ = 1`
   ([#64]).
+- Added `information::InformationFilter`, a linear filter in information form (`Y = P⁻¹`, `ŷ = P⁻¹×x`)
+  where independent sensors fuse by addition and in any order, starting from zero information if
+  needed ([#67]). `fuse` adds a `RegularObservation`; `predict` converts to `P` and back, costing two
+  extra `STATES` × `STATES` Cholesky inversions. Steps on matrices that are not positive definite return
+  `false` and leave the filter unchanged. `KalmanFilterBuilder::build_information` creates one with heap
+  allocated buffers.
 
 ### Fixed
 
@@ -64,6 +70,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#59]: https://github.com/sunsided/minikalman-rs/issues/59
 [#65]: https://github.com/sunsided/minikalman-rs/issues/65
 [#64]: https://github.com/sunsided/minikalman-rs/issues/64
+[#67]: https://github.com/sunsided/minikalman-rs/issues/67
 
 ## [0.8.1] - 2026-10-30
 

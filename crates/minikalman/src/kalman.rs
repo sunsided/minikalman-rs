@@ -3,6 +3,7 @@ pub use matrix_types::*;
 
 pub mod extended;
 mod filter_trait;
+pub mod information;
 mod matrix_types;
 pub mod regular;
 pub mod unscented;

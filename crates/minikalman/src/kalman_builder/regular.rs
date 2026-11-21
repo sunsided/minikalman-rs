@@ -4,6 +4,7 @@ use crate::matrix::MatrixDataType;
 
 use crate::buffers::builder::*;
 
+use crate::information::InformationFilter;
 use crate::regular::{
     Control, ControlBuilder, RegularKalman, RegularKalmanBuilder, RegularObservation,
     RegularObservationBuilder,
@@ -38,6 +39,21 @@ pub type KalmanFilterType<const STATES: usize, T> = RegularKalman<
     EstimateCovarianceMatrixBufferOwnedType<STATES, T>,
     DirectProcessNoiseCovarianceMatrixBufferOwnedType<STATES, T>,
     TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
+    TemporaryStateMatrixBufferOwnedType<STATES, T>,
+>;
+
+/// The type of information filters with owned buffers.
+///
+/// See also [`KalmanFilterBuilder::build_information`].
+pub type InformationFilterType<const STATES: usize, T> = InformationFilter<
+    STATES,
+    T,
+    SystemMatrixMutBufferOwnedType<STATES, T>,
+    EstimateCovarianceMatrixBufferOwnedType<STATES, T>,
+    StateVectorBufferOwnedType<STATES, T>,
+    DirectProcessNoiseCovarianceMatrixBufferOwnedType<STATES, T>,
+    TemporaryStatePredictionVectorBufferOwnedType<STATES, T>,
+    TemporaryStateMatrixBufferOwnedType<STATES, T>,
     TemporaryStateMatrixBufferOwnedType<STATES, T>,
 >;
 
@@ -85,6 +101,26 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
             process_noise,
             temp_x,
             temp_p,
+        )
+    }
+
+    /// Builds a new information filter using heap allocated buffers.
+    ///
+    /// The filter starts with zero information (`Y = 0`, `ŷ = 0`). Observations built with
+    /// [`observations`](Self::observations) can be fused into it with
+    /// [`InformationFilter::fuse`].
+    pub fn build_information(&self) -> InformationFilterType<STATES, T>
+    where
+        T: MatrixDataType + Default,
+    {
+        InformationFilter::new(
+            BufferBuilder::system_matrix_A::<STATES>().new(),
+            BufferBuilder::estimate_covariance_P::<STATES>().new(),
+            BufferBuilder::state_vector_x::<STATES>().new(),
+            BufferBuilder::direct_process_noise_covariance_Q::<STATES>().new(),
+            BufferBuilder::state_prediction_temp_x::<STATES>().new(),
+            BufferBuilder::temp_system_covariance_P::<STATES>().new(),
+            BufferBuilder::temp_system_covariance_P::<STATES>().new(),
         )
     }
 
