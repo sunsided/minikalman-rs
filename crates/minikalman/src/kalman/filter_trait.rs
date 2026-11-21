@@ -3,8 +3,9 @@ use crate::prelude::{AsMatrix, AsMatrixMut};
 
 /// The outcome of a correction step.
 ///
-/// A correction that is not [`Applied`](Self::Applied) leaves the state vector and the
-/// estimate covariance unchanged.
+/// A correction that is not [applied](Self::is_applied) leaves the state vector and the
+/// estimate covariance unchanged. Only [`Applied`](Self::Applied) and
+/// [`NotConverged`](Self::NotConverged) count as applied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum CorrectionStatus {
@@ -27,13 +28,20 @@ pub enum CorrectionStatus {
     /// recalibrated estimate less certain than the prediction is taken as a sign that the
     /// linearization at the prior was poor.
     BackedOut,
+    /// An iterative correction (e.g.
+    /// [`correct_predictively_oriented_vector`](crate::regular::RegularObservation::correct_predictively_oriented_vector))
+    /// ran out of its iteration budget before it converged. The measurement **was applied**
+    /// with the last iterate, which is a valid posterior with a positive definite covariance,
+    /// but it is not the exact solution. [`is_applied`](Self::is_applied) returns `true`.
+    NotConverged,
 }
 
 impl CorrectionStatus {
-    /// Returns `true` if the measurement was applied.
+    /// Returns `true` if the measurement was applied, i.e. for [`Applied`](Self::Applied) and
+    /// [`NotConverged`](Self::NotConverged).
     #[inline(always)]
     pub const fn is_applied(self) -> bool {
-        matches!(self, Self::Applied)
+        matches!(self, Self::Applied | Self::NotConverged)
     }
 }
 
@@ -639,6 +647,41 @@ pub trait KalmanFilterObservationCorrectPredictivelyOriented<const STATES: usize
     where
         X: StateVectorMut<STATES, T>,
         P: EstimateCovarianceMatrix<STATES, T>;
+}
+
+/// The predictively oriented (PrO) observation function for a regular Kalman Filter with
+/// vector observations.
+///
+/// See [`RegularObservation::correct_predictively_oriented_vector`](crate::regular::RegularObservation::correct_predictively_oriented_vector)
+/// for the iteration, its cost, and the workspace.
+pub trait KalmanFilterObservationCorrectPredictivelyOrientedVector<
+    const STATES: usize,
+    const OBSERVATIONS: usize,
+    T,
+>
+{
+    /// Performs the predictively oriented measurement update step.
+    ///
+    /// ## Arguments
+    /// * `x` - The state vector.
+    /// * `P` - The system covariance matrix.
+    /// * `workspace` - Three `OBSERVATIONS × OBSERVATIONS` scratch matrices.
+    /// * `max_iterations` - The budget of accepted steps of the iteration.
+    ///
+    /// Returns whether the measurement was applied and the iteration converged; see
+    /// [`CorrectionStatus`].
+    #[allow(non_snake_case)]
+    fn correct_predictively_oriented_vector<X, P, W>(
+        &mut self,
+        x: &mut X,
+        P: &mut P,
+        workspace: &mut crate::regular::PredictivelyOrientedWorkspace<W>,
+        max_iterations: usize,
+    ) -> CorrectionStatus
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        W: TemporaryResidualCovarianceInvertedMatrix<OBSERVATIONS, T>;
 }
 
 /// The observation function for an Extended Kalman Filter.

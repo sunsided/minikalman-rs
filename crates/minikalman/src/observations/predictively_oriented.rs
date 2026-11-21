@@ -1,4 +1,7 @@
-//! # Predictively oriented (PrO) correction for scalar linear observations.
+//! # Predictively oriented (PrO) correction for linear observations.
+//!
+//! This module solves the scalar case (`OBSERVATIONS = 1`) by Newton's method; see below.
+//! Vector observations are solved by a damped iteration in measurement space, see [`vector`].
 //!
 //! The PrO update (Shen, Duran-Martin, Oates, [arXiv:2606.03230](https://arxiv.org/abs/2606.03230);
 //! Kean, Shen, Oates, [arXiv:2610.14773](https://arxiv.org/abs/2610.14773)) replaces the Bayesian
@@ -33,6 +36,67 @@
 use crate::kalman::CorrectionStatus;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
 
+pub(crate) mod vector;
+
+/// Caller-provided scratch matrices for the predictively oriented correction of vector
+/// observations, see
+/// [`RegularObservation::correct_predictively_oriented_vector`](crate::regular::RegularObservation::correct_predictively_oriented_vector).
+///
+/// Holds three `OBSERVATIONS × OBSERVATIONS` matrices, e.g. built with
+/// [`BufferBuilder::temp_S_inv`](crate::buffers::builder::BufferBuilder::temp_S_inv) or the
+/// `impl_buffer_temp_S_inv!` macro. Their contents on entry do not matter, and after a correction
+/// they hold intermediate values only. A workspace can be shared by all observations of the
+/// same size. The three buffers MUST NOT be aliased with each other or with any buffer of the
+/// observation or the filter.
+///
+/// ## Example
+/// Without allocation, the buffers come from the `impl_buffer_temp_S_inv!` macro:
+/// ```
+/// use minikalman::prelude::*;
+/// use minikalman::regular::PredictivelyOrientedWorkspace;
+///
+/// const NUM_OBSERVATIONS: usize = 2;
+///
+/// impl_buffer_temp_S_inv!(mut pro_factor, NUM_OBSERVATIONS, f32, 0.0);
+/// impl_buffer_temp_S_inv!(mut pro_iterate, NUM_OBSERVATIONS, f32, 0.0);
+/// impl_buffer_temp_S_inv!(mut pro_trial, NUM_OBSERVATIONS, f32, 0.0);
+///
+/// let workspace = PredictivelyOrientedWorkspace::new(pro_factor, pro_iterate, pro_trial);
+/// ```
+///
+/// With `alloc`, from the [`BufferBuilder`](crate::buffers::builder::BufferBuilder):
+/// ```
+/// # #[cfg(feature = "alloc")] {
+/// use minikalman::prelude::*;
+///
+/// let workspace = PredictivelyOrientedWorkspace::new(
+///     BufferBuilder::temp_S_inv::<2>().new::<f32>(),
+///     BufferBuilder::temp_S_inv::<2>().new::<f32>(),
+///     BufferBuilder::temp_S_inv::<2>().new::<f32>(),
+/// );
+/// # }
+/// ```
+#[derive(Debug, Clone)]
+pub struct PredictivelyOrientedWorkspace<W> {
+    /// Holds `G = H×P̃×Hᵀ` and then its lower Cholesky factor during a correction.
+    pub(crate) factor: W,
+    /// Holds the accepted iterate of the measurement-space weight `W`.
+    pub(crate) iterate: W,
+    /// Holds the trial iterate of the line search, and the covariance update at the end.
+    pub(crate) trial: W,
+}
+
+impl<W> PredictivelyOrientedWorkspace<W> {
+    /// Creates a workspace from three distinct `OBSERVATIONS × OBSERVATIONS` buffers.
+    pub fn new(factor: W, iterate: W, trial: W) -> Self {
+        Self {
+            factor,
+            iterate,
+            trial,
+        }
+    }
+}
+
 /// Performs the PrO update of a scalar linear observation from the prior innovation `y = z − H×x`.
 ///
 /// Stores the normalized innovation squared `y²/(H×P×Hᵀ + R)` of the prior in `nis`, exactly as
@@ -45,16 +109,19 @@ use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
 /// `temp_PHt` may be aliased with `temp_KHP`, so it is copied into `K` before `temp_KHP` is
 /// written. The covariance term is formed before `K` is scaled to the gain, which keeps every
 /// intermediate of the order of the inputs even for huge outliers.
+///
+/// Generic over `OBSERVATIONS` only so that vector-capable callers can dispatch to it; it must
+/// be called with `OBSERVATIONS = 1`.
 #[allow(non_snake_case, clippy::too_many_arguments)]
-pub(crate) fn update_scalar<const STATES: usize, T>(
+pub(crate) fn update_scalar<const STATES: usize, const OBSERVATIONS: usize, T>(
     x: &mut impl MatrixMut<STATES, 1, T>,
     P: &mut impl MatrixMut<STATES, STATES, T>,
-    H: &impl Matrix<1, STATES, T>,
-    R: &impl Matrix<1, 1, T>,
-    y: &impl Matrix<1, 1, T>,
-    K: &mut impl MatrixMut<STATES, 1, T>,
-    S: &mut impl MatrixMut<1, 1, T>,
-    temp_PHt: &mut impl MatrixMut<STATES, 1, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    y: &impl Matrix<OBSERVATIONS, 1, T>,
+    K: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
     temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
     nis: &mut T,
     gate: Option<T>,
@@ -63,6 +130,8 @@ pub(crate) fn update_scalar<const STATES: usize, T>(
 where
     T: MatrixDataType,
 {
+    debug_assert_eq!(OBSERVATIONS, 1);
+
     // g = H*P*Hᵀ, kept in S.
     P.mult_transb(H, temp_PHt);
     H.mult(temp_PHt, S);
