@@ -128,5 +128,7 @@ mod tests {
     fn predict_covariance_mirrors_the_lower_triangle_fixed() {
         check_predict::<4, 16, fixed::types::I16F16>(None);
         check_predict::<3, 9, fixed::types::I32F32>(None);
+        check_predict::<4, 16, fixed::types::I16F16>(Some(fixed::types::I16F16::from_num(0.9)));
+        check_predict::<3, 9, fixed::types::I32F32>(Some(fixed::types::I32F32::from_num(0.95)));
     }
 }
