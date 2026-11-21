@@ -490,6 +490,10 @@ mod tests {
         assert_eq!(mat.nrows(), 2);
         assert_eq!(mat.ncols(), 3);
         assert_eq!(mat, expected_2x3());
+
+        // Contiguous, but `as_slice` keeps minikalman's row-major order.
+        assert!(mat.data.is_contiguous());
+        assert_eq!(mat.as_slice(), &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
     }
 
     #[cfg(feature = "unsafe")]
