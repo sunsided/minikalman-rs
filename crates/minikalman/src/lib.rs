@@ -375,6 +375,7 @@ pub mod regular {
     pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
     pub use crate::observations::regular::*;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
+    pub use crate::observations::scratch::CorrectionScratch;
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
     pub use crate::storage::regular::*;
 
@@ -480,6 +481,7 @@ pub mod extended {
     pub use crate::kalman::extended::*;
     pub use crate::observations::extended::*;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
+    pub use crate::observations::scratch::CorrectionScratch;
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
     pub use crate::storage::extended::*;
 
@@ -532,6 +534,7 @@ pub mod prelude {
     pub use crate::matrix::*;
     pub use crate::observations::predictively_oriented::PredictivelyOrientedWorkspace;
     pub use crate::observations::robust::{RobustCorrection, RobustWeight};
+    pub use crate::observations::scratch::CorrectionScratch;
     pub use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
     pub use crate::{

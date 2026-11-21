@@ -9,7 +9,8 @@ use crate::prelude::{RowMajorSequentialData, RowMajorSequentialDataMut};
 /// Mutable buffer for temporary sigma covariance computation (`num_states` × `num_states`).
 ///
 /// Temporary matrix used during sigma point covariance reconstruction.
-/// Can be aliased with other P-sized temporaries when memory is constrained.
+/// A buffer of its own: Rust forbids two live `&mut` to one buffer, so it never shares
+/// memory with another temporary.
 ///
 /// ## Example
 /// ```

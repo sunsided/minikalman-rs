@@ -95,11 +95,10 @@ const TOLERANCE: f64 = 1e-10;
 /// posterior with no higher objective than the start.
 ///
 /// ## Buffers
-/// - `factor`, `iterate` and `trial` are the caller's workspace and alias nothing.
+/// - All buffers are distinct; `factor`, `iterate` and `trial` are the caller's workspace.
 /// - `S` and `temp_S_inv` serve as `m×m` scratch, and row 0 of `temp_PHt` as an `m`-vector,
-///   during the iteration. `temp_S_inv` may alias `temp_HP` and `temp_KHP`, which are only
-///   written after the iteration; `temp_PHt` never aliases `temp_S_inv`.
-/// - `K` keeps `P̃×Hᵀ` until the end, since `temp_PHt` may alias `temp_KHP`, and holds the
+///   during the iteration. `temp_HP` and `temp_KHP` are only written after the iteration.
+/// - `K` keeps `P̃×Hᵀ` until the end, while `temp_PHt` and `temp_KHP` are reused, and holds the
 ///   mean gain `P̃×Hᵀ×M⁻¹` afterwards. `S` holds `H×P×Hᵀ + R` of the posterior.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 pub(crate) fn update_vector<const STATES: usize, const OBSERVATIONS: usize, T>(

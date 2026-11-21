@@ -118,7 +118,7 @@ pub struct ExtendedKalman<const STATES: usize, T, A, X, P, Q, PX, TempP> {
 
     /// P-Sized temporary matrix (number of states × number of states).
     ///
-    /// The backing field for this temporary MAY be aliased with temporary BQ.
+    /// A buffer of its own; it never shares memory with a control's `B×Q` temporary.
     temp_P: TempP,
 
     /// Online adaptation of `Q` from the state corrections; `None` (the default) disables it.
@@ -588,6 +588,76 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
             &mut self.x,
             &mut self.Q,
             |x| measurement.correct_nonlinear_with(x, &mut self.P, observation, fix),
+        )
+    }
+
+    /// Performs the nonlinear measurement update step with the observation's temporaries
+    /// borrowed from `scratch`.
+    ///
+    /// Computes exactly what [`correct_nonlinear`](Self::correct_nonlinear) computes. A lean
+    /// observation (see
+    /// [`ExtendedObservationBuilder::new_lean`](crate::extended::ExtendedObservationBuilder::new_lean)
+    /// or [`LeanObservationStorage`](crate::extended::LeanObservationStorage)) holds no
+    /// temporaries, so one [`CorrectionScratch`](crate::extended::CorrectionScratch) sized for
+    /// the largest observation serves all of them, one correction after the other.
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `scratch` - The temporaries, for any `MAX_OBSERVATIONS ≥ OBSERVATIONS`.
+    /// * `observation` - The observation function.
+    pub fn correct_nonlinear_in<M, F, const OBSERVATIONS: usize, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        scratch: &mut crate::extended::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        observation: F,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectIn<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+    {
+        self.correct_nonlinear_with_in(measurement, scratch, observation, |_| {})
+    }
+
+    /// Performs the nonlinear measurement update step with the observation's temporaries
+    /// borrowed from `scratch`, normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_nonlinear_in`](Self::correct_nonlinear_in) and
+    /// [`correct_nonlinear_with`](Self::correct_nonlinear_with).
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `scratch` - The temporaries.
+    /// * `observation` - The observation function.
+    /// * `fix` - Normalizes the innovation vector in place.
+    pub fn correct_nonlinear_with_in<
+        M,
+        F,
+        N,
+        const OBSERVATIONS: usize,
+        const MAX_OBSERVATIONS: usize,
+    >(
+        &mut self,
+        measurement: &mut M,
+        scratch: &mut crate::extended::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        observation: F,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterNonlinearObservationCorrectIn<STATES, OBSERVATIONS, T>,
+        F: FnMut(&X, &mut M::ObservationVector),
+        N: FnMut(&mut [T]),
+    {
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| measurement.correct_nonlinear_with_in(x, &mut self.P, scratch, observation, fix),
         )
     }
 

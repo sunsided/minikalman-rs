@@ -7,6 +7,7 @@ pub mod extended;
 pub(crate) mod predictively_oriented;
 pub mod regular;
 pub(crate) mod robust;
+pub(crate) mod scratch;
 pub mod unscented;
 
 /// Online adaptation of the measurement noise covariance `R` from the residuals of the
@@ -362,7 +363,7 @@ where
     }
 
     if let Some(adaptation) = adaptation {
-        // S_inv and temp_PHt are the only temporaries guaranteed not to alias each other.
+        // The adaptation needs two temporaries; S_inv and temp_PHt are free by now.
         adapt_measurement_noise(adaptation, P, H, R, y, K, S_inv, temp_PHt);
     }
 
@@ -402,7 +403,7 @@ where
     joseph_update(P, H, R, K, S, temp_HP, temp_PHt, temp_KHP);
 
     if let Some(adaptation) = adaptation {
-        // S_inv may alias temp_HP and temp_KHP, both of which are consumed by now.
+        // The adaptation reuses S_inv, which is free by now.
         adapt_measurement_noise_from_innovation(adaptation, R, y, S, S_inv);
     }
 
@@ -412,8 +413,8 @@ where
 /// Updates `P` with the Joseph form `P = P - K×H×P - (K×H×P)ᵀ + K×S×Kᵀ` for any gain `K`,
 /// leaving `S = H×P×Hᵀ + R` of the prior `P` in `S`.
 ///
-/// `temp_HP` must not alias `temp_KHP`; `temp_PHt` may alias either, since it is only written
-/// once both are consumed.
+/// `temp_HP`, `temp_PHt` and `temp_KHP` are distinct buffers; `temp_PHt` is only written
+/// once `temp_HP` and `temp_KHP` are consumed.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 fn joseph_update<const STATES: usize, const OBSERVATIONS: usize, T>(
     P: &mut impl MatrixMut<STATES, STATES, T>,
@@ -436,7 +437,7 @@ fn joseph_update<const STATES: usize, const OBSERVATIONS: usize, T>(
     K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
     subtract_with_transpose(P, temp_KHP);
 
-    // P = P + K*S*Kᵀ; temp_PHt MAY alias temp_KHP, so it is only written once temp_KHP is consumed.
+    // P = P + K*S*Kᵀ, once temp_KHP is consumed.
     K.mult(S, temp_PHt); // temp_PHt = K*S
     add_lower_product_mirrored(P, temp_PHt, K); // P += temp_PHt*Kᵀ
 }
@@ -642,7 +643,7 @@ where
         return CorrectionStatus::Gated;
     }
 
-    // NOTE that to allow aliasing of Sinv and temp_PHt, a copy must be performed here
+    // Sinv and temp_PHt are distinct buffers, so no copy is needed here.
     P.mult_transb(H, temp_PHt); // temp = P*H'
     temp_PHt.mult(S_inv, K); // K = temp*Sinv
     CorrectionStatus::Applied
@@ -680,7 +681,7 @@ where
         return status;
     }
 
-    // temp_KHP may alias temp_PHt and S_inv, so the prior is only stored once K exists.
+    // The prior is stored in temp_KHP once K exists.
     for i in 0..STATES {
         temp_KHP.set(i, 0, x.get(i, 0));
     }
@@ -696,8 +697,7 @@ where
 /// Recalibrates the covariance with the Joseph form
 /// `P⁺ = P − K×H₂×P − (K×H₂×P)ᵀ + K×(H₂×P×H₂ᵀ + R)×Kᵀ`. If `trace(P⁺) > trace(P)`, both `x`
 /// and `P` are restored and [`CorrectionStatus::BackedOut`] is returned. The trace is
-/// compared before `P` is written. Only `temp_HP` and `temp_KHP` are used, since `temp_PHt`
-/// and `S_inv` may alias either of them.
+/// compared before `P` is written. Only `temp_HP` and `temp_KHP` are used.
 #[allow(non_snake_case, clippy::too_many_arguments)]
 pub(crate) fn recalibrate_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
     x: &mut impl MatrixMut<STATES, 1, T>,

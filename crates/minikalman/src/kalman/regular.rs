@@ -118,7 +118,7 @@ pub struct RegularKalman<const STATES: usize, T, A, X, P, Q, PX, TempP> {
 
     /// P-Sized temporary matrix (number of states × number of states).
     ///
-    /// The backing field for this temporary MAY be aliased with temporary BQ.
+    /// A buffer of its own; it never shares memory with a control's `B×Q` temporary.
     temp_P: TempP,
 
     /// Online adaptation of `Q` from the state corrections; `None` (the default) disables it.
@@ -650,6 +650,87 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
             &mut self.x,
             &mut self.Q,
             |x| measurement.correct_with(x, &mut self.P, fix),
+        )
+    }
+
+    /// Performs the measurement update step with the observation's temporaries borrowed from
+    /// `scratch`.
+    ///
+    /// Computes exactly what [`correct`](Self::correct) computes. A lean observation (see
+    /// [`RegularObservationBuilder::new_lean`](crate::regular::RegularObservationBuilder::new_lean)
+    /// or [`LeanObservationStorage`](crate::regular::LeanObservationStorage)) holds no
+    /// temporaries, so one [`CorrectionScratch`](crate::regular::CorrectionScratch) sized for
+    /// the largest observation serves all of them, one correction after the other:
+    ///
+    /// ```
+    /// use minikalman::prelude::*;
+    /// use minikalman::regular::{CorrectionScratch, FilterStorage, LeanObservationStorage};
+    ///
+    /// let mut filter_storage = FilterStorage::<2, f32>::new(0.0);
+    /// let mut gps_storage = LeanObservationStorage::<2, 2, f32>::new(0.0);
+    /// let mut odometry_storage = LeanObservationStorage::<2, 1, f32>::new(0.0);
+    /// let mut scratch = CorrectionScratch::<2, 2, f32>::new(0.0);
+    ///
+    /// let mut filter = filter_storage.build();
+    /// let mut gps = gps_storage.build();
+    /// let mut odometry = odometry_storage.build();
+    /// # filter.state_transition_mut().make_identity();
+    /// # filter.estimate_covariance_mut().make_identity();
+    /// # gps.observation_matrix_mut().make_identity();
+    /// # gps.measurement_noise_covariance_mut().make_identity();
+    /// # odometry.observation_matrix_mut().apply(|h| h.set_at(0, 1, 1.0));
+    /// # odometry.measurement_noise_covariance_mut().make_identity();
+    ///
+    /// filter.predict();
+    /// filter.correct_in(&mut gps, &mut scratch);
+    /// filter.correct_in(&mut odometry, &mut scratch); // same scratch, disjoint in time
+    /// ```
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `scratch` - The temporaries, for any `MAX_OBSERVATIONS` at least the measurement's
+    ///   number of measurements.
+    pub fn correct_in<M, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        scratch: &mut crate::regular::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectIn<STATES, T>,
+    {
+        self.correct_with_in(measurement, scratch, |_| {})
+    }
+
+    /// Performs the measurement update step with the observation's temporaries borrowed from
+    /// `scratch`, normalizing the innovation before it is applied.
+    ///
+    /// See [`correct_in`](Self::correct_in) and [`correct_with`](Self::correct_with).
+    ///
+    /// ## Arguments
+    /// * `measurement` - The measurement.
+    /// * `scratch` - The temporaries.
+    /// * `fix` - Normalizes the innovation vector in place.
+    pub fn correct_with_in<M, N, const MAX_OBSERVATIONS: usize>(
+        &mut self,
+        measurement: &mut M,
+        scratch: &mut crate::regular::CorrectionScratch<STATES, MAX_OBSERVATIONS, T>,
+        fix: N,
+    ) -> CorrectionStatus
+    where
+        P: EstimateCovarianceMatrix<STATES, T>,
+        X: StateVectorMut<STATES, T>,
+        T: MatrixDataType,
+        M: KalmanFilterObservationCorrectIn<STATES, T>,
+        N: FnMut(&mut [T]),
+    {
+        correct_adapting_process_noise(
+            self.process_noise_adaptation,
+            &mut self.x,
+            &mut self.Q,
+            |x| measurement.correct_with_in(x, &mut self.P, scratch, fix),
         )
     }
 

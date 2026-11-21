@@ -277,6 +277,12 @@ the stack, and take the `&'static mut` through a take-once cell such as
 `static_cell::ConstStaticCell` rather than a `static mut`. The `impl_buffer_*` macros stay the
 tool for custom layouts, such as buffers in different memory sections.
 
+With several observations, their temporaries (49 of the 97 values of a 4-state, 3-measurement
+observation) can be shared: a `LeanObservationStorage` holds only `H`, `z`, `R`, `y`, `S` and
+`K`, and one `CorrectionScratch` sized for the largest observation lends the temporaries per
+call, `filter.correct_in(&mut gps, &mut scratch)` (`correct_nonlinear_in` for the EKF). The
+borrow checker keeps the sharing one correction at a time, and the results are bit-identical.
+
 
 `minikalman::state!` names the entries, so models and Jacobians index by name instead of by
 number:

@@ -232,3 +232,64 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T>
         )
     }
 }
+
+/// The six persistent buffers of a lean regular or extended observation, which borrows its
+/// temporaries per call from a [`CorrectionScratch`](crate::regular::CorrectionScratch).
+#[allow(non_snake_case)]
+pub(crate) struct LeanObservationBuffers<const STATES: usize, const OBSERVATIONS: usize, T> {
+    /// Observation matrix `H`, or its Jacobian for the EKF.
+    H: [[T; STATES]; OBSERVATIONS],
+    /// Measurement vector `z`.
+    z: [T; OBSERVATIONS],
+    /// Measurement noise covariance matrix `R`.
+    R: [[T; OBSERVATIONS]; OBSERVATIONS],
+    /// Innovation vector `y`.
+    y: [T; OBSERVATIONS],
+    /// Innovation covariance matrix `S`.
+    S: [[T; OBSERVATIONS]; OBSERVATIONS],
+    /// Kalman gain matrix `K`.
+    K: [[T; OBSERVATIONS]; STATES],
+}
+
+/// The six lean observation buffers, wired as borrowed buffer types in constructor order.
+pub(crate) type LeanObservationWiring<'a, const STATES: usize, const OBSERVATIONS: usize, T> = (
+    ObservationMatrixRef<'a, STATES, OBSERVATIONS, T>,
+    MeasurementVectorRef<'a, OBSERVATIONS, T>,
+    MeasurementNoiseRef<'a, OBSERVATIONS, T>,
+    InnovationVectorRef<'a, OBSERVATIONS, T>,
+    InnovationCovarianceRef<'a, OBSERVATIONS, T>,
+    KalmanGainRef<'a, STATES, OBSERVATIONS, T>,
+);
+
+impl<const STATES: usize, const OBSERVATIONS: usize, T: Copy>
+    LeanObservationBuffers<STATES, OBSERVATIONS, T>
+{
+    /// Creates the buffers with every entry set to `init`.
+    pub(crate) const fn new(init: T) -> Self {
+        Self {
+            H: [[init; STATES]; OBSERVATIONS],
+            z: [init; OBSERVATIONS],
+            R: [[init; OBSERVATIONS]; OBSERVATIONS],
+            y: [init; OBSERVATIONS],
+            S: [[init; OBSERVATIONS]; OBSERVATIONS],
+            K: [[init; OBSERVATIONS]; STATES],
+        }
+    }
+}
+
+impl<const STATES: usize, const OBSERVATIONS: usize, T>
+    LeanObservationBuffers<STATES, OBSERVATIONS, T>
+{
+    /// Borrows every buffer as its buffer type, in the order of
+    /// `RegularObservationBuilder::new_lean`.
+    pub(crate) fn wire(&mut self) -> LeanObservationWiring<'_, STATES, OBSERVATIONS, T> {
+        (
+            flat(&mut self.H).into(),
+            self.z.as_mut_slice().into(),
+            flat(&mut self.R).into(),
+            self.y.as_mut_slice().into(),
+            flat(&mut self.S).into(),
+            flat(&mut self.K).into(),
+        )
+    }
+}
