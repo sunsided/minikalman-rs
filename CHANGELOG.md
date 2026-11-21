@@ -121,6 +121,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `solve_lower_triangular_transposed_inplace`, `solve_upper_triangular_inplace` and
   `solve_upper_triangular_transposed_inplace` on `SquareMatrix`, which return `false` on a zero
   diagonal; the predictively oriented correction now uses them ([#109]).
+- Added an opt-in Joseph-form covariance update for `correct`, `correct_with`, `correct_nonlinear`
+  and `correct_nonlinear_with`: `set_covariance_update(CovarianceUpdate::Joseph)` on
+  `RegularObservation` and `ExtendedObservation`. The default, `CovarianceUpdate::Standard`, keeps
+  `P ← P − K×H×P` and its results unchanged. The Joseph form keeps `P` exactly symmetric and needs no
+  extra buffer. A new `numerical_robustness` test bench measures how `P` degrades in `f32`, `f64`,
+  `I16F16` and `I32F32`; in `f32` and `f64`, the Joseph form leaves `P` indefinite less often on ill-conditioned
+  measurements but does not prevent it, and does not help once `I16F16` variances approach its
+  resolution ([#107]).
 
 ### Fixed
 
@@ -154,6 +162,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Raised the MSRV to `1.80.0`, so const-generic storage can flatten nested `[[T; C]; R]` arrays
   with the safe `as_flattened_mut` instead of `unsafe` code. The CI MSRV job now checks on `1.80`
   ([#119]).
+- `correct_with_gain*` now forms only the lower triangle of `K×S×Kᵀ` and mirrors it, so `P` comes out
+  exactly symmetric; results change at the level of rounding, and an asymmetric `P` passed in is
+  symmetrized from its lower triangle ([#107]).
 
 ### Removed
 
@@ -163,6 +174,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [#112]: https://github.com/sunsided/minikalman-rs/issues/112
 [#111]: https://github.com/sunsided/minikalman-rs/issues/111
+[#107]: https://github.com/sunsided/minikalman-rs/issues/107
 [#91]: https://github.com/sunsided/minikalman-rs/issues/91
 [#92]: https://github.com/sunsided/minikalman-rs/issues/92
 [#86]: https://github.com/sunsided/minikalman-rs/issues/86

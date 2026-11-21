@@ -224,6 +224,58 @@ pub struct NoiseAdaptation<T> {
     pub floor: T,
 }
 
+/// How the regular and extended corrections with the Kalman gain update the estimate
+/// covariance `P`.
+///
+/// Set per observation with `set_covariance_update` on
+/// [`RegularObservation`](crate::regular::RegularObservation) and
+/// [`ExtendedObservation`](crate::extended::ExtendedObservation). Applies to `correct`,
+/// `correct_with`, `correct_nonlinear` and `correct_nonlinear_with`. The corrections with an
+/// externally supplied gain (`correct_with_gain*`) and the recalibrated extended corrections
+/// always use the Joseph form; the predictively oriented corrections write `P` their own way
+/// and ignore this setting.
+///
+/// ## Cost
+///
+/// [`Joseph`](Self::Joseph) needs no extra buffer. For `N` states and `m` measurements it adds
+/// about `2×N×m² + N²×m/2` multiply-adds per correction: it forms `S = H×P×Hᵀ + R` again
+/// (after the gain, the `S` buffer holds its Cholesky factor), then `K×S` and the lower
+/// triangle of `K×S×Kᵀ`.
+///
+/// ## What it buys
+///
+/// Measured with the `numerical_robustness` test bench of this crate:
+///
+/// - **Symmetry.** The Joseph form leaves `P` exactly symmetric in every type. The standard
+///   update leaves a relative asymmetry of about `10⁻⁵` in `f32` and `10⁻³` to `0.3` in
+///   `I16F16`, which the prediction carries forward.
+/// - **Positive definiteness, ill-conditioned measurements.** For the textbook case
+///   `H = [[1,1,1],[1,1,1+δ]]`, `R = δ²×I`, `P = I`, the standard update left `P` indefinite
+///   for 16 of 48 values of `δ` in `f32` (from `δ ≈ 9×10⁻³`) and 11 in `f64` (from
+///   `δ ≈ 10⁻⁴`); the Joseph form for 7 and 9 (from `δ ≈ 7×10⁻³` and `4×10⁻⁵`). It helps,
+///   but it does not fix the case.
+/// - **Fixed point.** In `I16F16`, neither form helps once the variances approach the
+///   resolution (`2⁻¹⁶`): with ten scalar sensors and a steady-state variance below one LSB,
+///   the standard update left `P` indefinite in 16 of 1000 steps, and the Joseph form drifted
+///   until `S⁻¹` overflowed. Use a type with more fractional bits, such as `I32F32`, there.
+///
+/// On well-conditioned problems, both forms agree to a few ULP in `f64`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+pub enum CovarianceUpdate {
+    /// The short form `P ← P − K×H×P` (the default). Cheapest, and exact only for the
+    /// optimal gain in exact arithmetic: rounding can make `P` asymmetric or, once `K×H×P`
+    /// is close to `P`, indefinite.
+    #[default]
+    Standard,
+    /// The Joseph form `P ← (I − K×H)×P×(I − K×H)ᵀ + K×R×Kᵀ`, evaluated as
+    /// `P − K×H×P − (K×H×P)ᵀ + K×S×Kᵀ`. Only the lower triangle is formed and mirrored, so
+    /// `P` comes out exactly symmetric. Positive semi-definite for any gain in exact
+    /// arithmetic. After the correction, the observation's `S` holds `H×P⁻×Hᵀ + R` instead of
+    /// its Cholesky factor.
+    Joseph,
+}
+
 /// Computes the normalized innovation squared `NIS = yᵀ×S⁻¹×y`.
 #[allow(non_snake_case)]
 pub(crate) fn normalized_innovation_squared<const OBSERVATIONS: usize, T>(
@@ -249,8 +301,9 @@ where
 ///
 /// Stores the normalized innovation squared in `nis` whenever `S` can be inverted.
 /// Leaves `x` and `P` unchanged if the innovation covariance `S = H×P×Hᵀ + R` is not
-/// positive definite, or if `nis` exceeds `gate`. After an applied correction, adapts `R`
-/// if `adaptation` is set; see [`NoiseAdaptation`].
+/// positive definite, or if `nis` exceeds `gate`. Updates `P` as `covariance_update` says;
+/// see [`CovarianceUpdate`]. After an applied correction, adapts `R` if `adaptation` is set;
+/// see [`NoiseAdaptation`].
 #[allow(non_snake_case, clippy::too_many_arguments)]
 pub(crate) fn update_with_innovation<const STATES: usize, const OBSERVATIONS: usize, T>(
     x: &mut impl MatrixMut<STATES, 1, T>,
@@ -267,6 +320,7 @@ pub(crate) fn update_with_innovation<const STATES: usize, const OBSERVATIONS: us
     nis: &mut T,
     gate: Option<T>,
     adaptation: Option<NoiseAdaptation<T>>,
+    covariance_update: CovarianceUpdate,
 ) -> CorrectionStatus
 where
     T: MatrixDataType,
@@ -282,14 +336,18 @@ where
     // x = x + K*y
     K.multadd_rowvector(y, x);
 
-    //* Correct state covariances
-    //* P = (I-K*H) * P
-    //*   = P - K*(H*P)
-
-    // P = P - K*(H*P)
-    H.mult(P, temp_HP); // temp_HP = H*P
-    K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
-    P.sub_inplace_a(temp_KHP); // P -= temp_KHP
+    match covariance_update {
+        CovarianceUpdate::Standard => {
+            // P = P - K*(H*P)
+            H.mult(P, temp_HP); // temp_HP = H*P
+            K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
+            P.sub_inplace_a(temp_KHP); // P -= temp_KHP
+        }
+        CovarianceUpdate::Joseph => {
+            // S holds its Cholesky factor by now, so Joseph forms S again.
+            joseph_update(P, H, R, K, S, temp_HP, temp_PHt, temp_KHP);
+        }
+    }
 
     if let Some(adaptation) = adaptation {
         // S_inv and temp_PHt are the only temporaries guaranteed not to alias each other.
@@ -304,8 +362,8 @@ where
 ///
 /// Applies `x = x + K×y` and updates `P` with the Joseph form
 /// `P = (I - K×H)×P×(I - K×H)ᵀ + K×R×Kᵀ`, expanded as
-/// `P = P - K×H×P - (K×H×P)ᵀ + K×S×Kᵀ` with `S = H×P×Hᵀ + R`, so that `P` stays symmetric
-/// and positive semi-definite for any `K`. `S` is not inverted and is left holding
+/// `P = P - K×H×P - (K×H×P)ᵀ + K×S×Kᵀ` with `S = H×P×Hᵀ + R`, so that `P` stays exactly
+/// symmetric, and positive semi-definite for any `K` in exact arithmetic. `S` is not inverted and is left holding
 /// `H×P×Hᵀ + R` of the prior `P` and the `R` used in the update. Afterwards, adapts `R`
 /// with the innovation form if `adaptation` is set; see [`NoiseAdaptation`].
 #[allow(non_snake_case, clippy::too_many_arguments)]
@@ -326,21 +384,10 @@ pub(crate) fn update_with_gain<const STATES: usize, const OBSERVATIONS: usize, T
 where
     T: MatrixDataType,
 {
-    // S = H*P*H' + R, from the prior P
-    H.mult(P, temp_HP); // temp_HP = H*P
-    temp_HP.mult_transb(H, S); // S = temp_HP*Hᵀ
-    S.add_inplace_a(R); // S += R
-
-    // x = x + K*y
+    // x = x + K*y; x does not enter the covariance update.
     K.multadd_rowvector(y, x);
 
-    // P = P - K*H*P - (K*H*P)ᵀ
-    K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
-    subtract_with_transpose(P, temp_KHP);
-
-    // P = P + K*S*Kᵀ; temp_PHt MAY alias temp_KHP, so it is only written once temp_KHP is consumed.
-    K.mult(S, temp_PHt); // temp_PHt = K*S
-    temp_PHt.multadd_transb(K, P); // P += temp_PHt*Kᵀ
+    joseph_update(P, H, R, K, S, temp_HP, temp_PHt, temp_KHP);
 
     if let Some(adaptation) = adaptation {
         // S_inv may alias temp_HP and temp_KHP, both of which are consumed by now.
@@ -348,6 +395,61 @@ where
     }
 
     CorrectionStatus::Applied
+}
+
+/// Updates `P` with the Joseph form `P = P - K×H×P - (K×H×P)ᵀ + K×S×Kᵀ` for any gain `K`,
+/// leaving `S = H×P×Hᵀ + R` of the prior `P` in `S`.
+///
+/// `temp_HP` must not alias `temp_KHP`; `temp_PHt` may alias either, since it is only written
+/// once both are consumed.
+#[allow(non_snake_case, clippy::too_many_arguments)]
+fn joseph_update<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    H: &impl Matrix<OBSERVATIONS, STATES, T>,
+    R: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    K: &impl Matrix<STATES, OBSERVATIONS, T>,
+    S: &mut impl MatrixMut<OBSERVATIONS, OBSERVATIONS, T>,
+    temp_HP: &mut impl MatrixMut<OBSERVATIONS, STATES, T>,
+    temp_PHt: &mut impl MatrixMut<STATES, OBSERVATIONS, T>,
+    temp_KHP: &mut impl MatrixMut<STATES, STATES, T>,
+) where
+    T: MatrixDataType,
+{
+    // S = H*P*H' + R, from the prior P
+    H.mult(P, temp_HP); // temp_HP = H*P
+    temp_HP.mult_transb(H, S); // S = temp_HP*Hᵀ
+    S.add_inplace_a(R); // S += R
+
+    // P = P - K*H*P - (K*H*P)ᵀ
+    K.mult(temp_HP, temp_KHP); // temp_KHP = K*temp_HP
+    subtract_with_transpose(P, temp_KHP);
+
+    // P = P + K*S*Kᵀ; temp_PHt MAY alias temp_KHP, so it is only written once temp_KHP is consumed.
+    K.mult(S, temp_PHt); // temp_PHt = K*S
+    add_lower_product_mirrored(P, temp_PHt, K); // P += temp_PHt*Kᵀ
+}
+
+/// Adds `A×Bᵀ` to `P`, computing only the lower triangle of the sum and mirroring it into
+/// the upper one, so that `P` comes out exactly symmetric.
+///
+/// For `A = K×S` and `B = K`, `A×Bᵀ = K×S×Kᵀ` is symmetric in exact arithmetic, but not under
+/// rounding: `(K×S)ᵢₗ×Kⱼₗ` and `(K×S)ⱼₗ×Kᵢₗ` round differently.
+#[allow(non_snake_case)]
+fn add_lower_product_mirrored<const STATES: usize, const OBSERVATIONS: usize, T>(
+    P: &mut impl MatrixMut<STATES, STATES, T>,
+    A: &impl Matrix<STATES, OBSERVATIONS, T>,
+    B: &impl Matrix<STATES, OBSERVATIONS, T>,
+) where
+    T: MatrixDataType,
+{
+    for i in 0..STATES {
+        for j in 0..=i {
+            let product: T = (0..OBSERVATIONS).map(|l| A.get(i, l) * B.get(j, l)).sum();
+            let value = P.get(i, j) + product;
+            P.set(i, j, value);
+            P.set(j, i, value);
+        }
+    }
 }
 
 /// Adapts the measurement noise covariance `R` with the innovation form

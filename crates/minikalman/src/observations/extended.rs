@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 
 use crate::kalman::*;
 use crate::matrix::{Matrix, MatrixDataType, MatrixMut, RowMajorSequentialDataMut};
-use crate::observations::NoiseAdaptation;
+use crate::observations::{CovarianceUpdate, NoiseAdaptation};
 
 /// A builder for a Kalman filter [`ExtendedObservation`] instances.
 #[allow(clippy::type_complexity)]
@@ -133,6 +133,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
             nis: T::zero(),
             gate: None,
             noise_adaptation: None,
+            covariance_update: CovarianceUpdate::Standard,
         }
     }
 }
@@ -214,6 +215,9 @@ pub struct ExtendedObservation<
 
     /// Online adaptation of `R` after applied corrections; `None` disables it.
     pub(crate) noise_adaptation: Option<NoiseAdaptation<T>>,
+
+    /// How the corrections with the Kalman gain update `P`.
+    pub(crate) covariance_update: CovarianceUpdate,
 }
 
 impl<
@@ -328,6 +332,25 @@ impl<
     #[inline(always)]
     pub fn set_noise_adaptation(&mut self, adaptation: Option<NoiseAdaptation<T>>) {
         self.noise_adaptation = adaptation;
+    }
+
+    /// Returns the covariance update set by
+    /// [`set_covariance_update`](Self::set_covariance_update).
+    #[inline(always)]
+    pub fn covariance_update(&self) -> CovarianceUpdate {
+        self.covariance_update
+    }
+
+    /// Sets how `correct_nonlinear` and `correct_nonlinear_with` update the estimate covariance `P`;
+    /// [`CovarianceUpdate::Standard`] (the default) uses `P ← P − K×H×P`,
+    /// [`CovarianceUpdate::Joseph`] the Joseph form, which keeps `P` exactly symmetric at the
+    /// cost of forming `S` again and two more matrix products. See [`CovarianceUpdate`] for
+    /// what it does and does not fix.
+    ///
+    /// The external-gain and predictively oriented corrections ignore this setting.
+    #[inline(always)]
+    pub fn set_covariance_update(&mut self, update: CovarianceUpdate) {
+        self.covariance_update = update;
     }
 
     /// Returns then number of measurements.
@@ -747,6 +770,7 @@ where
             &mut self.nis,
             self.gate,
             self.noise_adaptation,
+            self.covariance_update,
         )
     }
 }
