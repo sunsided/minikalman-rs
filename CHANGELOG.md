@@ -27,6 +27,15 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with one row of `P` as stack scratch, and matches the dense `predict` / `predict_tuned` bit
   for bit unless an intermediate overflows (an exact zero in `x` may differ in sign). The dense path is
   unchanged ([#195]).
+- Added the `gnss-ins` example: a 12-state GNSS/INS error-state EKF `(δp, δv, δθ, δb_g)` in
+  `f32` on 5 904 bytes of storage, without allocation. IMU prediction at a varying `Δt`, a
+  gated 5-measurement GNSS update (horizontal position, 3-D velocity) and barometer and
+  heading as sequential scalar updates, each followed by the reset into the caller's nominal
+  state. A simulated 120 s flight with turns, climbs, accelerations, GNSS outliers and a 10 s
+  dropout checks the errors, NEES, NIS and gate decisions against bounds from a 300-seed
+  sweep. The module docs cover the time budget on Cortex-M (from the Renode workload of
+  [#185]), the `sinf`/`cosf` cost on the M4F, and when `f64` or the UD / square-root filters
+  are warranted. It shares its model with `benches/mcu/src/nav.rs` ([#186]).
 - Added the `attitude-eskf` example: a quaternion error-state (multiplicative) EKF for the
   attitude of an IMU in `f32` on inline storage, with the error `(δθ, δb)` of attitude and gyro
   bias, gyro prediction at a varying `Δt` from timestamps, an accelerometer tilt update gated by
@@ -519,6 +528,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `--features alloc,fixed`), and CI runs those as well.
 
 [#185]: https://github.com/sunsided/minikalman-rs/issues/185
+[#186]: https://github.com/sunsided/minikalman-rs/issues/186
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177
 [#181]: https://github.com/sunsided/minikalman-rs/issues/181
 [#184]: https://github.com/sunsided/minikalman-rs/issues/184

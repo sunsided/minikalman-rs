@@ -219,6 +219,13 @@ tasks:
     cmds:
       - "{{.CARGO}} run --example attitude-eskf --features std"
 
+  example:ekf:gnss-ins:
+    desc: Run the 12-state GNSS/INS error-state filter example (IMU, gated GNSS, baro, heading)
+    aliases:
+      - example:gnss-ins
+    cmds:
+      - "{{.CARGO}} run --example gnss-ins --features std"
+
   example:ekf:augmented-state:
     desc: Run the joint (augmented-state) parameter estimation example (EKF and UKF vs. dual RLS)
     aliases:

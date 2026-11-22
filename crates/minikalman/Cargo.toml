@@ -10,6 +10,8 @@ categories.workspace = true
 license.workspace = true
 edition.workspace = true
 readme = "../../README.md"
+# The GNSS/INS example includes benches/mcu/src/nav.rs, which is outside the package.
+exclude = ["examples/gnss_ins.rs"]
 rust-version.workspace = true
 
 [[bench]]
@@ -69,6 +71,12 @@ required-features = ["std"]
 name = "attitude-eskf"
 path = "examples/attitude_eskf.rs"
 required-features = ["std"]
+
+[[example]]
+name = "gnss-ins"
+path = "examples/gnss_ins.rs"
+# `libm` for the model shared with benches/mcu (src/nav.rs), which calls `libm::sinf` directly.
+required-features = ["std", "libm"]
 
 [[example]]
 name = "radar-2d-ukf"

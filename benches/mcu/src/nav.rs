@@ -12,8 +12,9 @@
 //!
 //! The world frame has z up and gravity `(0, 0, −9.81)`, so the accelerometer at rest measures
 //! `f = Rᵀ·(0, 0, 9.81)`. `δθ` is the local (body-frame) attitude error, `q = q̂ ⊗ Exp(δθ)`.
-//! This module holds only the model, not the benchmark, so the GNSS/INS example (#186) can
-//! share it.
+//! This module holds only the model, not the benchmark. The GNSS/INS example
+//! (`crates/minikalman/examples/gnss_ins.rs`, #186) includes it with `#[path]`, so a change
+//! here changes the example too: run it (`cargo run --example gnss-ins --features std`).
 
 use minikalman::prelude::*;
 
