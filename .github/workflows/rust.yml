@@ -123,6 +123,8 @@ jobs:
         run: cargo run --example=battery-soc --no-default-features --features=std
       - name: Run SE(2) invariant EKF example
         run: cargo run --example=se2-iekf --no-default-features --features=std
+      - name: Run quaternion attitude ESKF example
+        run: cargo run --example=attitude-eskf --no-default-features --features=std
       - name: Run RLS dual-estimation example
         run: cargo run --example=rls-adaptive --no-default-features --features=std
       - name: Run joint (augmented-state) estimation example

@@ -13,6 +13,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added the `attitude-eskf` example: a quaternion error-state (multiplicative) EKF for the
+  attitude of an IMU in `f32` on inline storage, with the error `(δθ, δb)` of attitude and gyro
+  bias, gyro prediction at a varying `Δt` from timestamps, an accelerometer tilt update gated by
+  its NIS (with a hold-off after a rejection) and an external heading. It compares the gate with
+  a ±10 % `|a|` window on a simulated rotation sequence with known truth and checks the attitude
+  error, NEES and NIS. The "Filtering on manifolds" recipe and the README link to it ([#184]).
 - Added the `augmented-state` example: joint (augmented-state) estimation of a motor plant's
   `(a, b)` with an EKF and a UKF on `[x, a, b]`, on the same run as the dual `rls-adaptive`
   example, with a comparison table, a sweep of the parameter process noise and
@@ -493,6 +499,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177
 [#181]: https://github.com/sunsided/minikalman-rs/issues/181
+[#184]: https://github.com/sunsided/minikalman-rs/issues/184
 [#187]: https://github.com/sunsided/minikalman-rs/issues/187
 [#180]: https://github.com/sunsided/minikalman-rs/issues/180
 [#179]: https://github.com/sunsided/minikalman-rs/issues/179

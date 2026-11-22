@@ -212,6 +212,13 @@ tasks:
     cmds:
       - "{{.CARGO}} run --example radar-2d --features std"
 
+  example:ekf:attitude-eskf:
+    desc: Run the quaternion error-state attitude filter example (gyro, gated accelerometer, yaw)
+    aliases:
+      - example:attitude-eskf
+    cmds:
+      - "{{.CARGO}} run --example attitude-eskf --features std"
+
   example:ekf:augmented-state:
     desc: Run the joint (augmented-state) parameter estimation example (EKF and UKF vs. dual RLS)
     aliases:
