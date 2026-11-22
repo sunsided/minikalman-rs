@@ -137,7 +137,7 @@
               <option value="straight">Straight pass</option>
               <option value="eight">Figure eight</option>
               <option value="drawn" disabled>Drawn by you</option>
-            </select><span></span>
+            </select>
           </label>
           <div class="switches" role="radiogroup" aria-label="Pointer tool">
             <label><input type="radio" name="tool" value="edit" checked> Drag radars and waypoints</label>
@@ -269,11 +269,13 @@
           <div class="scope"><span class="scope-title">asymmetry of P after correction</span><canvas id="nu-asym" role="img" aria-label="Relative asymmetry of P over time per variant"></canvas></div>
           <div class="scope"><span class="scope-title">position error (m)</span><canvas id="nu-error" role="img" aria-label="Position error over time per variant"></canvas></div>
         </div>
+        <div class="table-wrap">
         <table class="matrix" id="nu-table">
           <caption>Measured over the run</caption>
           <thead><tr><th scope="col">Variant</th><th scope="col">P not positive definite</th><th scope="col">Largest asymmetry</th><th scope="col">Final error</th></tr></thead>
           <tbody></tbody>
         </table>
+        </div>
       </div>
     </section>
 

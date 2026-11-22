@@ -47,7 +47,7 @@ const A_BOUND: f64 = 0.05;
 const B_BOUND: f64 = 0.1;
 
 /// The trace channels, in order.
-mod channel {
+pub mod channel {
     /// True speed.
     pub const SPEED: usize = 0;
     /// Measured speed.

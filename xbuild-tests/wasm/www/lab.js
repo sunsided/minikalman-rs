@@ -288,8 +288,21 @@ export class Scope {
     const visible = Math.max(1, Math.round(progress * n));
     this.layout = { margin, w, h, x0, x1, y0, y1 };
 
-    // Grid: minor and major lines, labels on the left and bottom.
+    // Grid: a fine graticule like a scope screen, then major lines with labels.
     ctx.lineWidth = 1;
+    ctx.strokeStyle = color("--grid");
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    for (let x = margin.left + 8; x < margin.left + w; x += 8) {
+      ctx.moveTo(Math.round(x) + 0.5, margin.top);
+      ctx.lineTo(Math.round(x) + 0.5, margin.top + h);
+    }
+    for (let y = margin.top + 8; y < margin.top + h; y += 8) {
+      ctx.moveTo(margin.left, Math.round(y) + 0.5);
+      ctx.lineTo(margin.left + w, Math.round(y) + 0.5);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
     ctx.fillStyle = color("--ink-soft");
     ctx.textBaseline = "middle";
     ctx.textAlign = "right";

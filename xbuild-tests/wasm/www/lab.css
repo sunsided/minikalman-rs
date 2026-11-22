@@ -2,6 +2,7 @@
 
 :root {
   --paper: #e9eef1;
+  --paper-line: rgba(31, 95, 209, 0.07);
   --panel: #f6f8f9;
   --screen: #fbfcfd;
   --grid: #d5dee4;
@@ -33,6 +34,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #0f1821;
+    --paper-line: rgba(120, 168, 255, 0.045);
     --panel: #142029;
     --screen: #09121a;
     --grid: #1c2a36;
@@ -54,6 +56,7 @@
 
 :root[data-theme="dark"] {
   --paper: #0f1821;
+  --paper-line: rgba(120, 168, 255, 0.045);
   --panel: #142029;
   --screen: #09121a;
   --grid: #1c2a36;
@@ -84,7 +87,12 @@ html {
 
 body {
   margin: 0;
-  background: var(--paper);
+  background-color: var(--paper);
+  /* Graph paper: a 24 px grid, faint enough to read over. */
+  background-image:
+    linear-gradient(to right, var(--paper-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--paper-line) 1px, transparent 1px);
+  background-size: 24px 24px;
   color: var(--ink);
   font-family: var(--font);
   font-size: var(--step-0);
@@ -160,7 +168,7 @@ code {
 /* ── Hero: a live strip chart ── */
 
 .hero {
-  padding: 1.5rem 0 2.5rem;
+  padding-block: 1.5rem 0.5rem;
 }
 
 .hero h1 {
@@ -190,7 +198,7 @@ code {
 .bench {
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
-  padding: 1rem 0;
+  padding-block: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -231,7 +239,7 @@ code {
   display: grid;
   grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
   gap: 1.5rem 2.5rem;
-  padding: 3rem 0;
+  padding-block: 3rem;
   border-bottom: 1px solid var(--rule);
   scroll-margin-top: 1rem;
 }
@@ -239,7 +247,7 @@ code {
 @media (max-width: 860px) {
   .experiment {
     grid-template-columns: minmax(0, 1fr);
-    padding: 2rem 0;
+    padding-block: 2rem;
   }
 }
 
@@ -310,6 +318,20 @@ code {
   margin-top: 0;
   grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
   column-gap: 2rem;
+}
+
+.radar-knobs .knob {
+  grid-template-columns: 8rem minmax(0, 1fr) 8.5rem;
+}
+
+.radar-knobs select {
+  grid-column: 2 / -1;
+}
+
+@media (max-width: 520px) {
+  .radar-knobs .knob {
+    grid-template-columns: 6.5rem minmax(0, 1fr) 7.5rem;
+  }
 }
 
 .radar-knobs .hint,
@@ -418,6 +440,7 @@ input[type="range"] {
 }
 
 .switches {
+  margin-bottom: 1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 1.25rem;
@@ -527,6 +550,25 @@ button:disabled {
 }
 
 /* A small results table: one row per variant. */
+.table-wrap {
+  overflow-x: auto;
+}
+
+@media (max-width: 520px) {
+  .matrix {
+    font-size: 0.78rem;
+  }
+
+  .matrix th,
+  .matrix td {
+    padding: 0.3rem 0.3rem;
+  }
+
+  .matrix tbody th {
+    white-space: normal;
+  }
+}
+
 .matrix {
   width: 100%;
   border-collapse: collapse;
@@ -599,7 +641,7 @@ button:disabled {
 }
 
 footer {
-  padding: 2.5rem 0 3rem;
+  padding-block: 2.5rem 3rem;
   color: var(--ink-soft);
   font-size: var(--step--1);
 }

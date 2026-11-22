@@ -92,7 +92,7 @@ const DYNAMIC_THRESHOLD: f32 = 0.3;
 const SAMPLES: usize = (DURATION_US / GYRO_PERIOD_US) as usize / ACCEL_EVERY;
 
 /// The trace channels, in order.
-mod channel {
+pub mod channel {
     /// Time in seconds.
     pub const TIME: usize = 0;
     /// True roll, pitch, yaw in degrees.

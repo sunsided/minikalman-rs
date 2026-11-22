@@ -28,7 +28,7 @@ const MAX_SENSORS: usize = 10;
 const MAX_STEPS: usize = 600;
 
 /// The trace channels of one variant; variant `v` starts at `v × PER_VARIANT`.
-mod channel {
+pub mod channel {
     /// The largest relative asymmetry `|Pij − Pji| / √(Pii·Pjj)`.
     pub const ASYMMETRY: usize = 0;
     /// The smallest diagonal entry of `P`.

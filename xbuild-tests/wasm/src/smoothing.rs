@@ -24,7 +24,7 @@ const DT: f32 = 0.1;
 const GAP_START: usize = 100;
 
 /// The window of the fixed-lag smoother in steps (1.5 s).
-const LAG: usize = 15;
+pub const LAG: usize = 15;
 
 /// A recorded state vector.
 type Vector = MatrixDataArray<2, 1, 2, f32>;
@@ -33,7 +33,7 @@ type Vector = MatrixDataArray<2, 1, 2, f32>;
 type Square = MatrixDataArray<2, 2, 4, f32>;
 
 /// The trace channels, in order.
-mod channel {
+pub mod channel {
     /// True position.
     pub const TRUTH: usize = 0;
     /// Measured position, NaN in the gap.

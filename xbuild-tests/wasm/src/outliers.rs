@@ -34,8 +34,7 @@ const DT: f32 = 0.1;
 const ACCELERATION_VARIANCE: f32 = 2.0;
 
 /// The trace channels, in order.
-#[allow(dead_code)]
-mod channel {
+pub mod channel {
     /// True position.
     pub const TRUTH: usize = 0;
     /// Measured position.

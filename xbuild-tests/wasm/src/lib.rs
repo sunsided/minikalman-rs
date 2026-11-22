@@ -1,10 +1,13 @@
-//! Tracking a noisy 1D position in the browser.
+//! minikalman in the browser: the module behind the lab page.
 //!
-//! This crate builds minikalman for `wasm32-unknown-unknown` and exposes a
-//! constant-velocity filter through plain `extern "C"` functions. All arguments
-//! and return values are `f32`, so the module can be loaded with
-//! `WebAssembly.instantiate` alone; no `wasm-bindgen` or JS glue is required.
-//! See `www/index.html` for the browser side and `smoke.mjs` for a Node check.
+//! This crate builds minikalman for `wasm32-unknown-unknown` and exposes it through
+//! plain `extern "C"` functions that take and return numbers, so the module can be
+//! loaded with `WebAssembly.instantiate` alone; no `wasm-bindgen` or JS glue is
+//! required. This file holds a constant-velocity filter driven step by step from JS;
+//! [`radar`] does the same for the EKF and UKF. The lab experiments ([`outliers`],
+//! [`numerics`], [`smoothing`], [`parameters`], [`attitude`]) each simulate a whole run
+//! in one call and write it to the static buffers of [`lab`].
+//! See `www/` for the browser side and `smoke.mjs` for a Node check.
 
 pub mod attitude;
 pub mod lab;
