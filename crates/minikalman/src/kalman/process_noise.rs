@@ -190,6 +190,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     fn adapt_process_noise_matches_the_old_loops() {
         for seed in 0..4 {
             assert_matches_old::<2, f32>(seed, 1.0);

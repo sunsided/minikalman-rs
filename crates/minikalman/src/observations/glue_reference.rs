@@ -177,10 +177,14 @@ where
     let k = MatrixData::new_ref::<N, M, T>(&K);
     let s = MatrixData::new_ref::<M, M, T>(&S);
 
-    // Innovation-form adaptation.
-    let (mut r_new, mut r_old) = (R, R);
+    // Innovation-form adaptation. With R = 2×S the candidate 1.75×S + 0.25×y×yᵀ is positive
+    // definite, so R is written, and R and S differ, so swapping them changes the result.
+    let mut r_twice = R;
+    for entry in &mut r_twice {
+        *entry = *entry + *entry;
+    }
+    let (mut r_new, mut r_old) = (r_twice, r_twice);
     let (mut t_new, mut t_old) = ([T::zero(); CAP], [T::zero(); CAP]);
-    // S = R makes the candidate 0.75×R + 0.25×y×yᵀ positive definite, so R is written.
     let s_r = MatrixData::new_ref::<M, M, T>(&R);
     adapt_measurement_noise_from_innovation(
         adaptation,
@@ -197,11 +201,23 @@ where
         &mut MatrixData::new_mut::<M, M, T>(&mut t_old),
     );
     assert_bits_eq(&r_new, &r_old, "innovation-adapted R");
-    assert_ne!(r_new[0].to_bits_u64(), R[0].to_bits_u64(), "R was adapted");
+    assert_ne!(
+        r_new[0].to_bits_u64(),
+        r_twice[0].to_bits_u64(),
+        "R was adapted"
+    );
     assert_bits_eq(&t_new, &t_old, "innovation-adaptation temp");
 
-    // Gain with convergence check, starting from a gain close to and far from the new one.
-    for start in [K, [T::zero(); CAP]] {
+    // Gain with convergence check, starting from an unrelated gain, from zero, and from the
+    // gain itself (computed from zero first), so both outcomes of the check are covered.
+    let mut computed = [T::zero(); CAP];
+    write_gain_and_compare(
+        &mut MatrixData::new_mut::<N, M, T>(&mut computed),
+        &MatrixData::new_ref::<N, M, T>(&H),
+        &s,
+        tolerance,
+    );
+    for (start, expect_converged) in [(K, None), ([T::zero(); CAP], None), (computed, Some(true))] {
         let (mut k_new, mut k_old) = (start, start);
         let pht = MatrixData::new_ref::<N, M, T>(&H);
         let converged_new = write_gain_and_compare(
@@ -217,6 +233,9 @@ where
             tolerance,
         );
         assert_eq!(converged_new, converged_old, "converged");
+        if let Some(expected) = expect_converged {
+            assert_eq!(converged_new, expected, "converged from the gain itself");
+        }
         assert_bits_eq(&k_new, &k_old, "gain");
     }
 
@@ -240,6 +259,7 @@ where
 }
 
 #[test]
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn noise_adaptation_and_gain_helpers_match_the_old_loops() {
     for seed in 0..4 {
         assert_helpers_match::<2, 1, f32>(seed, 1.0);

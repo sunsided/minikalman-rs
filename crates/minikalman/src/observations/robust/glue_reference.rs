@@ -130,6 +130,7 @@ where
 }
 
 #[test]
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn robust_helpers_match_the_old_loops() {
     for seed in 0..4 {
         assert_helpers_match::<2, 1, f32>(seed, 1.0);
