@@ -25,13 +25,15 @@ use crate::nav::*;
 use crate::{__sheap, Noise, STACK_PAINT, measure, report_stack};
 
 /// The label of every section: the element type, plus `-libm` when minikalman is built
-/// without `unsafe` and its `f32` square root is `libm::sqrtf` on the M4F too.
+/// without `unsafe` and its `f32` square root is `libm::sqrtf` on the M4F too. Keyed on the
+/// `unsafe` feature itself, so the label follows the build even when `nav-libm` is combined
+/// with features that enable `unsafe`.
 macro_rules! label {
     ($s:literal) => {
-        if cfg!(feature = "nav-libm") {
-            concat!("f32-libm/", $s)
-        } else {
+        if cfg!(feature = "unsafe") {
             concat!("f32/", $s)
+        } else {
+            concat!("f32-libm/", $s)
         }
     };
 }
