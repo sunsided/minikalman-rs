@@ -14,7 +14,7 @@ keywords = ["kalman-filter", "embedded", "fixed-point", "robotics", "slam"]
 categories = ["aerospace", "algorithms", "science::robotics", "no-std", "embedded"]
 edition = "2024"
 rust-version = "1.85.0"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
 [profile.dev]      # Needed for the embedded cross-compilation projects
 panic = "abort"
