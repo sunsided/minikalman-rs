@@ -39,3 +39,6 @@ nav-libm = []
 unsafe = ["minikalman/unsafe"]
 # Checks the f32 square root against libm::sqrtf on the target; not measured.
 sqrt-check = ["f32"]
+# Measures `predict_companion` against the dense `predict` (#195). Needs a minikalman with
+# `predict_companion`, so run.sh enables it on the head side only (HEAD_FEATURES=companion).
+companion = []

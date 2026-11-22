@@ -21,6 +21,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured separately; the run also reports each workload's stack use and the `size_of` of its
   storage, and the README converts the counts into a rough time budget at typical clocks. The
   model lives in `benches/mcu/src/nav.rs` for the GNSS/INS example to share ([#185]).
+- Added `RegularKalman::predict_companion` and `predict_companion_tuned`: the time update for a
+  companion (shift) transition, such as Harvey's state-space form of an ARMA model, given only
+  the transition's first column. It updates `x` and `P` in place in `O(n²)` instead of `O(n³)`,
+  with one row of `P` as stack scratch, and matches the dense `predict` / `predict_tuned` bit
+  for bit unless an intermediate overflows (an exact zero in `x` may differ in sign). The dense path is
+  unchanged ([#195]).
 - Added the `attitude-eskf` example: a quaternion error-state (multiplicative) EKF for the
   attitude of an IMU in `f32` on inline storage, with the error `(δθ, δb)` of attitude and gyro
   bias, gyro prediction at a varying `Δt` from timestamps, an accelerometer tilt update gated by
@@ -518,6 +524,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#184]: https://github.com/sunsided/minikalman-rs/issues/184
 [#187]: https://github.com/sunsided/minikalman-rs/issues/187
 [#194]: https://github.com/sunsided/minikalman-rs/issues/194
+[#195]: https://github.com/sunsided/minikalman-rs/issues/195
 [#180]: https://github.com/sunsided/minikalman-rs/issues/180
 [#179]: https://github.com/sunsided/minikalman-rs/issues/179
 [#174]: https://github.com/sunsided/minikalman-rs/issues/174

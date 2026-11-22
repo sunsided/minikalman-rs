@@ -449,6 +449,162 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
         TimeUpdate::new(self)
     }
 
+    /// Performs the time update for a companion (shift) transition in `O(n²)` instead of
+    /// `O(n³)`.
+    ///
+    /// Many models shift their state by one slot per step and mix in one dense column: the
+    /// state-space form of an ARMA model, a tapped delay line, a polynomial recursion. Their
+    /// transition is
+    ///
+    /// ```text
+    ///     ⎡ φ₁    1  0  …  0 ⎤
+    ///     ⎢ φ₂    0  1  …  0 ⎥
+    /// A = ⎢ ⋮              ⋮ ⎥     x ← A·x:   xᵢ ← φᵢ·x₁ + xᵢ₊₁,   xₙ ← φₙ·x₁
+    ///     ⎢ φₙ₋₁  0  0  …  1 ⎥
+    ///     ⎣ φₙ    0  0  …  0 ⎦
+    /// ```
+    ///
+    /// `coefficients` is that first column `φ`. This computes the same `x ← A·x` and
+    /// `P ← A·P·Aᵀ + Q` as [`predict`](Self::predict) with this `A`, but uses that `A·P` is row
+    /// `0` of `P` scaled plus `P` shifted up by one row, so no dense product is formed: about
+    /// `n²` multiplications instead of `1.5·n³`. It needs no buffer beyond a stack copy of
+    /// one row of `P` (`STATES` elements).
+    ///
+    /// The result is the same bit for bit as [`predict`](Self::predict) with the dense `A`, as
+    /// long as nothing overflows: `x`, `P` and every intermediate product stay finite (the
+    /// dense path turns `0·∞` into NaN where this one keeps `∞`). The one exception: an entry
+    /// of `x` that comes out exactly zero may carry the other sign (`-0.0` instead of `+0.0`,
+    /// equal under `==`).
+    ///
+    /// The filter's own transition matrix is neither read nor written; anything that reads
+    /// [`state_transition`](Self::state_transition), such as a smoother fed from it, sees
+    /// whatever it holds. Only this first-column ("observer", Harvey) form is supported. The
+    /// first-row form (`xᵢ₊₁ ← xᵢ`, a dense first row) is its transpose and is not.
+    ///
+    /// Returns a [`TimeUpdate`] handle for control inputs, as [`predict`](Self::predict) does.
+    /// See [`predict_companion_tuned`](Self::predict_companion_tuned) for the fading-memory
+    /// variant.
+    ///
+    /// ## ARMA models
+    ///
+    /// An ARMA(p, q) process `yₜ = φ₁·yₜ₋₁ + … + φₚ·yₜ₋ₚ + εₜ + θ₁·εₜ₋₁ + … + θ_q·εₜ₋q` with
+    /// `εₜ ~ N(0, σ²)` maps onto Harvey's state-space form with `n = max(p, q + 1)` states:
+    ///
+    /// - `A` as above, with `φᵢ = 0` for `i > p`, so `coefficients = [φ₁, …, φₚ, 0, …]`;
+    /// - process noise `Q = σ²·r·rᵀ` with `r = [1, θ₁, …, θₙ₋₁]` (`θᵢ = 0` for `i > q`);
+    /// - observation `H = [1, 0, …, 0]` and measurement noise `R = 0`: `y` is the first state.
+    ///
+    /// The innovations of the filter are then the one-step prediction errors of the model,
+    /// and the sum of the corrections'
+    /// [`log_likelihood`](crate::regular::RegularObservation::log_likelihood) is its Gaussian
+    /// log-likelihood (see the crate docs, "Likelihood of a Model"). It is the exact
+    /// likelihood when `x₀ = 0` and `P₀` is the stationary covariance of the state (the
+    /// solution of `P = A·P·Aᵀ + Q`); a wide `P₀`, as in the example below, approximates it.
+    ///
+    /// ## Example
+    ///
+    /// An ARMA(2, 1) model, `n = 2`:
+    ///
+    /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
+    /// use minikalman::prelude::*;
+    /// use minikalman::regular::{FilterStorage, ObservationStorage};
+    ///
+    /// let phi = [0.5_f64, -0.3];
+    /// let (theta, sigma2) = (0.4, 1.0);
+    /// let r = [1.0, theta];
+    ///
+    /// let mut filter_storage = FilterStorage::<2, f64>::new(0.0);
+    /// let mut observation_storage = ObservationStorage::<2, 1, f64>::new(0.0);
+    /// let mut filter = filter_storage.build();
+    /// let mut observation = observation_storage.build();
+    ///
+    /// // Q = σ²·r·rᵀ, a wide P₀, H = [1, 0] and R = 0.
+    /// filter.direct_process_noise_mut().apply(|q| {
+    ///     for i in 0..2 {
+    ///         for j in 0..2 {
+    ///             q.set_at(i, j, sigma2 * r[i] * r[j]);
+    ///         }
+    ///     }
+    /// });
+    /// filter.estimate_covariance_mut().apply(|p| {
+    ///     p.set_at(0, 0, 10.0);
+    ///     p.set_at(1, 1, 10.0);
+    /// });
+    /// observation.observation_matrix_mut().apply(|h| h.set_at(0, 0, 1.0));
+    ///
+    /// for y in [0.3, -0.1, 0.8, 0.2, -0.5] {
+    ///     filter.predict_companion(&phi);
+    ///     observation.measurement_vector_mut().apply(|z| z[0] = y);
+    ///     assert!(filter.correct(&mut observation).is_applied());
+    /// }
+    ///
+    /// // With R = 0 the first state is the last observation.
+    /// assert!((filter.state_vector().get_at(0, 0) - -0.5).abs() < 1e-12);
+    /// # }
+    /// ```
+    #[doc(alias = "predict_shift")]
+    #[doc(alias = "arma")]
+    pub fn predict_companion(&mut self, coefficients: &[T; STATES]) -> TimeUpdate<'_, Self>
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+        T: MatrixDataType,
+    {
+        self.predict_companion_with(coefficients, None)
+    }
+
+    /// Performs the companion time update of [`predict_companion`](Self::predict_companion)
+    /// with a fading-memory factor: `P ← A·P·Aᵀ/λ² + Q`.
+    ///
+    /// The result is the same bit for bit as [`predict_tuned`](Self::predict_tuned) with the
+    /// dense companion `A`, under the conditions stated on
+    /// [`predict_companion`](Self::predict_companion).
+    ///
+    /// ## Arguments
+    /// * `coefficients` - The first column `φ` of the companion transition.
+    /// * `lambda` - The fading-memory (forgetting) factor, `0 < λ ≤ 1`, as for
+    ///   [`predict_tuned`](Self::predict_tuned).
+    #[doc(alias = "fading_memory")]
+    pub fn predict_companion_tuned(
+        &mut self,
+        coefficients: &[T; STATES],
+        lambda: T,
+    ) -> TimeUpdate<'_, Self>
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+        T: MatrixDataType,
+    {
+        self.predict_companion_with(coefficients, Some(lambda))
+    }
+
+    /// Runs the companion prediction of `x` and `P`, with an optional fading-memory factor.
+    #[allow(non_snake_case)]
+    fn predict_companion_with(
+        &mut self,
+        coefficients: &[T; STATES],
+        lambda: Option<T>,
+    ) -> TimeUpdate<'_, Self>
+    where
+        X: StateVectorMut<STATES, T>,
+        P: EstimateCovarianceMatrix<STATES, T>,
+        Q: DirectProcessNoiseCovarianceMatrix<STATES, T>,
+        T: MatrixDataType,
+    {
+        crate::kalman::predict_companion_state(coefficients, self.x.as_matrix_mut());
+        crate::kalman::predict_companion_covariance(
+            coefficients,
+            self.P.as_matrix_mut(),
+            self.Q.as_matrix(),
+            lambda,
+        );
+
+        TimeUpdate::new(self)
+    }
+
     /// Performs the time update / prediction step of only the state vector
     #[allow(non_snake_case)]
     #[doc(alias = "kalman_predict_x")]
@@ -1580,5 +1736,217 @@ mod tests {
             assert!(mat.get_at(1, 1) < 1.0);
             assert!(mat.get_at(2, 2) < 0.4);
         });
+    }
+
+    /// Runs an ARMA(2, 1) model through `steps` predictions and corrections, once with the
+    /// dense `predict` / `predict_tuned` and once with the companion variants, plus a control
+    /// chained after every prediction, and asserts that `x` and `P` match bit for bit.
+    fn check_arma_companion<T>(lambda: Option<T>)
+    where
+        T: MatrixDataType + crate::test_bits::ToBits,
+    {
+        use crate::prelude::*;
+        use crate::regular::{ControlStorage, FilterStorage, ObservationStorage};
+        use crate::test_bits::assert_bits_eq;
+
+        let c = |v: f64| T::from_f64(v).unwrap();
+        let phi = [c(0.5), c(-0.3)];
+        let r = [c(1.0), c(0.4)];
+        let ys = [0.3, -0.1, 0.8, 0.2, -0.5, 1.1, 0.0, -0.7];
+
+        let mut dense_storage = FilterStorage::<2, T>::new(T::zero());
+        let mut companion_storage = FilterStorage::<2, T>::new(T::zero());
+        let mut observation_storage = ObservationStorage::<2, 1, T>::new(T::zero());
+        let mut control_storage = ControlStorage::<2, 1, T>::new(T::zero());
+        let mut dense = dense_storage.build();
+        let mut companion = companion_storage.build();
+        let mut observation = observation_storage.build();
+        let mut control = control_storage.build();
+
+        dense.state_transition_mut().apply(|a| {
+            a.set_at(0, 0, phi[0]);
+            a.set_at(0, 1, T::one());
+            a.set_at(1, 0, phi[1]);
+        });
+        for filter in [&mut dense, &mut companion] {
+            filter.direct_process_noise_mut().apply(|q| {
+                for i in 0..2 {
+                    for j in 0..2 {
+                        q.set_at(i, j, r[i] * r[j]);
+                    }
+                }
+            });
+            filter.estimate_covariance_mut().apply(|p| {
+                p.set_at(0, 0, c(4.0));
+                p.set_at(1, 1, c(4.0));
+            });
+        }
+
+        observation
+            .observation_matrix_mut()
+            .apply(|h| h.set_at(0, 0, T::one()));
+        observation
+            .measurement_noise_covariance_mut()
+            .apply(|r| r.set_at(0, 0, c(0.01)));
+        control
+            .control_matrix_mut()
+            .apply(|b| b.set_at(1, 0, c(0.1)));
+        control
+            .control_vector_mut()
+            .apply(|u| u.set_at(0, 0, c(0.5)));
+        control
+            .process_noise_covariance_mut()
+            .apply(|q| q.set_at(0, 0, c(0.2)));
+
+        for y in ys {
+            match lambda {
+                None => {
+                    dense.predict().control(&mut control);
+                    companion.predict_companion(&phi).control(&mut control);
+                }
+                Some(lambda) => {
+                    dense.predict_tuned(lambda).control(&mut control);
+                    companion
+                        .predict_companion_tuned(&phi, lambda)
+                        .control(&mut control);
+                }
+            }
+
+            assert_bits_eq(
+                companion.estimate_covariance().as_slice(),
+                dense.estimate_covariance().as_slice(),
+                "predicted P",
+            );
+            assert_bits_eq(
+                companion.state_vector().as_slice(),
+                dense.state_vector().as_slice(),
+                "predicted x",
+            );
+
+            for filter in [&mut dense, &mut companion] {
+                observation
+                    .measurement_vector_mut()
+                    .apply(|z| z.set_at(0, 0, c(y)));
+                assert!(filter.correct(&mut observation).is_applied());
+            }
+
+            assert_bits_eq(
+                companion.estimate_covariance().as_slice(),
+                dense.estimate_covariance().as_slice(),
+                "corrected P",
+            );
+            assert_bits_eq(
+                companion.state_vector().as_slice(),
+                dense.state_vector().as_slice(),
+                "corrected x",
+            );
+        }
+    }
+
+    #[test]
+    fn predict_companion_matches_the_dense_arma_filter() {
+        check_arma_companion::<f32>(None);
+        check_arma_companion::<f32>(Some(0.97));
+        check_arma_companion::<f64>(None);
+        check_arma_companion::<f64>(Some(0.97));
+    }
+
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn predict_companion_matches_the_dense_arma_filter_fixed() {
+        use fixed::types::{I16F16, I32F32};
+
+        check_arma_companion::<I16F16>(None);
+        check_arma_companion::<I16F16>(Some(I16F16::from_num(0.97)));
+        check_arma_companion::<I32F32>(None);
+        check_arma_companion::<I32F32>(Some(I32F32::from_num(0.97)));
+    }
+
+    /// Runs the plain ARMA(2, 1) likelihood filter (`x₀ = 0`, `R = 0`, no control) through
+    /// the dense `predict` and through `predict_companion`, and asserts that `P`, every
+    /// correction's log-likelihood and their sum match bit for bit, and `x` up to the sign of
+    /// an exact zero (a prediction from `x = 0` may give `-0.0` where the dense path gives
+    /// `+0.0`).
+    fn check_arma_log_likelihood<T>()
+    where
+        T: MatrixDataType + crate::matrix::Logarithm + crate::test_bits::ToBits,
+    {
+        use crate::prelude::*;
+        use crate::regular::{FilterStorage, ObservationStorage};
+        use crate::test_bits::assert_bits_eq;
+
+        let c = |v: f64| T::from_f64(v).unwrap();
+        let phi = [c(0.5), c(-0.3)];
+        let r = [c(1.0), c(0.4)];
+
+        let mut dense_storage = FilterStorage::<2, T>::new(T::zero());
+        let mut companion_storage = FilterStorage::<2, T>::new(T::zero());
+        let mut observation_storage = ObservationStorage::<2, 1, T>::new(T::zero());
+        let mut dense = dense_storage.build();
+        let mut companion = companion_storage.build();
+        let mut observation = observation_storage.build();
+
+        dense.state_transition_mut().apply(|a| {
+            a.set_at(0, 0, phi[0]);
+            a.set_at(0, 1, T::one());
+            a.set_at(1, 0, phi[1]);
+        });
+        for filter in [&mut dense, &mut companion] {
+            filter.direct_process_noise_mut().apply(|q| {
+                for i in 0..2 {
+                    for j in 0..2 {
+                        q.set_at(i, j, r[i] * r[j]);
+                    }
+                }
+            });
+            filter.estimate_covariance_mut().apply(|p| {
+                p.set_at(0, 0, c(10.0));
+                p.set_at(1, 1, c(10.0));
+            });
+        }
+
+        observation
+            .observation_matrix_mut()
+            .apply(|h| h.set_at(0, 0, T::one()));
+
+        let (mut dense_sum, mut companion_sum) = (T::zero(), T::zero());
+        for y in [0.3, -0.1, 0.8, 0.2, -0.5, 1.1, 0.0, -0.7] {
+            dense.predict();
+            companion.predict_companion(&phi);
+            assert_bits_eq(
+                companion.estimate_covariance().as_slice(),
+                dense.estimate_covariance().as_slice(),
+                "predicted P",
+            );
+            for (got, want) in companion
+                .state_vector()
+                .as_slice()
+                .iter()
+                .zip(dense.state_vector().as_slice())
+            {
+                assert!(got == want, "predicted x");
+            }
+
+            let mut terms = [T::zero(); 2];
+            for (filter, term) in [&mut dense, &mut companion].into_iter().zip(&mut terms) {
+                observation
+                    .measurement_vector_mut()
+                    .apply(|z| z.set_at(0, 0, c(y)));
+                assert!(filter.correct(&mut observation).is_applied());
+                *term = observation.log_likelihood();
+            }
+
+            assert_bits_eq(&terms[1..], &terms[..1], "log-likelihood");
+            dense_sum += terms[0];
+            companion_sum += terms[1];
+        }
+
+        assert_bits_eq(&[companion_sum], &[dense_sum], "summed log-likelihood");
+    }
+
+    #[test]
+    fn predict_companion_keeps_the_arma_log_likelihood() {
+        check_arma_log_likelihood::<f32>();
+        check_arma_log_likelihood::<f64>();
     }
 }

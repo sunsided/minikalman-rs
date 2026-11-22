@@ -45,6 +45,11 @@ from the snapshot in the [time budget](#time-budget); produce your own (see
   - `predict`, `correct_joseph` (the default) and `correct_standard` of the regular filter,
     and `step_joseph` (predict + correct in one measured section);
   - `observer_step`: predict + correct of the fixed-gain (Luenberger) observer;
+  - `ar_<n>/predict_dense` and `ar_<n>/predict_companion` (n = 2, 4, 6, only with the
+    firmware feature `companion`, i.e. `HEAD_FEATURES=companion`): `predict` with a dense
+    companion `A` and `predict_companion` with its first column, on the same AR(n) model.
+    The extra code moves other rows by up to a few percent (fat LTO lays out the image
+    differently), so compare the other rows from a run without the feature;
   - `ud_predict`/`ud_correct` (Bierman/Thornton) and `sqrt_predict`/`sqrt_correct`
     (square-root covariance filter);
   - `ekf_radar_4x2/predict` and `correct_joseph`, the latter including the Jacobian and
@@ -179,6 +184,7 @@ also needs `llvm-nm` (or `rust-nm` from `cargo-binutils`).
 ```sh
 benches/mcu/run.sh                                   # both cores, both profiles, all types
 BASE=origin/main benches/mcu/run.sh                  # the same against minikalman at a revision
+BASE=origin/main HEAD_FEATURES=companion benches/mcu/run.sh   # plus the head-only companion rows
 TARGETS=thumbv7em-none-eabihf PROFILES=release TYPES=f32 benches/mcu/run.sh   # one binary
 TARGETS=thumbv7em-none-eabihf TYPES=sqrt-check benches/mcu/run.sh   # f32 sqrt == libm::sqrtf?
 TYPES="nav nav-libm" benches/mcu/run.sh             # only the navigation workloads
