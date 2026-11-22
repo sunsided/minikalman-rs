@@ -219,6 +219,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
+      # Upload the SBOM vulnerability scan to code scanning.
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -249,3 +251,19 @@ jobs:
         uses: advanced-security/spdx-dependency-submission-action@b009efcf8b9d562a4569d2028c276522232e631f # v0.4.0
         with:
           filePath: sbom.json
+
+      # Scan the SBOM for known vulnerabilities and report them in code scanning. Findings
+      # show up as alerts; they do not fail the job.
+      - name: Scan SBOM for vulnerabilities
+        id: scan
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: sbom.json
+          output-format: sarif
+          fail-build: false
+
+      - name: Upload vulnerability scan to code scanning
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: sbom-grype
