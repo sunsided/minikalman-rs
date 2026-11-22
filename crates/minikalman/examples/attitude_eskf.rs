@@ -80,20 +80,26 @@
 //!   gate. They occur right next to rejected samples, where a manoeuvre starts or a vibration
 //!   crosses zero, and bias the tilt. After a gated sample the filter therefore skips the next
 //!   [`HOLD_OFF_SAMPLES`] accelerometer samples (0.2 s). Over seeds 1 to 300, the mean NEES
-//!   of `δθ` had a median of 4.2 and a 95th percentile of 9.9 without it, and one seed locked
-//!   out (72); with it, 3.05 and 5.3. The price is that each false rejection at rest also
-//!   skips 0.2 s of good samples.
+//!   of `δθ` had a median of 4.6 and a 95th percentile of 12.9 without it (the gate alone
+//!   still rejected 99.5 to 100 % of the dynamic samples), and 32 seeds failed the checks;
+//!   with it, 3.3 and 5.7, and one seed failed (see below). The price is that each false
+//!   rejection at rest also skips 0.2 s of good samples, about 12 % of them here.
 //! - **Lockout.** The gate trusts `P`. If the attitude is wrong by more than `P` admits, every
 //!   sample is rejected, the error grows faster than `P`, and the filter never recovers. Start
 //!   close to the truth (roll and pitch from an accelerometer sample at rest, heading from the
 //!   first heading reading, as done here), keep `σ_g` honest, and re-initialize after a long
 //!   rejection streak. Gate a slow measurement, like the 5 Hz heading here, more loosely
-//!   ([`YAW_GATE`]), since each rejection costs more.
+//!   ([`YAW_GATE`]), since each rejection costs more. Seed 117 shows the tilt lockout: after
+//!   the 23 s without usable accelerometer samples (turn and shake), its x gyro bias error
+//!   is about four standard deviations, the gate rejects 40 % of the samples at rest for
+//!   14 s, the attitude error grows to 2.7°, and the filter recovers only when `P` has grown
+//!   enough (at 52 s).
 //!
 //! ## Simulation
 //!
-//! 60 s of a known rotation sequence (rest, tumbling by up to about 35°, a 15 s turn with
-//! 3 m/s² centripetal acceleration, 8 s of horizontal shaking at 2.5 m/s², slow motion) with a
+//! 60 s of a known rotation sequence (rest, tumbling, a 15 s turn with
+//! 3 m/s² centripetal acceleration, 8 s of horizontal shaking at 2.5 m/s², slow motion; roll
+//! and pitch reach about 53°) with a
 //! constant-plus-random-walk gyro bias of about 2°/s, gyro samples at about 200 Hz with ±1 ms
 //! timestamp jitter and 1 % dropped samples, the accelerometer at every fourth gyro sample and
 //! a heading with 2° noise at 5 Hz, all from a fixed seed. The filters start from one
@@ -220,12 +226,13 @@ const ACCEL_WINDOW: f32 = 0.1;
 /// A world-frame acceleration above this many m/s² marks a sample as dynamic in the statistics.
 const DYNAMIC_THRESHOLD: f32 = 0.3;
 
-/// Statistics (errors, NEES) start after this many microseconds, once the heading converged.
+/// Statistics (errors, NEES) start after this many microseconds, once the bias has settled.
 const SETTLE_US: u64 = 5_000_000;
 
 /// Largest attitude error of the gated filter after [`SETTLE_US`], in degrees.
 ///
-/// This and the bounds below leave margin over seeds 1 to 300, which gave at most 2.5° here.
+/// This and the bounds below leave margin over seeds 1 to 300 except 117 (a tilt lockout, see
+/// the module docs), which gave at most 2.5° here.
 const MAX_ATTITUDE_ERROR_DEG: f32 = 3.0;
 
 /// Largest final attitude error of the gated filter, in degrees (300 seeds: at most 0.98°).
@@ -234,18 +241,18 @@ const FINAL_ATTITUDE_ERROR_DEG: f32 = 1.5;
 /// Accepted range of the mean NEES of `δθ` and of `δb` (expected 3 for a consistent filter).
 ///
 /// One run's time average is autocorrelated, so it scatters widely: over 300 seeds the mean
-/// NEES of `δθ` had a median of 3.05 and ranged from 1.5 to 7.7, that of `δb` 1.3 to 7.6.
+/// NEES of `δθ` had a median of 3.3 and ranged from 1.3 to 8.8, that of `δb` 1.2 to 7.1.
 const NEES_RANGE: (f32, f32) = (1.0, 10.0);
 
-/// Accepted range of the mean NIS of the accepted tilt updates (300 seeds: 2.75 to 3.04).
+/// Accepted range of the mean NIS of the accepted tilt updates (300 seeds: 2.74 to 3.04).
 const NIS_RANGE: (f32, f32) = (2.5, 3.5);
 
 /// Smallest share of dynamic accelerometer samples the gate and the hold-off must skip.
 const MIN_DYNAMIC_REJECTION: f32 = 0.9;
 
-/// Largest share of static accelerometer samples the gate may reject (300 seeds: at most 1.6 %).
+/// Largest share of the static accelerometer samples the gate saw that it may reject.
 ///
-/// The hold-off skips about ten times as many good samples after these, which is not counted.
+/// 300 seeds: at most 2.0 %; the hold-off samples are not counted.
 const MAX_STATIC_REJECTION: f32 = 0.05;
 
 /// Fixed seed so CI runs are reproducible.
@@ -795,7 +802,7 @@ fn mahalanobis(p: &Mat3, e: Vec3) -> f32 {
 enum Phase {
     /// At rest, level-ish: the filter learns the tilt and the bias.
     Rest,
-    /// Rolling and pitching by up to about 35° while yawing, without linear acceleration.
+    /// Rolling and pitching while yawing, without linear acceleration.
     Tumble,
     /// A turn at 0.3 rad/s with 3 m/s² centripetal acceleration: `|f|` inside the ±10 % window.
     Turn,
@@ -831,11 +838,12 @@ impl Phase {
 
 /// Returns the true body angular velocity in rad/s at `t` seconds.
 fn body_rate(t: f32) -> Vec3 {
-    let wave = |amplitude: f32, hz: f32, s: f32| amplitude * (2.0 * PI * hz * s).sin();
+    // A cosine rate integrates to a sine angle, so each axis swings about where it started.
+    let wave = |amplitude: f32, hz: f32, s: f32| amplitude * (2.0 * PI * hz * s).cos();
 
     match Phase::at(t) {
         (Phase::Rest, _) => [0.0; 3],
-        (Phase::Tumble, s) => [wave(0.5, 0.2, s), wave(0.4, 0.1, s), 0.3],
+        (Phase::Tumble, s) => [wave(0.5, 0.2, s), wave(0.3, 0.1, s), 0.3],
         (Phase::Turn, _) => [0.0, 0.0, 0.3],
         (Phase::Shake, s) => [wave(0.2, 1.5, s), wave(0.15, 1.1, s), 0.0],
         (Phase::Slow, s) => [wave(0.1, 0.05, s), wave(0.1, 0.07, s), wave(0.1, 0.03, s)],
@@ -988,9 +996,11 @@ struct Decisions {
 }
 
 impl Decisions {
-    /// Returns the share of samples the gate rejected.
+    /// Returns the share of the samples the gate saw (not held off) that it rejected.
     fn gate_rate(&self) -> f32 {
-        self.share(self.gate_rejected)
+        #[allow(clippy::cast_precision_loss)]
+        let rate = self.gate_rejected as f32 / (self.samples - self.held).max(1) as f32;
+        rate
     }
 
     /// Returns the share of samples that did not reach the filter: gated or held off.
