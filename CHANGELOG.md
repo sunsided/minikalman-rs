@@ -381,6 +381,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The crate is now dual-licensed as `MIT OR Apache-2.0` (previously MIT only), and the package
+  ships both license texts.
+
 - `Matrix::mult` with a one- or two-column result starts its dot products from `−0.0` instead of
   `+0.0` for `f32` and `f64`, so the first addition folds away (`−0.0 + x = x` exactly, while
   `+0.0 + x` must be computed in case `x` is `−0.0`). The start value comes from the new
