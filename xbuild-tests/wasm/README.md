@@ -1,30 +1,56 @@
-# minikalman in the browser
+# minikalman lab: the filters in the browser
 
-Live demo: <https://sunsided.github.io/minikalman-rs/>
+Live page: <https://sunsided.github.io/minikalman-rs/>
 
 Builds minikalman for `wasm32-unknown-unknown` and runs it in the browser. The
 module exports plain `extern "C"` functions that take and return numbers, so it
-loads with `WebAssembly.instantiate` alone; no `wasm-bindgen` or generated JS
-glue is needed.
+loads with `WebAssembly.instantiate` alone; no `wasm-bindgen`, bundler or
+generated JS glue is needed. The page is plain HTML, CSS and ES modules; its only
+third-party asset is the Recursive font from a pinned jsdelivr URL, with a system
+font fallback.
 
-The page shows two demos:
+## Experiments
 
-- **Tracking a moving target**: radars measure range and bearing to a moving
-  target. An Extended and an Unscented Kalman filter run side by side on the
-  same measurements; each plot shows the crescent-shaped measurement
-  uncertainty against the filter's 2σ ellipse, and marks each correction on the
-  estimate track.
-  - Pick a preset path (circling the radar, a straight pass like the repo's
-    radar examples, a figure eight), **draw your own** path, **drag** the radars
-    and the path's waypoints, or **steer** the target with the pointer.
-  - Pause and step one prediction or one measurement at a time, change how
-    often the radars measure, the target's speed, the process noise and the
-    measurement noise.
-  - Toggle a second radar, and the wrapping of the bearing residual to see what
-    goes wrong when the target passes behind a radar.
-- **The basics: smoothing a noisy position**: a linear constant-velocity filter
-  in 1D. Draw your own signal on the plot and tune the process noise to see the
-  trade-off between smoothing and lag.
+Every trace is computed by minikalman in the module; JS only draws.
+
+| Section | What it compares | Rust | JS |
+|---|---|---|---|
+| Smoothing a noisy position | A constant-velocity filter on a signal you draw | `lib.rs` | `exp-basics.js` |
+| EKF vs UKF | Extended and unscented filters on range/bearing radar measurements; draw, drag and steer the target, a second radar, bearing wrapping | `radar.rs` | `exp-radar.js` |
+| Outliers | Plain, NIS-gated and Student-t robust corrections on the same readings; outlier rate and size, a real jump that locks the gate out, re-acquiring after N rejections | `outliers.rs` | `exp-outliers.js` |
+| Numerics | Standard vs Joseph covariance update in `f32`, `I16F16` and `I32F32` with ten sequential scalar sensors: smallest variance, asymmetry, definiteness | `numerics.rs` | `exp-numerics.js` |
+| Smoothing | Filter vs fixed-lag vs RTS smoother through a gap in the readings | `smoothing.rs` | `exp-smoothing.js` |
+| Parameter estimation | Dual RLS + Kalman filter vs a joint augmented-state EKF on a motor plant with a load step | `parameters.rs` | `exp-parameters.js` |
+| Attitude | A quaternion error-state EKF with an NIS-gated accelerometer vs a ±10 % window on the accelerometer magnitude, with horizon dials | `attitude.rs` | `exp-attitude.js` |
+
+`lab.js` holds the shared glue: loading the module, reading a run, the canvas
+plots, knobs, theme. `main.js` starts each experiment; one failing does not stop
+the others.
+
+## The module's interface
+
+### Batch experiments
+
+Each lab experiment is one export, `<name>_run(knobs…) -> u32`, that simulates a
+whole run with a seeded noise source, writes it to a static trace buffer and
+returns the number of steps. Nothing allocates; knobs are clamped on the Rust
+side. The doc comment of each `*_run` function lists its knobs, its trace
+channels and its summary values.
+
+| Export | Description |
+|---|---|
+| `trace_ptr() -> *const f32` | The trace of the last run, channel-major: channel `c` of `n` steps is at `[c·n, (c+1)·n)` |
+| `summary_ptr() -> *const f32` | 64 scalar results of the last run (RMSE, counts, …) |
+| `outliers_run(seed, sigma, rate, size, gate, dof, jump, reacquire)` | See `outliers.rs` |
+| `numerics_run(seed, sensors, log_r, log_q, steps)` | See `numerics.rs` |
+| `smoothing_run(seed, sigma, q, gap)` | See `smoothing.rs` |
+| `parameters_run(seed, sensor_sigma, log_q, forgetting)` | See `parameters.rs` |
+| `attitude_run(seed, dynamics, gate, hold_off, window, heading)` | See `attitude.rs` |
+
+Read both buffers as a `Float32Array` over `memory.buffer` after each run. Each
+experiment on the page gets its own instance of the module, so a trap in one
+cannot leave another in a bad state; the glue replaces a trapped instance.
+Fixed-point overflow wraps in the release build.
 
 ### 1D smoothing
 
@@ -67,7 +93,8 @@ python3 -m http.server --directory xbuild-tests/wasm/www
 
 Then open <http://localhost:8000>. The workspace release profile keeps debug
 info for the embedded targets; the two environment variables drop it here,
-which brings the module to about 47 kB (21 kB without the radar demo).
+which brings the module to about 195 kB (70 kB gzipped). `task example:wasm`
+does the same.
 
 The `GitHub Pages` workflow builds the same module and deploys `www/` on every
 push to `main` that touches the library or this example.
@@ -77,3 +104,8 @@ To check the module without a browser:
 ```shell
 node xbuild-tests/wasm/smoke.mjs target/wasm32-unknown-unknown/release/minikalman_wasm.wasm
 ```
+
+It runs the 1D and radar filters, then every lab experiment at its page defaults
+and at the extremes of its knobs, and checks the claim each experiment's note
+makes (for example, that the RTS smoother bridges the gap and that `I16F16`
+loses definiteness while `f32` does not).

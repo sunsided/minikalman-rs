@@ -1,12 +1,25 @@
-//! Tracking a noisy 1D position in the browser.
+//! minikalman in the browser: the module behind the lab page.
 //!
-//! This crate builds minikalman for `wasm32-unknown-unknown` and exposes a
-//! constant-velocity filter through plain `extern "C"` functions. All arguments
-//! and return values are `f32`, so the module can be loaded with
-//! `WebAssembly.instantiate` alone; no `wasm-bindgen` or JS glue is required.
-//! See `www/index.html` for the browser side and `smoke.mjs` for a Node check.
+//! This crate builds minikalman for `wasm32-unknown-unknown` and exposes it through
+//! plain `extern "C"` functions that take and return numbers, so the module can be
+//! loaded with `WebAssembly.instantiate` alone; no `wasm-bindgen` or JS glue is
+//! required. This file holds a constant-velocity filter driven step by step from JS;
+//! [`radar`] does the same for the EKF and UKF. The lab experiments ([`outliers`],
+//! [`numerics`], [`smoothing`], [`parameters`], [`attitude`]) each simulate a whole run
+//! in one call and write it to the static buffers of [`lab`].
+//! See `www/` for the browser side and `smoke.mjs` for a Node check.
+//!
+//! The exports are `#[no_mangle]` only outside test builds. With the symbol unmangled in
+//! both the library and its test harness, coverage tools merge the two copies by name and
+//! keep the one the tests never call.
 
+pub mod attitude;
+pub mod lab;
+pub mod numerics;
+pub mod outliers;
+pub mod parameters;
 pub mod radar;
+pub mod smoothing;
 
 use std::cell::RefCell;
 
@@ -84,25 +97,25 @@ thread_local! {
 
 /// Resets the filter with time step `dt`, process noise density `q`
 /// and measurement noise variance `r`.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn reset(dt: f32, q: f32, r: f32) {
     TRACKER.with(|t| *t.borrow_mut() = Tracker::new(dt, q, r));
 }
 
 /// Feeds one position measurement and returns the filtered position.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn step(z: f32) -> f32 {
     TRACKER.with(|t| t.borrow_mut().step(z))
 }
 
 /// Returns the estimated velocity.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn velocity() -> f32 {
     TRACKER.with(|t| t.borrow().filter.state_vector().get_at(1, 0))
 }
 
 /// Returns the variance of the position estimate.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn position_variance() -> f32 {
     TRACKER.with(|t| t.borrow().filter.estimate_covariance().get_at(0, 0))
 }
