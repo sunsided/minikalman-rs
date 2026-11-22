@@ -1100,25 +1100,29 @@ struct Aid {
     updates: u32,
     /// Number the NIS gate rejected.
     gated: u32,
+    /// Number applied to the estimate.
+    accepted: u32,
     /// Sum of the NIS of the accepted updates.
     nis_sum: f32,
 }
 
 impl Aid {
-    /// Records one update.
+    /// Records one update. Only an applied update counts as accepted: a correction rejected
+    /// for a `S` that is not positive definite leaves the NIS of the previous update.
     fn record(&mut self, status: CorrectionStatus, nis: f32) {
         self.updates += 1;
-        if status == CorrectionStatus::Gated {
-            self.gated += 1;
-        } else {
+        if status.is_applied() {
+            self.accepted += 1;
             self.nis_sum += nis;
+        } else if status == CorrectionStatus::Gated {
+            self.gated += 1;
         }
     }
 
     /// Returns the mean NIS of the accepted updates.
     fn mean_nis(&self) -> f32 {
         #[allow(clippy::cast_precision_loss)]
-        let mean = self.nis_sum / (self.updates - self.gated).max(1) as f32;
+        let mean = self.nis_sum / self.accepted.max(1) as f32;
         mean
     }
 }
@@ -1256,7 +1260,7 @@ fn print_row(sample: &Sample, ins: &Ins<'_>, stats: &Stats) {
         Phase::at(t).0.name(),
         a.to_degrees(),
         ins.position_std(),
-        stats.gnss.updates - stats.gnss.gated,
+        stats.gnss.accepted,
         stats.gnss.gated,
     );
 }
