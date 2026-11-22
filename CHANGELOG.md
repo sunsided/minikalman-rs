@@ -360,6 +360,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   most sizes and types (Cortex-M4F `opt-level = "s"`, 2×1 `f32`: 506 → 492 for the Joseph
   correction) and a smaller step at `"s"` (`thumbv7em`, 4×2 `f32`: 2948 → 2876 B Joseph), but
   +0.1–0.4 % at 6×3 and for the `I16F16` 4×2 Joseph correction ([#180]).
+- The single-measurement gain of the floating-point types no longer carries the Cholesky
+  fallback of the `L×D×Lᵀ` factorization: for one measurement both reject exactly the same `S`,
+  so the fallback could never run. This takes the fallback and its square root out of the code:
+  the `thumbv7em` 2×1 `f32` step at `opt-level = "s"` shrinks by about 330 B. Steps with two or
+  three measurements keep the fallback, which decides for subnormal or near-singular `S`; it
+  keeps the 4×2 `f32` steps at `"s"` above their size before the optimization series:
+  Joseph +332 B (2876 vs 2544), standard +300 B (2624 vs 2324), extended +348 B
+  (3514 vs 3166) ([#179]).
 - With the `unsafe` feature, `libm` and no `std`, the `f32` square root on Arm hard-float targets
   (`target_abi = "eabihf"`, e.g. the Cortex-M4F) uses the FPU's `vsqrt.f32` instead of
   `libm::sqrtf` in software: 7 instead of 79 instructions per root on the M4F, up to 26 % fewer
@@ -487,6 +495,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#181]: https://github.com/sunsided/minikalman-rs/issues/181
 [#187]: https://github.com/sunsided/minikalman-rs/issues/187
 [#180]: https://github.com/sunsided/minikalman-rs/issues/180
+[#179]: https://github.com/sunsided/minikalman-rs/issues/179
 [#174]: https://github.com/sunsided/minikalman-rs/issues/174
 [#168]: https://github.com/sunsided/minikalman-rs/issues/168
 [#169]: https://github.com/sunsided/minikalman-rs/issues/169
