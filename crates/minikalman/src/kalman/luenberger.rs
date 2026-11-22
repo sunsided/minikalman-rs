@@ -284,6 +284,7 @@ impl<const STATES: usize, T, A, X, PX> LuenbergerObserver<STATES, T, A, X, PX, C
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::LuenbergerObserver;
     ///
@@ -294,6 +295,7 @@ impl<const STATES: usize, T, A, X, PX> LuenbergerObserver<STATES, T, A, X, PX, C
     /// let mut observer = LuenbergerObserver::<2, f32, _, _, _>::new(A, x, temp_x);
     /// observer.state_transition_mut().make_identity();
     /// observer.predict();
+    /// # }
     /// ```
     #[allow(non_snake_case)]
     pub fn new(A: A, x: X, predicted_x: PX) -> Self {
@@ -323,6 +325,7 @@ where
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::LuenbergerObserver;
     ///
@@ -334,6 +337,7 @@ where
     /// let mut observer = LuenbergerObserver::<2, f32, _, _, _, _>::new_predictor(A, x, temp_x, pending);
     /// observer.state_transition_mut().make_identity();
     /// observer.predict();
+    /// # }
     /// ```
     #[allow(non_snake_case)]
     pub fn new_predictor(A: A, x: X, predicted_x: PX, pending: C) -> Self {

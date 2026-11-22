@@ -23,8 +23,10 @@ pub mod support;
 /// `model` writes the declared matrices, and from there it is the library API:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::prelude::*;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.01); }
@@ -36,6 +38,7 @@ pub mod support;
 ///     }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     let (mut filter_storage, mut gps_storage) = (tracker::new(), gps::new());
 ///     let mut filter = tracker::build(&mut filter_storage);
@@ -52,6 +55,8 @@ pub mod support;
 ///     let track = Track::read(filter.state_vector().as_slice());
 ///     assert!(track.vel > 0.5 && track.vel < 1.5);
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// Invoke `filter!` at module level, not in a function body: each generated module imports
@@ -65,11 +70,15 @@ pub mod support;
 /// a time:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::models::motion::constant_velocity;
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::prelude::*;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// const DT: f32 = 0.1;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///
@@ -99,6 +108,7 @@ pub mod support;
 ///     system tracking { fast, slow, gps, throttle }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     let mut storage = tracking::new();
 ///     let mut sys = tracking::build(&mut storage);
@@ -117,6 +127,8 @@ pub mod support;
 ///     let fast = Track::read(sys.fast.state_vector().as_slice());
 ///     assert!((fast.vel - 4.9).abs() < 0.5);
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// Each correction rewrites `y`, `S` and `K` in the shared observation, so afterwards they
@@ -132,11 +144,15 @@ pub mod support;
 /// gain block `gps {}` tells `model` to leave that gain alone:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::models::motion::constant_velocity;
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::prelude::*;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// const DT: f32 = 0.1;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.25); }
@@ -156,6 +172,7 @@ pub mod support;
 ///     }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     let (mut design_storage, mut gps_storage) = (design::new(), gps::new());
 ///     let mut design = design::build(&mut design_storage);
@@ -174,6 +191,8 @@ pub mod support;
 ///     assert!(observer.observer.correct(&mut observer.gps).is_applied());
 ///     assert!(Track::read(observer.observer.state_vector().as_slice()).pos > 0.0);
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// You can also write the gain itself, as `gps { K[pos, pos] = 0.5; K[vel, pos] = 0.8; }`.
@@ -200,9 +219,12 @@ pub mod support;
 /// further lean observation saves its temporaries again:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::prelude::*;
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::regular::ObservationStorage;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///     observation lean gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
@@ -212,6 +234,7 @@ pub mod support;
 ///     system tracking { tracker, gps, odometry, shared }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     use core::mem::size_of;
 ///     let lean = size_of::<gps::Storage>() + size_of::<odometry::Storage>()
@@ -230,6 +253,8 @@ pub mod support;
 ///     Odometry { pos: 1.0, vel: 0.5 }.write(sys.odometry.measurement_vector_mut().as_mut_slice());
 ///     assert!(sys.tracker.correct_in(&mut sys.odometry, sys.shared).is_applied());
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// ## Placement: on the stack or in a `static`
@@ -240,6 +265,7 @@ pub mod support;
 /// `let mut storage = tracking::new();` as above. A `static` can be initialized directly:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
@@ -247,13 +273,17 @@ pub mod support;
 ///     system tracking { tracker, gps }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// static STORAGE: tracking::Storage = tracking::new();
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     // 20 + 17 f32: FilterStorage<2> and ObservationStorage<2, 1>, nothing else.
 ///     assert_eq!(core::mem::size_of_val(&STORAGE), 37 * 4);
 ///     assert_eq!(tracking::BYTES, 37 * 4);
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// To get a `&'static mut` without `static mut`, go through a take-once cell such as
@@ -261,9 +291,12 @@ pub mod support;
 /// dependency of this one):
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::prelude::*;
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use static_cell::ConstStaticCell;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///     observation gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
@@ -271,8 +304,10 @@ pub mod support;
 ///     system tracking { tracker, gps }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// static STORAGE: ConstStaticCell<tracking::Storage> = ConstStaticCell::new(tracking::new());
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     let storage: &'static mut tracking::Storage = STORAGE.take(); // once; .bss, nothing moved
 ///     let mut sys = tracking::build(storage);
@@ -284,6 +319,8 @@ pub mod support;
 ///     sys.tracker.correct(&mut sys.gps);
 ///     assert!(Track::read(sys.tracker.state_vector().as_slice()).pos > 0.0);
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// An RTIC `#[local]` resource and a `Box::new(tracking::new())` work the same way. You can
@@ -298,8 +335,10 @@ pub mod support;
 /// no lifetime, it moves like any value, and `model` works on it:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::prelude::*;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///     observation gps: Gps for Track { pos } { storage = owned; H = [pos]; R = diag(0.01); }
@@ -312,12 +351,14 @@ pub mod support;
 ///     }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// /// Your own type: the filter and its observation are plain fields.
 /// struct Tracker {
 ///     filter: tracker::Owned,
 ///     gps: gps::Owned,
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// impl Tracker {
 ///     fn new() -> Self {
 ///         let mut tracker = Self { filter: tracker::new_owned(), gps: gps::new_owned() };
@@ -334,6 +375,7 @@ pub mod support;
 ///     }
 /// }
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     let mut tracker = Tracker::new();
 ///     let mut track = Track { pos: 0.0, vel: 0.0 };
@@ -344,6 +386,8 @@ pub mod support;
 ///     assert!(track.vel > 0.5 && track.vel < 1.5);
 ///     assert!(tracker::BYTES >= 20 * 4); // the buffers plus the filter's bookkeeping
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// `new_owned()` returns the value, so it passes through the stack (`BYTES`) on its way into
@@ -391,9 +435,12 @@ pub mod support;
 /// constants, so the footprint can be checked at compile time:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use minikalman::prelude::*;
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// use static_cell::ConstStaticCell;
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// minikalman::filter! {
 ///     state Track(f32) { pos, vel }
 ///     observation lean gps: Gps for Track { pos } { H = [pos]; R = diag(0.5); }
@@ -409,13 +456,18 @@ pub mod support;
 /// }
 ///
 /// // A, Q and two temporaries inline; P and x lent by the application.
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// const _: () = assert!(tracker::BYTES == 14 * 4 && tracker::EXTERN_BYTES == 6 * 4);
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// /// Memory the application owns, e.g. shared with a logger task or placed by the linker.
 /// static P: ConstStaticCell<[f32; 4]> = ConstStaticCell::new([0.0; 4]);
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// static X: ConstStaticCell<[f32; 2]> = ConstStaticCell::new([0.0; 2]);
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// static FILTER: ConstStaticCell<tracker::Storage> = ConstStaticCell::new(tracker::new());
 ///
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 /// fn main() {
 ///     let (p, x) = (P.take(), X.take());
 ///     let (mut gps_storage, mut scratch) = (gps::new(), shared::new());
@@ -437,6 +489,8 @@ pub mod support;
 ///     assert!(track.vel > 0.5 && track.vel < 1.5);
 ///     assert!(p[0] < 10.0);
 /// }
+/// # #[cfg(not(any(feature = "std", feature = "libm", feature = "micromath")))]
+/// # fn main() {}
 /// ```
 ///
 /// What goes through the stack, so you can budget for it:

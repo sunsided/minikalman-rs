@@ -225,6 +225,7 @@
 //! Systems without the liberty of heap allocation can use the storage types:
 //!
 //! ```
+//! # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 //! use minikalman::prelude::*;
 //! use minikalman::regular::{FilterStorage, ObservationStorage};
 //!
@@ -238,6 +239,7 @@
 //! let mut measurement = measurement_storage.build();
 //! # filter.predict();
 //! # filter.correct(&mut measurement);
+//! # }
 //! ```
 //!
 //! The storage has the size of the buffers it holds and allocates nothing; `build()` borrows
@@ -253,6 +255,7 @@
 //! ```
 //! # #![allow(non_snake_case)]
 //! # #![allow(non_upper_case_globals)]
+//! # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 //! use minikalman::buffers::types::*;
 //! use minikalman::prelude::*;
 //! use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
@@ -310,6 +313,7 @@
 //!     TemporaryPHTMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_temp_PHt).as_mut_slice() }),
 //!     TemporaryKHPMatrixBuffer::from(unsafe { (&mut *&raw mut gravity_temp_KHP).as_mut_slice() }),
 //! );
+//! # }
 //! ```
 //!
 //! After that, the `filter` and `measurement` variables can be used similar to the example above.
@@ -363,7 +367,7 @@ mod storage;
 
 #[cfg(test)]
 mod test_bits;
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod test_dummies;
 
 #[cfg(all(test, feature = "alloc"))]
@@ -398,7 +402,8 @@ pub struct ReadmeDoctests;
 
 /// Runs the README's statically allocated example without the `alloc` gate, to show it needs
 /// neither `std` nor `alloc`. `tests/readme.rs` checks that the README contains it verbatim.
-#[cfg(doctest)]
+// It still needs a float backend for `f32`.
+#[cfg(all(doctest, any(feature = "std", feature = "libm", feature = "micromath")))]
 #[doc = include_str!("../docs/readme-no-alloc.md")]
 pub struct ReadmeNoAllocDoctest;
 

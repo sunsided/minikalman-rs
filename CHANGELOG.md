@@ -453,7 +453,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on `get`/`set`: their slice versions changed the instruction counts of the filter step on
   Cortex-M4F although they only run with the adaptation on. The filter operations of
   `benches/mcu` and the `thumbv7em-none-eabihf` code size of `benches/compare` are unchanged.
+- Gated the tests and doc examples that use `f32`/`f64` on a float backend (`std`, `libm` or
+  `micromath`), so `cargo test --no-default-features` and `--no-default-features --features
+  fixed` compile and pass again. CI runs both configurations ([#177]).
 
+[#177]: https://github.com/sunsided/minikalman-rs/issues/177
 [#174]: https://github.com/sunsided/minikalman-rs/issues/174
 [#168]: https://github.com/sunsided/minikalman-rs/issues/168
 [#169]: https://github.com/sunsided/minikalman-rs/issues/169

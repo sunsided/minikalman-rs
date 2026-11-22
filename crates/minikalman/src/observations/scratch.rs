@@ -45,6 +45,7 @@ use crate::matrix::MatrixDataMut;
 /// Two observations of different sizes share one scratch, without `std` or `alloc`:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::{CorrectionScratch, FilterStorage, LeanObservationStorage};
 ///
@@ -71,6 +72,7 @@ use crate::matrix::MatrixDataMut;
 /// filter.correct_in(&mut full, &mut scratch);
 ///
 /// assert!(filter.state_vector().get_row(0) > 0.5);
+/// # }
 /// ```
 ///
 /// The scratch cannot be lent to two corrections at once:
@@ -95,6 +97,7 @@ use crate::matrix::MatrixDataMut;
 /// One borrow after the other compiles:
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::{CorrectionScratch, FilterStorage, LeanObservationStorage};
 ///
@@ -109,6 +112,7 @@ use crate::matrix::MatrixDataMut;
 /// filter.correct_in(&mut observation, first);
 /// let second = &mut scratch;
 /// filter.correct_in(&mut observation, second);
+/// # }
 /// ```
 ///
 /// A scratch smaller than the observation does not compile either:

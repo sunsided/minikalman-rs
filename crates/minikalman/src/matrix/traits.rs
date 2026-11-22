@@ -185,6 +185,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::matrix::{Matrix, MatrixData};
     ///
     /// let a_buf = [
@@ -208,6 +209,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// assert!((c_buf[1] - (1. * 11. + 2. * 21. + 3. * 31.)).abs() < 0.01); // 146
     /// assert!((c_buf[2] - (4. * 10. + 5. * 20. + 6. * 30.)).abs() < 0.01); // 320
     /// assert!((c_buf[3] - (4. * 11. + 5. * 21. + 6. * 31.)).abs() < 0.01); // 335
+    /// # }
     /// ```
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
@@ -268,6 +270,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::matrix::{MatrixData, Matrix};
     ///
     /// let a_buf = [
@@ -290,6 +293,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// assert!((c_buf[1] - (1. * 11. + 2. * 21. + 3. * 31.)).abs() < 0.01); // 146
     /// assert!((c_buf[2] - (4. * 10. + 5. * 20. + 6. * 30.)).abs() < 0.01); // 320
     /// assert!((c_buf[3] - (4. * 11. + 5. * 21. + 6. * 31.)).abs() < 0.01); // 335
+    /// # }
     /// ```
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
@@ -600,6 +604,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::matrix::{MatrixData, Matrix};
     ///
     /// let a_buf = [
@@ -613,6 +618,7 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
     /// // C = A×Aᵀ
     /// a.mult_symmetric_transb(&a, &mut c);
     /// assert_eq!(c_buf, [5.0, 11.0, 11.0, 25.0]);
+    /// # }
     /// ```
     #[doc(alias = "matrix_mult_symmetric_transb")]
     fn mult_symmetric_transb<B, C>(&self, b: &B, c: &mut C)
@@ -893,6 +899,7 @@ pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T>
     /// ## Example
     ///
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::matrix::{MatrixData, Matrix, MatrixMut, SquareMatrix};
     ///
     /// // data buffer for the original and decomposed matrix
@@ -927,6 +934,7 @@ pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T>
     /// assert!((di[6] - 0.0).abs() < 0.001);
     /// assert!((di[7] - 0.0).abs() < 0.001);
     /// assert!((di[8] - 1.0).abs() < 0.001);
+    /// # }
     /// ```
     ///
     /// ## Copyright
@@ -993,6 +1001,7 @@ pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T>
     ///
     /// ## Example
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::matrix::{MatrixData, RowMajorSequentialData, SquareMatrix};
     ///
     /// let l = MatrixData::new_array::<2, 2, 4, f32>([
@@ -1002,6 +1011,7 @@ pub trait SquareMatrix<const N: usize, T = f32>: RowMajorSequentialData<N, N, T>
     ///
     /// assert!(l.solve_lower_triangular_inplace(&mut b));
     /// assert_eq!(b.as_slice(), &[1.0, 2.0]);
+    /// # }
     /// ```
     fn solve_lower_triangular_inplace<const K: usize, B>(&self, b: &mut B) -> bool
     where
@@ -1357,6 +1367,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::matrix::{MatrixData, MatrixMut};
     ///
     /// // data buffer for the original and decomposed matrix
@@ -1381,6 +1392,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// assert!((d[6] - 0.0).abs() < 0.01);
     /// assert!((d[7] - 0.0).abs() < 0.01);
     /// assert!((d[8] - 1.0).abs() < 0.01);
+    /// # }
     /// ```
     ///
     /// Kudos: <https://code.google.com/p/efficient-java-matrix-library>
@@ -1463,6 +1475,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     ///
     /// ## Example
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::matrix::{MatrixData, MatrixMut, RowMajorSequentialData};
     ///
     /// let mut m = MatrixData::new_array::<3, 2, 6, f32>([
@@ -1478,6 +1491,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     /// assert!((r[0] - 5.0).abs() < 0.2 && (r[1] - 3.0).abs() < 0.2);
     /// assert!(r[2].abs() < 0.2 && (r[3] - 5.0f32.sqrt()).abs() < 0.2);
     /// assert_eq!(&r[4..], &[0.0, 0.0]);
+    /// # }
     /// ```
     #[doc(alias = "qr")]
     fn triangularize_upper(&mut self) -> bool
@@ -1488,7 +1502,7 @@ pub trait MatrixMut<const ROWS: usize, const COLS: usize, T = f32>:
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::matrix::MatrixData;

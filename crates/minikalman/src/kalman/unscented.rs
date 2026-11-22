@@ -1364,7 +1364,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use crate::kalman::*;
     use crate::test_dummies::{Dummy, make_dummy_filter_ukf, make_dummy_observation_ukf};

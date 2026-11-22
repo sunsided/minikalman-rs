@@ -849,6 +849,7 @@ mod tests {
 
     /// Runs the solver on `G`, `R` and `v` (all `f64`) and returns `C = H×P×Hᵀ` of the result
     /// together with whether it converged.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     fn solve(g: [f64; 4], r: [f64; 4], v: [f64; 2], max_iterations: usize) -> ([f64; 4], bool) {
         let mut buffers = [[0.0; 4]; 5];
         let mut a = [0.0; 2];
@@ -1013,6 +1014,7 @@ mod tests {
 
     /// The solver runs end to end in `f32` with every math backend, including `micromath`'s
     /// approximate square root.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     #[test]
     fn f32_smoke() {
         for v in [[0.0, 0.0], [1.5, -2.0], [40.0, 10.0]] {

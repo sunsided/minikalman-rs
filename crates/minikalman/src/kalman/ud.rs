@@ -150,6 +150,7 @@ where
     /// Without allocation, the buffers come from the `impl_buffer_*` macros:
     ///
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::ud::UdKalman;
     ///
@@ -169,6 +170,7 @@ where
     /// filter.process_noise_factors_mut().set(1, 1, 0.5);
     /// filter.predict();
     /// assert_eq!(filter.ud_factors().get(1, 1), 1.5);
+    /// # }
     /// ```
     #[allow(non_snake_case)]
     pub fn new(A: A, x: X, UD: UD, UDQ: UDQ, temp_W: TempW, temp_D: TempD) -> Self {
@@ -838,7 +840,7 @@ fn update_residuals<const STATES: usize, const OBSERVATIONS: usize, T>(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::matrix::MatrixData;

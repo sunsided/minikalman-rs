@@ -1470,6 +1470,7 @@ mod tests {
 
     /// Runs one correction of the [`case`] with a `NaN` in `y` and asserts that it is rejected
     /// with `x`, `P` and `K` untouched.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     fn nan_innovation_is_not_applied<const N: usize, const M: usize>() {
         let initial = case::<N, M, f64>(3, 1.0);
         let mut b = initial;

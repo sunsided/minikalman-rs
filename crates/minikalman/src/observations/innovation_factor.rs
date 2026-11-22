@@ -344,7 +344,7 @@ where
     pivot > T::zero() && pivot - pivot == T::zero()
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::matrix::{MatrixData, SquareMatrix};

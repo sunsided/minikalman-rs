@@ -49,15 +49,18 @@ macro_rules! run {
 }
 
 /// Returns the bit patterns of `x` and `P`, so that only identical results compare equal.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn bits((x, p): ([f32; 2], [f32; 4])) -> ([u32; 2], [u32; 4]) {
     (x.map(f32::to_bits), p.map(f32::to_bits))
 }
 
 /// The identity conversion for the `f32` runs.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn f(v: f32) -> f32 {
     v
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn handle_matches_predict_then_two_controls() {
     let split = run!(f32, f, |filter, throttle, steering| {
@@ -75,6 +78,7 @@ fn handle_matches_predict_then_two_controls() {
     assert_eq!(bits(handle), bits(split));
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn handle_matches_the_closed_form_state() {
     let (x, p) = run!(f32, f, |filter, throttle, steering| {
@@ -91,6 +95,7 @@ fn handle_matches_the_closed_form_state() {
     assert_eq!(p[1].to_bits(), p[2].to_bits(), "P is not symmetric: {p:?}");
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn tuned_handle_matches_predict_tuned_then_two_controls() {
     const LAMBDA: f32 = 0.875;
@@ -110,6 +115,7 @@ fn tuned_handle_matches_predict_tuned_then_two_controls() {
     assert_eq!(bits(handle), bits(split));
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn handle_held_across_statements_applies_each_control() {
     let split = run!(f32, f, |filter, throttle, steering| {
@@ -127,10 +133,12 @@ fn handle_held_across_statements_applies_each_control() {
 }
 
 /// Predicts through the [`KalmanFilterPredict`] trait, which still returns `()`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn predict_via_trait<K: KalmanFilterPredict<2, f32>>(filter: &mut K) {
     let () = filter.predict();
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn trait_predict_matches_the_inherent_predict() {
     let via_trait = run!(f32, f, |filter, throttle, steering| {

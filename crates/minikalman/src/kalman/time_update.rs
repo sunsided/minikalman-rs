@@ -20,6 +20,7 @@
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::{ControlStorage, FilterStorage, ObservationStorage};
 ///
@@ -50,6 +51,7 @@
 ///
 /// gps.measurement_vector_mut().apply(|z| z[0] = 2.0);
 /// filter.correct(&mut gps);
+/// # }
 /// ```
 ///
 /// A control after a correction does not compile, since the handle still borrows the filter:

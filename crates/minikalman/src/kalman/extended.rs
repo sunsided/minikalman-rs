@@ -35,6 +35,7 @@ impl<A, X, P, Q, PX, TempP> ExtendedKalmanBuilder<A, X, P, Q, PX, TempP> {
     ///
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// # use minikalman::*;
     /// use minikalman::regular::RegularKalmanBuilder;
     /// # const NUM_STATES: usize = 3;
@@ -58,6 +59,7 @@ impl<A, X, P, Q, PX, TempP> ExtendedKalmanBuilder<A, X, P, Q, PX, TempP> {
     ///     gravity_temp_x,
     ///     gravity_temp_P,
     ///  );
+    /// # }
     /// ```
     #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, T>(
@@ -323,6 +325,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::extended::*;
     /// # const NUM_STATES: usize = 3;
@@ -399,6 +402,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///         observation[0] = state[0].cos() * state[1];
     ///     });
     /// }
+    /// # }
     /// ```
     pub fn predict_nonlinear<F>(&mut self, state_transition: F)
     where
@@ -1295,7 +1299,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::prelude::{AsMatrix, AsMatrixMut, MatrixMut};

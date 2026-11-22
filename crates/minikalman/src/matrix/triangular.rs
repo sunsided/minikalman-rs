@@ -314,6 +314,7 @@ mod tests {
         assert_close(&gram::<9>(&m, 6, 3), &expected, 1e-12);
     }
 
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     #[test]
     fn rejects_wide_and_non_finite_matrices() {
         let mut wide = [1.0f32; 6];
@@ -469,6 +470,7 @@ mod tests {
     }
 
     /// Returns `T×x` for the `3×3` factor given by `factor(i, k)` and the row-major `3×2` `x`.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     fn product(factor: impl Fn(usize, usize) -> f64, x: &[f64]) -> [f64; 6] {
         let mut b = [0.0; 6];
         for i in 0..3 {
@@ -480,6 +482,7 @@ mod tests {
         b
     }
 
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     #[test]
     #[rustfmt::skip]
     fn triangular_solves_invert_their_factor() {
@@ -514,6 +517,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     fn triangular_solves_match_the_cholesky_inverse() {
         let mut l = MatrixData::new_array::<2, 2, 4, f64>([4.0, 1.0, 1.0, 3.0]);
         assert!(l.cholesky_decompose_lower());

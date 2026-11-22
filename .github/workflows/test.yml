@@ -50,6 +50,30 @@ jobs:
       - name: Run tests (${{ matrix.features || 'default' }})
         run: cargo nextest run --verbose --package minikalman ${{ matrix.features }}
 
+  # Without a float backend `f32`/`f64` are no `MatrixDataType`, so only the gated tests
+  # build. `cargo test` instead of nextest: it also runs the doctests and does not fail when
+  # a binary has no tests.
+  test-no-float:
+    name: No Float Backend (${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - "--no-default-features"
+          - "--no-default-features --features fixed"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - name: Run tests and doctests
+        run: cargo test --package minikalman ${{ matrix.features }}
+
   conformance:
     name: Conformance (${{ matrix.features }})
     runs-on: ubuntu-latest

@@ -49,6 +49,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     ///
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// # use minikalman::*;
     /// use minikalman::extended::ExtendedObservationBuilder;
     /// # const NUM_STATES: usize = 3;
@@ -80,6 +81,7 @@ impl<H, Z, R, Y, S, K, TempSInv, TempHP, TempPHt, TempKHP>
     ///     gravity_temp_PHt,
     ///     gravity_temp_KHP,
     /// );
+    /// # }
     /// ```
     ///
     /// See also [`RegularKalmanBuilder::new`](regular::RegularKalmanBuilder::new) for setting up the Kalman filter itself.
@@ -156,6 +158,7 @@ impl<H, Z, R, Y, S, K> ExtendedObservationBuilder<H, Z, R, Y, S, K, (), (), (), 
     ///
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// # use minikalman::*;
     /// use minikalman::extended::ExtendedObservationBuilder;
     /// # const NUM_STATES: usize = 3;
@@ -170,6 +173,7 @@ impl<H, Z, R, Y, S, K> ExtendedObservationBuilder<H, Z, R, Y, S, K, (), (), (), 
     /// let mut measurement = ExtendedObservationBuilder::new_lean::<NUM_STATES, NUM_OBSERVATIONS, f32>(
     ///     gravity_H, gravity_z, gravity_R, gravity_y, gravity_S, gravity_K,
     /// );
+    /// # }
     /// ```
     #[allow(non_snake_case, clippy::new_ret_no_self)]
     pub fn new_lean<const STATES: usize, const OBSERVATIONS: usize, T>(
@@ -2126,7 +2130,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::prelude::{AsMatrix, AsMatrixMut, MatrixMut};
