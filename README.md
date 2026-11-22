@@ -6,16 +6,23 @@
 [![docs.rs](https://img.shields.io/docsrs/minikalman)](https://docs.rs/minikalman/)
 [![codecov](https://codecov.io/gh/sunsided/minikalman-rs/graph/badge.svg?token=YJYARXA8EL)](https://codecov.io/gh/sunsided/minikalman-rs)
 
-This is the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) library, a microcontroller targeted
-Kalman filter implementation, as well as the
-[libfixkalman](https://github.com/sunsided/libfixkalman) C library for Q16.16 fixed-point Kalman filters. It optionally
-uses [`micromath`](https://docs.rs/micromath)
-for square root calculations on `no_std`, and can use [`libm`](https://docs.rs/libm) if wished for.
-Depending on the configuration, this crate may require `f32` / FPU support.
+minikalman is a set of Kalman filters for desktop and microcontroller alike: nothing is allocated
+at runtime, and every matrix lives in a buffer whose size is known at compile time, in a `static`,
+on the stack, or on the heap if you'd rather have that. It covers the regular, extended and
+unscented filters, the information, UD and square-root forms, RTS and fixed-lag smoothers, a
+fixed-gain (Luenberger) observer and recursive least squares, in `f32`, `f64` and the Q16.16 and
+Q32.32 types of the [`fixed`](https://docs.rs/fixed) crate. It runs on a Cortex-M0+ without an FPU
+too; instruction counts for the Cortex-M4F and M0+ are measured in Renode (see [`benches/mcu`](https://github.com/sunsided/minikalman-rs/tree/main/benches/mcu)).
 
-This implementation uses statically allocated buffers for all matrix operations. Due to lack
-of `const` generics for array allocations in Rust, this crate also provides helper macros
-to create the required arrays.
+It started out as the Rust port of my [kalman-clib](https://github.com/sunsided/kalman-clib/) C
+library for microcontrollers and of [libfixkalman](https://github.com/sunsided/libfixkalman) for
+Q16.16 fixed-point filters, and has since grown well past both. The floating-point filters need one
+of `std`, [`libm`](https://docs.rs/libm) or [`micromath`](https://docs.rs/micromath) for the square
+root; the fixed-point ones need none. [`nalgebra`](https://docs.rs/nalgebra) interop is opt-in.
+
+Filters and their buffers are declared with the
+[`filter!`](https://docs.rs/minikalman/latest/minikalman/macro.filter.html) macro, or by hand with
+the storage types (`FilterStorage`, `ObservationStorage`, …).
 
 Try it in the browser: the [live demo](https://sunsided.github.io/minikalman-rs/) runs the Extended and
 Unscented Kalman filters, compiled to WebAssembly, side by side on a radar tracking problem.

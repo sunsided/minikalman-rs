@@ -1,8 +1,17 @@
 //! # Kalman Filters for Embedded Targets
 //!
-//! This is the Rust port of the [kalman-clib](https://github.com/sunsided/kalman-clib/) library,
-//! a microcontroller targeted Kalman filter implementation. It can use [`micromath`](https://docs.rs/micromath)
-//! for square root and reciprocal calculations on `no_std`; [`libm`](https://docs.rs/libm) is supported as well.
+//! minikalman is a set of Kalman filters for desktop and microcontroller alike: nothing is
+//! allocated at runtime, and every matrix lives in a buffer whose size is known at compile time,
+//! in a `static`, on the stack, or on the heap if you'd rather have that. It covers the regular,
+//! extended and unscented filters, the information, UD and square-root forms, RTS and fixed-lag
+//! smoothers, a fixed-gain (Luenberger) observer and recursive least squares, in `f32`, `f64` and
+//! the Q16.16 and Q32.32 types of the [`fixed`](https://docs.rs/fixed) crate.
+//!
+//! It started out as the Rust port of the [kalman-clib](https://github.com/sunsided/kalman-clib/)
+//! C library for microcontrollers and of [libfixkalman](https://github.com/sunsided/libfixkalman)
+//! for Q16.16 fixed-point filters, and has since grown well past both. The floating-point filters
+//! need one of `std`, [`libm`](https://docs.rs/libm) or [`micromath`](https://docs.rs/micromath)
+//! for the square root; the fixed-point ones need none.
 //!
 //! This implementation uses statically allocated buffers for all matrix operations. The storage
 //! types, such as [`regular::FilterStorage`] and [`regular::ObservationStorage`], hold all buffers
