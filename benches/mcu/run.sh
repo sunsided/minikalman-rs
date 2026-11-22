@@ -9,6 +9,8 @@
 #                   workloads with and without minikalman's `unsafe`; nav-libm only on the M4F)
 #   BASE=<rev>      also measure minikalman at git revision <rev> (same firmware source,
 #                   same Cargo.lock) and print both side by side
+#   HEAD_FEATURES=..  extra firmware features for the head side only, e.g. `companion`
+#                   (rows that need an API the BASE revision lacks)
 #   COUNT_CALLS=1   count calls to the soft-float, 64/128-bit and libm helpers (M4F only:
 #                   on the M0+ the hooks on the soft-float helpers stall Renode 1.17)
 #
@@ -56,7 +58,7 @@ helpers() {
 
 # measure <source-dir> <log-dir>: builds every target/profile/type in <source-dir> and runs it.
 measure() {
-  local src="$1" logs="$2" cargo_target="$3"
+  local src="$1" logs="$2" cargo_target="$3" features="${4:-}"
   mkdir -p "$logs"
   for target in $TARGETS; do
     for profile in $PROFILES; do
@@ -64,7 +66,7 @@ measure() {
         # Without an FPU the f32 square root is libm::sqrtf either way.
         if [ "$ty" = nav-libm ] && [ "${target#thumbv6m}" != "$target" ]; then continue; fi
         (cd "$src" && CARGO_TARGET_DIR="$cargo_target" cargo build --locked --quiet \
-          --profile "$profile" --target "$target" --no-default-features --features "$ty")
+          --profile "$profile" --target "$target" --no-default-features --features "$ty${features:+,$features}")
         local elf="$cargo_target/$target/$profile/kalman-mcu"
         local log="$logs/$target.$profile.$ty.txt"
         local pid="$logs/.renode.pid"
@@ -93,7 +95,7 @@ measure() {
 }
 
 rm -rf "$out/head" "$out/base"
-measure "$here" "$out/head" "$target_dir"
+measure "$here" "$out/head" "$target_dir" "${HEAD_FEATURES:-}"
 
 if [ -n "${BASE:-}" ]; then
   # The same firmware source and lock file against minikalman at $BASE.

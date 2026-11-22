@@ -403,6 +403,114 @@ linear!(i32f32_4x2, "I32F32/kf_4x2", 4, 2, I32F32);
 #[cfg(feature = "i32f32")]
 linear!(i32f32_6x3, "I32F32/kf_6x3", 6, 3, I32F32);
 
+/// `φᵢ` of the companion benches: a stable AR(n) column, `0.6, −0.3, 0.15, …`.
+#[cfg(feature = "companion")]
+fn ar_phi(i: usize) -> f32 {
+    [0.6, -0.3, 0.15, -0.075, 0.0375, -0.01875][i]
+}
+
+/// `predict` of the regular filter with a dense companion `A`, for the companion benches.
+#[cfg(feature = "companion")]
+#[inline(never)]
+fn kf_predict_dense<const N: usize, T: MatrixDataType>(
+    f: &mut mreg::BorrowedKalman<'_, N, T>,
+) -> bool {
+    let _ = f.predict();
+    true
+}
+
+/// `predict_companion` of the regular filter (its own symbol, as `kf_predict`).
+#[cfg(feature = "companion")]
+#[inline(never)]
+fn kf_predict_companion<const N: usize, T: MatrixDataType>(
+    f: &mut mreg::BorrowedKalman<'_, N, T>,
+    phi: &[T; N],
+) -> bool {
+    let _ = f.predict_companion(phi);
+    true
+}
+
+/// Measures the dense `predict` and `predict_companion` on the same AR(`N`) companion model
+/// (`H = [1, 0, …]`, `R = 0.25`, `Q = 0.1·e₁e₁ᵀ`). Both filters see the same values, so the
+/// soft-float paths of the M0+ match. Behind the firmware's `companion` feature, so that
+/// `BASE=` runs against revisions without `predict_companion` still build.
+#[cfg(feature = "companion")]
+macro_rules! companion {
+    ($fn_name:ident, $label:literal, $n:literal, $t:ty) => {
+        #[inline(never)]
+        fn $fn_name() {
+            type T = $t;
+            const N: usize = $n;
+
+            let phi: [T; N] = core::array::from_fn(|i| c(ar_phi(i)));
+            let mut fs_d = mreg::FilterStorage::<N, T>::new(c(0.0));
+            let mut fs_c = mreg::FilterStorage::<N, T>::new(c(0.0));
+            let mut os = mreg::ObservationStorage::<N, 1, T>::new(c(0.0));
+            let (mut f_d, mut f_c, mut o) = (fs_d.build(), fs_c.build(), os.build());
+            f_d.state_transition_mut().apply(|a| {
+                fill(a, |i, j| {
+                    if j == 0 {
+                        ar_phi(i)
+                    } else if j == i + 1 {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                })
+            });
+            for f in [&mut f_d, &mut f_c] {
+                f.direct_process_noise_mut()
+                    .apply(|q| fill(q, |i, j| if i + j == 0 { 0.1 } else { 0.0 }));
+                fill(f.estimate_covariance_mut(), cv_p0);
+            }
+            o.observation_matrix_mut()
+                .apply(|h| fill(h, |_, j| if j == 0 { 1.0 } else { 0.0 }));
+            o.measurement_noise_covariance_mut()
+                .apply(|r| fill(r, |_, _| 0.25));
+
+            let mut noise = Noise(0x2545_F491 ^ N as u32);
+            let (f_d, f_c, o) = black_box((&mut f_d, &mut f_c, &mut o));
+            let phi = black_box(&phi);
+            for k in 0..WARMUP + ITERATIONS {
+                let z = noise.next();
+                if k < WARMUP {
+                    let _ = f_d.predict();
+                    let _ = f_c.predict_companion(phi);
+                } else {
+                    measure(concat!($label, "/predict_dense"), || kf_predict_dense(f_d));
+                    measure(concat!($label, "/predict_companion"), || {
+                        kf_predict_companion(f_c, phi)
+                    });
+                }
+
+                for f in [&mut *f_d, &mut *f_c] {
+                    o.measurement_vector_mut().apply(|v| fill(v, |_, _| z));
+                    assert!(f.correct(o).is_applied());
+                }
+            }
+        }
+    };
+}
+
+#[cfg(all(feature = "companion", feature = "f32"))]
+companion!(f32_ar2, "f32/ar_2", 2, f32);
+#[cfg(all(feature = "companion", feature = "f32"))]
+companion!(f32_ar4, "f32/ar_4", 4, f32);
+#[cfg(all(feature = "companion", feature = "f32"))]
+companion!(f32_ar6, "f32/ar_6", 6, f32);
+#[cfg(all(feature = "companion", feature = "i16f16"))]
+companion!(i16f16_ar2, "I16F16/ar_2", 2, I16F16);
+#[cfg(all(feature = "companion", feature = "i16f16"))]
+companion!(i16f16_ar4, "I16F16/ar_4", 4, I16F16);
+#[cfg(all(feature = "companion", feature = "i16f16"))]
+companion!(i16f16_ar6, "I16F16/ar_6", 6, I16F16);
+#[cfg(all(feature = "companion", feature = "i32f32"))]
+companion!(i32f32_ar2, "I32F32/ar_2", 2, I32F32);
+#[cfg(all(feature = "companion", feature = "i32f32"))]
+companion!(i32f32_ar4, "I32F32/ar_4", 4, I32F32);
+#[cfg(all(feature = "companion", feature = "i32f32"))]
+companion!(i32f32_ar6, "I32F32/ar_6", 6, I32F32);
+
 /// The 4-state, 2-measurement range–bearing radar EKF (`f32`), as in `benches/compare`.
 #[cfg(feature = "f32")]
 #[inline(never)]
@@ -617,6 +725,24 @@ fn main() -> ! {
     {
         nav_bench::attitude();
         nav_bench::gnss_ins();
+    }
+    #[cfg(all(feature = "companion", feature = "f32"))]
+    {
+        f32_ar2();
+        f32_ar4();
+        f32_ar6();
+    }
+    #[cfg(all(feature = "companion", feature = "i16f16"))]
+    {
+        i16f16_ar2();
+        i16f16_ar4();
+        i16f16_ar6();
+    }
+    #[cfg(all(feature = "companion", feature = "i32f32"))]
+    {
+        i32f32_ar2();
+        i32f32_ar4();
+        i32f32_ar6();
     }
     report_stack();
     mk_done()
