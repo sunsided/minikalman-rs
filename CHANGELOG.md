@@ -25,7 +25,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   companion (shift) transition, such as Harvey's state-space form of an ARMA model, given only
   the transition's first column. It updates `x` and `P` in place in `O(n²)` instead of `O(n³)`,
   with one row of `P` as stack scratch, and matches the dense `predict` / `predict_tuned` bit
-  for bit for finite inputs (an exact zero in `x` may differ in sign). The dense path is
+  for bit unless an intermediate overflows (an exact zero in `x` may differ in sign). The dense path is
   unchanged ([#195]).
 - Added the `attitude-eskf` example: a quaternion error-state (multiplicative) EKF for the
   attitude of an IMU in `f32` on inline storage, with the error `(δθ, δb)` of attitude and gyro

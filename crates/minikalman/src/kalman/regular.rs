@@ -471,9 +471,10 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// one row of `P` (`STATES` elements).
     ///
     /// The result is the same bit for bit as [`predict`](Self::predict) with the dense `A`, as
-    /// long as `x` and `P` are finite (the dense path turns `0·∞` into NaN). The one exception:
-    /// an entry of `x` that comes out exactly zero may carry the other sign (`-0.0` instead of
-    /// `+0.0`, equal under `==`).
+    /// long as nothing overflows: `x`, `P` and every intermediate product stay finite (the
+    /// dense path turns `0·∞` into NaN where this one keeps `∞`). The one exception: an entry
+    /// of `x` that comes out exactly zero may carry the other sign (`-0.0` instead of `+0.0`,
+    /// equal under `==`).
     ///
     /// The filter's own transition matrix is neither read nor written; anything that reads
     /// [`state_transition`](Self::state_transition), such as a smoother fed from it, sees
@@ -494,7 +495,11 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// - observation `H = [1, 0, …, 0]` and measurement noise `R = 0`: `y` is the first state.
     ///
     /// The innovations of the filter are then the one-step prediction errors of the model,
-    /// the usual route to its exact Gaussian likelihood.
+    /// and the sum of the corrections'
+    /// [`log_likelihood`](crate::regular::RegularObservation::log_likelihood) is its Gaussian
+    /// log-likelihood (see the crate docs, "Likelihood of a Model"). It is the exact
+    /// likelihood when `x₀ = 0` and `P₀` is the stationary covariance of the state (the
+    /// solution of `P = A·P·Aᵀ + Q`); a wide `P₀`, as in the example below, approximates it.
     ///
     /// ## Example
     ///
@@ -1855,5 +1860,93 @@ mod tests {
         check_arma_companion::<I16F16>(Some(I16F16::from_num(0.97)));
         check_arma_companion::<I32F32>(None);
         check_arma_companion::<I32F32>(Some(I32F32::from_num(0.97)));
+    }
+
+    /// Runs the plain ARMA(2, 1) likelihood filter (`x₀ = 0`, `R = 0`, no control) through
+    /// the dense `predict` and through `predict_companion`, and asserts that `P`, every
+    /// correction's log-likelihood and their sum match bit for bit, and `x` up to the sign of
+    /// an exact zero (a prediction from `x = 0` may give `-0.0` where the dense path gives
+    /// `+0.0`).
+    fn check_arma_log_likelihood<T>()
+    where
+        T: MatrixDataType + crate::matrix::Logarithm + crate::test_bits::ToBits,
+    {
+        use crate::prelude::*;
+        use crate::regular::{FilterStorage, ObservationStorage};
+        use crate::test_bits::assert_bits_eq;
+
+        let c = |v: f64| T::from_f64(v).unwrap();
+        let phi = [c(0.5), c(-0.3)];
+        let r = [c(1.0), c(0.4)];
+
+        let mut dense_storage = FilterStorage::<2, T>::new(T::zero());
+        let mut companion_storage = FilterStorage::<2, T>::new(T::zero());
+        let mut observation_storage = ObservationStorage::<2, 1, T>::new(T::zero());
+        let mut dense = dense_storage.build();
+        let mut companion = companion_storage.build();
+        let mut observation = observation_storage.build();
+
+        dense.state_transition_mut().apply(|a| {
+            a.set_at(0, 0, phi[0]);
+            a.set_at(0, 1, T::one());
+            a.set_at(1, 0, phi[1]);
+        });
+        for filter in [&mut dense, &mut companion] {
+            filter.direct_process_noise_mut().apply(|q| {
+                for i in 0..2 {
+                    for j in 0..2 {
+                        q.set_at(i, j, r[i] * r[j]);
+                    }
+                }
+            });
+            filter.estimate_covariance_mut().apply(|p| {
+                p.set_at(0, 0, c(10.0));
+                p.set_at(1, 1, c(10.0));
+            });
+        }
+
+        observation
+            .observation_matrix_mut()
+            .apply(|h| h.set_at(0, 0, T::one()));
+
+        let (mut dense_sum, mut companion_sum) = (T::zero(), T::zero());
+        for y in [0.3, -0.1, 0.8, 0.2, -0.5, 1.1, 0.0, -0.7] {
+            dense.predict();
+            companion.predict_companion(&phi);
+            assert_bits_eq(
+                companion.estimate_covariance().as_slice(),
+                dense.estimate_covariance().as_slice(),
+                "predicted P",
+            );
+            for (got, want) in companion
+                .state_vector()
+                .as_slice()
+                .iter()
+                .zip(dense.state_vector().as_slice())
+            {
+                assert!(got == want, "predicted x");
+            }
+
+            let mut terms = [T::zero(); 2];
+            for (filter, term) in [&mut dense, &mut companion].into_iter().zip(&mut terms) {
+                observation
+                    .measurement_vector_mut()
+                    .apply(|z| z.set_at(0, 0, c(y)));
+                assert!(filter.correct(&mut observation).is_applied());
+                *term = observation.log_likelihood();
+            }
+
+            assert_bits_eq(&terms[1..], &terms[..1], "log-likelihood");
+            dense_sum += terms[0];
+            companion_sum += terms[1];
+        }
+
+        assert_bits_eq(&[companion_sum], &[dense_sum], "summed log-likelihood");
+    }
+
+    #[test]
+    fn predict_companion_keeps_the_arma_log_likelihood() {
+        check_arma_log_likelihood::<f32>();
+        check_arma_log_likelihood::<f64>();
     }
 }

@@ -46,8 +46,8 @@ pub(crate) fn predict_covariance<const STATES: usize, T>(
 ///
 /// Row `i` of `A×x` is `φᵢ·x₀ + xᵢ₊₁` (no `xₙ` term in the last row), so the entries are
 /// computed in ascending order, each before its `xᵢ₊₁` is overwritten. Every entry equals the
-/// one `mult_rowvector` computes with the dense `A` bit for bit, for finite `x`, except that an
-/// exact zero may come out with the other sign (the dense sum adds `0·xₖ` terms).
+/// one `mult_rowvector` computes with the dense `A` bit for bit if nothing overflows, except
+/// that an exact zero may come out with the other sign (the dense sum adds `0·xₖ` terms).
 pub(crate) fn predict_companion_state<const STATES: usize, T>(
     phi: &[T; STATES],
     x: &mut impl MatrixMut<STATES, 1, T>,
@@ -78,7 +78,7 @@ pub(crate) fn predict_companion_state<const STATES: usize, T>(
 /// Every sum adds the same non-zero terms in the same order, from `+0`, as the dense
 /// `mult` / `mult_symmetric_transb` pair with `A` stored densely; the terms that pair adds on
 /// top are `0·Pₖⱼ`, which leave a sum started from `+0` unchanged. The result is therefore
-/// the same bit for bit, for finite `P` (the dense path turns `0·∞` into NaN).
+/// the same bit for bit as long as nothing overflows (the dense path turns `0·∞` into NaN).
 ///
 /// Scratch: one copy of row `0` of `P` on the stack, `STATES` elements.
 #[allow(non_snake_case)]
