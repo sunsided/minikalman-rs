@@ -5,7 +5,10 @@
 //! correction) must reproduce the plain extended filter's estimate and covariance.
 
 #![forbid(unsafe_code)]
-#![cfg(feature = "alloc")]
+#![cfg(all(
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 
 use minikalman::extended::builder::{KalmanFilterBuilder, KalmanFilterType};
 use minikalman::prelude::*;

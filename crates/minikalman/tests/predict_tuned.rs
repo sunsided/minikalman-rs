@@ -1,6 +1,9 @@
 //! `predict_tuned(λ)` scales the propagated covariance by `1/λ²` before adding `Q`.
 
-#![cfg(feature = "alloc")]
+#![cfg(all(
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 
 use minikalman::extended::builder::KalmanFilterBuilder as ExtendedBuilder;
 use minikalman::prelude::*;

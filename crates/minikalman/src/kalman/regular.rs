@@ -632,7 +632,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// wrap around, such as a compass heading, `fix` can wrap each entry back into range:
     ///
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// # use minikalman::prelude::*;
     /// # use minikalman::regular::builder::KalmanFilterBuilder;
     /// use minikalman::angles;
@@ -842,7 +842,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///
     /// ## Example
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
@@ -907,7 +907,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///
     /// ## Example
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
@@ -1037,7 +1037,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///
     /// ## Example
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// use minikalman::models::motion;
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;

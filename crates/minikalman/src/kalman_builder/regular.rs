@@ -163,6 +163,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
@@ -173,6 +174,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// let mut filter = builder.build();
     /// let mut control = builder.controls().build::<NUM_CONTROLS>();
     /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+    /// # }
     /// ```
     ///
     /// See also [`KalmanFilterControlBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
@@ -208,12 +210,14 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// let builder = KalmanFilterBuilder::<2, f32>::default();
     /// let mut observer = builder.build_observer();
     /// let mut position = builder.observations().build_fixed_gain::<1, Current>();
+    /// # }
     /// ```
     pub fn build_observer(&self) -> LuenbergerObserverType<STATES, T>
     where
@@ -234,12 +238,14 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// let builder = KalmanFilterBuilder::<2, f32>::default();
     /// let mut observer = builder.build_predictor_observer();
     /// let mut position = builder.observations().build_fixed_gain::<1, Predictor>();
+    /// # }
     /// ```
     pub fn build_predictor_observer(&self) -> PredictorObserverType<STATES, T>
     where
@@ -363,6 +369,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
@@ -371,6 +378,7 @@ impl<const STATES: usize, T> KalmanFilterControlBuilder<STATES, T> {
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// // let mut filter = builder.build();
     /// let mut control = builder.controls().build::<NUM_CONTROLS>();
+    /// # }
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterObservationBuilder`] for further information.
@@ -432,6 +440,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
@@ -440,6 +449,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// // let mut filter = builder.build();
     /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+    /// # }
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] and [`KalmanFilterControlBuilder`] for further information.
@@ -488,12 +498,14 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// let builder = KalmanFilterBuilder::<2, f32>::default();
     /// let mut position = builder.observations().build_fixed_gain::<1, Current>();
     /// position.set_gain(&MatrixData::new_array::<2, 1, 2, f32>([0.181201, 0.180975]));
+    /// # }
     /// ```
     pub fn build_fixed_gain<const OBSERVATIONS: usize, F>(
         &self,
@@ -519,12 +531,14 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///
     /// let builder = KalmanFilterBuilder::<2, f32>::default();
     /// let mut position = builder.observations().build_fixed_gain_gated::<1, Current>();
     /// position.set_gate(Some(6.63));
+    /// # }
     /// ```
     pub fn build_fixed_gain_gated<const OBSERVATIONS: usize, F>(
         &self,
@@ -538,7 +552,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::kalman::{KalmanFilter, KalmanFilterControl, KalmanFilterObservation};

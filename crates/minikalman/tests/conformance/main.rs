@@ -3,7 +3,10 @@
 //! See `README.md` next to this file for the categories, the pass criteria and how to
 //! regenerate the reference vectors. Run it with `cargo test -p minikalman --test conformance`.
 
-#![cfg(feature = "alloc")]
+#![cfg(all(
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 #![forbid(unsafe_code)]
 
 mod baselines;

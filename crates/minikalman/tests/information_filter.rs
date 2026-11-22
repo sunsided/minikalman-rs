@@ -1,7 +1,10 @@
 //! The information filter against the regular filter, and its handling of singular matrices.
 
 #![forbid(unsafe_code)]
-#![cfg(feature = "alloc")]
+#![cfg(all(
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 #![allow(non_snake_case)]
 
 use minikalman::prelude::*;

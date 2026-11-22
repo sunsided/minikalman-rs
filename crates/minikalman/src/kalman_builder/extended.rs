@@ -45,6 +45,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::extended::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
@@ -54,6 +55,7 @@ impl<const STATES: usize, T> KalmanFilterBuilder<STATES, T> {
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// let mut filter = builder.build();
     /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+    /// # }
     /// ```
     ///
     /// See also [`KalmanFilterObservationBuilder`] for further information.
@@ -123,6 +125,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     ///
     /// ## Example
     /// ```rust
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::extended::builder::KalmanFilterBuilder;
     ///
     /// const NUM_STATES: usize = 3;
@@ -131,6 +134,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     /// let builder = KalmanFilterBuilder::<NUM_STATES, f32>::default();
     /// // let mut filter = builder.build();
     /// let mut measurement = builder.observations().build::<NUM_OBSERVATIONS>();
+    /// # }
     /// ```
     ///
     /// See also [`KalmanFilterBuilder`] for further information.
@@ -172,7 +176,7 @@ impl<const STATES: usize, T> KalmanFilterObservationBuilder<STATES, T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::kalman::{ExtendedKalmanFilter, ExtendedKalmanFilterObservation};

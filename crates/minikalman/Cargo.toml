@@ -93,7 +93,8 @@ required-features = ["std"]
 [[example]]
 name = "radar_2d_ukf_builder"
 path = "examples/radar_2d_ukf_builder.rs"
-required-features = ["alloc"]
+# `std` like the other examples: `alloc` alone has no float backend for `f32`.
+required-features = ["std"]
 
 [[test]]
 name = "simple"

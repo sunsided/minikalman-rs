@@ -6,6 +6,7 @@
 // The comparisons need an exact square root; see `regular_joseph_matches_standard`.
 #![cfg_attr(not(any(feature = "std", feature = "libm")), allow(dead_code))]
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use minikalman::extended::builder::KalmanFilterBuilder as ExtendedBuilder;
 use minikalman::prelude::*;
 use minikalman::regular::builder::KalmanFilterBuilder as RegularBuilder;
@@ -17,9 +18,11 @@ const DT: f64 = 0.1;
 /// for the optimal gain, so they differ by rounding only. The standard form is first order in
 /// the rounding error of the gain, which the reciprocal pivots of the solved gain raise to
 /// about twenty ULP of 1 after 200 steps.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const REL: f64 = 5e-15;
 
 /// Asserts that `a` and `b` agree to [`REL`], relative to the larger magnitude (at least 1).
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn assert_close(a: f64, b: f64, what: &str) {
     let scale = a.abs().max(b.abs()).max(1.0);
     assert!((a - b).abs() <= REL * scale, "{what}: {a} != {b}");
@@ -32,6 +35,7 @@ fn reading(t: usize) -> f64 {
 }
 
 /// The default is the Joseph form, and the setter round-trips, on both observations.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn default_is_joseph() {
     let mut regular = RegularBuilder::<2, f64>::default()
@@ -53,6 +57,7 @@ fn default_is_joseph() {
 /// Runs a constant-velocity filter (position and velocity, position sensor) for 200 steps with
 /// `update`, optionally adapting `R`, exercising the `*_with` variants on odd steps. Returns the
 /// final state, the final `P` in row-major order and the final `R`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn regular_run(update: CovarianceUpdate, adapt: bool) -> ([f64; 2], [f64; 4], f64) {
     let builder = RegularBuilder::<2, f64>::default();
     let mut filter = builder.build();
@@ -127,12 +132,14 @@ fn regular_joseph_matches_standard() {
 }
 
 /// The observation function `h(x) = x₀² + x₁` of the extended test system.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn observe(x: &impl Matrix<2, 1, f64>, z: &mut impl MatrixMut<1, 1, f64>) {
     z.set_at(0, 0, x.get_at(0, 0) * x.get_at(0, 0) + x.get_at(1, 0));
 }
 
 /// Runs an extended filter with `h(x) = x₀² + x₁` for 50 steps with `update`, exercising the
 /// `*_with` variants on odd steps. Returns the final state and `P` in row-major order.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn extended_run(update: CovarianceUpdate) -> ([f64; 2], [f64; 4]) {
     let builder = ExtendedBuilder::<2, f64>::default();
     let mut filter = builder.build();
@@ -199,6 +206,7 @@ fn extended_joseph_matches_standard() {
 }
 
 /// A gated correction leaves `x` and `P` unchanged with the Joseph form too.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn joseph_respects_the_gate() {
     let builder = RegularBuilder::<1, f64>::default();

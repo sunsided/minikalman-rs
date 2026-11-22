@@ -840,7 +840,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     ///
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// use minikalman::extended::builder::KalmanFilterBuilder;
     /// use minikalman::prelude::*;
     ///
@@ -941,7 +941,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     ///
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// use minikalman::extended::builder::KalmanFilterBuilder;
     /// use minikalman::prelude::*;
     ///
@@ -1046,7 +1046,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     ///
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// use minikalman::extended::builder::KalmanFilterBuilder;
     /// use minikalman::prelude::*;
     ///

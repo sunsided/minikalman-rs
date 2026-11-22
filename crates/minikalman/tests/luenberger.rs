@@ -9,8 +9,10 @@
 #![forbid(unsafe_code)]
 
 use minikalman::models::motion;
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use minikalman::num_traits::FromPrimitive;
 use minikalman::prelude::*;
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use minikalman::regular::builder::{
     FixedGainObservationType, GatedFixedGainObservationType, KalmanFilterBuilder,
     KalmanFilterObservationType, KalmanFilterType, LuenbergerObserverType, PredictorObserverType,
@@ -27,6 +29,7 @@ use rand_distr::{Distribution, Normal};
 const DT: f64 = 0.1;
 
 /// Acceleration variance of the constant-velocity model, in (m/s²)².
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const ACCELERATION_VARIANCE: f64 = 1.0;
 
 /// Measurement noise variance of the position, in m².
@@ -36,9 +39,11 @@ const R: f64 = 0.25;
 const K_INF: [f64; 2] = [0.181_201_093_164_732_62, 0.180_975_015_605_498_97];
 
 /// Steady-state predictor-form gain `L∞ = A·K∞` from SciPy.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const L_INF: [f64; 2] = [0.199_298_594_725_282_52, 0.180_975_015_605_498_97];
 
 /// Steady-state corrected covariance `P⁺∞` from SciPy, row-major.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const P_POST: [f64; 4] = [
     0.045_300_273_291_183_16,
     0.045_243_753_901_374_75,
@@ -50,9 +55,11 @@ const P_POST: [f64; 4] = [
 const S_INF: f64 = 0.305_325_273_291_183_14;
 
 /// Spectral radius of the error dynamics `(I − K∞·H)·A`, from numpy.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const RHO: f64 = 0.904_875_078_027_496_2;
 
 /// A design-time Kalman filter and its position observation, set up for the CV model.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn design<T>(p0: f64) -> (KalmanFilterType<2, T>, KalmanFilterObservationType<2, 1, T>)
 where
     T: MatrixDataType + Default + FromPrimitive,
@@ -77,6 +84,7 @@ where
 }
 
 /// An `f64` observer and its position observation for the CV model, with no gain set yet.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn cv_observer() -> (
     LuenbergerObserverType<2, f64>,
     FixedGainObservationType<2, 1, f64>,
@@ -93,11 +101,13 @@ fn cv_observer() -> (
 }
 
 /// Converts an `f64` to `T`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn of<T: FromPrimitive>(value: f64) -> T {
     T::from_f64(value).expect("representable")
 }
 
 /// A 2 × 1 matrix with the given entries, to pass a gain to the setters.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn column(values: [f64; 2]) -> impl Matrix<2, 1, f64> {
     MatrixData::new_array::<2, 1, 2, f64>(values)
 }
@@ -112,11 +122,13 @@ fn readings(count: usize) -> Vec<f64> {
 }
 
 /// Reads a 2-vector out of a state buffer.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn state(x: &impl Matrix<2, 1, f64>) -> [f64; 2] {
     [x.get_at(0, 0), x.get_at(1, 0)]
 }
 
 /// Largest absolute entry-wise difference of two 2-vectors.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn gap(a: [f64; 2], b: [f64; 2]) -> f64 {
     (a[0] - b[0]).abs().max((a[1] - b[1]).abs())
 }
@@ -199,6 +211,7 @@ fn settle_gain_bypasses_gate_and_adaptation() {
 }
 
 /// A budget too small to settle reports `NotConverged`; the first iteration never counts.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn settle_gain_reports_not_converged() {
     for budget in [0, 1, 5] {
@@ -215,6 +228,7 @@ fn settle_gain_reports_not_converged() {
 }
 
 /// An innovation covariance that is not positive definite is reported.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn settle_gain_reports_not_positive_definite() {
     let (mut filter, mut position) = design::<f64>(1.0);
@@ -268,6 +282,7 @@ fn observer_converges_to_the_kalman_filter() {
 
 /// An `f64` predictor-form observer and its position observation for the CV model, with the
 /// gain `gain` set.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn cv_predictor(
     gain: [f64; 2],
 ) -> (
@@ -288,6 +303,7 @@ fn cv_predictor(
 
 /// The fused predictor recursion `x̂ ← A·x̂ + L·(z − H·x̂)` of the CV model with `H = [1, 0]`,
 /// written with the same floating-point operations as the observer's matrix kernels.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn fused_predictor_step(x: [f64; 2], z: f64, gain: [f64; 2]) -> [f64; 2] {
     let y = z - (1.0 * x[0] + 0.0 * x[1]);
     let ax = [1.0 * x[0] + DT * x[1], 0.0 * x[0] + 1.0 * x[1]];
@@ -296,6 +312,7 @@ fn fused_predictor_step(x: [f64; 2], z: f64, gain: [f64; 2]) -> [f64; 2] {
 
 /// The deferred predictor-form correction followed by `predict` is bit-for-bit the fused
 /// recursion `x̂ₖ₊₁ = A·x̂ₖ + L·(zₖ − H·x̂ₖ)`, and `correct` alone leaves the prior untouched.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn deferred_predictor_correction_equals_the_fused_recursion() {
     let (mut observer, mut position) = cv_predictor(L_INF);
@@ -321,6 +338,7 @@ fn deferred_predictor_correction_equals_the_fused_recursion() {
 
 /// The predictor form with `L = A·K` runs one step ahead of the current form: its state is
 /// `A·x̂⁺` of the current-form run at every step.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn predictor_form_is_current_form_one_step_ahead() {
     let (mut current, mut current_position) = cv_observer();
@@ -346,6 +364,7 @@ fn predictor_form_is_current_form_one_step_ahead() {
 /// With a control input, the predictor step `correct`, `predict().control(..)` is
 /// `x̂ₖ₊₁ = A·x̂ₖ + B·uₖ + L·(zₖ − H·x̂ₖ)`: the current-form prior `A·x̂⁺ + B·u` of the next step,
 /// from a nonzero start.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn predictor_form_with_control_is_the_next_current_prior() {
     let builder = KalmanFilterBuilder::<2, f64>::default();
@@ -392,6 +411,7 @@ fn predictor_form_with_control_is_the_next_current_prior() {
 
 /// Two predictor-form corrections in one step add their terms, each formed at the same prior:
 /// together they equal one stacked observation with `H = I` and `L = [L₁ L₂]`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn predictor_corrections_accumulate_like_a_stacked_observation() {
     let builder = KalmanFilterBuilder::<2, f64>::default();
@@ -437,6 +457,7 @@ fn predictor_corrections_accumulate_like_a_stacked_observation() {
 }
 
 /// The time-step handle applies several distinct controls: `x̂ ← A·x̂ + B₁·u₁ + B₂·u₂`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn time_update_applies_two_controls() {
     let builder = KalmanFilterBuilder::<2, f64>::default();
@@ -476,6 +497,7 @@ fn time_update_applies_two_controls() {
 
 /// Rebuilding a predictor-form observer from its storage discards a correction left pending
 /// by the previous observer, but keeps `A` and `x̂`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn predictor_storage_rebuild_clears_the_pending_correction() {
     let mut observer_storage = PredictorObserverStorage::<2, f64>::new(0.0);
@@ -499,6 +521,7 @@ fn predictor_storage_rebuild_clears_the_pending_correction() {
 }
 
 /// A storage keeps the gain across builds, in the form of its type.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn storage_rebuild_keeps_the_gain() {
     let mut position_storage = FixedGainObservationStorage::<2, 1, f64, Predictor>::new(0.0);
@@ -510,6 +533,7 @@ fn storage_rebuild_keeps_the_gain() {
 
 /// The worked example of the docs: the deadbeat predictor gain `L = [2, 10]` settles the error
 /// in two steps in its own form, but diverges when used as a current-form gain.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn deadbeat_gain_in_the_wrong_form_diverges() {
     let truth = |k: usize| [1.0 + 2.0 * DT * k as f64, 2.0];
@@ -576,6 +600,7 @@ fn control_moves_the_state_like_the_kalman_filter() {
 }
 
 /// The storage types wire the same observers as the builders, and the trait impls expose them.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn storage_and_traits() {
     let mut observer_storage = ObserverStorage::<2, f64>::new(0.0);
@@ -616,6 +641,7 @@ fn storage_and_traits() {
 }
 
 /// Sets up the CV observer through the generic traits only.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn generic_setup<O, M>(observer: &mut O, position: &mut M)
 where
     O: KalmanFilterNumStates<2>
@@ -649,7 +675,11 @@ where
 /// An `I16F16` observer with the `f64`-designed gain stays within the quantization bound
 /// `LSB / (1 − ρ)` of the `f64` observer.
 #[test]
-#[cfg(feature = "fixed")]
+// Compares against the `f64` observer, which needs a float backend.
+#[cfg(all(
+    feature = "fixed",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 fn fixed_point_observer_tracks_f64() {
     use minikalman::prelude::I16F16;
 
@@ -708,6 +738,7 @@ fn fixed_point_observer_tracks_f64() {
 }
 
 /// The chi-square 99% quantile for one degree of freedom, the gate of the gating tests.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const GATE: f64 = 6.63;
 
 /// A gate so wide (about 5σ) that no clean reading of the seeded noise exceeds it, for tests
@@ -715,6 +746,7 @@ const GATE: f64 = 6.63;
 const WIDE_GATE: f64 = 25.0;
 
 /// A design filter and observation settled to `P⁺∞`, so that the next prediction gives `S∞`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn settled() -> (
     KalmanFilterType<2, f64>,
     KalmanFilterObservationType<2, 1, f64>,
@@ -728,6 +760,7 @@ fn settled() -> (
 
 /// An `f64` observer and a gated position observation for the CV model, with `K∞` and
 /// `S∞⁻¹` taken from the settled `position` and the gate at [`GATE`].
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn gated_observer(
     position: &mut KalmanFilterObservationType<2, 1, f64>,
 ) -> (
@@ -788,6 +821,7 @@ fn gated_nis_matches_the_kalman_filter_in_steady_state() {
 /// An outlier exceeds the gate in both gain forms, is skipped with `Gated` and leaves the
 /// state untouched; in the predictor form, it leaves no pending correction, so the following
 /// `predict` is a pure model step.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn outliers_are_gated_and_leave_the_state_unchanged() {
     let (mut observer, mut gated) = gated_observer(&mut settled().1);
@@ -844,6 +878,7 @@ fn outliers_are_gated_and_leave_the_state_unchanged() {
 
 /// With a wrong initial state, a gate that is on from the first step rejects every
 /// measurement for good, since `S∞` never grows; turning it on after the transient works.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn start_up_gate_locks_out_and_delayed_gate_converges() {
     let (mut locked, mut locked_position) = gated_observer(&mut settled().1);
@@ -883,6 +918,7 @@ fn start_up_gate_locks_out_and_delayed_gate_converges() {
 }
 
 /// A gate of `None` still computes the NIS.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn open_gate_computes_the_nis() {
     let (mut observer, mut gated) = gated_observer(&mut settled().1);
@@ -895,6 +931,7 @@ fn open_gate_computes_the_nis() {
 }
 
 /// A covariance that is not positive definite is refused and keeps the stored `S∞⁻¹`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn non_positive_definite_innovation_covariance_is_refused() {
     let (_, mut gated) = gated_observer(&mut settled().1);
@@ -917,6 +954,7 @@ fn non_positive_definite_innovation_covariance_is_refused() {
 }
 
 /// The gated storage keeps `S∞⁻¹` across builds, but not the threshold or the NIS.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn gated_storage_keeps_the_inverse_but_not_the_threshold() {
     let mut storage = GatedFixedGainObservationStorage::<2, 1, f64>::new(0.0);

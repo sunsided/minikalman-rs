@@ -3,6 +3,7 @@
 //! This example sets up a filter to estimate the acceleration of a free-falling object
 //! under earth conditions (i.e. a ≈ 9.807 m/s²) through position observations only.
 
+#![cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #![forbid(unsafe_code)]
 
 use assert_float_eq::*;

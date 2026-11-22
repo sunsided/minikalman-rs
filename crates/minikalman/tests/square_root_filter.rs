@@ -2,7 +2,10 @@
 //! rejected corrections and singular process noise.
 
 #![forbid(unsafe_code)]
-#![cfg(feature = "alloc")]
+#![cfg(all(
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 #![allow(non_snake_case)]
 
 use minikalman::matrix::MatrixDataArray;
