@@ -9,6 +9,7 @@
 pub mod lab;
 pub mod numerics;
 pub mod outliers;
+pub mod parameters;
 pub mod radar;
 pub mod smoothing;
 

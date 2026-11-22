@@ -97,6 +97,11 @@
           normalized innovation squared (NIS) exceeds the gate. The <span style="color: var(--c3)">robust</span>
           one models the noise as Student-t and down-weights a reading the further it is from the prediction.
         </p>
+        <p>
+          All three assume constant velocity with random acceleration. The true path is a smooth swing that
+          this model can follow, plus, if you turn up <em>target jump</em>, a sudden step at 15 s that no motion
+          model predicts.
+        </p>
         <div class="knobs">
           <label class="knob"><span>Outlier rate</span><input id="out-rate" type="range" min="0" max="0.4" step="0.01" value="0.1"><output for="out-rate"></output></label>
           <label class="knob"><span>Outlier size</span><input id="out-size" type="range" min="3" max="40" step="1" value="15"><output for="out-size"></output></label>
@@ -104,13 +109,19 @@
           <label class="knob"><span>NIS gate</span><input id="out-gate" type="range" min="1" max="30" step="0.25" value="9"><output for="out-gate"></output></label>
           <label class="knob"><span>Student-t ν</span><input id="out-dof" type="range" min="0.5" max="30" step="0.5" value="4"><output for="out-dof"></output></label>
           <label class="knob"><span>Target jump at 15 s</span><input id="out-jump" type="range" min="0" max="10" step="0.5" value="0"><output for="out-jump"></output></label>
+          <label class="knob"><span>Gate: re-acquire after</span><input id="out-reacquire" type="range" min="0" max="20" step="1" value="0"><output for="out-reacquire"></output></label>
           <label class="knob"><span>Noise seed</span><input id="out-seed" type="range" min="1" max="50" step="1" value="1"><output for="out-seed"></output></label>
         </div>
         <p class="seeing" id="out-seeing">
           <strong>What you're seeing:</strong> with the default knobs, both the gate and the Student-t weight
-          cut the error of the plain filter to about a third. Now raise <em>target jump</em>: the target really
-          moves, the gate mistakes every following reading for an outlier and locks out, while the robust
-          filter's weights recover once its uncertainty has grown.
+          cut the error of the plain filter to about a third, and the gate rejects almost exactly the injected
+          outliers. Now set <em>target jump</em> to 3 m. The plain filter follows the step (and keeps flinching at
+          every outlier). The robust filter distrusts the first readings after the step, its uncertainty grows,
+          and within about a second it follows too. The gated filter sees a NIS far above its gate for every
+          reading after the step, rejects them all and coasts on its model, drifting away: a gate lockout,
+          visible in the NIS trace below. Turn on <em>re-acquire</em>: after that many rejections in a row it
+          inflates its covariance 100-fold, the next reading passes, and it snaps back. Set it too low with many
+          outliers and bursts of outliers trigger it too.
         </p>
         <p class="source">Read the experiment in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/outliers.rs"><code>outliers.rs</code></a>, and the docs of <a href="https://docs.rs/minikalman/latest/minikalman/regular/struct.RegularKalman.html#method.correct_robust"><code>correct_robust</code></a> and <a href="https://docs.rs/minikalman/latest/minikalman/regular/struct.RegularObservation.html#method.set_gate"><code>set_gate</code></a>.</p>
       </div>
@@ -125,7 +136,14 @@
           <li><span class="swatch tick" style="--color: var(--meas)"></span>outlier injected</li>
           <li><span class="swatch tick" style="--color: var(--c2)"></span>rejected by gate</li>
         </ul>
-        <div class="scope"><span class="scope-title">Student-t weight w (1 = plain Kalman update)</span><canvas id="out-weight" role="img" aria-label="The robust filter's weight per reading"></canvas></div>
+        <div class="scope"><span class="scope-title">gated filter: NIS of each reading against the gate (log scale)</span><canvas id="out-nis" role="img" aria-label="The gated filter's NIS per reading and the gate"></canvas></div>
+        <ul class="legend">
+          <li><span class="swatch dot" style="--color: var(--c2)"></span>NIS, accepted</li>
+          <li><span class="swatch dot" style="--color: var(--c1)"></span>NIS, rejected</li>
+          <li><span class="swatch dashed" style="--color: var(--c2)"></span>gate</li>
+          <li><span class="swatch tick" style="--color: var(--c4)"></span>re-acquired</li>
+        </ul>
+        <div class="scope"><span class="scope-title">robust filter: Student-t weight w of each reading (1 = plain Kalman update)</span><canvas id="out-weight" role="img" aria-label="The robust filter's weight per reading"></canvas></div>
         <dl class="readouts">
           <div class="readout" id="out-r0" style="--color: var(--c1)"><dt>Plain RMS error</dt><dd>—</dd></div>
           <div class="readout" id="out-r1" style="--color: var(--c2)"><dt>Gated RMS error</dt><dd>—</dd></div>
@@ -133,6 +151,7 @@
           <div class="readout" id="out-rz" style="--color: var(--meas)"><dt>Clean-reading RMS error</dt><dd>—</dd></div>
           <div class="readout" id="out-rej" style="--color: var(--c2)"><dt>Rejected by gate / true outliers</dt><dd>—</dd></div>
           <div class="readout" id="out-w" style="--color: var(--c3)"><dt>Mean weight: outliers / clean</dt><dd>—</dd></div>
+          <div class="readout" id="out-re" style="--color: var(--c4)"><dt>Gate re-acquisitions</dt><dd>—</dd></div>
         </dl>
       </div>
     </section>
@@ -228,6 +247,54 @@
           <div class="readout" id="sm-g0" style="--color: var(--c1)"><dt>Filter error in the gap</dt><dd>—</dd></div>
           <div class="readout" id="sm-g1" style="--color: var(--c3)"><dt>RTS error in the gap</dt><dd>—</dd></div>
           <div class="readout" id="sm-s" style="--color: var(--rule)"><dt>Largest σ in the gap: filter / RTS</dt><dd>—</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="wrap experiment" id="parameters" aria-labelledby="parameters-title">
+      <div class="notes">
+        <h2 id="parameters-title">Parameter estimation: two estimators or one</h2>
+        <p class="api"><code>rls::RecursiveLeastSquares</code> + <code>regular::RegularKalman</code> vs <code>extended::ExtendedKalman</code></p>
+        <p>
+          A motor's speed follows <code>xₖ₊₁ = a·xₖ + b·uₖ</code> plus noise, and at step 400 the load changes:
+          <code>(a, b)</code> jumps from <code>(0.9, 0.5)</code> to <code>(0.7, 1.0)</code>. The
+          <span style="color: var(--c2)">dual</span> estimator identifies <code>(a, b)</code> with recursive least
+          squares and feeds them to a one-state Kalman filter. The <span style="color: var(--c3)">joint</span>
+          estimator appends <code>a</code> and <code>b</code> to the state and runs one extended Kalman filter on
+          <code>[x, a, b]</code>, whose covariance links every speed residual to the parameters.
+        </p>
+        <div class="knobs">
+          <label class="knob"><span>Joint: parameter noise q</span><input id="pa-q" type="range" min="-8" max="-2" step="0.25" value="-4"><output for="pa-q"></output></label>
+          <label class="knob"><span>Dual: forgetting μ</span><input id="pa-mu" type="range" min="0.9" max="1" step="0.005" value="0.98"><output for="pa-mu"></output></label>
+          <label class="knob"><span>Sensor noise σ</span><input id="pa-sigma" type="range" min="0.05" max="0.6" step="0.05" value="0.2"><output for="pa-sigma"></output></label>
+          <label class="knob"><span>Noise seed</span><input id="pa-seed" type="range" min="1" max="50" step="1" value="42"><output for="pa-seed"></output></label>
+        </div>
+        <p class="seeing">
+          <strong>What you're seeing:</strong> after the load change the joint filter re-identifies the plant in
+          25 steps, the dual one in 82, and with this seed the joint one also settles closer. The dual estimator
+          has the lower speed error while the model holds. Both have a memory knob: set <em>q</em> to
+          10⁻⁸ and the joint filter stops learning; set <em>μ</em> to 1 and the dual one does.
+        </p>
+        <p class="source">Read the experiment in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/parameters.rs"><code>parameters.rs</code></a>, the <a href="https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/augmented_state.rs"><code>augmented_state</code></a> and <a href="https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/rls_adaptive.rs"><code>rls_adaptive</code></a> examples, and the docs of <a href="https://docs.rs/minikalman/latest/minikalman/rls/index.html"><code>rls</code></a>.</p>
+      </div>
+      <div class="instrument">
+        <ul class="legend">
+          <li><span class="swatch dashed" style="--color: var(--truth)"></span>true value</li>
+          <li><span class="swatch" style="--color: var(--c2)"></span>dual RLS + KF ±2σ</li>
+          <li><span class="swatch" style="--color: var(--c3)"></span>joint EKF ±2σ</li>
+        </ul>
+        <div class="scope-pair">
+          <div class="scope"><span class="scope-title">pole â</span><canvas id="pa-a" role="img" aria-label="Estimates of a over time"></canvas></div>
+          <div class="scope"><span class="scope-title">gain b̂</span><canvas id="pa-b" role="img" aria-label="Estimates of b over time"></canvas></div>
+        </div>
+        <div class="scope"><span class="scope-title">speed error x̂ − x</span><canvas id="pa-x" role="img" aria-label="Speed estimate errors over time"></canvas></div>
+        <dl class="readouts">
+          <div class="readout" id="pa-re0" style="--color: var(--c2)"><dt>Dual: steps to re-identify</dt><dd>—</dd></div>
+          <div class="readout" id="pa-re1" style="--color: var(--c3)"><dt>Joint: steps to re-identify</dt><dd>—</dd></div>
+          <div class="readout" id="pa-a0" style="--color: var(--c2)"><dt>Dual: â, b̂ RMS error, settled</dt><dd>—</dd></div>
+          <div class="readout" id="pa-a1" style="--color: var(--c3)"><dt>Joint: â, b̂ RMS error, settled</dt><dd>—</dd></div>
+          <div class="readout" id="pa-x0" style="--color: var(--c2)"><dt>Dual: speed RMSE before / after</dt><dd>—</dd></div>
+          <div class="readout" id="pa-x1" style="--color: var(--c3)"><dt>Joint: speed RMSE before / after</dt><dd>—</dd></div>
         </dl>
       </div>
     </section>

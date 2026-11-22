@@ -6,9 +6,16 @@
 //! filters run on the same readings:
 //!
 //! - **standard**: `correct`, which takes every reading at face value;
-//! - **gated**: `correct` with `set_gate`, which rejects a reading whose NIS exceeds the gate;
+//! - **gated**: `correct` with `set_gate`, which rejects a reading whose NIS exceeds the gate,
+//!   optionally re-acquiring after a number of consecutive rejections by inflating `P`;
 //! - **robust**: `correct_robust` with Student-t noise, which down-weights a reading by how
 //!   far it is from the prediction instead of a hard accept or reject.
+//!
+//! The filters assume constant velocity with white-noise acceleration. The truth is a smooth
+//! swing that this model follows through its process noise, plus an optional step at 15 s
+//! that no motion model predicts. After such a step, every reading is far from the
+//! prediction: the gate rejects them all and the gated filter coasts on its model (a gate
+//! lockout) unless it re-acquires.
 
 use minikalman::buffers::types::TemporaryResidualCovarianceInvertedMatrixBuffer;
 use minikalman::models::motion;
@@ -43,9 +50,16 @@ mod channel {
     pub const REJECTED: usize = 9;
     /// The Student-t weight `w` of the robust filter.
     pub const WEIGHT: usize = 10;
+    /// The prior NIS of the gated filter's reading, also for rejected readings.
+    pub const NIS: usize = 11;
+    /// `1` where the gated filter re-acquired by inflating `P` after this reading.
+    pub const REACQUIRED: usize = 12;
     /// Number of channels.
-    pub const COUNT: usize = 11;
+    pub const COUNT: usize = 13;
 }
+
+/// The factor by which the gated filter inflates `P` to re-acquire after a lockout.
+const REACQUIRE_INFLATION: f32 = 100.0;
 
 /// The time in seconds at which the target jumps, if `jump` is not zero.
 const JUMP_AT: f32 = 15.0;
@@ -59,7 +73,7 @@ fn truth(t: f32, jump: f32) -> f32 {
 ///
 /// Channels: see [`channel`]. Summary: `[rmse standard, rmse gated, rmse robust,
 /// rmse of the clean readings, outliers, gated rejections, rejections that were outliers,
-/// mean robust weight on outliers, mean robust weight on clean readings]`.
+/// mean robust weight on outliers, mean robust weight on clean readings, re-acquisitions]`.
 ///
 /// * `seed` - Noise seed.
 /// * `sigma` - Measurement noise standard deviation in m, `0.05..=5`.
@@ -69,6 +83,8 @@ fn truth(t: f32, jump: f32) -> f32 {
 /// * `dof` - Degrees of freedom `ν` of the robust filter, `0.5..=100`.
 /// * `jump` - A sudden change of the true position at 15 s in m, `-20..=20`: a real change
 ///   that a hard gate can mistake for an outlier.
+/// * `reacquire` - After this many consecutive rejections, the gated filter inflates `P` by
+///   100 so the next reading passes the gate again; `0` turns this off, at most `50`.
 #[unsafe(no_mangle)]
 #[allow(clippy::too_many_lines)]
 pub extern "C" fn outliers_run(
@@ -79,7 +95,9 @@ pub extern "C" fn outliers_run(
     gate: f32,
     dof: f32,
     jump: f32,
+    reacquire: u32,
 ) -> u32 {
+    let reacquire = reacquire.min(50);
     let jump = knob(jump, -20.0, 20.0);
     let sigma = knob(sigma, 0.05, 5.0);
     let rate = knob(rate, 0.0, 0.6);
@@ -115,6 +133,7 @@ pub extern "C" fn outliers_run(
         observations[1].set_gate(Some(gate));
 
         let (mut outliers, mut rejected, mut caught) = (0u32, 0u32, 0u32);
+        let (mut consecutive, mut reacquisitions) = (0u32, 0u32);
         let (mut weight_outlier, mut weight_clean) = (0.0f64, 0.0f64);
         for k in 0..STEPS {
             #[allow(clippy::cast_precision_loss)]
@@ -151,8 +170,20 @@ pub extern "C" fn outliers_run(
                 if i == 1 {
                     let gated = status == CorrectionStatus::Gated;
                     trace.set(channel::REJECTED, k, f32::from(u8::from(gated)));
+                    trace.set(channel::NIS, k, observation.nis());
                     rejected += u32::from(gated);
                     caught += u32::from(gated && is_outlier);
+                    consecutive = if gated { consecutive + 1 } else { 0 };
+                    let reacquiring = reacquire > 0 && consecutive >= reacquire;
+                    if reacquiring {
+                        // Admit that the model lost the target: widen P until readings pass.
+                        filter
+                            .estimate_covariance_mut()
+                            .apply(|p| p.as_mut_slice().iter_mut().for_each(|v| *v *= REACQUIRE_INFLATION));
+                        consecutive = 0;
+                        reacquisitions += 1;
+                    }
+                    trace.set(channel::REACQUIRED, k, f32::from(u8::from(reacquiring)));
                 }
             }
 
@@ -182,6 +213,7 @@ pub extern "C" fn outliers_run(
         let clean = (STEPS as u32 - outliers).max(1);
         summary[7] = (weight_outlier / f64::from(outliers.max(1))) as f32;
         summary[8] = (weight_clean / f64::from(clean)) as f32;
+        summary[9] = reacquisitions as f32;
     })
 }
 
@@ -196,7 +228,7 @@ mod tests {
 
     #[test]
     fn robust_and_gated_beat_standard_under_outliers() {
-        outliers_run(1, 0.5, 0.1, 15.0, 9.0, 4.0, 0.0);
+        outliers_run(1, 0.5, 0.1, 15.0, 9.0, 4.0, 0.0, 0);
         let s = summary();
         assert!(s[2] < 0.5 * s[0], "robust {} vs standard {}", s[2], s[0]);
         assert!(s[1] < 0.5 * s[0], "gated {} vs standard {}", s[1], s[0]);
@@ -205,15 +237,30 @@ mod tests {
 
     #[test]
     fn without_outliers_all_agree() {
-        outliers_run(2, 0.5, 0.0, 15.0, 9.0, 4.0, 0.0);
+        outliers_run(2, 0.5, 0.0, 15.0, 9.0, 4.0, 0.0, 0);
         let s = summary();
         assert!((s[1] - s[0]).abs() < 0.05 && (s[2] - s[0]).abs() < 0.05, "{s:?}");
     }
 
     #[test]
+    fn a_real_jump_locks_the_gate_out_unless_it_reacquires() {
+        outliers_run(1, 0.5, 0.1, 15.0, 9.0, 4.0, 3.0, 0);
+        let locked: [f32; 10] = crate::lab::summary();
+        // The plain and robust filters follow the jump; the gated one coasts away.
+        assert!(locked[1] > 5.0 * locked[2], "gated {} vs robust {}", locked[1], locked[2]);
+        assert!(locked[0] < 1.5, "plain {}", locked[0]);
+        assert_eq!(locked[9], 0.0);
+
+        outliers_run(1, 0.5, 0.1, 15.0, 9.0, 4.0, 3.0, 5);
+        let recovered: [f32; 10] = crate::lab::summary();
+        assert!(recovered[9] >= 1.0, "re-acquired {} times", recovered[9]);
+        assert!(recovered[1] < 0.2 * locked[1], "gated {} after re-acquiring", recovered[1]);
+    }
+
+    #[test]
     fn extreme_knobs_stay_finite() {
-        for args in [(0, 0.0, 0.0, 0.0, 0.0, 0.0, -99.0), (u32::MAX, 99.0, 1.0, 999.0, 999.0, 999.0, 99.0)] {
-            outliers_run(args.0, args.1, args.2, args.3, args.4, args.5, args.6);
+        for args in [(0, 0.0, 0.0, 0.0, 0.0, 0.0, -99.0, 0), (u32::MAX, 99.0, 1.0, 999.0, 999.0, 999.0, 99.0, 999)] {
+            outliers_run(args.0, args.1, args.2, args.3, args.4, args.5, args.6, args.7);
             assert!(summary()[..3].iter().all(|v| v.is_finite()), "{args:?}");
         }
     }
