@@ -6,12 +6,12 @@ exclude = ["crates/minikalman/fuzz", "benches/compare", "benches/mcu"]
 
 [workspace.package]
 version = "0.9.0"
-description = "A microcontroller targeted Kalman filter implementation"
+description = "Allocation-free Kalman filters (EKF, UKF, UD, square-root, smoothers) for desktop and microcontroller, in floating and fixed point"
 authors = ["Markus Mayer"]
 repository = "https://github.com/sunsided/minikalman-rs"
 homepage = "https://sunsided.github.io/minikalman-rs/"
-keywords = ["kalman-filter", "embedded", "fixed-point", "robotics", "slam"]
-categories = ["aerospace", "algorithms", "science::robotics", "no-std", "embedded"]
+keywords = ["kalman-filter", "state-estimation", "sensor-fusion", "embedded", "fixed-point"]
+categories = ["algorithms", "science::robotics", "embedded", "no-std::no-alloc", "aerospace"]
 edition = "2024"
 rust-version = "1.85.0"
 license = "MIT OR Apache-2.0"
