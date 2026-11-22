@@ -6,8 +6,8 @@ import { Scope, batch, knobs, markBest, num, offset, readout, timeAxis } from ".
 const CH = { truth: 0, z: 1, filter: 2, lag: 4, rts: 6, count: 8 };
 const GAP_START = 10; // seconds
 
-export async function start() {
-  const lab = await batch("smoothing", CH.count);
+export async function start(section) {
+  const lab = await batch("smoothing", CH.count, section);
   const scope = new Scope(document.getElementById("sm-plot"), { ratio: 0.45, xLabel: "t (s)" });
   const errors = new Scope(document.getElementById("sm-error"), { ratio: 0.2, minHeight: 140, maxHeight: 210, xLabel: "t (s)" });
   // The process noise knob is logarithmic.

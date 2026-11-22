@@ -6,8 +6,8 @@ import { Scope, batch, knobs, markBest, num, offset, readout, timeAxis } from ".
 const CH = { speed: 0, z: 1, theta: 2, joint: 4, dual: 9, count: 15 };
 const CHANGE_AT = 400;
 
-export async function start() {
-  const lab = await batch("parameters", CH.count);
+export async function start(section) {
+  const lab = await batch("parameters", CH.count, section);
   const opts = { ratio: 0.62, minHeight: 180, maxHeight: 280, xLabel: "step" };
   const a = new Scope(document.getElementById("pa-a"), opts);
   const b = new Scope(document.getElementById("pa-b"), opts);

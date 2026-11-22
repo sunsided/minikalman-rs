@@ -21,9 +21,9 @@ export async function instantiate() {
 /**
  * A batch experiment backed by its own instance. `run(...args)` calls `<name>_run` and
  * returns `{ n, channel(c), summary }`, or `null` if the module trapped, in which case the
- * instance is replaced so the next run starts clean.
+ * instance is replaced so the next run starts clean, and `section` says so.
  */
-export async function batch(name, channels) {
+export async function batch(name, channels, section) {
   const module = await compile();
   let exports = new WebAssembly.Instance(module, {}).exports;
   return {
@@ -36,10 +36,18 @@ export async function batch(name, channels) {
         const memory = exports.memory.buffer;
         const trace = new Float32Array(memory, exports.trace_ptr(), channels * n).slice();
         const summary = new Float32Array(memory, exports.summary_ptr(), 64).slice();
+        section?.querySelector(".trap")?.remove();
         return { n, channel: (c) => trace.subarray(c * n, (c + 1) * n), summary };
       } catch (error) {
         console.warn(`${name}_run trapped; restarting its module`, error);
         exports = new WebAssembly.Instance(module, {}).exports;
+        if (section && !section.querySelector(".trap")) {
+          const note = document.createElement("p");
+          note.className = "fallback trap";
+          note.setAttribute("role", "status");
+          note.textContent = "This run stopped with an error inside the module, so the plots show the previous run. Change a knob to run again.";
+          section.querySelector(".instrument")?.prepend(note);
+        }
         return null;
       }
     },
@@ -385,6 +393,25 @@ export class Scope {
         }
         ctx.stroke();
         ctx.setLineDash([]);
+        // A named line that leaves the range gets a caret and its name where it leaves,
+        // so an estimate that ran away does not just vanish.
+        if (layer.name) {
+          let inside = true;
+          for (let i = 0; i < visible; i++) {
+            const y = py(layer.y[i]);
+            if (!Number.isFinite(y)) continue;
+            const out = y < margin.top ? 1 : y > margin.top + h ? -1 : 0;
+            if (out && inside) {
+              const x = px(t[i]);
+              const edge = out > 0 ? margin.top + 1 : margin.top + h - 1;
+              caret(ctx, x, edge, out);
+              ctx.textAlign = x > margin.left + w - 90 ? "right" : "left";
+              ctx.fillText(`${layer.name} off scale`, x + (ctx.textAlign === "left" ? 6 : -6), edge + out * 14);
+              ctx.textAlign = "left";
+            }
+            inside = !out;
+          }
+        }
       } else if (layer.kind === "dots") {
         const r = layer.r ?? 1.6;
         for (let i = 0; i < visible; i++) {

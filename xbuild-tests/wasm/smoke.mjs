@@ -158,7 +158,8 @@ function run(name, ...args) {
 {
   const s = run("parameters", 42, 0.2, -4, 0.98);
   console.log(`parameters: re-identified in ${s[6]} (joint) vs ${s[7]} (dual) steps`);
-  check(s[6] > 0 && s[7] > 0 && s[6] < s[7], "parameters: the joint filter should re-identify first");
+  // The page's note quotes these two numbers.
+  check(s[6] === 25 && s[7] === 82, "parameters: the note quotes 25 (joint) and 82 (dual) steps");
   const frozen = run("parameters", 42, 0.2, -8, 1);
   check(frozen[6] < 0 && frozen[7] < 0, "parameters: q = 1e-8 and mu = 1 should stop both learning");
   for (const args of [[0, 0, -99, 0], [4294967295, 99, 99, 99]]) run("parameters", ...args);

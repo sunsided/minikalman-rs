@@ -94,8 +94,8 @@ function dial(canvas) {
   };
 }
 
-export async function start() {
-  const lab = await batch("attitude", CH.count);
+export async function start(section) {
+  const lab = await batch("attitude", CH.count, section);
   const opts = { ratio: 0.26, minHeight: 150, maxHeight: 230, xLabel: "t (s)" };
   const error = new Scope(document.getElementById("at-error"), opts);
   const roll = new Scope(document.getElementById("at-roll"), opts);

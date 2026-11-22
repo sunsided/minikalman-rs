@@ -58,6 +58,7 @@
             <strong>What you're seeing:</strong> low process noise smooths more but lags behind sudden
             changes; high process noise follows quickly but lets more of the sensor noise through.
           </p>
+          <p class="source">Read the filter in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/lib.rs"><code>lib.rs</code></a>, and the docs of the <a href="https://docs.rs/minikalman/latest/minikalman/regular/index.html"><code>regular</code></a> module.</p>
         </div>
         <div class="instrument">
           <div class="scope"><span class="scope-title">position (m)</span><canvas id="hero-plot" role="img" aria-label="Position over time: true signal, noisy measurements and filtered estimate"></canvas></div>

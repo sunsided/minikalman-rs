@@ -7,8 +7,8 @@ const CH = { truth: 0, z: 1, outlier: 2, estimate: 3, sigma: 6, rejected: 9, wei
 const COLORS = ["--c1", "--c2", "--c3"];
 const JUMP_AT = 15; // seconds
 
-export async function start() {
-  const lab = await batch("outliers", CH.count);
+export async function start(section) {
+  const lab = await batch("outliers", CH.count, section);
   const scope = new Scope(document.getElementById("out-plot"), { ratio: 0.45, xLabel: "t (s)" });
   const nis = new Scope(document.getElementById("out-nis"), { ratio: 0.2, minHeight: 140, maxHeight: 200, xLabel: "t (s)" });
   const weights = new Scope(document.getElementById("out-weight"), { ratio: 0.16, minHeight: 120, maxHeight: 170, xLabel: "t (s)" });
@@ -49,7 +49,10 @@ export async function start() {
       { kind: "dots", y: channel(CH.z), color: "--meas", r: 1.6, fit: false },
       { kind: "line", y: truth, color: "--truth", dash: [6, 3], width: 2 },
     );
-    for (let i = 0; i < 3; i++) layers.push({ kind: "line", y: channel(CH.estimate + i), color: COLORS[i], width: i === 0 ? 1.5 : 2, fit: false });
+    const NAMES = ["plain", "gated", "robust"];
+    for (let i = 0; i < 3; i++) {
+      layers.push({ kind: "line", y: channel(CH.estimate + i), color: COLORS[i], width: i === 0 ? 1.5 : 2, fit: false, name: NAMES[i] });
+    }
     layers.push(
       { kind: "events", mask: channel(CH.outlier), color: "--meas", row: 1 },
       { kind: "events", mask: rejected, color: "--c2", row: 0 },

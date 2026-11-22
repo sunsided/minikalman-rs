@@ -14,10 +14,10 @@
 
   /* Trace colours, one per role, used the same way in every experiment. */
   --truth: #5d6b76;
-  --meas: #a0661a;
+  --meas: #8f5a14;
   --c1: #c03a2b; /* the plain or first variant */
   --c2: #1f5fd1; /* the second variant */
-  --c3: #0b8073; /* the third variant */
+  --c3: #0a7468; /* the third variant */
   --c4: #9a2f8a; /* a fourth variant */
   --flag: #c03a2b;
 
@@ -306,6 +306,11 @@ code {
   display: block;
   width: 100%;
   touch-action: pan-y;
+}
+
+/* Drawing on the basics plot must not scroll the page. */
+#hero-plot {
+  touch-action: none;
 }
 
 .scope canvas.radar {

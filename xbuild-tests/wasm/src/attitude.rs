@@ -208,7 +208,7 @@ pub extern "C" fn attitude_run(
 
         let bias_error: Vec3 = core::array::from_fn(|i| sim.truth.bias[i] - gated.bias[i]);
         stats.summarize(summary);
-        summary[9] = norm(bias_error).to_degrees();
+        summary[8] = norm(bias_error).to_degrees();
     })
 }
 

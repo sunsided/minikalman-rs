@@ -83,16 +83,12 @@ export async function start() {
     } catch {
       // Synthetic events have no active pointer to capture.
     }
-    canvas.style.touchAction = "none";
     drawAt(event);
   });
   canvas.addEventListener("pointermove", (event) => {
     if (lastDrawn) drawAt(event);
   });
-  const end = () => {
-    lastDrawn = null;
-    canvas.style.touchAction = "";
-  };
+  const end = () => (lastDrawn = null);
   canvas.addEventListener("pointerup", end);
   canvas.addEventListener("pointercancel", end);
 

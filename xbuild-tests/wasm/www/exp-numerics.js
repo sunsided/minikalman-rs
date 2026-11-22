@@ -21,8 +21,8 @@ const sup = (v) => {
 };
 const power = (v) => (Number.isInteger(v) ? `10${sup(v)}` : (10 ** v).toExponential(1));
 
-export async function start() {
-  const lab = await batch("numerics", PER_VARIANT * VARIANTS.length);
+export async function start(section) {
+  const lab = await batch("numerics", PER_VARIANT * VARIANTS.length, section);
   const diag = new Scope(document.getElementById("nu-diag"), { ratio: 0.32, xLabel: "step" });
   const asym = new Scope(document.getElementById("nu-asym"), { ratio: 0.6, minHeight: 170, maxHeight: 260, xLabel: "step" });
   const error = new Scope(document.getElementById("nu-error"), { ratio: 0.6, minHeight: 170, maxHeight: 260, xLabel: "step" });
