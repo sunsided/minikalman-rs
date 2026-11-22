@@ -84,7 +84,7 @@ fn truth(t: f32, jump: f32) -> f32 {
 ///   that a hard gate can mistake for an outlier.
 /// * `reacquire` - After this many consecutive rejections, the gated filter inflates `P` by
 ///   100 so the next reading passes the gate again; `0` turns this off, at most `50`.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 #[allow(clippy::too_many_lines)]
 pub extern "C" fn outliers_run(
     seed: u32,

@@ -144,7 +144,7 @@ struct Settings {
 /// * `hold_off` - Accelerometer samples skipped after a gated one, `0..=50`.
 /// * `window` - Relative `|f|` window of the comparison filter, `0.01..=0.5`.
 /// * `heading` - Use the external heading (non-zero) or not.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 #[allow(clippy::too_many_lines)]
 pub extern "C" fn attitude_run(
     seed: u32,
@@ -876,5 +876,18 @@ mod tests {
         let v = [0.2, -0.1, 0.05];
         let back = Quat::exp(v).log();
         assert!(v.iter().zip(back).all(|(a, b)| (a - b).abs() < 1e-5));
+
+        // −q is the same rotation as q, and the identity has no rotation.
+        let q = Quat::exp(v);
+        let negated = Quat {
+            w: -q.w,
+            v: q.v.map(|x| -x),
+        };
+        assert!(
+            v.iter()
+                .zip(negated.log())
+                .all(|(a, b)| (a - b).abs() < 1e-5)
+        );
+        assert_eq!(Quat::exp([0.0; 3]).log(), [0.0; 3]);
     }
 }

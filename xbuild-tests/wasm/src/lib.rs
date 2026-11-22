@@ -8,6 +8,10 @@
 //! [`numerics`], [`smoothing`], [`parameters`], [`attitude`]) each simulate a whole run
 //! in one call and write it to the static buffers of [`lab`].
 //! See `www/` for the browser side and `smoke.mjs` for a Node check.
+//!
+//! The exports are `#[no_mangle]` only outside test builds. With the symbol unmangled in
+//! both the library and its test harness, coverage tools merge the two copies by name and
+//! keep the one the tests never call.
 
 pub mod attitude;
 pub mod lab;
@@ -93,25 +97,25 @@ thread_local! {
 
 /// Resets the filter with time step `dt`, process noise density `q`
 /// and measurement noise variance `r`.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn reset(dt: f32, q: f32, r: f32) {
     TRACKER.with(|t| *t.borrow_mut() = Tracker::new(dt, q, r));
 }
 
 /// Feeds one position measurement and returns the filtered position.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn step(z: f32) -> f32 {
     TRACKER.with(|t| t.borrow_mut().step(z))
 }
 
 /// Returns the estimated velocity.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn velocity() -> f32 {
     TRACKER.with(|t| t.borrow().filter.state_vector().get_at(1, 0))
 }
 
 /// Returns the variance of the position estimate.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn position_variance() -> f32 {
     TRACKER.with(|t| t.borrow().filter.estimate_covariance().get_at(0, 0))
 }

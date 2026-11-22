@@ -76,7 +76,7 @@ fn put(
 /// * `sigma` - Measurement noise standard deviation in m, `0.05..=5`.
 /// * `q` - Acceleration variance of the model in (m/s²)², `0.001..=100`.
 /// * `gap` - Length of the gap in the readings in seconds, from 10 s on, `0..=10`.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn smoothing_run(seed: u32, sigma: f32, q: f32, gap: f32) -> u32 {
     let sigma = knob(sigma, 0.05, 5.0);
     let q = knob(q, 0.001, 100.0);

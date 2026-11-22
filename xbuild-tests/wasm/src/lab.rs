@@ -26,13 +26,13 @@ thread_local! {
 }
 
 /// Returns the address of the trace buffer in the module's memory.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn trace_ptr() -> *const f32 {
     TRACE.with(|t| t.borrow().as_ptr())
 }
 
 /// Returns the address of the summary buffer in the module's memory.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn summary_ptr() -> *const f32 {
     SUMMARY.with(|s| s.borrow().as_ptr())
 }
@@ -164,6 +164,19 @@ mod tests {
             mean.abs() < 0.03 && (var - 1.0).abs() < 0.05,
             "{mean} {var}"
         );
+    }
+
+    #[test]
+    fn buffers_are_exposed() {
+        assert!(!trace_ptr().is_null());
+        assert!(!summary_ptr().is_null());
+        let steps = record(2, 3, |trace, summary| {
+            trace.set(1, 2, 4.0);
+            summary[0] = trace.get(1, 2);
+        });
+        assert_eq!(steps, 3);
+        assert_eq!(trace_value(3, 1, 2), 4.0);
+        assert_eq!(summary::<1>(), [4.0]);
     }
 
     #[test]

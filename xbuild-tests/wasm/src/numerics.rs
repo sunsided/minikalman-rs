@@ -173,7 +173,7 @@ where
 /// * `log_r` - `log₁₀` of each sensor's noise variance, `−6..=0`.
 /// * `log_q` - `log₁₀` of the process noise variance per state and step, `−8..=−1`.
 /// * `steps` - Number of steps, `10..=600`.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn numerics_run(seed: u32, sensors: u32, log_r: f32, log_q: f32, steps: u32) -> u32 {
     #[allow(
         clippy::cast_precision_loss,

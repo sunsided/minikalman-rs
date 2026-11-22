@@ -85,7 +85,7 @@ fn put(trace: &mut Trace<'_>, base: usize, k: usize, x: f64, theta: [f64; 2], va
 /// * `sensor_sigma` - Sensor noise standard deviation, `0.01..=1`.
 /// * `log_q` - `log₁₀` of the joint filter's parameter process noise, `−8..=−1`.
 /// * `forgetting` - The dual estimator's forgetting factor `μ`, `0.8..=1`.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 #[allow(clippy::too_many_lines)]
 pub extern "C" fn parameters_run(seed: u32, sensor_sigma: f32, log_q: f32, forgetting: f32) -> u32 {
     let sensor = f64::from(knob(sensor_sigma, 0.01, 1.0));

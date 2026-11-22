@@ -218,7 +218,7 @@ thread_local! {
 
 /// Restarts both filters at position `(x, y)` with process noise density `q`
 /// and measurement standard deviations for range and bearing (radians).
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn radar_reset(x: f32, y: f32, q: f32, sigma_range: f32, sigma_bearing: f32) {
     RADAR.with(|r| {
         let wrap = r.borrow().wrap;
@@ -229,14 +229,14 @@ pub extern "C" fn radar_reset(x: f32, y: f32, q: f32, sigma_range: f32, sigma_be
 }
 
 /// Advances both filters by `dt` seconds.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn radar_predict(dt: f32) {
     RADAR.with(|r| r.borrow_mut().predict(dt));
 }
 
 /// Corrects both filters with a range and bearing (radians) measurement from
 /// a radar at `(sensor_x, sensor_y)`.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn radar_correct(sensor_x: f32, sensor_y: f32, range: f32, bearing: f32) {
     RADAR.with(|r| r.borrow_mut().correct(sensor_x, sensor_y, range, bearing));
 }
@@ -246,19 +246,19 @@ pub extern "C" fn radar_correct(sensor_x: f32, sensor_y: f32, range: f32, bearin
 /// With wrapping off, both filters treat a bearing that jumps from +π to -π as a
 /// full turn and lose the target behind the radar. The setting survives
 /// [`radar_reset`].
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn radar_set_wrap(enabled: u32) {
     RADAR.with(|r| r.borrow_mut().wrap = enabled != 0);
 }
 
 /// Returns entry `i` of `[x, y, vx, vy]` for the [`EKF`] or [`UKF`] variant.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn radar_state(variant: u32, i: u32) -> f32 {
     RADAR.with(|r| r.borrow().state(variant, i as usize))
 }
 
 /// Returns entry `(i, j)` of the estimate covariance for the [`EKF`] or [`UKF`] variant.
-#[unsafe(no_mangle)]
+#[cfg_attr(not(test), unsafe(no_mangle))]
 pub extern "C" fn radar_covariance(variant: u32, i: u32, j: u32) -> f32 {
     RADAR.with(|r| r.borrow().covariance(variant, i as usize, j as usize))
 }
