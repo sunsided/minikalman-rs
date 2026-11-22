@@ -324,7 +324,7 @@ declares *and enables* its own `unsafe` feature:
 
 ```toml
 [dependencies]
-minikalman = { version = "0.8", features = ["derive"] }
+minikalman = { version = "0.9", features = ["derive"] }
 
 [features]
 default = ["unsafe"] # or build with `--features unsafe`

@@ -5,6 +5,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## [0.9.0] - 2026-11-22
+
+[0.9.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.9.0
+
 ### Documentation
 
 - Documented the `λ` of `predict_tuned` / `predict_tuned_nonlinear` as a fading-memory (forgetting)
