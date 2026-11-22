@@ -341,6 +341,19 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `Matrix::mult` with a one- or two-column result starts its dot products from `−0.0` instead of
+  `+0.0` for `f32` and `f64`, so the first addition folds away (`−0.0 + x = x` exactly, while
+  `+0.0 + x` must be computed in case `x` is `−0.0`). The start value comes from the new
+  `MatrixDataType::additive_identity` (default `zero()`, so fixed point is unchanged). The
+  2-state, 1-measurement filter step runs 3.6 % fewer instructions on a Cortex-M4F at
+  `opt-level = 3`, 5.4 % fewer on a Cortex-M0+, and 3.7 % fewer on x86-64; no filter
+  operation of `benches/mcu` runs more instructions for any type, core or profile, and the
+  `thumbv7em-none-eabihf` code size does not grow. The other dot-product kernels keep `+0.0`:
+  each regressed some Cortex-M row. A result differs from before only when every term of an
+  entry is `−0.0`: it is now `−0.0` instead of `+0.0` (equal under `==`), as the mat-vec
+  kernels already returned. This is accepted rather than corrected, since a correction would
+  cost the saved addition again; the tests pin every other result bit for bit. Empty sums stay
+  `+0.0` ([#181]).
 - With the `unsafe` feature, `libm` and no `std`, the `f32` square root on Arm hard-float targets
   (`target_abi = "eabihf"`, e.g. the Cortex-M4F) uses the FPU's `vsqrt.f32` instead of
   `libm::sqrtf` in software: 7 instead of 79 instructions per root on the M4F, up to 26 % fewer
@@ -465,6 +478,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `--features alloc,fixed`), and CI runs those as well.
 
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177
+[#181]: https://github.com/sunsided/minikalman-rs/issues/181
 [#187]: https://github.com/sunsided/minikalman-rs/issues/187
 [#174]: https://github.com/sunsided/minikalman-rs/issues/174
 [#168]: https://github.com/sunsided/minikalman-rs/issues/168

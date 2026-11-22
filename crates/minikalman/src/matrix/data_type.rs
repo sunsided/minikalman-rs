@@ -39,6 +39,19 @@ pub trait MatrixDataType: MatrixDataTypeBase {
     /// fixed-point type near its resolution, so the default, used by the fixed-point types, is
     /// `false`: they keep the Cholesky solve.
     const SQUARE_ROOT_FREE_GAIN: bool = false;
+
+    /// The value a sum starts from: an additive identity that is exact for every addend, i.e.
+    /// `additive_identity() + x` has the bits of `x` for every `x`.
+    ///
+    /// For floating-point types this is `−0.0`: `−0.0 + x = x` holds for every `x`, including
+    /// `+0.0` and `−0.0`, so the compiler can drop the first addition of a dot product.
+    /// `+0.0` is not exact (`+0.0 + (−0.0) = +0.0`), so starting from it forces that addition.
+    /// The default, used by the fixed-point types, where `−0` does not exist, is
+    /// [`Zero::zero`](num_traits::Zero::zero).
+    #[inline(always)]
+    fn additive_identity() -> Self {
+        Self::zero()
+    }
 }
 
 /// Auto-implementation of [`MatrixDataTypeBase`].
@@ -62,6 +75,12 @@ impl<T> MatrixDataTypeBase for T where
 #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 impl MatrixDataType for f32 {
     const SQUARE_ROOT_FREE_GAIN: bool = true;
+
+    /// `−0.0`, the exact additive identity; see [`MatrixDataType::additive_identity`].
+    #[inline(always)]
+    fn additive_identity() -> Self {
+        -0.0
+    }
 
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
@@ -150,6 +169,12 @@ fn hardware_sqrtf(x: f32) -> f32 {
 impl MatrixDataType for f64 {
     const SQUARE_ROOT_FREE_GAIN: bool = true;
 
+    /// `−0.0`, the exact additive identity; see [`MatrixDataType::additive_identity`].
+    #[inline(always)]
+    fn additive_identity() -> Self {
+        -0.0
+    }
+
     /// Calculates the reciprocal (inverse) of a number, i.e. `1/self`.
     fn recip(self) -> Self {
         #[cfg(feature = "std")]
@@ -214,6 +239,54 @@ impl MatrixDataType for fixed::types::I32F32 {
 #[cfg(test)]
 mod tests {
     use super::MatrixDataType;
+
+    /// `additive_identity() + x` must have the bits of `x` for every `x`.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    #[test]
+    fn float_additive_identity_is_exact() {
+        let start = <f32 as MatrixDataType>::additive_identity();
+        assert_eq!(start.to_bits(), (-0.0f32).to_bits());
+        for x in [
+            0.0f32,
+            -0.0,
+            1.0,
+            -1.0,
+            f32::MIN_POSITIVE,
+            f32::MAX,
+            f32::INFINITY,
+        ] {
+            assert_eq!((start + x).to_bits(), x.to_bits(), "{x:?}");
+        }
+        assert!((start + f32::NAN).is_nan());
+
+        let start = <f64 as MatrixDataType>::additive_identity();
+        assert_eq!(start.to_bits(), (-0.0f64).to_bits());
+        for x in [
+            0.0f64,
+            -0.0,
+            1.0,
+            -1.0,
+            f64::MIN_POSITIVE,
+            f64::MAX,
+            f64::NEG_INFINITY,
+        ] {
+            assert_eq!((start + x).to_bits(), x.to_bits(), "{x:?}");
+        }
+    }
+
+    /// Fixed point has no `−0`: the additive identity is plain zero.
+    #[cfg(feature = "fixed")]
+    #[test]
+    fn fixed_additive_identity_is_zero() {
+        use fixed::types::{I16F16, I32F32};
+
+        assert_eq!(<I16F16 as MatrixDataType>::additive_identity().to_bits(), 0);
+        assert_eq!(<I32F32 as MatrixDataType>::additive_identity().to_bits(), 0);
+        assert_eq!((-I16F16::ZERO).to_bits(), 0);
+        for x in [I16F16::ZERO, I16F16::MIN, I16F16::MAX, I16F16::DELTA] {
+            assert_eq!(<I16F16 as MatrixDataType>::additive_identity() + x, x);
+        }
+    }
 
     #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     #[test]

@@ -262,6 +262,12 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 
     /// Performs a matrix multiplication such that `C = A * B`.
     ///
+    /// ## Signed zero
+    /// For `f32` and `f64`, an entry of a one- or two-column `C` whose terms `A[i][k]×B[k][j]`
+    /// are all `−0.0` is `−0.0`, not `+0.0` (the two compare equal). Its sum starts from
+    /// [`MatrixDataType::additive_identity`], which saves an addition per entry; every other
+    /// result is the same as with a `+0.0` start, and an empty sum is `+0.0`.
+    ///
     /// ## Arguments
     /// * `self` - Matrix A
     /// * `b` - Matrix B
@@ -328,9 +334,18 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
         // Rows shorter than ROW_ACCUMULATOR_MIN gain nothing from vectorizing across the row,
         // so they keep one dot product per entry. U is a constant, so the branch folds away.
         if U < ROW_ACCUMULATOR_MIN {
+            // One- and two-column products start from the exact additive identity (−0.0 for
+            // floats), which drops the first addition. Measured with `benches/mcu` (#181): at
+            // U = 3 it costs the Cortex-M0+ at opt-level "s" 34 instructions per 6×3
+            // correction, and the other kernels regress somewhere as well, so they keep `+0`.
+            let start = if U < 3 {
+                sum_start::<COLS, T>()
+            } else {
+                T::zero()
+            };
             for i in 0..arows {
                 for j in 0..U {
-                    let mut total = T::zero();
+                    let mut total = start;
                     for k in 0..brows {
                         total += adata[i * COLS + k] * bdata[k * U + j];
                     }
@@ -772,8 +787,24 @@ pub trait Matrix<const ROWS: usize, const COLS: usize, T = f32>:
 /// The shortest output row for which `mult` and the `mult_transb` family accumulate the whole
 /// row at once. Shorter rows keep one dot product per entry: for them the accumulator only adds
 /// overhead (measured with `benches/compare`, e.g. the 2-state, 1-measurement filter). Both
-/// paths sum every entry in the same order, so the results are the same bit for bit.
+/// paths sum every entry in the same order, so the results are the same bit for bit, except
+/// that `mult` starts one- and two-column products from `−0.0` (see [`sum_start`]).
 const ROW_ACCUMULATOR_MIN: usize = 4;
+
+/// The start value of a sum of `K` terms: [`MatrixDataType::additive_identity`], so that the
+/// first addition folds away, or `+0` for an empty sum, which stays `+0` as before.
+///
+/// The sum is the same bit for bit as one started from `+0`, except when every term is `−0.0`:
+/// then it is `−0.0` instead of `+0.0` (equal under `==`). The mat-vec kernels, which start
+/// from their first product, already behave like that.
+#[inline(always)]
+fn sum_start<const K: usize, T: MatrixDataType>() -> T {
+    if K == 0 {
+        T::zero()
+    } else {
+        T::additive_identity()
+    }
+}
 
 /// Computes `C = A×Bᵀ` row by row for `A` (`R`×`K`), `B` (`U`×`K`) and `C` (`R`×`U`),
 /// passing each entry to `store`.
@@ -2021,12 +2052,19 @@ mod kernel_bit_identity {
     /// Longer than every operand, which `is_valid` allows.
     const CAP: usize = 64;
 
-    /// The former `mult`: j (descending), i, k, one dot product per entry.
-    fn old_mult<T: MatrixDataType>(a: &[T], b: &[T], c: &mut [T], r: usize, k: usize, u: usize) {
+    /// The former `mult`: j (descending), i, k, one dot product per entry, each starting
+    /// from `start`.
+    fn old_mult<T: MatrixDataType>(
+        a: &[T],
+        b: &[T],
+        c: &mut [T],
+        (r, k, u): (usize, usize, usize),
+        start: T,
+    ) {
         for j in (0..u).rev() {
             let mut index_a = 0;
             for i in 0..r {
-                let mut total = T::zero();
+                let mut total = start;
                 for l in 0..k {
                     total += a[index_a] * b[l * u + j];
                     index_a += 1;
@@ -2087,7 +2125,7 @@ mod kernel_bit_identity {
             values::<T>(3, scale),
         );
         let mut want = c0;
-        old_mult(&a, &b, &mut want, R, K, U);
+        old_mult(&a, &b, &mut want, (R, K, U), mult_start::<K, U, T>());
         let mut got = c0;
         MatrixData::new_ref::<R, K, T>(&a).mult(
             &MatrixData::new_ref::<K, U, T>(&b),
@@ -2095,6 +2133,133 @@ mod kernel_bit_identity {
         );
         // Entries past R×U must stay untouched as well.
         assert_bits_eq(&got, &want, "mult");
+    }
+
+    /// The value `mult` starts its dot products from: `−0.0` for floats with one or two
+    /// columns and a non-empty sum, `+0` otherwise.
+    fn mult_start<const K: usize, const U: usize, T: MatrixDataType>() -> T {
+        if U < 3 {
+            sum_start::<K, T>()
+        } else {
+            T::zero()
+        }
+    }
+
+    /// `CAP` values from `{±0, ±0.5, ±1, ±2}`: many products are `±0`, many sums cancel to
+    /// `+0` (`x + (−x)`), and some entries have only `−0` terms.
+    fn signed_zero_values<T: MatrixDataType>(seed: u32) -> [T; CAP] {
+        const SET: [f64; 8] = [0.0, -0.0, 0.5, -0.5, 1.0, -1.0, 2.0, -2.0];
+        core::array::from_fn(|i| {
+            let pick = ((test_value(seed, i) + 1.0) * 4.0) as usize;
+            T::from_f64(SET[pick.min(7)]).unwrap()
+        })
+    }
+
+    /// Pins `mult` on operands full of signed zeros: against the old loop with the start value
+    /// the kernel uses, and that start value against the old `+0` start, which may differ only
+    /// where every term of an entry is `−0.0`. Returns how many such entries were seen.
+    fn check_mult_signed_zeros<const R: usize, const K: usize, const U: usize, T>(
+        seed: u32,
+    ) -> usize
+    where
+        T: MatrixDataType + ToBits,
+    {
+        let (a, b) = (
+            signed_zero_values::<T>(seed),
+            signed_zero_values::<T>(seed + 1),
+        );
+        let c0 = values::<T>(seed + 2, 1.0);
+        let mut got = c0;
+        MatrixData::new_ref::<R, K, T>(&a).mult(
+            &MatrixData::new_ref::<K, U, T>(&b),
+            &mut MatrixData::new_mut::<R, U, T>(&mut got),
+        );
+
+        let mut want = c0;
+        old_mult(&a, &b, &mut want, (R, K, U), mult_start::<K, U, T>());
+        assert_bits_eq(&got, &want, "mult, signed zeros");
+
+        let mut old = c0;
+        old_mult(&a, &b, &mut old, (R, K, U), T::zero());
+        let negative_zero = (-T::zero()).to_bits_u64();
+        let mut all_negative_zero_entries = 0;
+        for i in 0..R {
+            for j in 0..U {
+                let all_negative_zero = K > 0
+                    && (0..K).all(|l| (a[i * K + l] * b[l * U + j]).to_bits_u64() == negative_zero);
+                let (g, o) = (got[i * U + j].to_bits_u64(), old[i * U + j].to_bits_u64());
+                if all_negative_zero && g != o {
+                    // Only here may the −0.0 start show: −0.0 where `+0 + (−0.0) + …` gave +0.0.
+                    assert_eq!(
+                        (g, o),
+                        (negative_zero, T::zero().to_bits_u64()),
+                        "mult[{i}][{j}]"
+                    );
+                    all_negative_zero_entries += 1;
+                } else {
+                    assert_eq!(
+                        g,
+                        o,
+                        "mult[{i}][{j}]: {:?} != {:?}",
+                        got[i * U + j],
+                        old[i * U + j]
+                    );
+                }
+            }
+        }
+        all_negative_zero_entries
+    }
+
+    fn check_mult_signed_zeros_all<T: MatrixDataType + ToBits>() -> usize {
+        let mut seen = 0;
+        for seed in (100..400).step_by(3) {
+            seen += check_mult_signed_zeros::<1, 1, 1, T>(seed);
+            seen += check_mult_signed_zeros::<2, 1, 1, T>(seed);
+            seen += check_mult_signed_zeros::<2, 2, 1, T>(seed);
+            seen += check_mult_signed_zeros::<3, 2, 2, T>(seed);
+            seen += check_mult_signed_zeros::<4, 4, 2, T>(seed);
+            seen += check_mult_signed_zeros::<2, 3, 3, T>(seed);
+            seen += check_mult_signed_zeros::<3, 2, 4, T>(seed);
+        }
+        seen
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    fn mult_signed_zeros_differ_only_where_every_term_is_negative_zero() {
+        // The case must occur, or the test would not show where the results differ.
+        assert!(check_mult_signed_zeros_all::<f32>() > 0);
+        assert!(check_mult_signed_zeros_all::<f64>() > 0);
+    }
+
+    #[test]
+    #[cfg(feature = "fixed")]
+    fn mult_signed_zeros_are_unchanged_for_fixed_point() {
+        // Fixed point has no −0: the start value is 0 and every result is the old one.
+        assert_eq!(check_mult_signed_zeros_all::<fixed::types::I16F16>(), 0);
+        assert_eq!(check_mult_signed_zeros_all::<fixed::types::I32F32>(), 0);
+    }
+
+    /// An empty sum (`K = 0`) stays `+0`, not `−0.0`.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    fn check_empty_mult<const U: usize, T: MatrixDataType + ToBits>() {
+        let b: [T; 0] = [];
+        let mut got = values::<T>(13, 1.0);
+        MatrixData::new_ref::<2, 0, T>(&b).mult(
+            &MatrixData::new_ref::<0, U, T>(&b),
+            &mut MatrixData::new_mut::<2, U, T>(&mut got),
+        );
+        assert_bits_eq(&got[..2 * U], &[T::zero(); 8][..2 * U], "empty mult");
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+    fn empty_mult_is_positive_zero() {
+        check_empty_mult::<1, f32>();
+        check_empty_mult::<2, f32>();
+        check_empty_mult::<4, f32>();
+        check_empty_mult::<1, f64>();
+        check_empty_mult::<2, f64>();
     }
 
     fn check_transb<const R: usize, const K: usize, const U: usize, T>(scale: f64)
