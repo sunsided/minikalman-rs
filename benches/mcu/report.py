@@ -7,7 +7,8 @@
 Each raw file is named `<target>.<profile>.<types>.txt` and holds lines
 `<name> <instructions> <ok> [<symbol>=<calls> ...]` (see renode/bench.py). The counts are
 reported per call: the mean over the measured iterations minus the marker overhead
-(`calib/empty`), with the range when iterations differ.
+(`calib/empty`), with the range when iterations differ. `NOTE <name> <bytes>` lines (sizes and
+stack use of the navigation workloads) go into a second table per core and profile.
 """
 
 import collections
@@ -19,8 +20,10 @@ PROFILES = {'release': 'opt-level = "s"', 'o3': 'opt-level = 3'}
 
 
 def load(directory):
-    """Returns {(target, profile): {name: (mean, min, max, all_ok, calls)}}."""
+    """Returns ({(target, profile): {name: (mean, min, max, all_ok, calls)}},
+    {(target, profile): {name: bytes}})."""
     runs = collections.defaultdict(dict)
+    notes = collections.defaultdict(dict)
     for file in sorted(os.listdir(directory)):
         if not file.endswith('.txt'):
             continue
@@ -35,6 +38,9 @@ def load(directory):
                     continue
                 if parts[0] == 'FAIL':
                     sys.exit('%s: %s' % (file, line.strip()))
+                if parts[0] == 'NOTE':
+                    notes[(target, profile)][parts[1]] = int(parts[2])
+                    continue
                 if parts[0] in ('DONE', 'STACK_FREE'):
                     done |= parts[0] == 'DONE'
                     continue
@@ -57,7 +63,26 @@ def load(directory):
                 all(ok for _, ok in values),
                 per_call,
             )
-    return runs
+    return runs, notes
+
+
+def print_notes(notes, base_notes):
+    """Prints the sizes and stack use in bytes, with the base values when given."""
+    if not notes:
+        return
+    if base_notes is None:
+        print('| memory | bytes |')
+        print('|---|---:|')
+    else:
+        print('| memory | base | this tree |')
+        print('|---|---:|---:|')
+    for name, value in notes.items():
+        cells = [name]
+        if base_notes is not None:
+            cells.append(str(base_notes.get(name, '–')))
+        cells.append(str(value))
+        print('| ' + ' | '.join(cells) + ' |')
+    print()
 
 
 def fmt(entry):
@@ -73,8 +98,8 @@ def fmt_calls(calls):
 def main():
     if len(sys.argv) not in (2, 3):
         sys.exit(__doc__)
-    head = load(sys.argv[-1])
-    base = load(sys.argv[1]) if len(sys.argv) == 3 else None
+    head, head_notes = load(sys.argv[-1])
+    base, base_notes = load(sys.argv[1]) if len(sys.argv) == 3 else (None, None)
     for key in sorted(head, key=lambda k: (list(CORES).index(k[0]), k[1] != 'release')):
         target, profile = key
         print('### %s (`%s`), %s\n' % (CORES.get(target, target), target, PROFILES.get(profile, profile)))
@@ -101,6 +126,7 @@ def main():
                 cells.append(fmt_calls(rows[name][4]))
             print('| ' + ' | '.join(cells) + ' |')
         print()
+        print_notes(head_notes.get(key), base_notes.get(key, {}) if base_notes is not None else None)
 
 
 if __name__ == '__main__':

@@ -13,6 +13,14 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added two navigation workloads to the Renode benchmarks in `benches/mcu`: a 6-state attitude
+  error-state EKF (gyro prediction at a varying `Δt`, 3-measurement accelerometer update,
+  scalar heading) and a 12-state GNSS/INS error-state EKF (IMU prediction, 5-measurement GNSS
+  update, sequential barometer and heading updates), in `f32`, with and without the `unsafe`
+  feature. The quaternion and Jacobian glue, the filter operations and the error reset are
+  measured separately; the run also reports each workload's stack use and the `size_of` of its
+  storage, and the README converts the counts into a rough time budget at typical clocks. The
+  model lives in `benches/mcu/src/nav.rs` for the GNSS/INS example to share ([#185]).
 - Added the `attitude-eskf` example: a quaternion error-state (multiplicative) EKF for the
   attitude of an IMU in `f32` on inline storage, with the error `(δθ, δb)` of attitude and gyro
   bias, gyro prediction at a varying `Δt` from timestamps, an accelerometer tilt update gated by
@@ -497,6 +505,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The same now holds with `alloc` but no float backend (`--features alloc` and
   `--features alloc,fixed`), and CI runs those as well.
 
+[#185]: https://github.com/sunsided/minikalman-rs/issues/185
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177
 [#181]: https://github.com/sunsided/minikalman-rs/issues/181
 [#184]: https://github.com/sunsided/minikalman-rs/issues/184
