@@ -409,7 +409,9 @@ impl<
     /// - the predictively oriented corrections keep their own `S` (without `R`, or of the
     ///   posterior);
     /// - the [UD](crate::ud::UdKalman) and [square-root](crate::square_root::SquareRootKalman)
-    ///   filters use `S` as scratch.
+    ///   filters use `S` as scratch;
+    /// - the [information filter](crate::information::InformationFilter)'s `fuse` leaves the
+    ///   Cholesky factor of `R` in `S` and does not write the NIS.
     ///
     /// Same cost and availability as
     /// [`log_det_innovation_covariance`](Self::log_det_innovation_covariance), plus a few

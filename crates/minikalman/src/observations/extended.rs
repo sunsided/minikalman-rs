@@ -403,8 +403,8 @@ impl<
     /// - [`correct_nonlinear_recalibrated`](crate::extended::ExtendedKalman::correct_nonlinear_recalibrated),
     ///   once its first pass applies (also when it then backs out), leaves `S` at the second
     ///   Jacobian, while the NIS is that of the first;
-    /// - the predictively oriented corrections keep their own `S` (without `R`, or of the
-    ///   posterior).
+    /// - the predictively oriented correction keeps its own `S`, the prior `H×P⁻×Hᵀ` without
+    ///   `R`.
     ///
     /// Same cost and availability as
     /// [`log_det_innovation_covariance`](Self::log_det_innovation_covariance), plus a few
