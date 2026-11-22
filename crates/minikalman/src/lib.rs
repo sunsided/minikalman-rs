@@ -272,6 +272,64 @@
 //! Prediction, Smoothing, and Estimation", *Advances in Neural Information Processing
 //! Systems 9* (NeurIPS 1996).
 //!
+//! ## Likelihood of a Model
+//!
+//! The approaches in [Estimating Model Parameters](#estimating-model-parameters) track
+//! parameters online. To fit them to a recorded run instead, maximize the likelihood of the measurements: run the filter once per candidate model
+//! and add up the log-likelihood of every correction,
+//! `ℓₖ = −½·(m·ln 2π + ln det Sₖ + yₖᵀ·Sₖ⁻¹·yₖ)`, the log-density of the innovation `yₖ`
+//! under its predicted covariance `Sₖ`. The sum is the log-likelihood of the whole run (the
+//! prediction-error decomposition), and the model with the largest sum fits best. This is
+//! how ARMA(p, q) models are fitted by maximum likelihood, and it works for noise
+//! covariances as well.
+//!
+//! [`log_likelihood`](regular::RegularObservation::log_likelihood) returns `ℓₖ` of the last
+//! correction, and
+//! [`log_det_innovation_covariance`](regular::RegularObservation::log_det_innovation_covariance)
+//! its `ln det Sₖ`; the [NIS](regular::RegularObservation::nis) is the third term. Both are
+//! computed when asked for, from the `S` the observation keeps, so a filter that never asks
+//! pays nothing; each call costs `m` logarithms and, for `m > 1`, a small factorization.
+//! They exist for `f32` and `f64` only, and their docs list the corrections they apply to.
+//!
+//! ```
+//! # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
+//! use minikalman::prelude::*;
+//! use minikalman::regular::builder::KalmanFilterBuilder;
+//!
+//! /// Σ ℓₖ of `samples` under the AR(1) model `yₖ = φ·yₖ₋₁ + eₖ`, `eₖ ~ N(0, 1)`.
+//! fn log_likelihood(samples: &[f64], phi: f64) -> f64 {
+//!     let builder = KalmanFilterBuilder::<1, f64>::default();
+//!     let mut filter = builder.build();
+//!     let mut measurement = builder.observations().build::<1>();
+//!     filter.state_transition_mut().set_at(0, 0, phi);
+//!     filter.direct_process_noise_mut().set_at(0, 0, 1.0);
+//!     filter.estimate_covariance_mut().set_at(0, 0, 1.0);
+//!     measurement.observation_matrix_mut().set_at(0, 0, 1.0);
+//!     // R = 0: the process is observed exactly, all noise is in Q.
+//!
+//!     let mut sum = 0.0;
+//!     for &y in samples {
+//!         filter.predict();
+//!         measurement.measurement_vector_mut().set_at(0, 0, y);
+//!         filter.correct(&mut measurement);
+//!         sum += measurement.log_likelihood();
+//!     }
+//!     sum
+//! }
+//!
+//! let samples = [0.3, 1.1, 0.4, -0.8, -1.2, -0.1, 0.9, 1.6, 0.7, -0.4];
+//! let best = [0.0, 0.25, 0.5, 0.75]
+//!     .into_iter()
+//!     .max_by(|&a, &b| log_likelihood(&samples, a).total_cmp(&log_likelihood(&samples, b)))
+//!     .unwrap();
+//! assert_eq!(best, 0.5);
+//! # }
+//! ```
+//!
+//! A grid is the simplest search; any optimizer that only needs function values works too.
+//! The ARMA(1, 1) test in `tests/log_likelihood.rs` fits `(φ, θ)` this way, with the
+//! state-space form `sₖ = [yₖ, θ·eₖ]`.
+//!
 //! ## `no_std` Example
 //!
 //! Systems without the liberty of heap allocation can use the storage types:

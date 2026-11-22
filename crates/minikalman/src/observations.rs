@@ -1,7 +1,7 @@
 //! # Observations for Regular, Extended, and Unscented Kalman Filters.
 
 use crate::kalman::CorrectionStatus;
-use crate::matrix::{Matrix, MatrixDataMut, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::matrix::{Logarithm, Matrix, MatrixDataMut, MatrixDataType, MatrixMut, SquareMatrix};
 use crate::observations::innovation_factor::{InnovationFactor, is_number};
 
 pub mod extended;
@@ -295,6 +295,24 @@ pub enum CovarianceUpdate {
     /// oriented corrections document their own `S`.
     #[default]
     Joseph,
+}
+
+/// Returns the Gaussian log-likelihood `−½·(m·ln 2π + ln det S + NIS)` of an innovation of
+/// `OBSERVATIONS = m` measurements with covariance `S` and the given NIS; `NaN` if `S` is not
+/// positive definite.
+#[allow(non_snake_case)]
+pub(crate) fn log_likelihood<const OBSERVATIONS: usize, T>(
+    S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+    nis: T,
+) -> T
+where
+    T: Logarithm,
+{
+    // ln 2π to f64 precision; from_f64 rounds it to T.
+    let ln_two_pi = T::from_f64(1.837_877_066_409_345_5).expect("a float type holds ln 2π");
+    let m = T::from_usize(OBSERVATIONS).expect("a float type holds the measurement count");
+    let half = T::one() / (T::one() + T::one());
+    -(half * (m * ln_two_pi + innovation_factor::log_determinant(S) + nis))
 }
 
 /// Computes the normalized innovation squared `NIS = yᵀ×S⁻¹×y`.
