@@ -77,6 +77,7 @@ pub type BorrowedGatedFixedGainObservation<
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::{FixedGainObservationStorage, ObserverStorage};
 ///
@@ -93,6 +94,7 @@ pub type BorrowedGatedFixedGainObservation<
 /// position.measurement_vector_mut().set_at(0, 0, 2.0);
 /// assert!(observer.correct(&mut position).is_applied());
 /// assert_eq!(observer.state_vector().get_at(0, 0), 1.0);
+/// # }
 /// ```
 #[allow(non_snake_case)]
 pub struct ObserverStorage<const STATES: usize, T> {
@@ -135,6 +137,7 @@ impl<const STATES: usize, T: MatrixDataType> ObserverStorage<STATES, T> {
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::{FixedGainObservationStorage, PredictorObserverStorage};
 ///
@@ -152,6 +155,7 @@ impl<const STATES: usize, T: MatrixDataType> ObserverStorage<STATES, T> {
 /// assert_eq!(observer.state_vector().get_at(0, 0), 0.0); // still the prior
 /// observer.predict();
 /// assert_eq!(observer.state_vector().get_at(0, 0), 1.0);
+/// # }
 /// ```
 #[allow(non_snake_case)]
 pub struct PredictorObserverStorage<const STATES: usize, T> {
@@ -257,6 +261,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType, F: GainF
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::GatedFixedGainObservationStorage;
 ///
@@ -266,6 +271,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType, F: GainF
 /// position.set_gain(&MatrixData::new_array::<2, 1, 2, f32>([0.5, 0.0]));
 /// position.set_innovation_covariance_inverse(&MatrixData::new_array::<1, 1, 1, f32>([1.0]));
 /// position.set_gate(Some(6.63));
+/// # }
 /// ```
 #[allow(non_snake_case)]
 pub struct GatedFixedGainObservationStorage<

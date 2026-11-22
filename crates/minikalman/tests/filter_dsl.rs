@@ -6,12 +6,15 @@
 use minikalman::prelude::*;
 
 /// Time step, in seconds.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const DT: f32 = 0.1;
 
 /// The number of steps every scenario runs.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const STEPS: usize = 50;
 
 /// The declarations every filter over `Track` shares, in their own module and block.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 mod shared {
     use super::DT;
 
@@ -38,6 +41,7 @@ mod shared {
 }
 
 /// The filters, in a second module and block; they reach the shared items only by path.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 mod filters {
     use super::DT;
     pub use super::shared::{Track, gps, scratch, throttle};
@@ -75,10 +79,13 @@ mod filters {
     }
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use filters::{steady, tracking};
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use shared::{Gps, Throttle, Track};
 
 /// The generated storage is exactly the library storages, nothing more.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const _: () = {
     use core::mem::size_of;
     use minikalman::regular::*;
@@ -96,15 +103,18 @@ const _: () = {
 };
 
 /// A `static` of the zeroed storage compiles: `new()` is `const`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 static STATIC_STORAGE: tracking::Storage = tracking::new();
 
 /// A deterministic, noisy position fix for step `k` under a constant acceleration of 1 m/s².
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn fix(k: usize) -> f32 {
     let t = k as f32 * DT;
     0.5 * t * t + 0.3 * (k as f32 * 1.7).sin()
 }
 
 /// The scenario with the DSL: one storage, one build, one model, then the loop.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn run_dsl() -> [Track; 3] {
     let mut storage = tracking::new();
     let mut sys = tracking::build(&mut storage);
@@ -139,6 +149,7 @@ fn run_dsl() -> [Track; 3] {
 }
 
 /// The same scenario on the library API without the DSL.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn run_by_hand() -> [Track; 3] {
     use minikalman::models::motion::constant_velocity;
     use minikalman::regular::*;
@@ -207,6 +218,7 @@ fn run_by_hand() -> [Track; 3] {
     ]
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn dsl_matches_hand_wired_filters_bit_for_bit() {
     let dsl = run_dsl();
@@ -224,6 +236,7 @@ fn dsl_matches_hand_wired_filters_bit_for_bit() {
     assert_ne!(dsl[1], dsl[2]);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn build_wires_only_and_model_writes_and_resets() {
     let mut storage = filters::fast::new();
@@ -249,6 +262,7 @@ fn build_wires_only_and_model_writes_and_resets() {
 }
 
 /// `H = [...]` is a whole-matrix assignment: `model()` clears entries outside the selection.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn model_resets_a_selected_observation_matrix() {
     let mut storage = shared::gps::new();
@@ -262,6 +276,7 @@ fn model_resets_a_selected_observation_matrix() {
     assert_eq!(gps.observation_matrix().get_at(0, Track::vel), 0.0);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn a_system_model_writes_every_member() {
     let mut storage = tracking::new();
@@ -287,6 +302,7 @@ fn a_system_model_writes_every_member() {
     assert_eq!(sys.steady.gps.gain().get_at(Track::vel, Gps::pos), 0.8);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn the_static_storage_is_zeroed_and_sized() {
     assert_eq!(core::mem::size_of_val(&STATIC_STORAGE), 77 * 4);
@@ -298,6 +314,7 @@ fn the_static_storage_is_zeroed_and_sized() {
 }
 
 /// Full observations, a settled gain handed to an observer, and every statement form.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 mod full {
     use super::DT;
     use minikalman::models::motion::constant_velocity;
@@ -350,6 +367,7 @@ mod full {
     }
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn a_full_observation_settles_a_gain_for_the_observer() {
     use full::{Gps, Track, design_system, steady};
@@ -407,6 +425,7 @@ fn a_full_observation_settles_a_gain_for_the_observer() {
     assert!(Track::read(observer.observer.state_vector().as_slice()).pos > 1.0);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn a_full_observation_corrects_like_the_hand_wired_one() {
     use full::{Gps, Track, design, gps};
@@ -461,6 +480,7 @@ fn a_full_observation_corrects_like_the_hand_wired_one() {
 }
 
 /// The predictor gain form, and modules named like the `lean` and `predictor` keywords.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 mod predictor_form {
     use super::DT;
 
@@ -480,6 +500,7 @@ mod predictor_form {
     }
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn the_predictor_form_matches_the_hand_wired_observer() {
     use minikalman::regular::{FixedGainObservationStorage, PredictorObserverStorage};

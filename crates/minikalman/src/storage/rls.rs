@@ -24,6 +24,7 @@ pub type BorrowedEstimator<'a, const N: usize, T> = RecursiveLeastSquares<
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::rls::EstimatorStorage;
 ///
@@ -34,6 +35,7 @@ pub type BorrowedEstimator<'a, const N: usize, T> = RecursiveLeastSquares<
 /// let mut rls = storage.build(100.0);
 /// assert!(rls.update(&[1.0, 0.0, 0.0], 2.0).is_applied());
 /// assert!(rls.parameters().get_row(0) > 1.9);
+/// # }
 /// ```
 pub struct EstimatorStorage<const N: usize, T> {
     /// The parameter vector `θ`.

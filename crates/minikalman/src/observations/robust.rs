@@ -431,6 +431,7 @@ mod tests {
     use crate::matrix::MatrixData;
 
     /// Runs [`solve_weight`] on row-major `2×2` `G`, `R` and the innovation `y`, without a gate.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     fn solve(
         g: [f64; 4],
         r: [f64; 4],
@@ -458,6 +459,7 @@ mod tests {
 
     /// The Student-t weight of Piché et al., Algorithm 1, iterated on the full state for the
     /// `2×2` problem `P = G`, `H = I`, written out with explicit inverses.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     fn full_state_weight(g: [f64; 4], r: [f64; 4], y: [f64; 2], dof: f64, rounds: usize) -> f64 {
         let inv = |a: [f64; 4]| {
             let det = a[0] * a[3] - a[1] * a[2];
@@ -519,6 +521,7 @@ mod tests {
 
     /// The iteration settles within a small budget, and a budget of zero applies `w = 1`
     /// without claiming convergence.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     #[test]
     fn converges_within_a_small_budget() {
         let (g, r) = ([2.0, 0.3, 0.3, 1.0], [0.5, 0.1, 0.1, 0.8]);
@@ -537,7 +540,11 @@ mod tests {
     /// `y² = 62500` as `w → 0` and would overflow; the scaled evaluation keeps the weight finite
     /// and close to the `f64` value.
     #[test]
-    #[cfg(feature = "fixed")]
+    // Compares against the `f64` reference, which needs a float backend.
+    #[cfg(all(
+        feature = "fixed",
+        any(feature = "std", feature = "libm", feature = "micromath")
+    ))]
     fn huge_outliers_do_not_overflow_in_fixed_point() {
         use fixed::types::I16F16;
 
@@ -664,6 +671,7 @@ mod tests {
     }
 
     /// A `NaN` prior NIS is rejected before the gate, which it would pass.
+    #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
     #[test]
     fn nan_prior_nis_is_rejected() {
         let (mut s, mut s_inv, mut nis) = ([0.0; 4], [0.0; 4], 0.0);

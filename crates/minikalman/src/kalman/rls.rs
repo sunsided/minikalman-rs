@@ -117,6 +117,7 @@ pub enum CovarianceForm {
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::rls::EstimatorStorage;
 ///
@@ -133,6 +134,7 @@ pub enum CovarianceForm {
 /// let theta = rls.parameters();
 /// assert!((theta.get_row(0) - 2.0).abs() < 1e-3);
 /// assert!((theta.get_row(1) - 1.0).abs() < 1e-3);
+/// # }
 /// ```
 #[allow(non_snake_case)]
 pub struct RecursiveLeastSquares<const N: usize, T, Theta, P, TempF, TempK> {

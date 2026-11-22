@@ -35,6 +35,7 @@ impl<A, X, P, Q, PX, TempP> RegularKalmanBuilder<A, X, P, Q, PX, TempP> {
     ///
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// # use minikalman::*;
     /// use minikalman::regular::RegularKalmanBuilder;
     /// # const NUM_STATES: usize = 3;
@@ -58,6 +59,7 @@ impl<A, X, P, Q, PX, TempP> RegularKalmanBuilder<A, X, P, Q, PX, TempP> {
     ///     gravity_temp_x,
     ///     gravity_temp_P,
     ///  );
+    /// # }
     /// ```
     #[allow(non_snake_case, clippy::too_many_arguments, clippy::new_ret_no_self)]
     pub fn new<const STATES: usize, T>(
@@ -245,6 +247,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// # use minikalman::prelude::*;
     /// use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
     /// # const NUM_STATES: usize = 3;
@@ -310,6 +313,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///     // Update.
     ///     filter.correct(&mut measurement);
     /// }
+    /// # }
     /// ```
     #[doc(alias = "kalman_predict")]
     pub fn predict(&mut self) -> TimeUpdate<'_, Self>
@@ -351,6 +355,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// # use minikalman::prelude::*;
     /// use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
     /// # const NUM_STATES: usize = 3;
@@ -418,6 +423,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///     // Update.
     ///     filter.correct(&mut measurement);
     /// }
+    /// # }
     /// ```
     #[doc(alias = "kalman_predict_tuned")]
     #[doc(alias = "fading_memory")]
@@ -535,6 +541,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// # use minikalman::prelude::*;
     /// use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
     /// # const NUM_STATES: usize = 3;
@@ -600,6 +607,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     ///     // Update.
     ///     filter.correct(&mut measurement);
     /// }
+    /// # }
     /// ```
     pub fn correct<M>(&mut self, measurement: &mut M) -> CorrectionStatus
     where
@@ -677,6 +685,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// the largest observation serves all of them, one correction after the other:
     ///
     /// ```
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::{CorrectionScratch, FilterStorage, LeanObservationStorage};
     ///
@@ -698,6 +707,7 @@ impl<const STATES: usize, T, A, X, P, Q, PX, TempP>
     /// filter.predict();
     /// filter.correct_in(&mut gps, &mut scratch);
     /// filter.correct_in(&mut odometry, &mut scratch); // same scratch, disjoint in time
+    /// # }
     /// ```
     ///
     /// ## Arguments
@@ -1297,7 +1307,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::prelude::{AsMatrix, AsMatrixMut, MatrixMut};

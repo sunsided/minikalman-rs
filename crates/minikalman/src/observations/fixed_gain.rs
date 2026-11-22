@@ -139,6 +139,7 @@ where
     /// ## Example
     /// ```
     /// # #![allow(non_snake_case)]
+    /// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::FixedGainObservation;
     ///
@@ -152,6 +153,7 @@ where
     ///     FixedGainObservation::<2, 1, f32, _, _, _, _, Current>::new(H, z, y, K).with_gate(S_inv);
     /// position.set_innovation_covariance_inverse(&MatrixData::new_array::<1, 1, 1, f32>([1.0 / 0.3053]));
     /// position.set_gate(Some(6.63));
+    /// # }
     /// ```
     #[allow(non_snake_case)]
     pub fn with_gate<SInv>(

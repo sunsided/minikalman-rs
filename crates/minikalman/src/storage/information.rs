@@ -27,6 +27,7 @@ pub type BorrowedInformationFilter<'a, const STATES: usize, T> = InformationFilt
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::information::FilterStorage;
 /// use minikalman::prelude::*;
 /// use minikalman::regular::ObservationStorage;
@@ -41,6 +42,7 @@ pub type BorrowedInformationFilter<'a, const STATES: usize, T> = InformationFilt
 /// measurement.measurement_vector_mut().apply(|z| z[0] = 2.0);
 ///
 /// assert!(filter.fuse(&mut measurement));
+/// # }
 /// ```
 pub struct FilterStorage<const STATES: usize, T> {
     /// `A`, `Y` (in the `P` slot), `ŷ` (in the `x` slot), `Q`, `temp_x` and `temp_P`.

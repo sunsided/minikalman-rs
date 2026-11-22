@@ -3,7 +3,9 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use minikalman::prelude::*;
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use minikalman::unscented::{FilterStorage, ObservationStorage};
 
 minikalman::state! {
@@ -33,12 +35,15 @@ minikalman::state! {
 }
 
 /// Time step, in seconds.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const DELTA_T: f32 = 0.1;
 
 /// Number of sigma points for [`Radar`].
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const NUM_SIGMA: usize = 2 * Radar::N + 1;
 
 /// Maps a radar state to its measurement, with the radar at `(2, 1)`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn observe(s: Radar) -> RadarZ {
     let (dx, dy) = (s.x - 2.0, s.y - 1.0);
     let range = (dx * dx + dy * dy).sqrt();
@@ -51,6 +56,7 @@ fn observe(s: Radar) -> RadarZ {
 
 /// Runs a radar UKF and returns the bits of `x` and `P` at the end; `named` selects the
 /// `state!` helpers or hand-written indices in the closures.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn run_ukf(named: bool) -> Vec<u32> {
     let mut filter_storage = FilterStorage::<{ Radar::N }, NUM_SIGMA, f32>::new(0.0);
     let mut measurement_storage =
@@ -171,6 +177,7 @@ fn short_vectors_panic() {
     let _ = Radar::read(&[0.0; 3]);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn named_ukf_matches_indexed_ukf() {
     assert_eq!(run_ukf(true), run_ukf(false));

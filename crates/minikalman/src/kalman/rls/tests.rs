@@ -1,11 +1,17 @@
 //! Tests that pin the recursive least-squares estimator to batch least squares, to the
 //! regular Kalman filter, and to its forgetting, windup and gating behavior.
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use crate::kalman::CorrectionStatus;
-use crate::matrix::{Matrix, MatrixMut};
-use crate::rls::{CovarianceForm, EstimatorStorage};
+use crate::matrix::Matrix;
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+use crate::matrix::MatrixMut;
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+use crate::rls::CovarianceForm;
+use crate::rls::EstimatorStorage;
 
 /// Both covariance forms, for tests that must hold for each.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const FORMS: [CovarianceForm; 2] = [CovarianceForm::Factored, CovarianceForm::Covariance];
 
 /// A deterministic pseudo-random sequence in `[-1, 1)` (a 64-bit LCG), so the tests need no
@@ -25,6 +31,7 @@ impl Lcg {
 }
 
 /// Generates `K` samples `(φ, y)` of `y = φᵀ·θ + v` with `φ = [x, u, 1]` and `|v| ≤ noise`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn dataset<const K: usize>(theta: [f64; 3], noise: f64, seed: u64) -> [([f64; 3], f64); K] {
     let mut rng = Lcg(seed);
     let mut samples = [([0.0; 3], 0.0); K];
@@ -38,6 +45,7 @@ fn dataset<const K: usize>(theta: [f64; 3], noise: f64, seed: u64) -> [([f64; 3]
 }
 
 /// Solves the 3 × 3 system `m·x = b` by Gaussian elimination with partial pivoting.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn solve3(mut m: [[f64; 3]; 3], mut b: [f64; 3]) -> [f64; 3] {
     for col in 0..3 {
         let pivot = (col..3)
@@ -69,6 +77,7 @@ fn solve3(mut m: [[f64; 3]; 3], mut b: [f64; 3]) -> [f64; 3] {
 }
 
 /// Returns `P` of an estimator as a nested array.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn covariance_of<const N: usize>(rls: &crate::rls::BorrowedEstimator<'_, N, f64>) -> [[f64; N]; N] {
     let mut storage = [[0.0; N]; N];
     rls.covariance(&mut crate::matrix::MatrixData::new_mut::<N, N, f64>(
@@ -79,6 +88,7 @@ fn covariance_of<const N: usize>(rls: &crate::rls::BorrowedEstimator<'_, N, f64>
 
 /// With `μ = 1`, RLS solves the regularized normal equations `(ΦᵀΦ/r + P₀⁻¹)·θ = Φᵀy/r`, and
 /// its `P` is the inverse of the information matrix.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn matches_batch_least_squares() {
@@ -201,6 +211,7 @@ fn equals_regular_kalman_with_identity_dynamics() {
 
 /// Runs `steps` samples of `y = φᵀ·θ` with `φ = [x, u]` and returns the largest parameter
 /// error over the last `tail` samples, for a parameter step from `before` to `after` halfway.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn track_step(mu: f64, form: CovarianceForm, steps: usize, tail: usize) -> f64 {
     let (before, after) = ([0.9, 0.5], [0.7, 0.8]);
     let mut rng = Lcg(3);
@@ -228,6 +239,7 @@ fn track_step(mu: f64, form: CovarianceForm, steps: usize, tail: usize) -> f64 {
 }
 
 /// With `μ < 1`, RLS tracks a step change in the parameters; without forgetting it does not.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn tracks_parameter_step_with_forgetting() {
     for form in FORMS {
@@ -240,6 +252,7 @@ fn tracks_parameter_step_with_forgetting() {
 
 /// Without excitation and without the guard, `P` grows as `μ⁻ᵏ`; with the guard (the default)
 /// its trace stays at most `tr(P₀)`, and the estimate does not move.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn windup_guard_bounds_the_trace_without_excitation() {
     let mu = 0.9;
@@ -282,6 +295,7 @@ fn windup_guard_bounds_the_trace_without_excitation() {
 
 /// With excitation in one direction only, the guard bounds the unexcited variance while the
 /// excited parameter is still identified, if slowly once forgetting has stalled.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn windup_guard_with_partial_excitation() {
     for form in FORMS {
@@ -304,6 +318,7 @@ fn windup_guard_with_partial_excitation() {
 }
 
 /// A gated sample leaves `θ` and `P` bit-identical, forgetting included, and reports its NIS.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn gated_update_leaves_estimate_untouched() {
     for form in FORMS {
@@ -336,6 +351,7 @@ fn gated_update_leaves_estimate_untouched() {
 }
 
 /// A non-positive `r`, or an indefinite `P` that gives `α ≤ 0`, rejects the sample.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn rejects_non_positive_variances() {
     let mut storage = EstimatorStorage::<2, f64>::new(0.0);
@@ -359,6 +375,7 @@ fn rejects_non_positive_variances() {
 }
 
 /// Both forms give the same estimate and covariance; reset restores the prior.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn forms_agree_and_reset_restores_the_prior() {
@@ -404,6 +421,7 @@ fn forms_agree_and_reset_restores_the_prior() {
 
 /// In `f32`, the factored form keeps `D ≥ 0` through a long, poorly excited run with heavy
 /// forgetting, and still identifies the parameters.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn factored_form_stays_definite_in_f32() {
     let mut storage = EstimatorStorage::<3, f32>::new(0.0);
@@ -433,6 +451,7 @@ fn factored_form_stays_definite_in_f32() {
 
 /// From a fixed `p0`, `r` weighs the data against the prior and so changes `θ`, not only `P`:
 /// one sample `φ = 1`, `y = 1` from `p0 = 1` gives `θ = p0/(p0 + r)`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn measurement_variance_weighs_data_against_the_prior() {
     for form in FORMS {

@@ -376,7 +376,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
     use crate::test_dummies::make_dummy_control;

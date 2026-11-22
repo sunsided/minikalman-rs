@@ -248,7 +248,7 @@ where
     (f, df)
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod tests {
     use super::*;
 

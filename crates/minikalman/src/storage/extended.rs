@@ -45,6 +45,7 @@ pub type BorrowedObservation<'a, const STATES: usize, const OBSERVATIONS: usize,
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::extended::{FilterStorage, ObservationStorage};
 /// use minikalman::prelude::*;
 ///
@@ -66,6 +67,7 @@ pub type BorrowedObservation<'a, const STATES: usize, const OBSERVATIONS: usize,
 /// measurement.measurement_vector_mut().apply(|z| z[0] = 1.0);
 /// filter.correct_nonlinear(&mut measurement, |x, z| z[0] = x[0]);
 /// assert!(filter.state_vector().get_row(0) > 0.0);
+/// # }
 /// ```
 pub struct FilterStorage<const STATES: usize, T>(StateBuffers<STATES, T>);
 
@@ -150,6 +152,7 @@ pub type BorrowedLeanObservation<'a, const STATES: usize, const OBSERVATIONS: us
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::extended::{CorrectionScratch, FilterStorage, LeanObservationStorage};
 ///
@@ -172,6 +175,7 @@ pub type BorrowedLeanObservation<'a, const STATES: usize, const OBSERVATIONS: us
 /// measurement.measurement_vector_mut().apply(|z| z[0] = 1.0);
 /// filter.correct_nonlinear_in(&mut measurement, &mut scratch, |x, z| z[0] = x[0]);
 /// assert!(filter.state_vector().get_row(0) > 0.0);
+/// # }
 /// ```
 pub struct LeanObservationStorage<const STATES: usize, const OBSERVATIONS: usize, T>(
     LeanObservationBuffers<STATES, OBSERVATIONS, T>,

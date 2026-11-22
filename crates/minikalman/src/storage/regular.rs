@@ -78,6 +78,7 @@ pub type BorrowedControl<'a, const STATES: usize, const CONTROLS: usize, T> = Co
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::{FilterStorage, ObservationStorage};
 ///
@@ -96,6 +97,7 @@ pub type BorrowedControl<'a, const STATES: usize, const CONTROLS: usize, T> = Co
 /// measurement.measurement_vector_mut().apply(|z| z[0] = 1.0);
 /// filter.correct(&mut measurement);
 /// assert!(filter.state_vector().get_row(0) > 0.0);
+/// # }
 /// ```
 pub struct FilterStorage<const STATES: usize, T>(StateBuffers<STATES, T>);
 
@@ -123,6 +125,7 @@ impl<const STATES: usize, T: MatrixDataType> FilterStorage<STATES, T> {
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::ObservationStorage;
 ///
@@ -130,6 +133,7 @@ impl<const STATES: usize, T: MatrixDataType> FilterStorage<STATES, T> {
 /// let mut measurement = storage.build();
 /// measurement.measurement_vector_mut().apply(|z| z[0] = 2.0);
 /// assert_eq!(measurement.measurement_vector().get_row(0), 2.0);
+/// # }
 /// ```
 pub struct ObservationStorage<const STATES: usize, const OBSERVATIONS: usize, T>(
     ObservationBuffers<STATES, OBSERVATIONS, T>,
@@ -191,6 +195,7 @@ pub type BorrowedLeanObservation<'a, const STATES: usize, const OBSERVATIONS: us
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::{CorrectionScratch, FilterStorage, LeanObservationStorage};
 ///
@@ -210,6 +215,7 @@ pub type BorrowedLeanObservation<'a, const STATES: usize, const OBSERVATIONS: us
 /// measurement.measurement_vector_mut().apply(|z| z[0] = 1.0);
 /// filter.correct_in(&mut measurement, &mut scratch);
 /// assert!(filter.state_vector().get_row(0) > 0.0);
+/// # }
 /// ```
 pub struct LeanObservationStorage<const STATES: usize, const OBSERVATIONS: usize, T>(
     LeanObservationBuffers<STATES, OBSERVATIONS, T>,
@@ -242,6 +248,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType>
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::regular::ControlStorage;
 ///
@@ -249,6 +256,7 @@ impl<const STATES: usize, const OBSERVATIONS: usize, T: MatrixDataType>
 /// let mut control = storage.build();
 /// control.control_vector_mut().apply(|u| u[0] = 1.0);
 /// assert_eq!(control.control_vector().get_row(0), 1.0);
+/// # }
 /// ```
 #[allow(non_snake_case)]
 pub struct ControlStorage<const STATES: usize, const CONTROLS: usize, T> {

@@ -23,11 +23,13 @@ pub type BorrowedRtsSmoother<'a, const STATES: usize, T> = RtsSmoother<
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::smoother::RtsSmootherStorage;
 ///
 /// let mut storage = RtsSmootherStorage::<2, f32>::new(0.0);
 /// let smoother = storage.build();
 /// # let _ = smoother;
+/// # }
 /// ```
 pub struct RtsSmootherStorage<const STATES: usize, T> {
     /// The smoother gain.

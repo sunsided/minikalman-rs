@@ -92,6 +92,7 @@ pub type BorrowedObservation<
 /// ## Example
 ///
 /// ```
+/// # #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))] {
 /// use minikalman::prelude::*;
 /// use minikalman::unscented::{FilterStorage, ObservationStorage};
 ///
@@ -116,6 +117,7 @@ pub type BorrowedObservation<
 ///     }
 /// });
 /// assert!(filter.state_vector().get_row(0) > 0.0);
+/// # }
 /// ```
 #[allow(non_snake_case)]
 pub struct FilterStorage<const STATES: usize, const NUM_SIGMA: usize, T> {

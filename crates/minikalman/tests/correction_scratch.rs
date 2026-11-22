@@ -8,23 +8,29 @@
 #![forbid(unsafe_code)]
 #![allow(non_snake_case)]
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use core::mem::size_of;
 
 use minikalman::prelude::*;
 
 /// Time step of the radar example, in seconds.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const DELTA_T: f32 = 0.1;
 
 /// Radar position in the global frame, in meters.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const RX: f32 = 2.0;
 
 /// Radar position in the global frame, in meters.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const RY: f32 = 1.0;
 
 /// The bit patterns of `x`, `P`, `K`, `y`, the NIS and the status after every correction.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 type Trace = Vec<Vec<u32>>;
 
 /// Appends the bit patterns of one correction's results to a trace.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn record(trace: &mut Trace, parts: &[&[f32]], nis: f32, status: CorrectionStatus) {
     let mut row: Vec<u32> = parts
         .iter()
@@ -38,6 +44,7 @@ fn record(trace: &mut Trace, parts: &[&[f32]], nis: f32, status: CorrectionStatu
 
 /// A noise-free radar measurement of an object moving diagonally at 1 m/s: range, bearing and
 /// range rate at `time`, plus a large outlier on every fifth measurement for the gate.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn radar_measurement(step: usize) -> [f32; 3] {
     let time = step as f32 * DELTA_T;
     let range = ((time - RX).powi(2) + (time - RY).powi(2)).sqrt();
@@ -48,6 +55,7 @@ fn radar_measurement(step: usize) -> [f32; 3] {
 }
 
 /// Maps a radar state `[x, y, vx, vy]` to range, bearing and range rate.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn radar_observe(x: f32, y: f32, vx: f32, vy: f32) -> [f32; 3] {
     let (dx, dy) = (x - RX, y - RY);
     let range = (dx * dx + dy * dy).sqrt();
@@ -56,6 +64,7 @@ fn radar_observe(x: f32, y: f32, vx: f32, vy: f32) -> [f32; 3] {
 
 /// Runs the radar EKF of `examples/radar_2d.rs` with the given observation settings and
 /// correction, and returns the trace of every correction.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 macro_rules! run_radar {
     ($filter:ident, $measurement:ident, $update:expr, $adapt:expr,
      |$f:ident, $m:ident| $correct:expr) => {{
@@ -132,17 +141,20 @@ macro_rules! run_radar {
 }
 
 /// The radar observation function, writing range, bearing and range rate into `z`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn observe(x: &[f32], z: &mut [f32]) {
     z.copy_from_slice(&radar_observe(x[0], x[1], x[2], x[3]));
 }
 
 /// Wraps the bearing of a radar innovation into `[-π, π]`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn wrap(y: &mut [f32]) {
     y[1] = minikalman::angles::wrap_pi(y[1]);
 }
 
 /// Runs the radar EKF with an owning observation and with a lean one on a fresh NaN-filled
 /// scratch per call, and asserts both traces are bit-identical.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn assert_radar_matches(update: CovarianceUpdate, adapt: Option<NoiseAdaptation<f32>>) {
     let mut filter_storage = minikalman::extended::FilterStorage::<4, f32>::new(0.0);
     let mut owning_storage = minikalman::extended::ObservationStorage::<4, 3, f32>::new(0.0);
@@ -171,16 +183,19 @@ fn assert_radar_matches(update: CovarianceUpdate, adapt: Option<NoiseAdaptation<
     assert!(gated > 0, "the outliers must exercise the gate");
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn lean_radar_ekf_matches_the_owning_observation_joseph() {
     assert_radar_matches(CovarianceUpdate::Joseph, None);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn lean_radar_ekf_matches_the_owning_observation_standard() {
     assert_radar_matches(CovarianceUpdate::Standard, None);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn lean_radar_ekf_matches_the_owning_observation_with_noise_adaptation() {
     assert_radar_matches(
@@ -192,6 +207,7 @@ fn lean_radar_ekf_matches_the_owning_observation_with_noise_adaptation() {
     );
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn owning_observation_also_corrects_in_a_scratch() {
     let mut filter_storage = minikalman::extended::FilterStorage::<4, f32>::new(0.0);
@@ -217,6 +233,7 @@ fn owning_observation_also_corrects_in_a_scratch() {
 
 /// Runs a 1-D constant-velocity tracker corrected by a position-and-velocity sensor and a
 /// position-only sensor in turn, and returns the trace of every correction.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 macro_rules! run_two_sensors {
     ($filter:ident, $both:ident, $position:ident, |$f:ident, $m:ident| $correct:expr) => {{
         $filter.state_transition_mut().apply(|a| {
@@ -284,6 +301,7 @@ macro_rules! run_two_sensors {
     }};
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn one_scratch_serves_regular_observations_of_different_sizes() {
     use minikalman::regular::{
@@ -310,6 +328,7 @@ fn one_scratch_serves_regular_observations_of_different_sizes() {
     assert_eq!(actual, expected);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn regular_observation_corrects_with_a_fix_in_a_scratch() {
     use minikalman::regular::{CorrectionScratch, FilterStorage, LeanObservationStorage};
@@ -338,6 +357,7 @@ fn regular_observation_corrects_with_a_fix_in_a_scratch() {
     assert_eq!(compass.innovation_vector().get_row(0), 2.0);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn builders_wire_lean_observations_from_macro_buffers() {
     use minikalman::extended::ExtendedObservationBuilder;
@@ -459,6 +479,7 @@ fn lean_fixed_point_observation_matches_the_owning_one() {
     assert_eq!(actual, expected);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn lean_radar_observation_saves_the_scratch() {
     use minikalman::extended::{CorrectionScratch, LeanObservationStorage, ObservationStorage};

@@ -1,6 +1,8 @@
 //! Tests of the `filter!` placement modes: `storage = owned | boxed` against `inline`, and
 //! `extern` buffers that the filter reads and writes in place.
 
+#![cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+
 use minikalman::prelude::*;
 
 /// Time step, in seconds.

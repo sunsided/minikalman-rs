@@ -6,46 +6,58 @@
 #![forbid(unsafe_code)]
 #![allow(non_snake_case)]
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use core::mem::{size_of, size_of_val};
 
 use minikalman::prelude::*;
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use minikalman::regular::{RegularKalmanBuilder, RegularObservationBuilder};
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use minikalman::unscented::{UnscentedKalman, UnscentedObservation};
 
 /// Observed distances of a falling object, as in the gravity example.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const REAL_DISTANCE: [f32; 15] = [
     0.0, 4.905, 19.62, 44.145, 78.48, 122.63, 176.58, 240.35, 313.92, 397.31, 490.5, 593.51,
     706.32, 828.94, 961.38,
 ];
 
 /// Observation noise of the gravity example.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const OBSERVATION_ERROR: [f32; 15] = [
     0.13442, 0.45847, -0.56471, 0.21554, 0.079691, -0.32692, -0.1084, 0.085656, 0.8946, 0.69236,
     -0.33747, 0.75873, 0.18135, -0.015764, 0.17869,
 ];
 
 /// Time step of the radar examples, in seconds.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const DELTA_T: f32 = 0.1;
 
 /// Radar position in the global frame, in meters.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const RX: f32 = 2.0;
 
 /// Radar position in the global frame, in meters.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const RY: f32 = 1.0;
 
 /// Number of radar sigma points.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 const NUM_SIGMA: usize = 9;
 
 /// The bit patterns of `x` and `P` after every step of a run.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 type Trace = Vec<Vec<u32>>;
 
 /// Appends the bit patterns of a filter's `x` and `P` to a trace.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn record(trace: &mut Trace, x: &[f32], p: &[f32]) {
     trace.push(x.iter().chain(p).map(|v| v.to_bits()).collect());
 }
 
 /// A noise-free radar measurement of an object moving diagonally at 1 m/s: range, bearing and
 /// range rate at `time`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn radar_measurement(time: f32) -> [f32; 3] {
     let range = ((time - RX).powi(2) + (time - RY).powi(2)).sqrt();
     let bearing = (time - RY).atan2(time - RX);
@@ -54,6 +66,7 @@ fn radar_measurement(time: f32) -> [f32; 3] {
 }
 
 /// Maps a radar state `[x, y, vx, vy]` to range, bearing and range rate.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 fn radar_observe(x: f32, y: f32, vx: f32, vy: f32) -> [f32; 3] {
     let (dx, dy) = (x - RX, y - RY);
     let range = (dx * dx + dy * dy).sqrt();
@@ -61,6 +74,7 @@ fn radar_observe(x: f32, y: f32, vx: f32, vy: f32) -> [f32; 3] {
 }
 
 /// Runs the gravity example on a regular filter and its observation and returns the trace.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 macro_rules! run_gravity {
     ($filter:ident, $measurement:ident) => {{
         $filter.state_vector_mut().apply(|x| x[2] = 6.0);
@@ -101,6 +115,7 @@ macro_rules! run_gravity {
 }
 
 /// Runs the radar example on an extended filter and its observation and returns the trace.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 macro_rules! run_radar_ekf {
     ($filter:ident, $measurement:ident) => {{
         $filter.state_vector_mut().apply(|x| {
@@ -169,6 +184,7 @@ macro_rules! run_radar_ekf {
 }
 
 /// Runs the radar example on an unscented filter and its observation and returns the trace.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 macro_rules! run_radar_ukf {
     ($filter:ident, $measurement:ident) => {{
         $filter.state_vector_mut().apply(|x| {
@@ -223,6 +239,7 @@ macro_rules! run_radar_ukf {
     }};
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn regular_storage_matches_the_macros_on_gravity() {
     let mut filter_storage = minikalman::regular::FilterStorage::<3, f32>::new(0.0);
@@ -258,6 +275,7 @@ fn regular_storage_matches_the_macros_on_gravity() {
     assert!(g > 9.0 && g < 10.0, "g = {g}");
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[cfg(feature = "alloc")]
 fn regular_storage_with_control_matches_the_builder() {
@@ -303,6 +321,7 @@ fn regular_storage_with_control_matches_the_builder() {
     assert_eq!(f32::from_bits(from_storage[4][1]), 10.0);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[cfg(feature = "alloc")]
 fn extended_storage_matches_the_builder_on_radar() {
@@ -322,6 +341,7 @@ fn extended_storage_matches_the_builder_on_radar() {
     assert_eq!(from_storage, from_builder);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn unscented_storage_matches_the_macros_on_radar() {
     let mut filter_storage = minikalman::unscented::FilterStorage::<4, NUM_SIGMA, f32>::new(0.0);
@@ -378,6 +398,7 @@ fn unscented_storage_matches_the_macros_on_radar() {
     assert_eq!(from_storage, from_macros);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[cfg(feature = "alloc")]
 fn information_storage_matches_the_builder() {
@@ -431,6 +452,7 @@ fn information_storage_matches_the_builder() {
     assert_eq!(from_storage, from_builder);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn smoother_storage_matches_separate_buffers() {
     use minikalman::smoother::{RtsSmoother, RtsSmootherStorage};
@@ -480,6 +502,7 @@ fn smoother_storage_matches_separate_buffers() {
     assert_eq!(from_storage, from_separate);
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn storage_sizes_equal_the_macro_buffers() {
     impl_buffer_x!(x, 4, f32, 0.0);
@@ -585,6 +608,7 @@ fn storage_sizes_equal_the_macro_buffers() {
     );
 }
 
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 fn storage_can_live_in_a_static() {
     /// A filter storage placed in `.bss` by a const initializer.
