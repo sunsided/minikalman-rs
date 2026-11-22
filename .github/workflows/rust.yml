@@ -9,6 +9,7 @@ on:
       - 'Cargo.lock'
       - 'crates/**'
       - 'README.md'
+      - 'LICENSE-*'
       - 'xbuild-tests/**'
       - '.github/workflows/rust.yml'
   pull_request:
@@ -18,6 +19,7 @@ on:
       - 'Cargo.lock'
       - 'crates/**'
       - 'README.md'
+      - 'LICENSE-*'
       - 'xbuild-tests/**'
       - '.github/workflows/rust.yml'
 
@@ -35,6 +37,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The package ships copies of the root license texts; keep them identical.
+      - name: Check license copies
+        run: |
+          cmp LICENSE-MIT crates/minikalman/LICENSE-MIT
+          cmp LICENSE-APACHE crates/minikalman/LICENSE-APACHE
       - name: Check format
         run: cargo fmt --check
       - name: Clippy
