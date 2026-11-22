@@ -337,7 +337,7 @@
 //! `O(n³)` work, once per sample and per candidate model.
 //! [`RegularKalman::predict_companion`](regular::RegularKalman::predict_companion) takes that
 //! column and predicts in `O(n²)`, bit for bit the same as
-//! [`predict`](regular::RegularKalman::predict) with the dense matrix (for finite values; its
+//! [`predict`](regular::RegularKalman::predict) with the dense matrix (when nothing overflows; its
 //! docs list the caveats and give the mapping from `(φ, θ, σ²)` to `A`, `Q`, `H` and `R`).
 //!
 //! ## `no_std` Example

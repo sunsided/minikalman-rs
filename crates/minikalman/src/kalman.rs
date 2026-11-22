@@ -70,15 +70,18 @@ pub(crate) fn predict_companion_state<const STATES: usize, T>(
 /// Predicts the estimate covariance, `P = A×P×Aᵀ + Q`, in `O(n²)` and in place for the
 /// companion transition `A` whose first column is `phi` and whose superdiagonal is one.
 ///
-/// With `M = A×P`, row `i` of `M` is `φᵢ·P₀ + Pᵢ₊₁` (row `0` of `P` scaled, plus the next row),
-/// and `C = M×Aᵀ` has `Cᵢⱼ = Mᵢ₀·φⱼ + Mᵢ,ⱼ₊₁`. Only the lower triangle of `C` is computed and
+/// With `M = A×P`, row `i` of `M` is `φᵢ·P₀ + Pᵢ₊₁` (row `0` of `P` scaled, plus the next row;
+/// the last row has no `Pᵢ₊₁` term), and `C = M×Aᵀ` has `Cᵢⱼ = Mᵢ₀·φⱼ + Mᵢ,ⱼ₊₁` (no
+/// `Mᵢ,ⱼ₊₁` term in the last column). Only the lower triangle of `C` is computed and
 /// mirrored, as in [`predict_covariance`], one row `i` at a time: row `i` reads only row `i + 1`
 /// of `P`, which no earlier row has written, and row `0`, which is copied first.
 ///
-/// Every sum adds the same non-zero terms in the same order, from `+0`, as the dense
+/// Every sum adds the same non-zero terms in the same order as the dense
 /// `mult` / `mult_symmetric_transb` pair with `A` stored densely; the terms that pair adds on
-/// top are `0·Pₖⱼ`, which leave a sum started from `+0` unchanged. The result is therefore
-/// the same bit for bit as long as nothing overflows (the dense path turns `0·∞` into NaN).
+/// top are `0·Pₖⱼ`, which do not change a non-zero sum. (Where an entry of `A×P` sums to zero,
+/// the two paths can differ in the sign of that zero, which the second product and the `Q`
+/// addition remove.) The result is therefore the same bit for bit as long as nothing overflows
+/// (the dense path turns `0·∞` into NaN).
 ///
 /// Scratch: one copy of row `0` of `P` on the stack, `STATES` elements.
 #[allow(non_snake_case)]
