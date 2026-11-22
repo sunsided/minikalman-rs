@@ -330,6 +330,16 @@
 //! The ARMA(1, 1) test in `tests/log_likelihood.rs` fits `(φ, θ)` this way, with the
 //! state-space form `sₖ = [yₖ, θ·eₖ]`.
 //!
+//! ### ARMA and Other Companion Models
+//!
+//! In Harvey's state-space form of an ARMA(p, q) model the transition is a shift plus one dense
+//! column (a companion matrix), so the dense `A·P·Aᵀ` of every prediction wastes most of its
+//! `O(n³)` work, once per sample and per candidate model.
+//! [`RegularKalman::predict_companion`](regular::RegularKalman::predict_companion) takes that
+//! column and predicts in `O(n²)`, bit for bit the same as
+//! [`predict`](regular::RegularKalman::predict) with the dense matrix (for finite values; its
+//! docs list the caveats and give the mapping from `(φ, θ, σ²)` to `A`, `Q`, `H` and `R`).
+//!
 //! ## `no_std` Example
 //!
 //! Systems without the liberty of heap allocation can use the storage types:

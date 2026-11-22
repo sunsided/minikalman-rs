@@ -2,8 +2,11 @@
 
 /// A time update in progress: the prediction has run, and control inputs may follow.
 ///
-/// [`RegularKalman::predict`](crate::regular::RegularKalman::predict) and
-/// [`predict_tuned`](crate::regular::RegularKalman::predict_tuned) return this handle. It
+/// [`RegularKalman::predict`](crate::regular::RegularKalman::predict),
+/// [`predict_tuned`](crate::regular::RegularKalman::predict_tuned) and their companion
+/// variants ([`predict_companion`](crate::regular::RegularKalman::predict_companion),
+/// [`predict_companion_tuned`](crate::regular::RegularKalman::predict_companion_tuned)) return
+/// this handle. It
 /// borrows the filter mutably, so the borrow checker only lets controls in between the
 /// prediction and the first correction:
 ///
