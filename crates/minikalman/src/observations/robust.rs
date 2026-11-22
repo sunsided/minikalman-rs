@@ -46,6 +46,9 @@ use crate::observations::CovarianceUpdate;
 use crate::observations::innovation_factor::{is_number, prior_nis};
 use crate::observations::predictively_oriented::vector::machine_epsilon;
 
+#[cfg(test)]
+mod glue_reference;
+
 /// The relative change of the weight below which the iteration counts as converged.
 const RELATIVE_TOLERANCE: f64 = 1e-6;
 
@@ -212,10 +215,16 @@ fn student_t_weight<const M: usize, T>(
 where
     T: MatrixDataType,
 {
-    let s = (0..M).map(|j| abs(y.get(j, 0))).fold(T::one(), max);
+    // Slices of the static length, so that the loops need no bounds checks.
+    let y = &y.as_slice()[..M];
+    let s_inv = &S_inv.as_slice()[..M * M];
+    let r = &R.as_slice()[..M * M];
+    let g = &G.as_slice()[..M * M];
+
+    let s = y.iter().map(|&v| abs(v)).fold(T::one(), max);
     let mut b = [T::zero(); M];
-    for (i, value) in b.iter_mut().enumerate() {
-        *value = (0..M).map(|j| S_inv.get(i, j) * (y.get(j, 0) / s)).sum();
+    for (value, s_inv_row) in b.iter_mut().zip(s_inv.chunks_exact(M)) {
+        *value = (0..M).map(|j| s_inv_row[j] * (y[j] / s)).sum();
     }
 
     let t = b.iter().map(|&v| abs(v)).fold(T::one(), max);
@@ -227,8 +236,8 @@ where
     let mut trace = T::zero();
     for i in 0..M {
         for j in 0..M {
-            quadratic += b[i] * R.get(i, j) * b[j];
-            trace += G.get(i, j) * S_inv.get(j, i);
+            quadratic += b[i] * r[i * M + j] * b[j];
+            trace += g[i * M + j] * s_inv[j * M + i];
         }
     }
 
@@ -253,10 +262,8 @@ pub(crate) fn scale<const R: usize, const C: usize, T>(A: &mut impl MatrixMut<R,
 where
     T: MatrixDataType,
 {
-    for i in 0..R {
-        for j in 0..C {
-            A.set(i, j, A.get(i, j) * factor);
-        }
+    for value in &mut A.as_mut_slice()[..R * C] {
+        *value = *value * factor;
     }
 }
 
@@ -364,10 +371,11 @@ fn write_scaled_covariance<const M: usize, T>(
 ) where
     T: MatrixDataType,
 {
-    for i in 0..M {
-        for j in 0..M {
-            S.set(i, j, w * G.get(i, j) + R.get(i, j));
-        }
+    // Slices of the static length, so that the loop needs no bounds checks.
+    let g = &G.as_slice()[..M * M];
+    let r = &R.as_slice()[..M * M];
+    for ((s, &g), &r) in S.as_mut_slice()[..M * M].iter_mut().zip(g).zip(r) {
+        *s = w * g + r;
     }
 }
 
@@ -380,10 +388,12 @@ fn subtract_scaled_with_transpose<const STATES: usize, T>(
 ) where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let p = &mut P.as_mut_slice()[..STATES * STATES];
+    let a = &A.as_slice()[..STATES * STATES];
     for i in 0..STATES {
         for j in 0..STATES {
-            let value = P.get(i, j) - w * (A.get(i, j) + A.get(j, i));
-            P.set(i, j, value);
+            p[i * STATES + j] -= w * (a[i * STATES + j] + a[j * STATES + i]);
         }
     }
 }
@@ -399,12 +409,18 @@ fn add_scaled_lower_product_mirrored<const STATES: usize, const OBSERVATIONS: us
 ) where
     T: MatrixDataType,
 {
+    // Slices of the static length, so that the loops need no bounds checks.
+    let p = &mut P.as_mut_slice()[..STATES * STATES];
+    let a = &A.as_slice()[..STATES * OBSERVATIONS];
+    let b = &B.as_slice()[..STATES * OBSERVATIONS];
     for i in 0..STATES {
+        let a_row = &a[i * OBSERVATIONS..(i + 1) * OBSERVATIONS];
         for j in 0..=i {
-            let product: T = (0..OBSERVATIONS).map(|l| A.get(i, l) * B.get(j, l)).sum();
-            let value = P.get(i, j) + w * product;
-            P.set(i, j, value);
-            P.set(j, i, value);
+            let b_row = &b[j * OBSERVATIONS..(j + 1) * OBSERVATIONS];
+            let product: T = (0..OBSERVATIONS).map(|l| a_row[l] * b_row[l]).sum();
+            let value = p[i * STATES + j] + w * product;
+            p[i * STATES + j] = value;
+            p[j * STATES + i] = value;
         }
     }
 }

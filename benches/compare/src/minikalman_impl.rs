@@ -84,9 +84,10 @@ macro_rules! regular_common {
 /// Writes `z` into an observation's measurement vector.
 macro_rules! set_z {
     ($o:expr, $z:expr, $M:expr) => {{
-        let zv = $o.measurement_vector_mut();
-        for i in 0..$M {
-            zv.set(i, 0, $z[i]);
+        // Through the slice, as the predict callbacks do: no bounds check per entry.
+        let zv = &mut $o.measurement_vector_mut().as_mut_slice()[..$M];
+        for (zv, &z) in zv.iter_mut().zip($z) {
+            *zv = z;
         }
     }};
 }
@@ -383,17 +384,11 @@ impl<T: Real> Filter for Extended<T> {
     fn correct(&mut self, z: &[T]) {
         set_z!(self.o, z, 2);
         let j = radar_jacobian(self.f.state_vector().as_slice());
-        self.o.observation_jacobian_matrix_mut().apply(|h| {
-            for i in 0..2 {
-                for k in 0..4 {
-                    h.set(i, k, j[i * 4 + k]);
-                }
-            }
-        });
+        self.o
+            .observation_jacobian_matrix_mut()
+            .apply(|h| h.as_mut_slice()[..8].copy_from_slice(&j));
         let status = self.f.correct_nonlinear(&mut self.o, |x, obs| {
-            let h = radar_h(x.as_slice());
-            obs.set(0, 0, h[0]);
-            obs.set(1, 0, h[1]);
+            obs.as_mut_slice()[..2].copy_from_slice(&radar_h(x.as_slice()));
         });
         assert!(status.is_applied());
     }
