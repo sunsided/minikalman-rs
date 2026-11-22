@@ -21,7 +21,7 @@
 //! gain entry and one for the NIS) so that `K = P×Hᵀ/s` is correctly rounded.
 
 use crate::matrix::triangular::{Transpose, Triangle, substitute};
-use crate::matrix::{Matrix, MatrixDataType, MatrixMut};
+use crate::matrix::{Logarithm, Matrix, MatrixDataMut, MatrixDataType, MatrixMut};
 
 /// The largest number of measurements whose innovation covariance is factored square-root free
 /// ([`LdlFactor`]) for types with [`MatrixDataType::SQUARE_ROOT_FREE_GAIN`]; larger ones, and
@@ -103,6 +103,27 @@ where
         }
     }
 
+    /// Returns `ln det S` from the pivots: `Σ ln Dᵢ` or `2·Σ ln Lᵢᵢ`.
+    ///
+    /// A sum of logarithms rather than the logarithm of the product, so that `det S` itself
+    /// never has to fit `T`.
+    fn log_determinant(&self) -> T
+    where
+        T: Logarithm,
+    {
+        match self {
+            Self::SquareRootFree(factor) => {
+                (0..OBSERVATIONS).map(|i| factor.d[i].logarithm()).sum()
+            }
+            Self::Cholesky(factor) => {
+                let sum = (0..OBSERVATIONS)
+                    .map(|i| factor.l[i * OBSERVATIONS + i].logarithm())
+                    .sum::<T>();
+                sum + sum
+            }
+        }
+    }
+
     /// Replaces the row `b` (length `OBSERVATIONS`) by `S⁻¹×b`.
     #[inline]
     pub(crate) fn solve_row(&self, b: &mut [T]) {
@@ -110,6 +131,28 @@ where
             Self::SquareRootFree(factor) => factor.solve_row(b),
             Self::Cholesky(factor) => factor.solve_row(b),
         }
+    }
+}
+
+/// Returns `ln det S` of the symmetric `S`, or `NaN` if `S` is not positive definite.
+///
+/// Factors a copy of `S` on the stack exactly as the gain does ([`InnovationFactor::new`]), so
+/// it accepts and rejects the same `S` and reads the same pivots. Nothing is kept from the
+/// correction: the corrections pay nothing for this, and each call factors anew.
+#[allow(non_snake_case)]
+pub(crate) fn log_determinant<const OBSERVATIONS: usize, T>(
+    S: &impl Matrix<OBSERVATIONS, OBSERVATIONS, T>,
+) -> T
+where
+    T: Logarithm,
+{
+    let mut scratch = [[T::zero(); OBSERVATIONS]; OBSERVATIONS];
+    let mut scratch =
+        MatrixDataMut::<OBSERVATIONS, OBSERVATIONS, T>::from(scratch.as_flattened_mut());
+    match InnovationFactor::new(S, &mut scratch) {
+        Some(factor) => factor.log_determinant(),
+        // 0/0: T is a floating-point type here.
+        None => T::zero() / T::zero(),
     }
 }
 

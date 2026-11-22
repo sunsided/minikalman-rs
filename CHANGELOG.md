@@ -19,6 +19,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   its NIS (with a hold-off after a rejection) and an external heading. It compares the gate with
   a ±10 % `|a|` window on a simulated rotation sequence with known truth and checks the attitude
   error, NEES and NIS. The "Filtering on manifolds" recipe and the README link to it ([#184]).
+- Added `log_det_innovation_covariance()` and `log_likelihood()` to the regular and extended
+  observations: `ln det S` and the Gaussian log-likelihood
+  `ℓ = −½·(m·ln 2π + ln det S + yᵀ·S⁻¹·y)` of the last correction, for maximum-likelihood
+  fitting (e.g. ARMA models via the prediction-error decomposition). Both are computed on
+  request from the `S` the observation keeps, factored as the gain does, so corrections cost
+  exactly what they did. Float-only (`f32`/`f64` with a float backend), through the new
+  `Logarithm` trait. The crate docs gained a "Likelihood of a Model" section ([#194]).
 - Added the `augmented-state` example: joint (augmented-state) estimation of a motor plant's
   `(a, b)` with an EKF and a UKF on `[x, a, b]`, on the same run as the dual `rls-adaptive`
   example, with a comparison table, a sweep of the parameter process noise and
@@ -501,6 +508,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#181]: https://github.com/sunsided/minikalman-rs/issues/181
 [#184]: https://github.com/sunsided/minikalman-rs/issues/184
 [#187]: https://github.com/sunsided/minikalman-rs/issues/187
+[#194]: https://github.com/sunsided/minikalman-rs/issues/194
 [#180]: https://github.com/sunsided/minikalman-rs/issues/180
 [#179]: https://github.com/sunsided/minikalman-rs/issues/179
 [#174]: https://github.com/sunsided/minikalman-rs/issues/174

@@ -54,6 +54,17 @@ pub trait MatrixDataType: MatrixDataTypeBase {
     }
 }
 
+/// The natural logarithm, for the log-likelihood getters of the observations, such as
+/// [`RegularObservation::log_likelihood`](crate::regular::RegularObservation::log_likelihood).
+///
+/// Implemented for `f32` and `f64` with a float backend (`std`, `libm` or `micromath`). The
+/// fixed-point types have none, so the getters do not exist for them: the log-likelihood is
+/// a floating-point feature, checked at compile time.
+pub trait Logarithm: MatrixDataType {
+    /// Calculates the natural logarithm `ln(self)`.
+    fn logarithm(self) -> Self;
+}
+
 /// Auto-implementation of [`MatrixDataTypeBase`].
 impl<T> MatrixDataTypeBase for T where
     T: Add<T, Output = T>
@@ -204,6 +215,44 @@ impl MatrixDataType for f64 {
         #[cfg(all(feature = "micromath", not(any(feature = "std", feature = "libm"))))]
         {
             micromath::F32Ext::sqrt(self as f32) as f64
+        }
+    }
+}
+
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+impl Logarithm for f32 {
+    /// Calculates the natural logarithm; approximate with `micromath`.
+    fn logarithm(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.ln()
+        }
+        #[cfg(all(feature = "libm", not(feature = "std")))]
+        {
+            libm::logf(self)
+        }
+        #[cfg(all(feature = "micromath", not(any(feature = "std", feature = "libm"))))]
+        {
+            micromath::F32Ext::ln(self)
+        }
+    }
+}
+
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+impl Logarithm for f64 {
+    /// Calculates the natural logarithm; with `micromath` in `f32`, and approximate.
+    fn logarithm(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.ln()
+        }
+        #[cfg(all(feature = "libm", not(feature = "std")))]
+        {
+            libm::log(self)
+        }
+        #[cfg(all(feature = "micromath", not(any(feature = "std", feature = "libm"))))]
+        {
+            micromath::F32Ext::ln(self as f32) as f64
         }
     }
 }

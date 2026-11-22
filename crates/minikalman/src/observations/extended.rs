@@ -348,6 +348,76 @@ impl<
         self.nis
     }
 
+    /// Returns `ln det S`, the log-determinant of the innovation covariance
+    /// `S = H×P⁻×Hᵀ + R` the observation holds, or
+    /// `NaN` if that `S` is not positive definite.
+    ///
+    /// The value is computed on each call, by factoring a copy of `S` on the stack exactly as
+    /// the correction does (`L×D×Lᵀ` or Cholesky) and summing the logarithms of the pivots, so
+    /// `det S` itself never has to fit `T`. That costs `OBSERVATIONS` logarithms and, for more
+    /// than one measurement, a small factorization per call; the corrections themselves pay
+    /// nothing for it.
+    ///
+    /// Only for `f32` and `f64` with a float backend (see [`Logarithm`](crate::matrix::Logarithm));
+    /// the fixed-point types do not have this method. With `micromath`, the logarithm is
+    /// approximate.
+    #[inline]
+    pub fn log_det_innovation_covariance(&self) -> T
+    where
+        T: crate::matrix::Logarithm,
+        S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    {
+        crate::observations::innovation_factor::log_determinant(self.S.as_matrix())
+    }
+
+    /// Returns the Gaussian log-likelihood of the innovation of the last correction,
+    /// `ℓ = −½·(m·ln 2π + ln det S + yᵀ×S⁻¹×y)` with `m = OBSERVATIONS`, from
+    /// [`log_det_innovation_covariance`](Self::log_det_innovation_covariance) and the
+    /// [NIS](Self::nis).
+    ///
+    /// Summed over a run, `Σ ℓₖ` is the log-likelihood of all measurements under the model
+    /// (the prediction-error decomposition). Maximizing it over model parameters, such as the
+    /// coefficients of an ARMA model or the noise covariances, is maximum-likelihood
+    /// estimation; see [Likelihood of a model](crate#likelihood-of-a-model). Comparing models
+    /// only needs differences, so the constant `m·ln 2π` drops out there; it is included so
+    /// that `ℓ` is the actual log-density `ln N(y; 0, S)`.
+    ///
+    /// After [`correct_nonlinear`](crate::extended::ExtendedKalman::correct_nonlinear) and its
+    /// `_with`, `_in` (lean) and
+    /// [`correct_nonlinear_robust`](crate::extended::ExtendedKalman::correct_nonlinear_robust)
+    /// variants, `S` and the NIS belong to the same innovation in every outcome:
+    ///
+    /// - applied: the likelihood of the measurement;
+    /// - [gated](Self::set_gate): the likelihood of the rejected measurement;
+    /// - a `NaN` in the innovation: `NaN`, as the NIS;
+    /// - `S` not positive definite: `NaN`. (The NIS keeps its previous value then; this does
+    ///   not, since there is no density for that `S`.)
+    ///
+    /// Before the first correction, `S` is still zero, so the value is `NaN` (the NIS is `0`).
+    ///
+    /// Other corrections leave `S` and the NIS out of step, and the value is then not a
+    /// likelihood:
+    ///
+    /// - [`correct_nonlinear_with_gain`](crate::extended::ExtendedKalman::correct_nonlinear_with_gain)
+    ///   writes a new `S` but no NIS;
+    /// - [`correct_nonlinear_recalibrated`](crate::extended::ExtendedKalman::correct_nonlinear_recalibrated),
+    ///   once its first pass applies (also when it then backs out), leaves `S` at the second
+    ///   Jacobian, while the NIS is that of the first;
+    /// - the predictively oriented corrections keep their own `S` (without `R`, or of the
+    ///   posterior).
+    ///
+    /// Same cost and availability as
+    /// [`log_det_innovation_covariance`](Self::log_det_innovation_covariance), plus a few
+    /// arithmetic operations.
+    #[inline]
+    pub fn log_likelihood(&self) -> T
+    where
+        T: crate::matrix::Logarithm,
+        S: InnovationCovarianceMatrix<OBSERVATIONS, T>,
+    {
+        crate::observations::log_likelihood(self.S.as_matrix(), self.nis)
+    }
+
     /// Returns the noise weight `w` of the last applied
     /// [robust correction](Self::correct_nonlinear_robust), which used the noise covariance
     /// `R/w`.
