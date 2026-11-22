@@ -15,7 +15,8 @@ rust-version.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-minikalman = { version = "*", path = "../../crates/minikalman", default-features = false, features = ["std"] }
+minikalman = { version = "*", path = "../../crates/minikalman", default-features = false, features = ["std", "fixed"] }
+fixed = "1.24.0"
 
 [package.metadata.release]
 # Cross-build checks only; never released or tagged.

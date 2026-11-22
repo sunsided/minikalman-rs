@@ -3,698 +3,151 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>minikalman in the browser</title>
+  <title>minikalman lab</title>
+  <meta name="description" content="Interactive experiments with minikalman, a no_std Kalman filter library for Rust, running in the browser as WebAssembly.">
   <link rel="icon" href="data:,">
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; line-height: 1.4; }
-    canvas { width: 100%; height: auto; border: 1px solid #ccc; display: block; }
-    .legend span { margin-right: 1.5rem; white-space: nowrap; }
-    .truth { color: #888; } .meas { color: #d62728; } .est { color: #1f77b4; } .ukf { color: #ff7f0e; } .r2 { color: #9467bd; }
-    .variants { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
-    .variants h3 { margin: 0 0 0.25rem; }
-    .controls label { white-space: nowrap; }
-    .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; }
-    output { font-variant-numeric: tabular-nums; }
-    canvas.radar, canvas.plot { touch-action: none; }
-    canvas.plot { cursor: crosshair; }
-    fieldset { border: 1px solid #ddd; border-radius: 4px; margin: 0.75rem 0; padding: 0.25rem 0.75rem; }
-    legend { color: #666; font-size: 0.9rem; }
-    .tools { display: inline-flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
-    .hint, .status { color: #666; font-size: 0.9rem; margin: 0.25rem 0 0.5rem; }
-    .status { font-variant-numeric: tabular-nums; }
-    nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
-    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #ccc; color: #666; font-size: 0.9rem; }
-  </style>
-</head>
-<body>
-  <h1>minikalman in the browser</h1>
-  <nav>
-    <a href="https://github.com/sunsided/minikalman-rs">GitHub repository</a>
-    <a href="https://crates.io/crates/minikalman">crates.io</a>
-    <a href="https://docs.rs/minikalman">Documentation</a>
-  </nav>
-  <p>
-    minikalman compiled to <code>wasm32-unknown-unknown</code> and loaded with plain
-    <code>WebAssembly.instantiateStreaming</code>. The module exports a few
-    <code>extern "C"</code> functions that take and return numbers; there is no generated JS glue.
-  </p>
-
-  <h2>Tracking a moving target</h2>
-  <p>
-    Radars measure range and bearing to a moving target. Range noise spreads a measurement
-    along the line of sight; bearing noise spreads it sideways, more so the further away the
-    target is. Together they make a <span class="meas">crescent</span> in x/y. Both filters
-    approximate it with a Gaussian ellipse: the Extended filter by linearizing at its estimate,
-    the Unscented filter by pushing sigma points through the measurement function. Both run on
-    the same measurements. Between measurements they only predict, and the ellipse grows; each
-    correction (a dot on the track) shrinks it again.
-  </p>
-  <p>
-    Behind a radar, the bearing jumps from +180° to −180° (the dashed line). With
-    <em>wrap bearing residuals</em> on, both filters use <code>angles::wrap_pi</code> to see that
-    as the small step it is. Turn it off and restart, and both are thrown off when the target
-    passes behind the radar. A second radar adds a crescent from another angle, and where the two
-    intersect, the ellipses shrink.
-  </p>
-  <p class="legend">
-    <span class="truth">— true path</span>
-    <span class="meas">∙ radar 1 measurement</span>
-    <span class="r2">∙ radar 2 measurement</span>
-    <span class="est">— EKF estimate, 2σ ellipse</span>
-    <span class="ukf">— UKF estimate, 2σ ellipse</span>
-  </p>
-  <div class="variants">
-    <div><h3 class="est">Extended Kalman filter</h3><canvas id="radar-ekf" class="radar" width="640" height="360"></canvas></div>
-    <div><h3 class="ukf">Unscented Kalman filter</h3><canvas id="radar-ukf" class="radar" width="640" height="360"></canvas></div>
-  </div>
-  <p class="status" id="radar-status"></p>
-  <fieldset>
-    <legend>Target</legend>
-    <p class="controls">
-      <label>Path
-        <select id="preset">
-          <option value="circle">Circle the radar</option>
-          <option value="straight">Straight pass, like the radar examples</option>
-          <option value="eight">Figure eight</option>
-          <option value="drawn" disabled>Drawn by you</option>
-        </select>
-      </label>
-      <span class="tools" role="radiogroup" aria-label="Pointer tool">
-        Pointer:
-        <label><input type="radio" name="tool" value="edit" checked> Drag radars and waypoints</label>
-        <label><input type="radio" name="tool" value="draw"> Draw a path</label>
-        <label><input type="radio" name="tool" value="steer"> Steer the target</label>
-      </span>
-    </p>
-    <p class="hint" id="tool-hint"></p>
-  </fieldset>
-  <fieldset>
-    <legend>Simulation</legend>
-    <p class="controls">
-      <button id="pause">Pause</button>
-      <button id="step" disabled>Step</button>
-      <button id="next-measurement" disabled>Next measurement</button>
-      <button id="restart">Restart</button>
-      <label><input id="wrap" type="checkbox" checked> Wrap bearing residuals</label>
-      <label><input id="second-radar" type="checkbox"> Second radar</label>
-    </p>
-    <p class="controls">
-      <label>Speed <input id="speed" type="range" min="1" max="15" step="0.5" value="6"></label>
-      <output id="speed-value"></output>
-      <label>Measure every <input id="measure-every" type="range" min="1" max="20" step="1" value="5"></label>
-      <output id="measure-every-value"></output>
-      <label>Process noise q <input id="process-noise" type="range" min="0.1" max="10" step="0.1" value="3"></label>
-      <output id="process-noise-value"></output>
-    </p>
-    <p class="controls">
-      <label>Bearing noise σ <input id="sigma-bearing" type="range" min="0.01" max="0.3" step="0.01" value="0.12"></label>
-      <output id="sigma-bearing-value"></output>
-      <label>Range noise σ <input id="sigma-range" type="range" min="0.1" max="3" step="0.1" value="0.5"></label>
-      <output id="sigma-range-value"></output>
-    </p>
-  </fieldset>
-
-  <h2>The basics: smoothing a noisy position</h2>
-  <p>
-    A linear filter tracking position and velocity in 1D. <strong>Drag across the plot</strong>
-    to draw your own signal; the filter reruns on it as you draw. Sudden changes show the
-    trade-off of the process noise: low values smooth more but lag behind, high values follow
-    quickly but let more noise through.
-  </p>
-  <p class="legend">
-    <span class="truth">— true position</span>
-    <span class="meas">● noisy measurement</span>
-    <span class="est">— filtered estimate ±2σ</span>
-  </p>
-  <canvas id="plot" class="plot" width="960" height="240"></canvas>
-  <p class="status" id="status"></p>
-  <p class="controls">
-    <label>Measurement noise σ <input id="sigma" type="range" min="0.1" max="5" step="0.1" value="2"></label>
-    <output id="sigma-value"></output>
-    <label>Process noise q <input id="smooth-q" type="range" min="0" max="100" step="1" value="50"></label>
-    <output id="smooth-q-value"></output>
-    <button id="rerun">New noise</button>
-    <button id="reset-signal">Reset signal</button>
-  </p>
-
-  <footer>
-    <a href="https://github.com/sunsided/minikalman-rs">minikalman</a> is a Kalman filter library for
-    microcontrollers, written in Rust. Install it from
-    <a href="https://crates.io/crates/minikalman">crates.io</a>; the source of this page is in
-    <a href="https://github.com/sunsided/minikalman-rs/tree/main/xbuild-tests/wasm"><code>xbuild-tests/wasm</code></a>.
-  </footer>
-
-  <script type="module">
-    const { instance } = await WebAssembly.instantiateStreaming(
-      // Revalidate, so a rebuilt or redeployed module is never served from a stale cache.
-      fetch("minikalman_wasm.wasm", { cache: "no-cache" }),
-      {},
-    );
-    const kf = instance.exports;
-
-    // Box-Muller transform for normally distributed noise.
-    function gaussian() {
-      const u = 1 - Math.random();
-      const v = Math.random();
-      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-    }
-
-    function polyline(ctx, points, color, width = 2) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-      ctx.stroke();
-    }
-
-    // ── 1D smoothing ────────────────────────────────────────────────────────
-
-    {
-      const canvas = document.getElementById("plot");
-      const ctx = canvas.getContext("2d");
-      const sigmaInput = document.getElementById("sigma");
-      const qInput = document.getElementById("smooth-q");
-
-      const n = 300, dt = 0.1;
-      const range = { min: -15, max: 50 }; // fixed, so a drawn signal stays where it was drawn
-      const defaultSignal = () =>
-        Array.from({ length: n }, (_, i) => 10 * Math.sin(i * dt / 4) + i * dt);
-      let signal = defaultSignal();
-      let noise = Array.from({ length: n }, gaussian); // kept between runs, so sliders compare like with like
-      let lastDrawn = null;
-
-      const x = (i) => (i / (n - 1)) * (canvas.width - 20) + 10;
-      const y = (v) => canvas.height - 10 - ((v - range.min) / (range.max - range.min)) * (canvas.height - 20);
-      // The process noise slider is logarithmic, from 0.01 to 100.
-      const q = () => 10 ** (-2 + (4 * Number(qInput.value)) / 100);
-
-      function run() {
-        const sigma = Number(sigmaInput.value);
-        document.getElementById("sigma-value").textContent = sigma.toFixed(1);
-        document.getElementById("smooth-q-value").textContent = q().toPrecision(2);
-
-        kf.reset(dt, q(), sigma * sigma);
-        const rows = signal.map((truth, i) => {
-          const z = truth + sigma * noise[i];
-          const estimate = kf.step(z);
-          return { truth, z, estimate, sd: Math.sqrt(kf.position_variance()) };
-        });
-        draw(rows);
-
-        const rms = (f) => Math.sqrt(rows.reduce((sum, r) => sum + f(r) ** 2, 0) / rows.length);
-        document.getElementById("status").textContent =
-          `RMS error: measurements ${rms((r) => r.z - r.truth).toFixed(2)}, ` +
-          `filtered ${rms((r) => r.estimate - r.truth).toFixed(2)}`;
-      }
-
-      function draw(rows) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "rgba(31, 119, 180, 0.15)";
-        ctx.beginPath();
-        rows.forEach((r, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x(i), y(r.estimate + 2 * r.sd)));
-        for (let i = rows.length - 1; i >= 0; i--) ctx.lineTo(x(i), y(rows[i].estimate - 2 * rows[i].sd));
-        ctx.fill();
-
-        ctx.fillStyle = "#d62728";
-        rows.forEach((r, i) => ctx.fillRect(x(i) - 1.5, y(r.z) - 1.5, 3, 3));
-
-        polyline(ctx, rows.map((r, i) => [x(i), y(r.truth)]), "#888");
-        polyline(ctx, rows.map((r, i) => [x(i), y(r.estimate)]), "#1f77b4");
-      }
-
-      // Drawing: map the pointer to a sample index and value, filling any gap linearly.
-      function drawAt(event) {
-        const rect = canvas.getBoundingClientRect();
-        const px = ((event.clientX - rect.left) / rect.width) * canvas.width;
-        const py = ((event.clientY - rect.top) / rect.height) * canvas.height;
-        const i = Math.round(((px - 10) / (canvas.width - 20)) * (n - 1));
-        const v = range.min + ((canvas.height - 10 - py) / (canvas.height - 20)) * (range.max - range.min);
-        const index = Math.min(Math.max(i, 0), n - 1);
-        const value = Math.min(Math.max(v, range.min), range.max);
-        if (lastDrawn) {
-          const [li, lv] = lastDrawn;
-          const steps = Math.abs(index - li);
-          for (let k = 1; k < steps; k++) signal[li + Math.sign(index - li) * k] = lv + ((value - lv) * k) / steps;
-        }
-        signal[index] = value;
-        lastDrawn = [index, value];
-        run();
-      }
-
-      canvas.addEventListener("pointerdown", (event) => {
-        lastDrawn = null;
-        try {
-          canvas.setPointerCapture(event.pointerId);
-        } catch {
-          // Synthetic events have no active pointer to capture.
-        }
-        drawAt(event);
-      });
-      canvas.addEventListener("pointermove", (event) => {
-        if (lastDrawn) drawAt(event);
-      });
-      canvas.addEventListener("pointerup", () => (lastDrawn = null));
-
-      sigmaInput.addEventListener("input", run);
-      qInput.addEventListener("input", run);
-      document.getElementById("rerun").addEventListener("click", () => {
-        noise = Array.from({ length: n }, gaussian);
-        run();
-      });
-      document.getElementById("reset-signal").addEventListener("click", () => {
-        signal = defaultSignal();
-        run();
-      });
-      run();
-    }
-
-    // ── 2D radar tracking ───────────────────────────────────────────────────
-
-    {
-      const EKF = 0, UKF = 1;
-      const variants = [
-        { id: EKF, name: "EKF", canvas: document.getElementById("radar-ekf"), color: "#1f77b4", fill: "rgba(31, 119, 180, 0.15)" },
-        { id: UKF, name: "UKF", canvas: document.getElementById("radar-ukf"), color: "#ff7f0e", fill: "rgba(255, 127, 14, 0.15)" },
-      ];
-      const radars = [
-        { x: 0, y: 0, color: "#333", crescent: "214, 39, 40" },
-        { x: 30, y: -17, color: "#9467bd", crescent: "148, 103, 189" },
-      ];
-
-      // World window in metres, centred on the first radar's starting position.
-      const view = { xMin: -45, xMax: 45, yMin: -25.3, yMax: 25.3 };
-      const dt = 0.1;
-      const crescentSamples = 300;
-      const trail = 450; // steps of history to draw
-      const minRange = 1; // a radar cannot measure a target on top of itself
-      const grabRadius = 2.5; // metres
-      const drawSpacing = 3; // metres between waypoints of a drawn path
-
-      const $ = (id) => document.getElementById(id);
-      const inputs = {
-        bearing: $("sigma-bearing"), range: $("sigma-range"), speed: $("speed"),
-        processNoise: $("process-noise"),
-        measureEvery: $("measure-every"), wrap: $("wrap"), secondRadar: $("second-radar"),
-        preset: $("preset"),
-      };
-      const hints = {
-        edit: "Drag a radar or a waypoint of the path (the small circles). The filters keep running.",
-        draw: "Press and drag on either plot to draw a new path. End near the start to close the loop.",
-        steer: "Move the pointer over a plot; the target heads for it at the set speed.",
-      };
-
-      // ── Paths: polylines with constant-speed travel along them ──
-
-      function makePath(points, closed) {
-        const cum = [0];
-        const n = closed ? points.length : points.length - 1;
-        for (let i = 0; i < n; i++) {
-          const [ax, ay] = points[i], [bx, by] = points[(i + 1) % points.length];
-          cum.push(cum[i] + Math.hypot(bx - ax, by - ay));
-        }
-        return { points, closed, cum, length: cum[cum.length - 1] };
-      }
-
-      function pointAt(path, s) {
-        if (path.closed) s = ((s % path.length) + path.length) % path.length;
-        else s = Math.min(Math.max(s, 0), path.length);
-        let i = 1;
-        while (i < path.cum.length - 1 && path.cum[i] < s) i++;
-        const [ax, ay] = path.points[i - 1], [bx, by] = path.points[i % path.points.length];
-        const seg = path.cum[i] - path.cum[i - 1] || 1;
-        const f = (s - path.cum[i - 1]) / seg;
-        return { x: ax + f * (bx - ax), y: ay + f * (by - ay) };
-      }
-
-      const sampled = (n, f) => Array.from({ length: n }, (_, i) => f((2 * Math.PI * i) / n));
-      const presets = {
-        circle: () => makePath(sampled(24, (p) => [4 + 28 * Math.cos(p), 16 * Math.sin(p)]), true),
-        straight: () => makePath([[-42, -20], [42, 18]], false),
-        eight: () => makePath(sampled(32, (p) => {
-          const d = 1 + Math.sin(p) ** 2;
-          return [36 * Math.cos(p) / d, 6 + 30 * Math.sin(p) * Math.cos(p) / d];
-        }), true),
-      };
-
-      // ── Simulation state ──
-
-      let path = presets.circle();
-      let tool = "edit";
-      let paused = false;
-      let sim;
-      let pointer = null; // world position of the pointer over a plot, for steering
-      let drawing = null; // points collected while drawing
-      let dragging = null; // { kind: "radar" | "waypoint", index }
-
-      function activeRadars() {
-        return inputs.secondRadar.checked ? radars : radars.slice(0, 1);
-      }
-
-      function updateLabels() {
-        const b = Number(inputs.bearing.value), r = Number(inputs.range.value);
-        const every = Number(inputs.measureEvery.value);
-        $("sigma-bearing-value").textContent = `${b.toFixed(2)} rad (${(b * 180 / Math.PI).toFixed(1)}°)`;
-        $("sigma-range-value").textContent = `${r.toFixed(1)} m`;
-        $("speed-value").textContent = `${Number(inputs.speed.value).toFixed(1)} m/s`;
-        $("measure-every-value").textContent = `${every} step${every > 1 ? "s" : ""} (${(every * dt).toFixed(1)} s)`;
-        $("process-noise-value").textContent = `${Number(inputs.processNoise.value).toFixed(1)} (m/s²)²`;
-      }
-
-      function restart(start) {
-        updateLabels();
-        const sigmaBearing = Number(inputs.bearing.value);
-        const sigmaRange = Number(inputs.range.value);
-        const at = start ?? pointAt(path, 0);
-        kf.radar_set_wrap(inputs.wrap.checked ? 1 : 0);
-        kf.radar_reset(at.x, at.y, Number(inputs.processNoise.value), sigmaRange, sigmaBearing);
-        sim = {
-          step: 0, s: 0, pos: at, sigmaBearing, sigmaRange,
-          truth: [at], crescents: [], tracks: variants.map(() => []), measurements: 0,
-        };
-      }
-
-      function moveTarget() {
-        const speed = Number(inputs.speed.value);
-        if (tool === "steer") {
-          if (!pointer) return;
-          const dx = pointer.x - sim.pos.x, dy = pointer.y - sim.pos.y;
-          const dist = Math.hypot(dx, dy);
-          const stepLength = Math.min(speed * dt, dist);
-          if (dist > 1e-6) sim.pos = { x: sim.pos.x + dx / dist * stepLength, y: sim.pos.y + dy / dist * stepLength };
-          return;
-        }
-        sim.s += speed * dt;
-        if (!path.closed && sim.s > path.length) return restart();
-        sim.pos = pointAt(path, sim.s);
-      }
-
-      function advance() {
-        sim.step += 1;
-        moveTarget();
-        const truth = sim.pos;
-        sim.truth.push(truth);
-        if (sim.truth.length > trail) sim.truth.shift();
-
-        kf.radar_predict(dt);
-
-        const measuring = sim.step % Number(inputs.measureEvery.value) === 0;
-        if (measuring) {
-          sim.measurements += 1;
-          for (const radar of activeRadars()) {
-            const dx = truth.x - radar.x, dy = truth.y - radar.y;
-            if (Math.hypot(dx, dy) < minRange) continue;
-            const range = Math.hypot(dx, dy) + sim.sigmaRange * gaussian();
-            const bearing = Math.atan2(dy, dx) + sim.sigmaBearing * gaussian();
-            kf.radar_correct(radar.x, radar.y, range, bearing);
-
-            // Sample the measurement likelihood in x/y: the crescent.
-            const points = [];
-            for (let i = 0; i < crescentSamples; i++) {
-              const r = range + sim.sigmaRange * gaussian();
-              const b = bearing + sim.sigmaBearing * gaussian();
-              points.push([radar.x + r * Math.cos(b), radar.y + r * Math.sin(b)]);
-            }
-            sim.crescents.push({ radar, points });
-          }
-          while (sim.crescents.length > 3 * activeRadars().length) sim.crescents.shift();
-        }
-
-        variants.forEach((v, k) => {
-          sim.tracks[k].push({
-            x: kf.radar_state(v.id, 0),
-            y: kf.radar_state(v.id, 1),
-            pxx: kf.radar_covariance(v.id, 0, 0),
-            pxy: kf.radar_covariance(v.id, 0, 1),
-            pyy: kf.radar_covariance(v.id, 1, 1),
-            corrected: measuring,
-          });
-          if (sim.tracks[k].length > trail) sim.tracks[k].shift();
-        });
-        return measuring;
-      }
-
-      // ── Rendering ──
-
-      function transform(canvas) {
-        const { width, height } = canvas;
-        const sx = width / (view.xMax - view.xMin);
-        const sy = height / (view.yMax - view.yMin);
-        return { sx, sy, px: (x) => (x - view.xMin) * sx, py: (y) => height - (y - view.yMin) * sy };
-      }
-
-      function drawRadar(ctx, px, py, radar) {
-        ctx.fillStyle = radar.color;
-        ctx.beginPath();
-        ctx.moveTo(px(radar.x), py(radar.y) - 8);
-        ctx.lineTo(px(radar.x) - 7, py(radar.y) + 4);
-        ctx.lineTo(px(radar.x) + 7, py(radar.y) + 4);
-        ctx.fill();
-      }
-
-      function draw(variant, track) {
-        const { canvas } = variant;
-        const ctx = canvas.getContext("2d");
-        const { width, height } = canvas;
-        const { sx, sy, px, py } = transform(canvas);
-
-        ctx.clearRect(0, 0, width, height);
-
-        // Range rings around the first radar, and the line behind it where its bearing jumps.
-        const r0 = radars[0];
-        ctx.strokeStyle = "#eee";
-        ctx.lineWidth = 1;
-        for (let r = 10; r <= 50; r += 10) {
-          ctx.beginPath();
-          ctx.ellipse(px(r0.x), py(r0.y), r * sx, r * sy, 0, 0, 2 * Math.PI);
-          ctx.stroke();
-        }
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = "#ccc";
-        ctx.beginPath();
-        ctx.moveTo(px(r0.x), py(r0.y));
-        ctx.lineTo(px(view.xMin), py(r0.y));
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = "#aaa";
-        ctx.font = "12px system-ui, sans-serif";
-        ctx.fillText("±180°", px(view.xMin) + 4, py(r0.y) - 4);
-
-        // The planned path, with handles while editing.
-        if (tool !== "steer") {
-          const pts = path.points.map(([x, y]) => [px(x), py(y)]);
-          if (path.closed) pts.push(pts[0]);
-          ctx.setLineDash([2, 6]);
-          polyline(ctx, pts, "#bbb", 1.5);
-          ctx.setLineDash([]);
-          if (tool === "edit") {
-            ctx.strokeStyle = "#999";
-            ctx.lineWidth = 1;
-            for (const [x, y] of path.points) {
-              ctx.beginPath();
-              ctx.arc(px(x), py(y), 4, 0, 2 * Math.PI);
-              ctx.stroke();
-            }
-          }
-        }
-        if (drawing && drawing.length > 1) {
-          polyline(ctx, drawing.map(([x, y]) => [px(x), py(y)]), "#2ca02c", 2);
-        }
-
-        // Older crescents fade out.
-        sim.crescents.forEach(({ radar, points }, i) => {
-          const alpha = 0.6 * (i + 1) / sim.crescents.length;
-          ctx.fillStyle = `rgba(${radar.crescent}, ${alpha})`;
-          for (const [x, y] of points) ctx.fillRect(px(x) - 1, py(y) - 1, 2, 2);
-        });
-
-        polyline(ctx, sim.truth.map((p) => [px(p.x), py(p.y)]), "#888");
-        const finite = track.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
-        polyline(ctx, finite.map((p) => [px(p.x), py(p.y)]), variant.color);
-
-        // Corrections as dots on the track; the steps in between are predictions only.
-        ctx.fillStyle = variant.color;
-        for (const p of finite) {
-          if (!p.corrected) continue;
-          ctx.beginPath();
-          ctx.arc(px(p.x), py(p.y), 2.5, 0, 2 * Math.PI);
-          ctx.fill();
-        }
-
-        const last = track.at(-1);
-        if (last && [last.x, last.y, last.pxx, last.pxy, last.pyy].every(Number.isFinite)) {
-          // 2σ ellipse from the eigen-decomposition of the position covariance.
-          const { pxx: a, pxy: b, pyy: c } = last;
-          const mean = (a + c) / 2;
-          const spread = Math.sqrt(((a - c) / 2) ** 2 + b * b);
-          const major = 2 * Math.sqrt(Math.max(mean + spread, 0));
-          const minor = 2 * Math.sqrt(Math.max(mean - spread, 0));
-          const angle = 0.5 * Math.atan2(2 * b, a - c);
-
-          ctx.save();
-          ctx.translate(px(last.x), py(last.y));
-          ctx.scale(sx, -sy); // world units, y up
-          ctx.rotate(angle);
-          ctx.beginPath();
-          ctx.ellipse(0, 0, major, minor, 0, 0, 2 * Math.PI);
-          ctx.restore();
-          ctx.fillStyle = variant.fill;
-          ctx.fill();
-          ctx.strokeStyle = variant.color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-
-        const truth = sim.truth.at(-1);
-        ctx.fillStyle = "#333";
-        ctx.beginPath();
-        ctx.arc(px(truth.x), py(truth.y), 4, 0, 2 * Math.PI);
-        ctx.fill();
-
-        if (tool === "steer" && pointer) {
-          ctx.strokeStyle = "#2ca02c";
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(px(pointer.x), py(pointer.y), 6, 0, 2 * Math.PI);
-          ctx.stroke();
-        }
-
-        for (const radar of activeRadars()) drawRadar(ctx, px, py, radar);
-      }
-
-      function render() {
-        variants.forEach((v, k) => draw(v, sim.tracks[k]));
-        const truth = sim.truth.at(-1);
-        const parts = [`t = ${(sim.step * dt).toFixed(1)} s`, `${sim.measurements} measurements`];
-        for (const [k, v] of variants.entries()) {
-          const p = sim.tracks[k].at(-1);
-          if (!p) continue;
-          const error = Math.hypot(p.x - truth.x, p.y - truth.y);
-          parts.push(Number.isFinite(error) ? `${v.name} error ${error.toFixed(2)} m` : `${v.name} diverged, restart`);
-        }
-        $("radar-status").textContent = parts.join(" · ");
-      }
-
-      // ── Pointer interaction ──
-
-      function toWorld(canvas, event) {
-        const rect = canvas.getBoundingClientRect();
-        const fx = (event.clientX - rect.left) / rect.width;
-        const fy = (event.clientY - rect.top) / rect.height;
-        return { x: view.xMin + fx * (view.xMax - view.xMin), y: view.yMax - fy * (view.yMax - view.yMin) };
-      }
-
-      function grab(at) {
-        const near = (x, y) => Math.hypot(x - at.x, y - at.y) < grabRadius;
-        const r = activeRadars().findIndex((radar) => near(radar.x, radar.y));
-        if (r >= 0) return { kind: "radar", index: r };
-        const w = path.points.findIndex(([x, y]) => near(x, y));
-        if (w >= 0) return { kind: "waypoint", index: w };
-        return null;
-      }
-
-      for (const { canvas } of variants) {
-        canvas.addEventListener("pointerdown", (event) => {
-          const at = toWorld(canvas, event);
-          if (tool === "draw") drawing = [[at.x, at.y]];
-          else if (tool === "edit") dragging = grab(at);
-          else pointer = at;
-          if (drawing || dragging) {
-            try {
-              canvas.setPointerCapture(event.pointerId);
-            } catch {
-              // Synthetic events have no active pointer to capture.
-            }
-          }
-        });
-        canvas.addEventListener("pointermove", (event) => {
-          const at = toWorld(canvas, event);
-          if (tool === "steer") pointer = at;
-          if (drawing) {
-            const [lx, ly] = drawing.at(-1);
-            if (Math.hypot(at.x - lx, at.y - ly) >= drawSpacing) drawing.push([at.x, at.y]);
-          } else if (dragging?.kind === "radar") {
-            Object.assign(radars[dragging.index], at);
-          } else if (dragging?.kind === "waypoint") {
-            path.points[dragging.index] = [at.x, at.y];
-            path = makePath(path.points, path.closed);
-          } else if (tool === "edit") {
-            canvas.style.cursor = grab(at) ? "grab" : "default";
-          }
-        });
-        canvas.addEventListener("pointerup", (event) => {
-          if (drawing) {
-            const at = toWorld(canvas, event);
-            drawing.push([at.x, at.y]);
-            if (drawing.length >= 3) {
-              const [sx0, sy0] = drawing[0], [ex, ey] = drawing.at(-1);
-              const closed = Math.hypot(ex - sx0, ey - sy0) < 3 * drawSpacing;
-              if (closed) drawing.pop();
-              path = makePath(drawing, closed);
-              inputs.preset.value = "drawn";
-              restart();
-            }
-            drawing = null;
-          }
-          dragging = null;
-        });
-        canvas.addEventListener("pointerleave", () => {
-          if (tool === "steer") pointer = null;
-        });
-      }
-
-      function setTool(next) {
-        const leavingSteer = tool === "steer" && next !== "steer";
-        tool = next;
-        $("tool-hint").textContent = hints[tool];
-        for (const { canvas } of variants) canvas.style.cursor = tool === "edit" ? "default" : "crosshair";
-        pointer = null;
-        // After steering, the target goes back to the start of the path.
-        if (leavingSteer) restart();
-      }
-
-      // ── Controls ──
-
-      function setPaused(value) {
-        paused = value;
-        $("pause").textContent = paused ? "Resume" : "Pause";
-        $("step").disabled = !paused;
-        $("next-measurement").disabled = !paused;
-      }
-
-      document.querySelectorAll('input[name="tool"]').forEach((radio) =>
-        radio.addEventListener("change", () => setTool(radio.value)));
-      inputs.preset.addEventListener("change", () => {
-        path = presets[inputs.preset.value]();
-        restart();
-      });
-      for (const input of [inputs.bearing, inputs.range, inputs.processNoise]) {
-        input.addEventListener("input", () => restart(tool === "steer" ? sim.pos : undefined));
-      }
-      for (const input of [inputs.speed, inputs.measureEvery]) input.addEventListener("input", updateLabels);
-      inputs.wrap.addEventListener("change", () => kf.radar_set_wrap(inputs.wrap.checked ? 1 : 0));
-      $("restart").addEventListener("click", () => restart(tool === "steer" ? sim.pos : undefined));
-      $("pause").addEventListener("click", () => setPaused(!paused));
-      $("step").addEventListener("click", advance);
-      $("next-measurement").addEventListener("click", () => {
-        for (let i = 0; i < 1000 && !advance(); i++);
-      });
-
-      let last = 0;
-      function frame(now) {
-        // About 20 filter steps per second, i.e. twice real time.
-        if (!paused && now - last > 50) {
-          last = now;
-          advance();
-        }
-        render();
-        requestAnimationFrame(frame);
-      }
-
-      setTool("edit");
-      restart();
-      requestAnimationFrame(frame);
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/recursive@5.2.5/full.css">
+  <link rel="stylesheet" href="lab.css">
+  <script>
+    // Apply a stored theme before the first paint.
+    try {
+      const theme = localStorage.getItem("theme");
+      if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+    } catch {
+      // Storage may be blocked; follow the system scheme.
     }
   </script>
+</head>
+<body>
+  <header class="wrap masthead">
+    <a class="wordmark" href="#top" id="top">minikalman lab</a>
+    <nav aria-label="Project">
+      <a href="https://github.com/sunsided/minikalman-rs">GitHub</a>
+      <a href="https://crates.io/crates/minikalman">crates.io</a>
+      <a href="https://docs.rs/minikalman">Documentation</a>
+      <button class="theme-toggle" id="theme" type="button">Switch theme</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="wrap hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">Kalman filters on the bench</h1>
+      <p class="lede">
+        Every trace on this page is computed by <a href="https://crates.io/crates/minikalman">minikalman</a>,
+        the Rust filter library for microcontrollers, compiled to WebAssembly and running in your browser.
+        Turn the knobs, watch the estimates, read the numbers.
+      </p>
+
+      <div class="experiment" id="basics">
+        <div class="notes">
+          <h2>Smoothing a noisy position</h2>
+          <p class="api"><code>regular::RegularKalman</code>, 2 states, 1 measurement</p>
+          <p>
+            A linear filter tracks position and velocity from noisy readings.
+            <strong>Drag across the plot</strong> to draw your own signal; the filter reruns as you draw.
+          </p>
+          <div class="knobs">
+            <label class="knob"><span>Sensor noise σ</span><input id="hero-sigma" type="range" min="0.1" max="5" step="0.1" value="2"><output for="hero-sigma"></output></label>
+            <label class="knob"><span>Process noise q</span><input id="hero-q" type="range" min="0" max="100" step="1" value="50"><output for="hero-q"></output></label>
+          </div>
+          <div class="actions">
+            <button id="hero-noise" type="button">New noise</button>
+            <button id="hero-reset" type="button">Reset signal</button>
+          </div>
+          <p class="seeing">
+            <strong>What you're seeing:</strong> low process noise smooths more but lags behind sudden
+            changes; high process noise follows quickly but lets more of the sensor noise through.
+          </p>
+        </div>
+        <div class="instrument">
+          <div class="scope"><span class="scope-title">position (m)</span><canvas id="hero-plot" role="img" aria-label="Position over time: true signal, noisy measurements and filtered estimate"></canvas></div>
+          <ul class="legend">
+            <li><span class="swatch dashed" style="--color: var(--truth)"></span>true position</li>
+            <li><span class="swatch dot" style="--color: var(--meas)"></span>measurement</li>
+            <li><span class="swatch" style="--color: var(--c2)"></span>estimate ±2σ</li>
+          </ul>
+          <dl class="readouts">
+            <div class="readout" id="hero-rms-z" style="--color: var(--meas)"><dt>Measurement RMS error</dt><dd>—</dd></div>
+            <div class="readout" id="hero-rms-x" style="--color: var(--c2)"><dt>Estimate RMS error</dt><dd>—</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <nav class="wrap bench" aria-label="Experiments">
+      <ul>
+        <li><a href="#radar"><strong>EKF vs UKF</strong><span>Range and bearing radar tracking</span></a></li>
+        <li><a href="#outliers"><strong>Outliers</strong><span>Plain, gated and Student-t corrections</span></a></li>
+        <li><a href="#numerics"><strong>Numerics</strong><span>Joseph form, f32 and fixed point</span></a></li>
+        <li><a href="#smoothing"><strong>Smoothing</strong><span>Filter vs RTS smoother through a gap</span></a></li>
+        <li><a href="#parameters"><strong>Parameter estimation</strong><span>Dual RLS + KF vs joint EKF</span></a></li>
+        <li><a href="#attitude"><strong>Attitude</strong><span>Quaternion error-state filter with a gate</span></a></li>
+      </ul>
+    </nav>
+
+    <!-- EXPERIMENTS -->
+    <section class="wrap experiment" id="outliers" aria-labelledby="outliers-title">
+      <div class="notes">
+        <h2 id="outliers-title">Outliers: trust, reject or down-weight</h2>
+        <p class="api"><code>correct</code>, <code>set_gate</code>, <code>correct_robust</code> with <code>RobustWeight::StudentT</code></p>
+        <p>
+          A sensor reads a moving position with Gaussian noise, and some readings are gross outliers.
+          Three filters with the same model see the same readings. The <span style="color: var(--c1)">plain</span>
+          one believes every reading. The <span style="color: var(--c2)">gated</span> one rejects readings whose
+          normalized innovation squared (NIS) exceeds the gate. The <span style="color: var(--c3)">robust</span>
+          one models the noise as Student-t and down-weights a reading the further it is from the prediction.
+        </p>
+        <div class="knobs">
+          <label class="knob"><span>Outlier rate</span><input id="out-rate" type="range" min="0" max="0.4" step="0.01" value="0.1"><output for="out-rate"></output></label>
+          <label class="knob"><span>Outlier size</span><input id="out-size" type="range" min="3" max="40" step="1" value="15"><output for="out-size"></output></label>
+          <label class="knob"><span>Sensor noise σ</span><input id="out-sigma" type="range" min="0.1" max="2" step="0.05" value="0.5"><output for="out-sigma"></output></label>
+          <label class="knob"><span>NIS gate</span><input id="out-gate" type="range" min="1" max="30" step="0.25" value="9"><output for="out-gate"></output></label>
+          <label class="knob"><span>Student-t ν</span><input id="out-dof" type="range" min="0.5" max="30" step="0.5" value="4"><output for="out-dof"></output></label>
+          <label class="knob"><span>Target jump at 15 s</span><input id="out-jump" type="range" min="0" max="10" step="0.5" value="0"><output for="out-jump"></output></label>
+          <label class="knob"><span>Noise seed</span><input id="out-seed" type="range" min="1" max="50" step="1" value="1"><output for="out-seed"></output></label>
+        </div>
+        <p class="seeing" id="out-seeing">
+          <strong>What you're seeing:</strong> with the default knobs, both the gate and the Student-t weight
+          cut the error of the plain filter to about a third. Now raise <em>target jump</em>: the target really
+          moves, the gate mistakes every following reading for an outlier and locks out, while the robust
+          filter's weights recover once its uncertainty has grown.
+        </p>
+        <p class="source">Read the experiment in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/outliers.rs"><code>outliers.rs</code></a>, and the docs of <a href="https://docs.rs/minikalman/latest/minikalman/regular/struct.RegularKalman.html#method.correct_robust"><code>correct_robust</code></a> and <a href="https://docs.rs/minikalman/latest/minikalman/regular/struct.RegularObservation.html#method.set_gate"><code>set_gate</code></a>.</p>
+      </div>
+      <div class="instrument">
+        <div class="scope"><span class="scope-title">position (m)</span><canvas id="out-plot" role="img" aria-label="Position over time with the three filter estimates"></canvas></div>
+        <ul class="legend">
+          <li><span class="swatch dashed" style="--color: var(--truth)"></span>truth</li>
+          <li><span class="swatch dot" style="--color: var(--meas)"></span>reading</li>
+          <li><span class="swatch" style="--color: var(--c1)"></span>plain</li>
+          <li><span class="swatch" style="--color: var(--c2)"></span>gated</li>
+          <li><span class="swatch" style="--color: var(--c3)"></span>robust</li>
+          <li><span class="swatch tick" style="--color: var(--meas)"></span>outlier injected</li>
+          <li><span class="swatch tick" style="--color: var(--c2)"></span>rejected by gate</li>
+        </ul>
+        <div class="scope"><span class="scope-title">Student-t weight w (1 = plain Kalman update)</span><canvas id="out-weight" role="img" aria-label="The robust filter's weight per reading"></canvas></div>
+        <dl class="readouts">
+          <div class="readout" id="out-r0" style="--color: var(--c1)"><dt>Plain RMS error</dt><dd>—</dd></div>
+          <div class="readout" id="out-r1" style="--color: var(--c2)"><dt>Gated RMS error</dt><dd>—</dd></div>
+          <div class="readout" id="out-r2" style="--color: var(--c3)"><dt>Robust RMS error</dt><dd>—</dd></div>
+          <div class="readout" id="out-rz" style="--color: var(--meas)"><dt>Clean-reading RMS error</dt><dd>—</dd></div>
+          <div class="readout" id="out-rej" style="--color: var(--c2)"><dt>Rejected by gate / true outliers</dt><dd>—</dd></div>
+          <div class="readout" id="out-w" style="--color: var(--c3)"><dt>Mean weight: outliers / clean</dt><dd>—</dd></div>
+        </dl>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>
+      <a href="https://github.com/sunsided/minikalman-rs">minikalman</a> is a <code>no_std</code> Kalman filter
+      library for Rust with statically sized buffers, in <code>f32</code>, <code>f64</code> and fixed point.
+      This page loads one <code>wasm32-unknown-unknown</code> module with plain <code>WebAssembly.instantiate</code>
+      and a small hand-written glue; its source is in
+      <a href="https://github.com/sunsided/minikalman-rs/tree/main/xbuild-tests/wasm"><code>xbuild-tests/wasm</code></a>.
+    </p>
+  </footer>
+
+  <script type="module" src="main.js"></script>
 </body>
 </html>
