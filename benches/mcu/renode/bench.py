@@ -8,7 +8,9 @@
 #
 # `counted` is a comma-separated list of `symbol=0xaddress` pairs (for example the soft-float
 # helpers and `sqrtf`); calls to them inside a section are counted and appended to its line.
-# `mk_done()` and `mk_fail()` end the run and quit Renode.
+# `mk_done()` and `mk_fail()` end the run and quit Renode. `mk_stack(free)` writes
+# `STACK_FREE <free>`, and `mk_note(name_ptr, name_len, value)` (only in the binaries that have
+# it) writes `NOTE <name> <value>`, for sizes and stack use in bytes.
 
 
 def mc_bench_setup(out_path, counted=''):
@@ -56,6 +58,12 @@ def mc_bench_setup(out_path, counted=''):
     def stack(cpu, _):
         out.write('STACK_FREE %d\n' % cpu.GetRegister(0).RawValue)
 
+    def note(cpu, _):
+        ptr = cpu.GetRegister(0).RawValue
+        length = cpu.GetRegister(1).RawValue
+        name = ''.join(chr(bus.ReadByte(ptr + i)) for i in range(length))
+        out.write('NOTE %s %d\n' % (name, cpu.GetRegister(2).RawValue))
+
     def counter(symbol):
         def hook(cpu, _):
             if state['inside']:
@@ -65,6 +73,11 @@ def mc_bench_setup(out_path, counted=''):
     for sym, fn in (('mk_begin', begin), ('mk_end', end), ('mk_done', done), ('mk_fail', fail),
                     ('mk_stack', stack)):
         cpu.AddHook(bus.GetSymbolAddress(sym), fn)
+    # Optional: only the navigation binaries define it.
+    try:
+        cpu.AddHook(bus.GetSymbolAddress('mk_note'), note)
+    except Exception:
+        pass
     for pair in [p for p in counted.split(',') if p]:
         symbol, address = pair.split('=')
         cpu.AddHook(int(address, 16) & ~1, counter(symbol))

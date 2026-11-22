@@ -4,7 +4,9 @@
 # Run from anywhere:  benches/mcu/run.sh
 #   TARGETS="..."   targets to measure (default: thumbv7em-none-eabihf thumbv6m-none-eabi)
 #   PROFILES="..."  Cargo profiles (default: release o3, i.e. opt-level "s" and 3)
-#   TYPES="..."     element types, one firmware binary each (default: f32 i16f16 i32f32)
+#   TYPES="..."     element types, one firmware binary each (default: f32 i16f16 i32f32
+#                   nav nav-libm; nav and nav-libm are the f32 attitude and GNSS/INS
+#                   workloads with and without minikalman's `unsafe`; nav-libm only on the M4F)
 #   BASE=<rev>      also measure minikalman at git revision <rev> (same firmware source,
 #                   same Cargo.lock) and print both side by side
 #   COUNT_CALLS=1   count calls to the soft-float, 64/128-bit and libm helpers (M4F only:
@@ -19,7 +21,7 @@ here="$(pwd)"
 out="$here/results"
 TARGETS="${TARGETS:-thumbv7em-none-eabihf thumbv6m-none-eabi}"
 PROFILES="${PROFILES:-release o3}"
-TYPES="${TYPES:-f32 i16f16 i32f32}"
+TYPES="${TYPES:-f32 i16f16 i32f32 nav nav-libm}"
 COUNT_CALLS="${COUNT_CALLS:-0}"
 if [ "$COUNT_CALLS" = 1 ]; then
   nm_tool="$(command -v llvm-nm || command -v rust-nm)" || { echo "COUNT_CALLS=1 needs llvm-nm or rust-nm" >&2; exit 1; }
@@ -46,7 +48,7 @@ helpers() {
         name = $3; sub(/.*::/, "", name)
         if (name ~ /^__aeabi_(f|d|l|ul|i|ui)[a-z0-9]+$/ && name !~ /mem/ \
             || name ~ /^__(u)?(div|mod|mul)ti3$/ || name ~ /^__(u)?divmodti4$/ \
-            || name ~ /^(sqrtf|atan2f)$/) {
+            || name ~ /^(sqrtf|atan2f|sinf|cosf)$/) {
           if (!(name in seen)) { seen[name] = 1; printf "%s%s=0x%s", sep, name, $1; sep = "," }
         }
       }'
@@ -59,6 +61,8 @@ measure() {
   for target in $TARGETS; do
     for profile in $PROFILES; do
       for ty in $TYPES; do
+        # Without an FPU the f32 square root is libm::sqrtf either way.
+        if [ "$ty" = nav-libm ] && [ "${target#thumbv6m}" != "$target" ]; then continue; fi
         (cd "$src" && CARGO_TARGET_DIR="$cargo_target" cargo build --locked --quiet \
           --profile "$profile" --target "$target" --no-default-features --features "$ty")
         local elf="$cargo_target/$target/$profile/kalman-mcu"
@@ -76,8 +80,9 @@ measure() {
           echo "$log: run did not finish; Renode output in $logs/.renode.out" >&2
           exit 1
         fi
-        free="$(awk '$1 == "STACK_FREE" { print $2 }' "$log")"
-        echo "$target $profile $ty: $(grep -vc '^DONE\|^STACK' "$log") sections, ${free:-?} B of stack never used" >&2
+        # The navigation binaries repaint the stack and report it before each repaint.
+        free="$(awk '$1 == "STACK_FREE" && (m == "" || $2 < m) { m = $2 } END { print m }' "$log")"
+        echo "$target $profile $ty: $(grep -vc '^DONE\|^STACK\|^NOTE' "$log") sections, ${free:-?} B of stack never used" >&2
         if [ "${free:-0}" -lt 256 ]; then
           echo "$log: the stack came within 256 B of the statics; the counts are not trustworthy" >&2
           exit 1

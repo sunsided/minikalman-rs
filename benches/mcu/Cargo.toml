@@ -12,7 +12,7 @@ description = "Per-operation instruction counts of minikalman on Cortex-M, measu
 cortex-m-rt = "0.7.5"
 fixed = "1.28"
 libm = "0.2"
-minikalman = { path = "../../crates/minikalman", default-features = false, features = ["libm", "fixed", "unsafe"] }
+minikalman = { path = "../../crates/minikalman", default-features = false, features = ["libm", "fixed"] }
 
 [profile.release]
 opt-level = "s"
@@ -28,8 +28,14 @@ opt-level = 3
 [features]
 # One binary per element type fits the 192 KiB flash of the M0+ platform.
 default = ["f32", "i16f16", "i32f32"]
-f32 = []
-i16f16 = []
-i32f32 = []
+f32 = ["unsafe"]
+i16f16 = ["unsafe"]
+i32f32 = ["unsafe"]
+# The attitude (6-state) and GNSS/INS (12-state) error-state filters, f32.
+nav = ["unsafe"]
+# The same without minikalman's `unsafe`: the f32 square root is libm::sqrtf on the M4F too.
+nav-libm = []
+# minikalman's `unsafe` feature (vsqrt.f32 for the f32 square root on the M4F, #174).
+unsafe = ["minikalman/unsafe"]
 # Checks the f32 square root against libm::sqrtf on the target; not measured.
 sqrt-check = ["f32"]

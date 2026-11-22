@@ -9,6 +9,16 @@
 //! float on the M0+) see the same values as in a real run.
 #![no_std]
 #![no_main]
+// The navigation-only binaries (`nav`, `nav-libm`) leave the generic workloads unused.
+#![cfg_attr(
+    not(any(feature = "f32", feature = "i16f16", feature = "i32f32")),
+    allow(unused)
+)]
+
+#[cfg(any(feature = "nav", feature = "nav-libm"))]
+mod nav;
+#[cfg(any(feature = "nav", feature = "nav-libm"))]
+mod nav_bench;
 
 use core::hint::black_box;
 use cortex_m_rt::entry;
@@ -602,6 +612,11 @@ fn main() -> ! {
         i32f32_2x1();
         i32f32_4x2();
         i32f32_6x3();
+    }
+    #[cfg(any(feature = "nav", feature = "nav-libm"))]
+    {
+        nav_bench::attitude();
+        nav_bench::gnss_ins();
     }
     report_stack();
     mk_done()
