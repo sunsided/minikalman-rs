@@ -319,31 +319,6 @@ code {
   touch-action: none;
 }
 
-.radar-knobs {
-  margin-top: 0;
-  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
-  column-gap: 2rem;
-}
-
-.radar-knobs .knob {
-  grid-template-columns: 8rem minmax(0, 1fr) 8.5rem;
-}
-
-.radar-knobs select {
-  grid-column: 2 / -1;
-}
-
-@media (max-width: 520px) {
-  .radar-knobs .knob {
-    grid-template-columns: 6.5rem minmax(0, 1fr) 7.5rem;
-  }
-}
-
-.radar-knobs .hint,
-.radar-knobs .switches {
-  grid-column: 1 / -1;
-}
-
 fieldset.knobs legend {
   padding: 0;
   margin-bottom: 0.25rem;
@@ -458,6 +433,36 @@ input[type="range"] {
   align-items: center;
 }
 
+/* The radar's controls: after the base knob rules, which they refine. */
+.radar-knobs {
+  margin-top: 0;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  column-gap: 2rem;
+}
+
+.radar-knobs .knob {
+  grid-template-columns: 7rem minmax(5rem, 1fr) 8rem;
+}
+
+.radar-knobs output {
+  white-space: nowrap;
+}
+
+.radar-knobs select {
+  grid-column: 2 / -1;
+}
+
+@media (max-width: 520px) {
+  .radar-knobs .knob {
+    grid-template-columns: 6rem minmax(4rem, 1fr) 8rem;
+  }
+}
+
+.radar-knobs .hint,
+.radar-knobs .switches {
+  grid-column: 1 / -1;
+}
+
 .actions {
   margin-bottom: 1rem;
   display: flex;
@@ -559,21 +564,6 @@ button:disabled {
   overflow-x: auto;
 }
 
-@media (max-width: 520px) {
-  .matrix {
-    font-size: 0.78rem;
-  }
-
-  .matrix th,
-  .matrix td {
-    padding: 0.3rem 0.3rem;
-  }
-
-  .matrix tbody th {
-    white-space: normal;
-  }
-}
-
 .matrix {
   width: 100%;
   border-collapse: collapse;
@@ -617,6 +607,22 @@ button:disabled {
 .matrix .bad {
   color: var(--flag);
   font-weight: 650;
+}
+
+/* Narrow screens: after the base table rules, which these override. */
+@media (max-width: 520px) {
+  .matrix {
+    font-size: 0.78rem;
+  }
+
+  .matrix th,
+  .matrix td {
+    padding: 0.3rem;
+  }
+
+  .matrix tbody th {
+    white-space: normal;
+  }
 }
 
 /* Attitude: three horizon dials. */
