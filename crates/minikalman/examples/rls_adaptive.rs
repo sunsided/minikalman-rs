@@ -23,7 +23,11 @@
 //!
 //! Run with `cargo run --example rls-adaptive --features=std`.
 //!
+//! The [`augmented-state`] example runs joint estimation on the same run: one EKF (or UKF) on
+//! the state `[x, a, b]`, and prints both side by side.
+//!
 //! [`RecursiveLeastSquares`]: minikalman::rls::RecursiveLeastSquares
+//! [`augmented-state`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/augmented_state.rs
 
 #![forbid(unsafe_code)]
 

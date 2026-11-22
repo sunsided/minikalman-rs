@@ -13,6 +13,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added the `augmented-state` example: joint (augmented-state) estimation of a motor plant's
+  `(a, b)` with an EKF and a UKF on `[x, a, b]`, on the same run as the dual `rls-adaptive`
+  example, with a comparison table, a sweep of the parameter process noise and
+  allocation-free storage. The crate docs gained an "Estimating Model Parameters" section that
+  compares joint, dual and RLS-only estimation and their limits ([#187]).
 - Added the `filter!` macro, a declaration language over the storage types. One block
   declares `state`s, `observation`s (full by default, `observation lean` with a `scratch` for
   `correct_in`), `control`s, `kalman` filters, `luenberger` observers (current form, or
@@ -458,6 +463,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   fixed` compile and pass again. CI runs both configurations ([#177]).
 
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177
+[#187]: https://github.com/sunsided/minikalman-rs/issues/187
 [#174]: https://github.com/sunsided/minikalman-rs/issues/174
 [#168]: https://github.com/sunsided/minikalman-rs/issues/168
 [#169]: https://github.com/sunsided/minikalman-rs/issues/169
