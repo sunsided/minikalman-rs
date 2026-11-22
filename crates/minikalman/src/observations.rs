@@ -1,7 +1,7 @@
 //! # Observations for Regular, Extended, and Unscented Kalman Filters.
 
 use crate::kalman::CorrectionStatus;
-use crate::matrix::{Matrix, MatrixDataType, MatrixMut, SquareMatrix};
+use crate::matrix::{Matrix, MatrixDataMut, MatrixDataType, MatrixMut, SquareMatrix};
 use crate::observations::innovation_factor::{InnovationFactor, is_number};
 
 pub mod extended;
@@ -350,6 +350,18 @@ pub(crate) fn update_with_innovation<const STATES: usize, const OBSERVATIONS: us
 where
     T: MatrixDataType,
 {
+    // Views of the exact static length: one length check per buffer here, after which the
+    // inlined kernels below need none of their own.
+    let x = &mut exact_mut(x);
+    let P = &mut exact_mut(P);
+    let R = &mut exact_mut(R);
+    let K = &mut exact_mut(K);
+    let S = &mut exact_mut(S);
+    let S_inv = &mut exact_mut(S_inv);
+    let temp_HP = &mut exact_mut(temp_HP);
+    let temp_PHt = &mut exact_mut(temp_PHt);
+    let temp_KHP = &mut exact_mut(temp_KHP);
+
     // S = H*P*Hᵀ + R; temp_HP keeps H*P of the prior P for the covariance update below.
     form_innovation_covariance(P, H, R, S, temp_HP);
 
@@ -385,6 +397,20 @@ where
     }
 
     CorrectionStatus::Applied
+}
+
+/// Views the `R×C` matrix `m` as a [`MatrixDataMut`] over exactly its first `R×C` values.
+///
+/// Panics, like the kernels would, if `m` holds fewer values. Through the view, the length is
+/// a constant to the kernels inlined behind it, so their own length checks fold away. The
+/// matrix and vector arguments `H` and `y` keep their own types: viewing them as well changes
+/// which kernel instances other filters in the same binary share, and with that LLVM's
+/// inlining (measured: slower fixed-gain observer steps on Cortex-M).
+#[inline(always)]
+fn exact_mut<const R: usize, const C: usize, T>(
+    m: &mut impl MatrixMut<R, C, T>,
+) -> MatrixDataMut<'_, R, C, T> {
+    MatrixDataMut::from(&mut m.as_mut_slice()[..R * C])
 }
 
 /// Performs the update step of the linear and extended observations with an externally
@@ -454,6 +480,7 @@ fn joseph_update<const STATES: usize, const OBSERVATIONS: usize, T>(
 /// `P` are formed: `P = P - K×HP - (K×HP)ᵀ + K×S×Kᵀ`.
 ///
 /// `temp_PHt` is only written once `temp_KHP` is consumed.
+#[inline(always)]
 #[allow(non_snake_case)]
 fn joseph_update_from_hp<const STATES: usize, const OBSERVATIONS: usize, T>(
     P: &mut impl MatrixMut<STATES, STATES, T>,
@@ -477,6 +504,7 @@ fn joseph_update_from_hp<const STATES: usize, const OBSERVATIONS: usize, T>(
 }
 
 /// Forms the innovation covariance `S = H×P×Hᵀ + R`, leaving `H×P` in `temp_HP`.
+#[inline(always)]
 #[allow(non_snake_case)]
 fn form_innovation_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
     P: &impl Matrix<STATES, STATES, T>,
@@ -703,6 +731,7 @@ where
 /// lives in local storage, otherwise `S` is copied into `temp_factor` (`OBSERVATIONS²` values)
 /// and factored there. Neither `x` nor `P` is written, and `K` only once
 /// the correction is known to apply.
+#[inline(always)]
 #[allow(non_snake_case, clippy::too_many_arguments)]
 fn gain_from_innovation_covariance<const STATES: usize, const OBSERVATIONS: usize, T>(
     P: &impl Matrix<STATES, STATES, T>,

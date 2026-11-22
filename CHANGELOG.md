@@ -354,6 +354,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   kernels already returned. This is accepted rather than corrected, since a correction would
   cost the saved addition again; the tests pin every other result bit for bit. Empty sums stay
   `+0.0` ([#181]).
+- The regular and extended corrections view their own buffers at the exact static length once,
+  at the start of the update, so the inlined kernels behind need no length checks of their own.
+  Bit-identical results, no new buffers, no API change. Fewer instructions per correction for
+  most sizes and types (Cortex-M4F `opt-level = "s"`, 2×1 `f32`: 506 → 492 for the Joseph
+  correction) and a smaller step at `"s"` (`thumbv7em`, 4×2 `f32`: 2948 → 2876 B Joseph), but
+  +0.1–0.4 % at 6×3 and for the `I16F16` 4×2 Joseph correction ([#180]).
 - With the `unsafe` feature, `libm` and no `std`, the `f32` square root on Arm hard-float targets
   (`target_abi = "eabihf"`, e.g. the Cortex-M4F) uses the FPU's `vsqrt.f32` instead of
   `libm::sqrtf` in software: 7 instead of 79 instructions per root on the M4F, up to 26 % fewer
@@ -480,6 +486,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177
 [#181]: https://github.com/sunsided/minikalman-rs/issues/181
 [#187]: https://github.com/sunsided/minikalman-rs/issues/187
+[#180]: https://github.com/sunsided/minikalman-rs/issues/180
 [#174]: https://github.com/sunsided/minikalman-rs/issues/174
 [#168]: https://github.com/sunsided/minikalman-rs/issues/168
 [#169]: https://github.com/sunsided/minikalman-rs/issues/169
