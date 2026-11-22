@@ -135,7 +135,6 @@ fn gap(a: [f64; 2], b: [f64; 2]) -> f64 {
 
 /// `settle_gain` reproduces SciPy's DARE in `f64`, in both covariance update forms and from
 /// two different starting covariances.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[cfg(any(feature = "std", feature = "libm"))]
 fn settle_gain_matches_scipy_in_f64() {
@@ -176,7 +175,6 @@ fn settle_gain_matches_scipy_in_f64() {
 }
 
 /// `settle_gain` reproduces SciPy's DARE in `f32` to about `1e-5` relative.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[cfg(any(feature = "std", feature = "libm"))]
 fn settle_gain_matches_scipy_in_f32() {
@@ -195,7 +193,6 @@ fn settle_gain_matches_scipy_in_f32() {
 }
 
 /// The gate and the noise adaptation of the observation do not take part.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[cfg(any(feature = "std", feature = "libm"))]
 fn settle_gain_bypasses_gate_and_adaptation() {
@@ -247,10 +244,8 @@ fn settle_gain_reports_not_positive_definite() {
 
 /// With `K∞`, the observer converges to the Kalman filter's state on the same data, and the
 /// gap closes at about `ρ` per step.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 // micromath's approximate square root keeps the filter's gain away from K∞.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[cfg(any(feature = "std", feature = "libm"))]
 fn observer_converges_to_the_kalman_filter() {
     let (mut filter, mut position) = design::<f64>(10.0);
@@ -567,10 +562,8 @@ fn deadbeat_gain_in_the_wrong_form_diverges() {
 
 /// A control input moves the observer's state like the Kalman filter's; with the same gain,
 /// both agree once the filter's gain has settled.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 // micromath's approximate square root keeps the filter's gain away from K∞.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[cfg(any(feature = "std", feature = "libm"))]
 fn control_moves_the_state_like_the_kalman_filter() {
     let builder = KalmanFilterBuilder::<2, f64>::default();
@@ -790,7 +783,6 @@ fn gated_observer(
 
 /// `settle_gain`'s `S∞` inverts to SciPy's `1/S∞`, and the fixed-gain NIS equals the
 /// Kalman filter's NIS at every step once the filter has settled.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[test]
 #[cfg(any(feature = "std", feature = "libm"))]
 fn gated_nis_matches_the_kalman_filter_in_steady_state() {

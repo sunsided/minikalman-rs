@@ -112,7 +112,6 @@ fn regular_run(update: CovarianceUpdate, adapt: bool) -> ([f64; 2], [f64; 4], f6
 ///
 /// Gated on an exact square root: micromath's approximate one makes the gain suboptimal, and
 /// for a suboptimal gain the two forms differ.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[cfg(any(feature = "std", feature = "libm"))]
 #[test]
 fn regular_joseph_matches_standard() {
@@ -190,7 +189,6 @@ fn extended_run(update: CovarianceUpdate) -> ([f64; 2], [f64; 4]) {
 ///
 /// Gated on an exact square root: micromath's approximate one makes the gain suboptimal, and
 /// for a suboptimal gain the two forms differ.
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 #[cfg(any(feature = "std", feature = "libm"))]
 #[test]
 fn extended_joseph_matches_standard() {
