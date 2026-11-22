@@ -395,21 +395,28 @@ export class Scope {
         ctx.setLineDash([]);
         // A named line that leaves the range gets a caret and its name where it leaves,
         // so an estimate that ran away does not just vanish.
+        // Brief excursions (a flinch at an outlier) are left alone; only a stretch of at
+        // least `minRun` samples is marked, at its start.
         if (layer.name) {
-          let inside = true;
-          for (let i = 0; i < visible; i++) {
+          const minRun = 10;
+          const side = (i) => {
             const y = py(layer.y[i]);
-            if (!Number.isFinite(y)) continue;
-            const out = y < margin.top ? 1 : y > margin.top + h ? -1 : 0;
-            if (out && inside) {
+            return !Number.isFinite(y) ? 0 : y < margin.top ? 1 : y > margin.top + h ? -1 : 0;
+          };
+          for (let i = 0; i < visible; i++) {
+            const out = side(i);
+            if (!out) continue;
+            let end = i;
+            while (end + 1 < visible && side(end + 1) === out) end++;
+            if (end - i + 1 >= minRun) {
               const x = px(t[i]);
               const edge = out > 0 ? margin.top + 1 : margin.top + h - 1;
               caret(ctx, x, edge, out);
-              ctx.textAlign = x > margin.left + w - 90 ? "right" : "left";
+              ctx.textAlign = x > margin.left + w - 110 ? "right" : "left";
               ctx.fillText(`${layer.name} off scale`, x + (ctx.textAlign === "left" ? 6 : -6), edge + out * 14);
               ctx.textAlign = "left";
             }
-            inside = !out;
+            i = end;
           }
         }
       } else if (layer.kind === "dots") {
