@@ -220,6 +220,58 @@
 //! # }
 //! ```
 //!
+//! ## Estimating Model Parameters
+//!
+//! When the model has unknown or drifting parameters `θ`, e.g. the pole `a` and gain `b` of
+//! `xₖ₊₁ = a·xₖ + b·uₖ`, there are three ways to estimate them alongside (or instead of) the
+//! state:
+//!
+//! | Approach | How | Fits when | Cost |
+//! |---|---|---|---|
+//! | **RLS alone** | [`rls::RecursiveLeastSquares`] regresses measured outputs on known regressors, `y = φᵀ·θ` | the regressors `φ` are measured directly, no state needs filtering | `O(p²)` for `p` parameters |
+//! | **Dual** (RLS + KF) | RLS identifies `θ̂`, a linear filter takes `A`, `B` from it each step | the model is linear in the state; you want a linear filter and an RLS forgetting factor | `O(p²) + O(n³)` |
+//! | **Joint** (augmented EKF/UKF) | `θ` becomes extra states, `s = [x, θ]`, of one nonlinear filter | the state is hidden and noisy, and its errors and the parameter errors are correlated | `O((n + p)³)` |
+//!
+//! The joint filter keeps the state–parameter cross-covariance, so each innovation moves the
+//! state and the parameters together. The dual estimator treats each half's output as exact
+//! (the `rls-adaptive` example adds `φᵀ·P_θ·φ` to `Q` to soften that). For the first-order
+//! plant, the augmented state is `[x, a, b]` with `f(s, u) = [a·x + b·u, a, b]`, the Jacobian
+//! `F = [[a, x, u], [0, 1, 0], [0, 0, 1]]` and `H = [1, 0, 0]`; the
+//! [`augmented-state`](https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/augmented_state.rs)
+//! example runs it as an EKF and a UKF on the same run, load step and noise as the dual
+//! [`rls-adaptive`](https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/rls_adaptive.rs)
+//! example, and prints both:
+//!
+//! ```text
+//!                  speed RMSE (σ_v = 0.2)   â − a (RMS)     b̂ − b (RMS)     re-id.
+//!   estimator      before  +50    settled  before  settled  before  settled  (steps)
+//!   joint EKF      0.128   0.202  0.111    0.011   0.016    0.018   0.038    43
+//!   joint UKF      0.127   0.205  0.110    0.011   0.017    0.018   0.038    31
+//!   dual RLS + KF  0.105   0.351  0.090    0.004   0.020    0.012   0.056    89
+//! ```
+//!
+//! Limits:
+//!
+//! - **Excitation and identifiability.** Parameters are only observable while the data
+//!   distinguishes them. Without an input `u`, `b` is not identifiable at all; with a constant
+//!   `u` and a settled `x`, only the combination `b·u / (1 − a)` is. Vary the input, or the
+//!   parameter covariance winds up (RLS has a windup guard; the joint filter's `P_θ` grows by
+//!   `q` per step while nothing excites it).
+//! - **Size.** A full `vec(A)` adds `n²` states, so a 6-state model would become a 42-state
+//!   filter. Joint estimation pays off for a few physical parameters, not for a whole
+//!   transition matrix.
+//! - **Parameter process noise.** `Q` on the parameters (a random walk) sets how fast they
+//!   adapt: `q = 0` stops learning once `P_θ` has shrunk, a large `q` follows changes quickly
+//!   but lets measurement noise into `θ̂`. It plays the role of RLS's forgetting factor; the
+//!   `augmented-state` example sweeps it.
+//! - **Linearization.** The augmented model is nonlinear even when the plant is linear (`a·x`).
+//!   The EKF can be biased when the initial `P_θ` is far off; the UKF needs no Jacobian and
+//!   costs `2·(n + p) + 1` model evaluations per step.
+//!
+//! Reference: E. A. Wan and A. T. Nelson, "Dual Kalman Filtering Methods for Nonlinear
+//! Prediction, Smoothing, and Estimation", *Advances in Neural Information Processing
+//! Systems 9* (NeurIPS 1996).
+//!
 //! ## `no_std` Example
 //!
 //! Systems without the liberty of heap allocation can use the storage types:
@@ -472,7 +524,9 @@ pub mod ud {
 /// `μ` is [`RegularKalman::predict_tuned(√μ)`](regular::RegularKalman::predict_tuned) while
 /// the windup guard is off or inactive.
 /// Its estimate can feed a Kalman filter's `A` and `B` each step (dual estimation, see the
-/// `rls-adaptive` example). Each sample forgets, then corrects:
+/// `rls-adaptive` example; the `augmented-state` example and
+/// [Estimating Model Parameters](crate#estimating-model-parameters) compare it with joint
+/// estimation). Each sample forgets, then corrects:
 #[doc = diagram!("rls-update.mmd")]
 pub mod rls {
     pub use crate::kalman::rls::*;

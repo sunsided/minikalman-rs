@@ -694,7 +694,18 @@ xychart-beta
 
 The noise is seeded; regenerate the chart with `-- --chart`.
 
+To estimate the parameters inside the filter instead, append them to the state: the
+[`augmented-state`] example runs a joint EKF and UKF on `[x, a, b]` over the same run and
+prints them next to this dual estimator. The joint filters re-identify the plant after the
+load step in 30 to 45 steps instead of about 90; the crate docs' "Estimating model parameters"
+section compares joint, dual and RLS-only estimation and their limits:
+
+```shell
+cargo run --example augmented-state --features=std
+```
+
 [`rls-adaptive`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/rls_adaptive.rs
+[`augmented-state`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/augmented_state.rs
 
 ### Extended Kalman Filters
 

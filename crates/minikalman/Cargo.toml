@@ -86,6 +86,11 @@ path = "examples/rls_adaptive.rs"
 required-features = ["std"]
 
 [[example]]
+name = "augmented-state"
+path = "examples/augmented_state.rs"
+required-features = ["std"]
+
+[[example]]
 name = "radar_2d_ukf_builder"
 path = "examples/radar_2d_ukf_builder.rs"
 required-features = ["alloc"]

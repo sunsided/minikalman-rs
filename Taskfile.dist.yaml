@@ -210,6 +210,13 @@ tasks:
     cmds:
       - "{{.CARGO}} run --example radar-2d --features std"
 
+  example:ekf:augmented-state:
+    desc: Run the joint (augmented-state) parameter estimation example (EKF and UKF vs. dual RLS)
+    aliases:
+      - example:augmented-state
+    cmds:
+      - "{{.CARGO}} run --example augmented-state --features std"
+
   # Regular (linear) Kalman Filter examples
   example:linear:gravity:
     desc: Run the gravity regular Kalman filter example
