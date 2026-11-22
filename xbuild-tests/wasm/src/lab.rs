@@ -160,7 +160,10 @@ mod tests {
         assert!(samples.iter().all(|&s| s == b.gaussian()));
         let mean = samples.iter().sum::<f64>() / 20_000.0;
         let var = samples.iter().map(|s| (s - mean) * (s - mean)).sum::<f64>() / 20_000.0;
-        assert!(mean.abs() < 0.03 && (var - 1.0).abs() < 0.05, "{mean} {var}");
+        assert!(
+            mean.abs() < 0.03 && (var - 1.0).abs() < 0.05,
+            "{mean} {var}"
+        );
     }
 
     #[test]

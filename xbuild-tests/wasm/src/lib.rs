@@ -6,6 +6,7 @@
 //! `WebAssembly.instantiate` alone; no `wasm-bindgen` or JS glue is required.
 //! See `www/index.html` for the browser side and `smoke.mjs` for a Node check.
 
+pub mod attitude;
 pub mod lab;
 pub mod numerics;
 pub mod outliers;

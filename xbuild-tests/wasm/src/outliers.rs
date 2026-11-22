@@ -120,15 +120,21 @@ pub extern "C" fn outliers_run(
         let mut observations = observations.each_mut().map(ObservationStorage::build);
         let start = truth(0.0, jump);
         for (filter, observation) in filters.iter_mut().zip(observations.iter_mut()) {
-            filter.state_transition_mut().apply(|a| model.fill_transition(a));
-            filter.direct_process_noise_mut().apply(|q| model.fill_process_noise(q));
+            filter
+                .state_transition_mut()
+                .apply(|a| model.fill_transition(a));
+            filter
+                .direct_process_noise_mut()
+                .apply(|q| model.fill_process_noise(q));
             filter.state_vector_mut().set(0, 0, start);
             filter.estimate_covariance_mut().apply(|p| {
                 p.set(0, 0, sigma * sigma);
                 p.set(1, 1, 4.0);
             });
             observation.observation_matrix_mut().set(0, 0, 1.0);
-            observation.measurement_noise_covariance_mut().set(0, 0, sigma * sigma);
+            observation
+                .measurement_noise_covariance_mut()
+                .set(0, 0, sigma * sigma);
         }
         observations[1].set_gate(Some(gate));
 
@@ -149,7 +155,9 @@ pub extern "C" fn outliers_run(
             trace.set(channel::MEASUREMENT, k, z);
             trace.set(channel::OUTLIER, k, f32::from(u8::from(is_outlier)));
 
-            for (i, (filter, observation)) in filters.iter_mut().zip(observations.iter_mut()).enumerate() {
+            for (i, (filter, observation)) in
+                filters.iter_mut().zip(observations.iter_mut()).enumerate()
+            {
                 filter.predict();
                 observation.measurement_vector_mut().set(0, 0, z);
                 let status = if i == 2 {
@@ -177,9 +185,11 @@ pub extern "C" fn outliers_run(
                     let reacquiring = reacquire > 0 && consecutive >= reacquire;
                     if reacquiring {
                         // Admit that the model lost the target: widen P until readings pass.
-                        filter
-                            .estimate_covariance_mut()
-                            .apply(|p| p.as_mut_slice().iter_mut().for_each(|v| *v *= REACQUIRE_INFLATION));
+                        filter.estimate_covariance_mut().apply(|p| {
+                            p.as_mut_slice()
+                                .iter_mut()
+                                .for_each(|v| *v *= REACQUIRE_INFLATION)
+                        });
                         consecutive = 0;
                         reacquisitions += 1;
                     }
@@ -199,8 +209,8 @@ pub extern "C" fn outliers_run(
         let error = |trace: &crate::lab::Trace<'_>, c: usize| {
             rms((0..STEPS).map(|k| f64::from(trace.get(c, k) - trace.get(channel::TRUTH, k))))
         };
-        for i in 0..3 {
-            summary[i] = error(trace, channel::ESTIMATE + i) as f32;
+        for (i, value) in summary.iter_mut().take(3).enumerate() {
+            *value = error(trace, channel::ESTIMATE + i) as f32;
         }
         summary[3] = rms((0..STEPS)
             .filter(|&k| trace.get(channel::OUTLIER, k) == 0.0)
@@ -239,7 +249,10 @@ mod tests {
     fn without_outliers_all_agree() {
         outliers_run(2, 0.5, 0.0, 15.0, 9.0, 4.0, 0.0, 0);
         let s = summary();
-        assert!((s[1] - s[0]).abs() < 0.05 && (s[2] - s[0]).abs() < 0.05, "{s:?}");
+        assert!(
+            (s[1] - s[0]).abs() < 0.05 && (s[2] - s[0]).abs() < 0.05,
+            "{s:?}"
+        );
     }
 
     #[test]
@@ -247,20 +260,34 @@ mod tests {
         outliers_run(1, 0.5, 0.1, 15.0, 9.0, 4.0, 3.0, 0);
         let locked: [f32; 10] = crate::lab::summary();
         // The plain and robust filters follow the jump; the gated one coasts away.
-        assert!(locked[1] > 5.0 * locked[2], "gated {} vs robust {}", locked[1], locked[2]);
+        assert!(
+            locked[1] > 5.0 * locked[2],
+            "gated {} vs robust {}",
+            locked[1],
+            locked[2]
+        );
         assert!(locked[0] < 1.5, "plain {}", locked[0]);
         assert_eq!(locked[9], 0.0);
 
         outliers_run(1, 0.5, 0.1, 15.0, 9.0, 4.0, 3.0, 5);
         let recovered: [f32; 10] = crate::lab::summary();
         assert!(recovered[9] >= 1.0, "re-acquired {} times", recovered[9]);
-        assert!(recovered[1] < 0.2 * locked[1], "gated {} after re-acquiring", recovered[1]);
+        assert!(
+            recovered[1] < 0.2 * locked[1],
+            "gated {} after re-acquiring",
+            recovered[1]
+        );
     }
 
     #[test]
     fn extreme_knobs_stay_finite() {
-        for args in [(0, 0.0, 0.0, 0.0, 0.0, 0.0, -99.0, 0), (u32::MAX, 99.0, 1.0, 999.0, 999.0, 999.0, 99.0, 999)] {
-            outliers_run(args.0, args.1, args.2, args.3, args.4, args.5, args.6, args.7);
+        for args in [
+            (0, 0.0, 0.0, 0.0, 0.0, 0.0, -99.0, 0),
+            (u32::MAX, 99.0, 1.0, 999.0, 999.0, 999.0, 99.0, 999),
+        ] {
+            outliers_run(
+                args.0, args.1, args.2, args.3, args.4, args.5, args.6, args.7,
+            );
             assert!(summary()[..3].iter().all(|v| v.is_finite()), "{args:?}");
         }
     }

@@ -300,6 +300,28 @@ code {
   touch-action: pan-y;
 }
 
+.scope canvas.radar {
+  aspect-ratio: 16 / 9;
+  height: auto;
+  touch-action: none;
+}
+
+.radar-knobs {
+  margin-top: 0;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  column-gap: 2rem;
+}
+
+.radar-knobs .hint,
+.radar-knobs .switches {
+  grid-column: 1 / -1;
+}
+
+fieldset.knobs legend {
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
 .scope-title {
   position: absolute;
   top: 0.4rem;
@@ -375,7 +397,7 @@ code {
 
 .knob {
   display: grid;
-  grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr) 4.75rem;
+  grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr) minmax(4.75rem, auto);
   align-items: center;
   gap: 0.75rem;
   font-size: var(--step--1);
@@ -562,6 +584,10 @@ button:disabled {
   font-size: var(--step--1);
   color: var(--ink-soft);
   margin: 0;
+}
+
+.scrub {
+  grid-template-columns: auto minmax(0, 1fr) 4.75rem;
 }
 
 .dial canvas {

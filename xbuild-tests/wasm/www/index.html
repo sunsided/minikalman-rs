@@ -86,6 +86,78 @@
     </nav>
 
     <!-- EXPERIMENTS -->
+    <section class="wrap experiment" id="radar" aria-labelledby="radar-title">
+      <div class="notes">
+        <h2 id="radar-title">EKF vs UKF: tracking with range and bearing</h2>
+        <p class="api"><code>extended::ExtendedKalman</code> and <code>unscented::UnscentedKalman</code>, 4 states, 2 measurements</p>
+        <p>
+          Radars measure range and bearing to a moving target. Range noise spreads a measurement along the line of
+          sight; bearing noise spreads it sideways, more so the further away the target is. Together they make a
+          <span style="color: var(--meas)">crescent</span>. The <span style="color: var(--c2)">extended</span> filter
+          approximates it with a Gaussian by linearizing at its estimate, the <span style="color: var(--c3)">unscented</span>
+          filter by pushing sigma points through the measurement function. Between measurements both only predict and
+          their ellipse grows; each correction (a dot on the track) shrinks it again.
+        </p>
+        <p>
+          Behind a radar the bearing jumps from +180° to −180° (the dashed line). With <em>wrap bearing residuals</em>
+          on, both filters use <code>angles::wrap_pi</code> to see that as the small step it is.
+        </p>
+        <p class="seeing">
+          <strong>What you're seeing:</strong> far from the radar the crescent is strongly curved, and that is where the two
+          Gaussian approximations differ most. Turn off wrapping and restart, and both filters
+          are thrown off when the target passes behind the radar. A second radar adds a crescent from another angle;
+          where the two intersect, the ellipses shrink.
+        </p>
+        <p class="source">Read the experiment in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/radar.rs"><code>radar.rs</code></a>, and the <a href="https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/radar_2d.rs"><code>radar_2d</code></a> and <a href="https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/radar_2d_ukf.rs"><code>radar_2d_ukf</code></a> examples.</p>
+      </div>
+      <div class="instrument">
+        <div class="actions">
+          <button id="pause" type="button">Pause</button>
+          <button id="step" type="button" disabled>Step</button>
+          <button id="next-measurement" type="button" disabled>Next measurement</button>
+          <button id="restart" type="button">Restart</button>
+        </div>
+        <div class="scope-pair">
+          <div class="scope"><span class="scope-title" style="color: var(--c2)">extended Kalman filter</span><canvas id="radar-ekf" class="radar" role="img" aria-label="Radar view with the EKF estimate and its 2σ ellipse"></canvas></div>
+          <div class="scope"><span class="scope-title" style="color: var(--c3)">unscented Kalman filter</span><canvas id="radar-ukf" class="radar" role="img" aria-label="Radar view with the UKF estimate and its 2σ ellipse"></canvas></div>
+        </div>
+        <ul class="legend">
+          <li><span class="swatch" style="--color: var(--truth)"></span>true path</li>
+          <li><span class="swatch dot" style="--color: var(--meas)"></span>radar 1 measurement</li>
+          <li><span class="swatch dot" style="--color: var(--c4)"></span>radar 2 measurement</li>
+          <li><span class="swatch" style="--color: var(--c2)"></span>EKF, 2σ ellipse</li>
+          <li><span class="swatch" style="--color: var(--c3)"></span>UKF, 2σ ellipse</li>
+        </ul>
+        <p class="status" id="radar-status" aria-live="off"></p>
+        <fieldset class="knobs radar-knobs">
+          <legend class="hint">Target</legend>
+          <label class="knob"><span>Path</span>
+            <select id="preset">
+              <option value="circle">Circle the radar</option>
+              <option value="straight">Straight pass</option>
+              <option value="eight">Figure eight</option>
+              <option value="drawn" disabled>Drawn by you</option>
+            </select><span></span>
+          </label>
+          <div class="switches" role="radiogroup" aria-label="Pointer tool">
+            <label><input type="radio" name="tool" value="edit" checked> Drag radars and waypoints</label>
+            <label><input type="radio" name="tool" value="draw"> Draw a path</label>
+            <label><input type="radio" name="tool" value="steer"> Steer</label>
+          </div>
+          <p class="hint" id="tool-hint"></p>
+          <label class="knob"><span>Speed</span><input id="speed" type="range" min="1" max="15" step="0.5" value="6"><output id="speed-value" for="speed"></output></label>
+          <label class="knob"><span>Measure every</span><input id="measure-every" type="range" min="1" max="20" step="1" value="5"><output id="measure-every-value" for="measure-every"></output></label>
+          <label class="knob"><span>Process noise q</span><input id="process-noise" type="range" min="0.1" max="10" step="0.1" value="3"><output id="process-noise-value" for="process-noise"></output></label>
+          <label class="knob"><span>Bearing noise σ</span><input id="sigma-bearing" type="range" min="0.01" max="0.3" step="0.01" value="0.12"><output id="sigma-bearing-value" for="sigma-bearing"></output></label>
+          <label class="knob"><span>Range noise σ</span><input id="sigma-range" type="range" min="0.1" max="3" step="0.1" value="0.5"><output id="sigma-range-value" for="sigma-range"></output></label>
+          <div class="switches">
+            <label><input id="wrap" type="checkbox" checked> Wrap bearing residuals</label>
+            <label><input id="second-radar" type="checkbox"> Second radar</label>
+          </div>
+        </fieldset>
+      </div>
+    </section>
+
     <section class="wrap experiment" id="outliers" aria-labelledby="outliers-title">
       <div class="notes">
         <h2 id="outliers-title">Outliers: trust, reject or down-weight</h2>
@@ -295,6 +367,73 @@
           <div class="readout" id="pa-a1" style="--color: var(--c3)"><dt>Joint: â, b̂ RMS error, settled</dt><dd>—</dd></div>
           <div class="readout" id="pa-x0" style="--color: var(--c2)"><dt>Dual: speed RMSE before / after</dt><dd>—</dd></div>
           <div class="readout" id="pa-x1" style="--color: var(--c3)"><dt>Joint: speed RMSE before / after</dt><dd>—</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="wrap experiment" id="attitude" aria-labelledby="attitude-title">
+      <div class="notes">
+        <h2 id="attitude-title">Attitude: when the accelerometer lies</h2>
+        <p class="api"><code>extended::ExtendedKalman</code> as an error-state filter on a quaternion, <code>set_gate</code></p>
+        <p>
+          An IMU's attitude as a small flight controller would estimate it: the gyro rotates a nominal quaternion at
+          200 Hz, and a six-state <code>f32</code> filter estimates only the small error in attitude and gyro bias.
+          The accelerometer corrects the tilt, because at rest it measures gravity; a heading source corrects the yaw.
+        </p>
+        <p>
+          A minute of motion: rest, a tumble, a 15 s turn with 3 m/s² sideways acceleration, a shake, slow drift.
+          While the body accelerates, the accelerometer points the wrong way. The
+          <span style="color: var(--c2)">gated</span> filter rejects tilt updates whose NIS exceeds the gate and then
+          waits a moment. The <span style="color: var(--c1)">window</span> filter uses the common rule instead: accept when
+          <code>|a|</code> is within ±10 % of g.
+        </p>
+        <div class="knobs">
+          <label class="knob"><span>Acceleration scale</span><input id="at-dyn" type="range" min="0" max="2.5" step="0.1" value="1"><output for="at-dyn"></output></label>
+          <label class="knob"><span>Tilt gate (χ², 3 dof)</span><input id="at-gate" type="range" min="0.5" max="3" step="0.05" value="1.05"><output for="at-gate"></output></label>
+          <label class="knob"><span>Hold-off after a rejection</span><input id="at-hold" type="range" min="0" max="30" step="1" value="10"><output for="at-hold"></output></label>
+          <label class="knob"><span>Window ±|a|</span><input id="at-window" type="range" min="0.02" max="0.3" step="0.01" value="0.1"><output for="at-window"></output></label>
+          <label class="knob"><span>Noise seed</span><input id="at-seed" type="range" min="1" max="300" step="1" value="184"><output for="at-seed"></output></label>
+        </div>
+        <div class="switches"><label><input id="at-heading" type="checkbox" checked> Heading source (5 Hz)</label></div>
+        <p class="seeing">
+          <strong>What you're seeing:</strong> in the turn, <code>|g + a|</code> is only 4.6 % above g, so the window
+          accepts every sample while their direction is 17° off vertical; the window filter is dragged tens of degrees
+          off and does not recover. The gate sees the direction: it skips nearly all dynamic samples and keeps the error
+          around a degree. Scale the acceleration up to 2 and the window starts to work, since <code>|a|</code> now leaves
+          it. Open the gate wide and the gated filter suffers too. Turn the heading off and the yaw drifts with the
+          gyro bias.
+        </p>
+        <p class="source">Read the experiment in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/attitude.rs"><code>attitude.rs</code></a>, the full <a href="https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/examples/attitude_eskf.rs"><code>attitude_eskf</code></a> example, and the docs on <a href="https://docs.rs/minikalman/latest/minikalman/extended/index.html#filtering-on-manifolds-error-state-and-invariant-ekf">filtering on manifolds</a>.</p>
+      </div>
+      <div class="instrument">
+        <div class="dials" role="group" aria-label="Attitude at the scrubbed time">
+          <figure class="dial"><canvas id="at-dial-truth" role="img" aria-label="True attitude"></canvas><figcaption>truth</figcaption></figure>
+          <figure class="dial"><canvas id="at-dial-gated" role="img" aria-label="Gated filter attitude"></canvas><figcaption style="color: var(--c2)">gated</figcaption></figure>
+          <figure class="dial"><canvas id="at-dial-window" role="img" aria-label="Window filter attitude"></canvas><figcaption style="color: var(--c1)">window</figcaption></figure>
+        </div>
+        <div class="knob scrub">
+          <button id="at-play" type="button">Play</button>
+          <input id="at-time" type="range" min="0" max="2999" step="1" value="1100" aria-label="Time">
+          <output for="at-time" id="at-time-value"></output>
+        </div>
+        <div class="scope"><span class="scope-title">attitude error (°)</span><canvas id="at-error" role="img" aria-label="Attitude error over time of both filters"></canvas></div>
+        <div class="scope"><span class="scope-title">roll (°)</span><canvas id="at-roll" role="img" aria-label="Roll over time"></canvas></div>
+        <div class="scope"><span class="scope-title">true linear acceleration |a| (m/s²) and the tilt-update decisions</span><canvas id="at-accel" role="img" aria-label="Acceleration and tilt update decisions over time"></canvas></div>
+        <ul class="legend">
+          <li><span class="swatch dashed" style="--color: var(--truth)"></span>truth</li>
+          <li><span class="swatch" style="--color: var(--c2)"></span>gated</li>
+          <li><span class="swatch" style="--color: var(--c1)"></span>window</li>
+          <li><span class="swatch tick" style="--color: var(--c2)"></span>gate rejected</li>
+          <li><span class="swatch tick" style="--color: var(--c4)"></span>held off</li>
+          <li><span class="swatch tick" style="--color: var(--c1)"></span>window accepted a moving sample</li>
+        </ul>
+        <dl class="readouts">
+          <div class="readout" id="at-r0" style="--color: var(--c2)"><dt>Gated: RMS / largest error</dt><dd>—</dd></div>
+          <div class="readout" id="at-r1" style="--color: var(--c1)"><dt>Window: RMS / largest error</dt><dd>—</dd></div>
+          <div class="readout" id="at-skip" style="--color: var(--c2)"><dt>Moving samples the gate skipped</dt><dd>—</dd></div>
+          <div class="readout" id="at-false" style="--color: var(--c2)"><dt>Still samples the gate rejected</dt><dd>—</dd></div>
+          <div class="readout" id="at-win" style="--color: var(--c1)"><dt>Moving samples the window took</dt><dd>—</dd></div>
+          <div class="readout" id="at-nis" style="--color: var(--c2)"><dt>Mean NIS of used tilt updates (expect 3)</dt><dd>—</dd></div>
         </dl>
       </div>
     </section>

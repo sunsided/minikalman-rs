@@ -9,7 +9,9 @@
 //! - **Joint**: one extended Kalman filter on the augmented state `[x, a, b]`, with the
 //!   parameters as a random walk of variance `q` per step.
 
-use minikalman::extended::{FilterStorage as EkfStorage, ObservationStorage as EkfObservationStorage};
+use minikalman::extended::{
+    FilterStorage as EkfStorage, ObservationStorage as EkfObservationStorage,
+};
 use minikalman::matrix::MatrixData;
 use minikalman::prelude::*;
 use minikalman::regular::{ControlStorage, FilterStorage, ObservationStorage};
@@ -116,7 +118,9 @@ pub extern "C" fn parameters_run(seed: u32, sensor_sigma: f32, log_q: f32, forge
             n.set_at(1, 1, q);
             n.set_at(2, 2, q);
         });
-        ekf_measurement.observation_jacobian_matrix_mut().apply(|h| h.set_at(0, 0, 1.0));
+        ekf_measurement
+            .observation_jacobian_matrix_mut()
+            .apply(|h| h.set_at(0, 0, 1.0));
         ekf_measurement
             .measurement_noise_covariance_mut()
             .apply(|r| r.set_at(0, 0, sensor * sensor));
@@ -134,7 +138,9 @@ pub extern "C" fn parameters_run(seed: u32, sensor_sigma: f32, log_q: f32, forge
         let mut kf_measurement = kf_observation_storage.build();
         kf.estimate_covariance_mut().set(0, 0, 1.0);
         kf_measurement.observation_matrix_mut().set(0, 0, 1.0);
-        kf_measurement.measurement_noise_covariance_mut().set(0, 0, sensor * sensor);
+        kf_measurement
+            .measurement_noise_covariance_mut()
+            .set(0, 0, sensor * sensor);
 
         let (mut x, mut u) = (0.0f64, 1.0f64);
         for k in 0..STEPS {
@@ -219,9 +225,11 @@ pub extern "C" fn parameters_run(seed: u32, sensor_sigma: f32, log_q: f32, forge
             #[allow(clippy::cast_precision_loss)]
             let reidentified = (CHANGE_AT..STEPS)
                 .find(|&k| {
-                    f64::from((trace.get(base + 1, k) - trace.get(channel::THETA, k)).abs()) < A_BOUND
-                        && f64::from((trace.get(base + 2, k) - trace.get(channel::THETA + 1, k)).abs())
-                            < B_BOUND
+                    f64::from((trace.get(base + 1, k) - trace.get(channel::THETA, k)).abs())
+                        < A_BOUND
+                        && f64::from(
+                            (trace.get(base + 2, k) - trace.get(channel::THETA + 1, k)).abs(),
+                        ) < B_BOUND
                 })
                 .map_or(-1.0, |k| (k + 1 - CHANGE_AT) as f32);
             summary[6 + i] = reidentified;

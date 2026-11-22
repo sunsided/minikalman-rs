@@ -74,7 +74,12 @@ fn to_f64<T: ToPrimitive>(value: T) -> f64 {
 /// Returns `(steps with P not positive definite, first such step or -1, largest asymmetry,
 /// final position error)`.
 #[allow(clippy::cast_precision_loss)]
-fn run<T>(settings: Settings, update: CovarianceUpdate, trace: &mut Trace<'_>, base: usize) -> [f32; 4]
+fn run<T>(
+    settings: Settings,
+    update: CovarianceUpdate,
+    trace: &mut Trace<'_>,
+    base: usize,
+) -> [f32; 4]
 where
     T: MatrixDataType + ToPrimitive,
 {
@@ -101,7 +106,9 @@ where
             h.set(0, 0, num(cos));
             h.set(0, 1, num(sin));
         });
-        sensor.measurement_noise_covariance_mut().make_scalar(num(settings.r));
+        sensor
+            .measurement_noise_covariance_mut()
+            .make_scalar(num(settings.r));
     }
 
     let mut noise = Noise::new(settings.seed);
@@ -136,7 +143,11 @@ where
 
         trace.set(base + channel::ASYMMETRY, step, asymmetry as f32);
         trace.set(base + channel::MIN_DIAGONAL, step, min_diagonal as f32);
-        trace.set(base + channel::POSITIVE_DEFINITE, step, f32::from(u8::from(positive_definite)));
+        trace.set(
+            base + channel::POSITIVE_DEFINITE,
+            step,
+            f32::from(u8::from(positive_definite)),
+        );
         trace.set(base + channel::ERROR, step, error as f32);
         if !positive_definite {
             indefinite += 1;
@@ -164,7 +175,11 @@ where
 /// * `steps` - Number of steps, `10..=600`.
 #[unsafe(no_mangle)]
 pub extern "C" fn numerics_run(seed: u32, sensors: u32, log_r: f32, log_q: f32, steps: u32) -> u32 {
-    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss
+    )]
     let settings = Settings {
         steps: knob(steps as f32, 10.0, MAX_STEPS as f32) as usize,
         sensors: knob(sensors as f32, 2.0, MAX_SENSORS as f32) as usize,
@@ -173,20 +188,24 @@ pub extern "C" fn numerics_run(seed: u32, sensors: u32, log_r: f32, log_q: f32, 
         seed,
     };
 
-    record(channel::PER_VARIANT * VARIANTS, settings.steps, |trace, summary| {
-        let updates = [CovarianceUpdate::Standard, CovarianceUpdate::Joseph];
-        for (u, update) in updates.into_iter().enumerate() {
-            let results = [
-                run::<f32>(settings, update, trace, u * channel::PER_VARIANT),
-                run::<I16F16>(settings, update, trace, (2 + u) * channel::PER_VARIANT),
-                run::<I32F32>(settings, update, trace, (4 + u) * channel::PER_VARIANT),
-            ];
-            for (t, result) in results.iter().enumerate() {
-                let v = 2 * t + u;
-                summary[4 * v..4 * v + 4].copy_from_slice(result);
+    record(
+        channel::PER_VARIANT * VARIANTS,
+        settings.steps,
+        |trace, summary| {
+            let updates = [CovarianceUpdate::Standard, CovarianceUpdate::Joseph];
+            for (u, update) in updates.into_iter().enumerate() {
+                let results = [
+                    run::<f32>(settings, update, trace, u * channel::PER_VARIANT),
+                    run::<I16F16>(settings, update, trace, (2 + u) * channel::PER_VARIANT),
+                    run::<I32F32>(settings, update, trace, (4 + u) * channel::PER_VARIANT),
+                ];
+                for (t, result) in results.iter().enumerate() {
+                    let v = 2 * t + u;
+                    summary[4 * v..4 * v + 4].copy_from_slice(result);
+                }
             }
-        }
-    })
+        },
+    )
 }
 
 #[cfg(test)]

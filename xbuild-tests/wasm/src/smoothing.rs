@@ -54,7 +54,13 @@ fn truth(t: f32) -> f32 {
 }
 
 /// Writes a position and its standard deviation to `channel` and `channel + 1`.
-fn put(trace: &mut Trace<'_>, channel: usize, k: usize, x: &impl Matrix<2, 1, f32>, p: &impl Matrix<2, 2, f32>) {
+fn put(
+    trace: &mut Trace<'_>,
+    channel: usize,
+    k: usize,
+    x: &impl Matrix<2, 1, f32>,
+    p: &impl Matrix<2, 2, f32>,
+) {
     trace.set(channel, k, x.get(0, 0));
     trace.set(channel + 1, k, p.get(0, 0).max(0.0).sqrt());
 }
@@ -101,14 +107,20 @@ pub extern "C" fn smoothing_run(seed: u32, sigma: f32, q: f32, gap: f32) -> u32 
     record(channel::COUNT, STEPS, |trace, summary| {
         let mut filter = filter_storage.build();
         let mut measurement = observation_storage.build();
-        filter.state_transition_mut().apply(|a| model.fill_transition(a));
-        filter.direct_process_noise_mut().apply(|n| model.fill_process_noise(n));
+        filter
+            .state_transition_mut()
+            .apply(|a| model.fill_transition(a));
+        filter
+            .direct_process_noise_mut()
+            .apply(|n| model.fill_process_noise(n));
         filter.estimate_covariance_mut().apply(|m| {
             m.set(0, 0, 25.0);
             m.set(1, 1, 25.0);
         });
         measurement.observation_matrix_mut().set(0, 0, 1.0);
-        measurement.measurement_noise_covariance_mut().set(0, 0, sigma * sigma);
+        measurement
+            .measurement_noise_covariance_mut()
+            .set(0, 0, sigma * sigma);
 
         for k in 0..STEPS {
             #[allow(clippy::cast_precision_loss)]
@@ -118,8 +130,12 @@ pub extern "C" fn smoothing_run(seed: u32, sigma: f32, q: f32, gap: f32) -> u32 
             trace.set(channel::LAG + 1, k, f32::NAN);
 
             filter.predict();
-            filter.state_vector().inspect(|v| v.copy_to(&mut x_predicted[k]));
-            filter.estimate_covariance().inspect(|m| m.copy_to(&mut p_predicted[k]));
+            filter
+                .state_vector()
+                .inspect(|v| v.copy_to(&mut x_predicted[k]));
+            filter
+                .estimate_covariance()
+                .inspect(|m| m.copy_to(&mut p_predicted[k]));
 
             let z = truth + sigma * noise.gaussian() as f32;
             if in_gap(k) {
@@ -130,14 +146,22 @@ pub extern "C" fn smoothing_run(seed: u32, sigma: f32, q: f32, gap: f32) -> u32 
                 filter.correct(&mut measurement);
             }
             filter.state_vector().inspect(|v| v.copy_to(&mut x[k]));
-            filter.estimate_covariance().inspect(|m| m.copy_to(&mut p[k]));
+            filter
+                .estimate_covariance()
+                .inspect(|m| m.copy_to(&mut p[k]));
             put(trace, channel::FILTER, k, &x[k], &p[k]);
 
             let pushed = filter
                 .state_transition()
                 .inspect(|a| lag.push(a, &x[k], &p[k], &x_predicted[k], &p_predicted[k]));
             if pushed.is_some() {
-                put(trace, channel::LAG, k + 1 - LAG, lag.state(), lag.covariance());
+                put(
+                    trace,
+                    channel::LAG,
+                    k + 1 - LAG,
+                    lag.state(),
+                    lag.covariance(),
+                );
             }
         }
 
