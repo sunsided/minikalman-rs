@@ -86,8 +86,9 @@ from the snapshot in the [time budget](#time-budget); produce your own (see
 
 Two error-state filters of the shapes flight controllers run, in `src/nav_bench.rs`, with the
 model (quaternion helpers and the 3×3 blocks of `examples/attitude_eskf.rs`, placed at an
-offset) in `src/nav.rs`, which holds no benchmark code so the GNSS/INS example (#186) can
-include it:
+offset) in `src/nav.rs`, which holds no benchmark code; the GNSS/INS example
+([`examples/gnss_ins.rs`](../../crates/minikalman/examples/gnss_ins.rs), #186) includes it,
+so a change to the model changes both:
 
 - **`att_6x3`**: attitude `δθ` and gyro bias `δb_g` (6 states). Gyro prediction with a
   jittered `Δt` around 2.5 ms (400 Hz), the 3-measurement accelerometer tilt update and a

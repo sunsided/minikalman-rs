@@ -686,6 +686,11 @@ pub mod square_root {
 /// the gate rejects dynamic acceleration that a ±10 % `|a|` window lets through, and where
 /// the gate locks out. Its model functions are 3×3 blocks, so a larger error state, e.g.
 /// position, velocity, attitude and bias, can reuse them.
+///
+/// The `gnss-ins` example (`examples/gnss_ins.rs`) does that: a 12-state GNSS/INS error-state
+/// filter `(δp, δv, δθ, δb_g)` in `f32` on 5 904 bytes of storage, with IMU prediction at a
+/// varying `Δt`, a gated 5-measurement GNSS update, and barometer and heading as sequential
+/// scalar updates, each followed by the reset into the nominal state.
 pub mod extended {
     pub use crate::kalman::extended::*;
     pub use crate::observations::extended::*;

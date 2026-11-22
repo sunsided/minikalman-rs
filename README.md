@@ -823,8 +823,20 @@ external heading. The [`se2-iekf`] example does the same for a planar pose on SE
 cargo run --example attitude-eskf --features=std
 ```
 
+The [`gnss-ins`] example extends it to the navigation filter of a flight controller: twelve
+error states (position, velocity, attitude, gyro bias) in `f32` on 5 904 bytes of storage,
+IMU prediction at 400 Hz, a gated GNSS position and velocity update that rejects outliers
+and survives a 10 s dropout, and barometer and heading as sequential scalar updates. With
+the Renode instruction counts of [`benches/mcu`](https://github.com/sunsided/minikalman-rs/blob/main/benches/mcu/README.md#time-budget), it takes
+roughly 7.5 to 15 % of a 168 MHz Cortex-M4F at `opt-level = "s"`.
+
+```shell
+cargo run --example gnss-ins --features=std
+```
+
 [`attitude-eskf`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/attitude_eskf.rs
 [`se2-iekf`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/se2_iekf.rs
+[`gnss-ins`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/gnss_ins.rs
 
 ### Unscented Kalman Filter
 
