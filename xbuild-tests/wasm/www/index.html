@@ -136,6 +136,101 @@
         </dl>
       </div>
     </section>
+
+    <section class="wrap experiment" id="numerics" aria-labelledby="numerics-title">
+      <div class="notes">
+        <h2 id="numerics-title">Numerics: when the variance drops below one bit</h2>
+        <p class="api"><code>CovarianceUpdate::Standard</code> vs <code>Joseph</code>, in <code>f32</code>, <code>I16F16</code> and <code>I32F32</code></p>
+        <p>
+          Ten precise position sensors at 18° steps update a 2D tracker one after another. That drives the
+          position variance in <code>P</code> towards about 10⁻⁵, below the smallest step of
+          <span style="color: var(--c1)">Q16.16 fixed point</span> (2⁻¹⁶ ≈ 1.5·10⁻⁵).
+          The same run is computed six times: three number types, each with the short update
+          <code>P − K·H·P</code> (solid) and the Joseph form (dashed).
+        </p>
+        <div class="knobs">
+          <label class="knob"><span>Sensor variance R</span><input id="nu-r" type="range" min="-6" max="0" step="0.25" value="-4"><output for="nu-r"></output></label>
+          <label class="knob"><span>Process noise q</span><input id="nu-q" type="range" min="-8" max="-1" step="0.25" value="-5"><output for="nu-q"></output></label>
+          <label class="knob"><span>Sensors per step</span><input id="nu-sensors" type="range" min="2" max="10" step="1" value="10"><output for="nu-sensors"></output></label>
+          <label class="knob"><span>Steps</span><input id="nu-steps" type="range" min="50" max="600" step="50" value="600"><output for="nu-steps"></output></label>
+          <label class="knob"><span>Noise seed</span><input id="nu-seed" type="range" min="1" max="50" step="1" value="1"><output for="nu-seed"></output></label>
+        </div>
+        <p class="seeing">
+          <strong>What you're seeing:</strong> <code>f32</code> and <code>I32F32</code> stay positive definite with
+          either form; the Joseph form keeps <code>P</code> exactly symmetric, the short form leaves rounding
+          asymmetry. In <code>I16F16</code> the short form loses definiteness in a few steps but keeps tracking,
+          and the Joseph form does not rescue it: it diverges. The cause is resolution, not the form. Raise
+          <em>R</em> to 10⁻² and Q16.16 is fine again; otherwise use a type with more fractional bits.
+        </p>
+        <p class="source">Read the experiment in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/numerics.rs"><code>numerics.rs</code></a>, the crate's <a href="https://github.com/sunsided/minikalman-rs/blob/main/crates/minikalman/tests/numerical_robustness.rs">numerical robustness bench</a>, and the docs of <a href="https://docs.rs/minikalman/latest/minikalman/regular/enum.CovarianceUpdate.html"><code>CovarianceUpdate</code></a>.</p>
+      </div>
+      <div class="instrument">
+        <ul class="legend">
+          <li><span class="swatch" style="--color: var(--c2)"></span>f32</li>
+          <li><span class="swatch" style="--color: var(--c1)"></span>I16F16</li>
+          <li><span class="swatch" style="--color: var(--c3)"></span>I32F32</li>
+          <li><span class="swatch" style="--color: var(--ink-soft)"></span>standard</li>
+          <li><span class="swatch dashed" style="--color: var(--ink-soft)"></span>Joseph</li>
+          <li><span class="swatch tick" style="--color: var(--c1)"></span>I16F16 P not positive definite</li>
+        </ul>
+        <div class="scope"><span class="scope-title">smallest diagonal entry of P (log scale)</span><canvas id="nu-diag" role="img" aria-label="Smallest variance in P over time per variant"></canvas></div>
+        <div class="scope-pair">
+          <div class="scope"><span class="scope-title">asymmetry of P after correction</span><canvas id="nu-asym" role="img" aria-label="Relative asymmetry of P over time per variant"></canvas></div>
+          <div class="scope"><span class="scope-title">position error (m)</span><canvas id="nu-error" role="img" aria-label="Position error over time per variant"></canvas></div>
+        </div>
+        <table class="matrix" id="nu-table">
+          <caption>Measured over the run</caption>
+          <thead><tr><th scope="col">Variant</th><th scope="col">P not positive definite</th><th scope="col">Largest asymmetry</th><th scope="col">Final error</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="wrap experiment" id="smoothing" aria-labelledby="smoothing-title">
+      <div class="notes">
+        <h2 id="smoothing-title">Smoothing: hindsight through a gap</h2>
+        <p class="api"><code>smoother::RtsSmoother</code>, <code>smoother::FixedLagSmoother</code></p>
+        <p>
+          A sensor goes quiet for a few seconds while the target keeps turning. The
+          <span style="color: var(--c1)">filter</span> knows only the past, so in the gap it coasts in a straight
+          line and its uncertainty grows. The <span style="color: var(--c4)">fixed-lag smoother</span> refines each
+          step with the next 1.5 s of readings, online. The <span style="color: var(--c3)">RTS smoother</span> runs
+          backwards over the recorded run, so every step also sees the readings after the gap.
+        </p>
+        <div class="knobs">
+          <label class="knob"><span>Gap length</span><input id="sm-gap" type="range" min="0" max="8" step="0.5" value="3"><output for="sm-gap"></output></label>
+          <label class="knob"><span>Sensor noise σ</span><input id="sm-sigma" type="range" min="0.1" max="3" step="0.1" value="0.8"><output for="sm-sigma"></output></label>
+          <label class="knob"><span>Process noise q</span><input id="sm-q" type="range" min="-2" max="2" step="0.1" value="0.6"><output for="sm-q"></output></label>
+          <label class="knob"><span>Noise seed</span><input id="sm-seed" type="range" min="1" max="50" step="1" value="1"><output for="sm-seed"></output></label>
+        </div>
+        <p class="seeing">
+          <strong>What you're seeing:</strong> in a 3 s gap the filter misses the target by several metres; the
+          RTS smoother bends its estimate through the gap to meet the readings on the other side, with a fraction
+          of the error and a much tighter ±2σ band. Outside the gap, smoothing still roughly halves the error.
+          A smoother needs the future, so use it for logs and calibration runs, or accept the fixed lag.
+        </p>
+        <p class="source">Read the experiment in <a href="https://github.com/sunsided/minikalman-rs/blob/main/xbuild-tests/wasm/src/smoothing.rs"><code>smoothing.rs</code></a>, and the docs of the <a href="https://docs.rs/minikalman/latest/minikalman/smoother/index.html"><code>smoother</code></a> module.</p>
+      </div>
+      <div class="instrument">
+        <div class="scope"><span class="scope-title">position (m)</span><canvas id="sm-plot" role="img" aria-label="Position over time with the filtered and smoothed estimates"></canvas></div>
+        <ul class="legend">
+          <li><span class="swatch dashed" style="--color: var(--truth)"></span>truth</li>
+          <li><span class="swatch dot" style="--color: var(--meas)"></span>reading</li>
+          <li><span class="swatch" style="--color: var(--c1)"></span>filter ±2σ</li>
+          <li><span class="swatch" style="--color: var(--c4)"></span>fixed lag (1.5 s)</li>
+          <li><span class="swatch" style="--color: var(--c3)"></span>RTS smoother ±2σ</li>
+        </ul>
+        <div class="scope"><span class="scope-title">estimate error (m)</span><canvas id="sm-error" role="img" aria-label="Estimate errors over time"></canvas></div>
+        <dl class="readouts">
+          <div class="readout" id="sm-r0" style="--color: var(--c1)"><dt>Filter RMS error</dt><dd>—</dd></div>
+          <div class="readout" id="sm-r1" style="--color: var(--c4)"><dt>Fixed-lag RMS error</dt><dd>—</dd></div>
+          <div class="readout" id="sm-r2" style="--color: var(--c3)"><dt>RTS RMS error</dt><dd>—</dd></div>
+          <div class="readout" id="sm-g0" style="--color: var(--c1)"><dt>Filter error in the gap</dt><dd>—</dd></div>
+          <div class="readout" id="sm-g1" style="--color: var(--c3)"><dt>RTS error in the gap</dt><dd>—</dd></div>
+          <div class="readout" id="sm-s" style="--color: var(--rule)"><dt>Largest σ in the gap: filter / RTS</dt><dd>—</dd></div>
+        </dl>
+      </div>
+    </section>
   </main>
 
   <footer class="wrap">

@@ -504,6 +504,52 @@ button:disabled {
   padding: 0.5rem 0.75rem;
 }
 
+/* A small results table: one row per variant. */
+.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.matrix caption {
+  text-align: left;
+  color: var(--ink-soft);
+  padding-bottom: 0.25rem;
+}
+
+.matrix th,
+.matrix td {
+  text-align: right;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix td {
+  font-variation-settings: "MONO" 1;
+}
+
+.matrix th:first-child,
+.matrix td:first-child {
+  text-align: left;
+}
+
+.matrix thead th {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.matrix tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+  border-left: 3px solid var(--color, transparent);
+}
+
+.matrix .bad {
+  color: var(--flag);
+  font-weight: 650;
+}
+
 /* Attitude: three horizon dials. */
 .dials {
   display: grid;

@@ -7,8 +7,10 @@
 //! See `www/index.html` for the browser side and `smoke.mjs` for a Node check.
 
 pub mod lab;
+pub mod numerics;
 pub mod outliers;
 pub mod radar;
+pub mod smoothing;
 
 use std::cell::RefCell;
 

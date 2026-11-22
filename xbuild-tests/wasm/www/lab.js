@@ -185,6 +185,7 @@ const tickText = (v) => {
  * - `{ kind: "dots", y, color, mask, r }`; dots outside the range show as carets at the edge
  * - `{ kind: "events", mask, color, row }`: ticks along the bottom where `mask` is set
  * - `{ kind: "hline", value, color, dash, label }`
+ * - `{ kind: "span", from, to, color, label }`: a shaded stretch of the abscissa
  * Layers with `fit: false` do not widen the automatic range. `y` fixes the range.
  */
 export class Scope {
@@ -299,7 +300,7 @@ export class Scope {
       ctx.moveTo(margin.left, Math.round(y) + 0.5);
       ctx.lineTo(width - margin.right, Math.round(y) + 0.5);
       ctx.stroke();
-      ctx.fillText(plot.yLog ? `1e${v}` : tickText(v), margin.left - 6, y);
+      ctx.fillText(plot.yLog ? (10 ** v).toExponential(Number.isInteger(v) ? 0 : 1) : tickText(v), margin.left - 6, y);
     }
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
@@ -327,7 +328,16 @@ export class Scope {
       const stroke = color(layer.color);
       ctx.strokeStyle = stroke;
       ctx.fillStyle = stroke;
-      if (layer.kind === "band") {
+      if (layer.kind === "span") {
+        ctx.globalAlpha = 0.1;
+        ctx.fillRect(px(layer.from), margin.top, px(layer.to) - px(layer.from), h);
+        ctx.globalAlpha = 1;
+        if (layer.label) {
+          ctx.textAlign = "center";
+          ctx.fillText(layer.label, (px(layer.from) + px(layer.to)) / 2, margin.top + 12);
+          ctx.textAlign = "left";
+        }
+      } else if (layer.kind === "band") {
         ctx.globalAlpha = 0.16;
         ctx.beginPath();
         let open = false;
