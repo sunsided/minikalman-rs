@@ -131,7 +131,7 @@
 //! for setting up and operating the Kalman Filter could look like this:
 //!
 //! ```no_run
-//! # #[cfg(feature = "alloc")] {
+//! # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
 //! use minikalman::regular::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
@@ -178,7 +178,7 @@
 //! replaced with their nonlinear counterparts:
 //!
 //! ```no_run
-//! # #[cfg(feature = "alloc")] {
+//! # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
 //! use minikalman::extended::builder::KalmanFilterBuilder;
 //! use minikalman::prelude::MatrixMut;
 //!
@@ -422,7 +422,11 @@ mod test_bits;
 #[cfg(all(test, any(feature = "std", feature = "libm", feature = "micromath")))]
 mod test_dummies;
 
-#[cfg(all(test, feature = "alloc"))]
+#[cfg(all(
+    test,
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 mod test_filter;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
@@ -448,7 +452,11 @@ pub use crate::named_vector::{NamedVector, UniformArray, ensure_uniform_type};
 /// Compiles and runs the code examples in the README as doctests.
 // Gated on `alloc` here because GitHub shows rustdoc's hidden `#` lines, so the README
 // examples cannot carry their own `cfg` guards.
-#[cfg(all(doctest, feature = "alloc"))]
+#[cfg(all(
+    doctest,
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 #[doc = include_str!("../../../README.md")]
 pub struct ReadmeDoctests;
 

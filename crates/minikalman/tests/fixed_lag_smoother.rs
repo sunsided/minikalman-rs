@@ -1,6 +1,9 @@
 //! The fixed-lag smoother must match the fixed-interval RTS smoother over the same window.
 
-#![cfg(feature = "alloc")]
+#![cfg(all(
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 #![forbid(unsafe_code)]
 
 use minikalman::matrix::MatrixDataArray;

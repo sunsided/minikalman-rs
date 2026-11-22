@@ -61,6 +61,8 @@ jobs:
         features:
           - "--no-default-features"
           - "--no-default-features --features fixed"
+          - "--no-default-features --features alloc"
+          - "--no-default-features --features alloc,fixed"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

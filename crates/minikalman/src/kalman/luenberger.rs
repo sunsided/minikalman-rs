@@ -143,7 +143,7 @@ use core::marker::PhantomData;
 /// Design with `Q` and `R` once, then run the fixed gain:
 ///
 /// ```
-/// # #[cfg(feature = "alloc")] {
+/// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
 /// use minikalman::models::motion;
 /// use minikalman::prelude::*;
 /// use minikalman::regular::builder::KalmanFilterBuilder;
@@ -225,7 +225,7 @@ where
     ///
     /// ## Example
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// use minikalman::prelude::*;
     /// use minikalman::regular::builder::KalmanFilterBuilder;
     ///

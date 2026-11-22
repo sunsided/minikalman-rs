@@ -61,7 +61,7 @@ use core::marker::PhantomData;
 /// Configure a cubature Kalman filter:
 ///
 /// ```
-/// # #[cfg(feature = "alloc")] {
+/// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
 /// use minikalman::prelude::*;
 /// use minikalman::unscented::builder::KalmanFilterBuilder;
 ///
@@ -210,7 +210,7 @@ impl<
     /// difference as a slice (one entry per state) and can wrap it back into range:
     ///
     /// ```
-    /// # #[cfg(feature = "alloc")] {
+    /// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))] {
     /// # use minikalman::prelude::*;
     /// # use minikalman::unscented::builder::KalmanFilterBuilder;
     /// use minikalman::angles;

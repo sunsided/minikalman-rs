@@ -398,10 +398,10 @@ pub mod support;
 ///
 /// ```
 /// # fn main() {
-/// #     #[cfg(feature = "alloc")]
+/// #     #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))]
 /// #     boxed::run();
 /// # }
-/// # #[cfg(feature = "alloc")]
+/// # #[cfg(all(feature = "alloc", any(feature = "std", feature = "libm", feature = "micromath")))]
 /// # mod boxed {
 /// use minikalman::prelude::*;
 ///

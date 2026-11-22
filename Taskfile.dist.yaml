@@ -78,6 +78,8 @@ tasks:
     cmds:
       - "{{.CARGO}} test --no-default-features"
       - "{{.CARGO}} test --no-default-features --features fixed"
+      - "{{.CARGO}} test --no-default-features --features alloc"
+      - "{{.CARGO}} test --no-default-features --features alloc,fixed"
 
   conformance:
     desc: Run the conformance suite on the std, libm and micromath backends

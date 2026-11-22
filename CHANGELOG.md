@@ -461,6 +461,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Gated the tests and doc examples that use `f32`/`f64` on a float backend (`std`, `libm` or
   `micromath`), so `cargo test --no-default-features` and `--no-default-features --features
   fixed` compile and pass again. CI runs both configurations ([#177]).
+  The same now holds with `alloc` but no float backend (`--features alloc` and
+  `--features alloc,fixed`), and CI runs those as well.
 
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177
 [#187]: https://github.com/sunsided/minikalman-rs/issues/187

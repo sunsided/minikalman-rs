@@ -1,7 +1,10 @@
 //! Several UKF corrections between two predictions, e.g. one per sensor.
 
 #![forbid(unsafe_code)]
-#![cfg(feature = "alloc")]
+#![cfg(all(
+    feature = "alloc",
+    any(feature = "std", feature = "libm", feature = "micromath")
+))]
 
 use minikalman::prelude::*;
 use minikalman::unscented::builder::KalmanFilterBuilder;
