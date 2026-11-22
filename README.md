@@ -811,6 +811,21 @@ see the [`radar-2d`](https://github.com/sunsided/minikalman-rs/blob/main/crates/
 cargo run --example radar-2d --features=std
 ```
 
+For attitudes and poses, which live on a Lie group rather than in a vector space, the crate
+docs' "Filtering on manifolds" recipe keeps the state on the group and lets the EKF estimate a
+small error. The [`attitude-eskf`] example applies it to an IMU: a quaternion error-state
+filter in `f32` without allocation (six states, 1448 bytes of storage), with gyro prediction
+at a varying time step, an accelerometer tilt update gated by its NIS so that dynamic
+acceleration is rejected (where a ±10 % `|a|` window lets a 3 m/s² turn through), and an
+external heading. The [`se2-iekf`] example does the same for a planar pose on SE(2).
+
+```shell
+cargo run --example attitude-eskf --features=std
+```
+
+[`attitude-eskf`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/attitude_eskf.rs
+[`se2-iekf`]: https://github.com/sunsided/minikalman-rs/tree/main/crates/minikalman/examples/se2_iekf.rs
+
 ### Unscented Kalman Filter
 
 The unscented filter propagates `2n + 1` sigma points through the nonlinear `f` and `h`

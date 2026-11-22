@@ -66,6 +66,11 @@ path = "examples/se2_iekf.rs"
 required-features = ["std"]
 
 [[example]]
+name = "attitude-eskf"
+path = "examples/attitude_eskf.rs"
+required-features = ["std"]
+
+[[example]]
 name = "radar-2d-ukf"
 path = "examples/radar_2d_ukf.rs"
 required-features = ["std"]

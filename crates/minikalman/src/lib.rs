@@ -609,6 +609,15 @@ pub mod square_root {
 /// position fixes, next to a plain EKF on `(x, y, θ)` started with the same 170° heading
 /// error. Both converge there; with the default seed the invariant filter keeps its heading
 /// within 5° after about 21 s, the plain EKF after about 46 s.
+///
+/// The `attitude-eskf` example (`examples/attitude_eskf.rs`) runs the error-state form on
+/// SO(3): a nominal quaternion `q̂ ← q̂ ⊗ Exp((ω − b̂)·Δt)` propagated with the gyro at a
+/// varying `Δt`, the error `(δθ, δb)` of attitude and gyro bias in an `f32` filter of six
+/// states on inline storage (1448 bytes), an accelerometer tilt update with
+/// `H = [[f̂]× 0]` gated by its NIS through `set_gate`, and an external heading. It shows why
+/// the gate rejects dynamic acceleration that a ±10 % `|a|` window lets through, and where
+/// the gate locks out. Its model functions are 3×3 blocks, so a larger error state, e.g.
+/// position, velocity, attitude and bias, can reuse them.
 pub mod extended {
     pub use crate::kalman::extended::*;
     pub use crate::observations::extended::*;
