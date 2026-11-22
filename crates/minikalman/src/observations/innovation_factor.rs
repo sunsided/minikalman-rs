@@ -64,6 +64,11 @@ where
     /// finite, e.g. a subnormal `f32`), the Cholesky factorization of the copy decides, so
     /// `None` means exactly what it means for `cholesky_decompose_lower`: a pivot is not
     /// positive or not finite.
+    ///
+    /// For a single measurement there is no fallback: the pivot is `S` itself, and no
+    /// reciprocal is checked, so both factorizations reject exactly the same `S` (pinned by the test
+    /// `single_measurement_rejects_what_cholesky_rejects`). Leaving the Cholesky path
+    /// out keeps it and its square root out of the code.
     #[inline]
     #[allow(non_snake_case)]
     pub(crate) fn new(
@@ -74,6 +79,10 @@ where
         if is_square_root_free::<OBSERVATIONS, T>() {
             if let Some(factor) = LdlFactor::from_entries(|i, j| s[i * OBSERVATIONS + j]) {
                 return Some(Self::SquareRootFree(factor));
+            }
+
+            if OBSERVATIONS == 1 {
+                return None;
             }
         }
 
@@ -422,6 +431,38 @@ mod tests {
             let nis = factor.nis(&MatrixData::new_ref::<2, 1, f32>(&[1.0, 0.0]));
             assert!(!nis.is_nan(), "NIS {nis} for S = {s:?}");
         }
+    }
+
+    /// For one measurement, the square-root free factorization accepts exactly what
+    /// `cholesky_decompose_lower` accepts, which is why [`InnovationFactor::new`] needs no
+    /// Cholesky fallback there.
+    #[test]
+    fn single_measurement_rejects_what_cholesky_rejects() {
+        fn agree<T: MatrixDataType + core::fmt::Debug>(s: T) {
+            let mut copy = [s];
+            let cholesky = MatrixData::new_mut::<1, 1, T>(&mut copy).cholesky_decompose_lower();
+            let ldl = LdlFactor::<1, T>::new(&[s]).is_some();
+            assert_eq!(ldl, cholesky, "S = {s:?}");
+        }
+
+        for s in [
+            1.0,
+            0.0,
+            -0.0,
+            -1.0,
+            f32::from_bits(1),
+            f32::MIN_POSITIVE,
+            f32::MAX,
+            f32::INFINITY,
+            f32::NEG_INFINITY,
+            f32::NAN,
+        ] {
+            agree(s);
+            agree(f64::from(s));
+        }
+
+        agree(f64::from_bits(1));
+        agree(f64::MAX);
     }
 
     /// Fixed-point types never take the square-root free path; floating-point types do up to
