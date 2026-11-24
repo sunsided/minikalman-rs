@@ -5,14 +5,19 @@ use crate::matrix::{MatrixData, MatrixDataMut, MatrixDataType};
 use crate::rls::RecursiveLeastSquares;
 
 /// A [`RecursiveLeastSquares`] estimator whose buffers borrow an [`EstimatorStorage`].
-pub type BorrowedEstimator<'a, const N: usize, T> = RecursiveLeastSquares<
-    N,
-    T,
-    MatrixDataMut<'a, N, 1, T>,
-    MatrixDataMut<'a, N, N, T>,
-    MatrixDataMut<'a, N, 1, T>,
-    MatrixDataMut<'a, N, 1, T>,
->;
+///
+/// The [`Forgetting`](crate::rls::Forgetting) mode `F` defaults to
+/// [`Exponential`](crate::rls::Exponential).
+pub type BorrowedEstimator<'a, const N: usize, T, F = crate::rls::Exponential> =
+    RecursiveLeastSquares<
+        N,
+        T,
+        MatrixDataMut<'a, N, 1, T>,
+        MatrixDataMut<'a, N, N, T>,
+        MatrixDataMut<'a, N, 1, T>,
+        MatrixDataMut<'a, N, 1, T>,
+        F,
+    >;
 
 /// Storage for the buffers of a [`RecursiveLeastSquares`] estimator of `N` parameters.
 ///

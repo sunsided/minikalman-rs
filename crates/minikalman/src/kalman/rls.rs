@@ -25,24 +25,38 @@ pub enum CovarianceForm {
     Covariance,
 }
 
-/// How a [`RecursiveLeastSquares`] estimator forgets old samples when `μ < 1`.
+/// How a [`RecursiveLeastSquares`] estimator forgets old samples when `μ < 1`: the last type
+/// parameter, [`Exponential`] (the default) or [`Directional`].
 ///
-/// Independent of the [`CovarianceForm`]: both modes work with both forms.
+/// The mode is a type rather than a runtime setting so that a build contains the code of the
+/// mode it uses only. Both modes work with both [`CovarianceForm`]s. Switch with
+/// [`with_forgetting`](RecursiveLeastSquares::with_forgetting).
+pub trait Forgetting {
+    /// Whether this mode forgets along the regressor only.
+    const DIRECTIONAL: bool;
+}
+
+/// Forgets with `P⁻ = P/μₖ` in every direction, with the
+/// [windup guard](RecursiveLeastSquares#covariance-windup) (the default [`Forgetting`] mode).
+///
+/// Tracks every parameter at the rate `μ`, but lets `P` wind up in directions that `φ` does
+/// not excite; the guard bounds that at the cost of stalling forgetting everywhere.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Forgetting {
-    /// `P⁻ = P/μₖ` in every direction, with the [windup guard](RecursiveLeastSquares#covariance-windup)
-    /// (the default).
-    ///
-    /// Tracks every parameter at the rate `μ`, but lets `P` wind up in directions that `φ`
-    /// does not excite; the guard bounds that at the cost of stalling forgetting everywhere.
-    #[default]
-    Exponential,
-    /// Forgets only along the current regressor `φ`, so `P` stays bounded in unexcited
-    /// directions; see [directional forgetting](RecursiveLeastSquares#directional-forgetting).
-    ///
-    /// The windup guard is not used. Costs one more rank-one update, about `N²`
-    /// multiplications.
-    Directional,
+pub struct Exponential;
+
+impl Forgetting for Exponential {
+    const DIRECTIONAL: bool = false;
+}
+
+/// Forgets only along the current regressor `φ`, so `P` stays bounded in unexcited
+/// directions; see [directional forgetting](RecursiveLeastSquares#directional-forgetting).
+///
+/// The windup guard is not used. Costs one more rank-one update, about `N²` multiplications.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Directional;
+
+impl Forgetting for Directional {
+    const DIRECTIONAL: bool = true;
 }
 
 /// Recursive least squares (RLS): an online estimator of model parameters.
@@ -97,8 +111,10 @@ pub enum Forgetting {
 /// parameter, so scale `r` up if needed. Keep `α = φᵀ·P⁻·φ + r` and `p0` well below the range.
 /// [Directional forgetting](#directional-forgetting) raises a variance `Pⱼⱼ` by at most
 /// `Pⱼⱼ·(1 − μ)/μ` (since `gⱼ² ≤ Pⱼⱼ·s`), so the same resolution bound applies to the excited
-/// variances, and it cannot overflow where exponential forgetting does not. Its weight
-/// `(1 − μ)/(μ·s)` grows as `s` shrinks; a regressor whose `s` rounds to zero skips the step.
+/// variances. Its weight `(1 − μ)/(μ·s)` is computed on its own and grows as `s` shrinks: a
+/// regressor whose `s` rounds to zero skips the step, but in floating point an `s` near the
+/// smallest normal number (e.g. `φ ≈ 10⁻²⁰` in `f32`) overflows it to infinity, so scale `φ`
+/// to well within the range.
 ///
 /// ## Covariance windup
 ///
@@ -128,7 +144,8 @@ pub enum Forgetting {
 ///
 /// ## Directional forgetting
 ///
-/// With [`Forgetting::Directional`], each step forgets only the information that lies along
+/// With the [`Directional`] mode, e.g. `storage.build(p0).with_forgetting::<Directional>()`,
+/// each step forgets only the information that lies along
 /// the current regressor (Kulhavý and Kárný, "Tracking of Slowly Varying Parameters by
 /// Directional Forgetting", 9th IFAC World Congress, 1984; Bittanti, Bolzern and Campi,
 /// "Convergence and Exponential Convergence of Identification Algorithms with Directional
@@ -195,7 +212,7 @@ pub enum Forgetting {
 /// # }
 /// ```
 #[allow(non_snake_case)]
-pub struct RecursiveLeastSquares<const N: usize, T, Theta, P, TempF, TempK> {
+pub struct RecursiveLeastSquares<const N: usize, T, Theta, P, TempF, TempK, F = Exponential> {
     /// The parameter estimate `θ` (`N` × `1`).
     theta: Theta,
 
@@ -213,9 +230,6 @@ pub struct RecursiveLeastSquares<const N: usize, T, Theta, P, TempF, TempK> {
     /// How [`Self::P`] is stored.
     form: CovarianceForm,
 
-    /// How the estimator forgets.
-    mode: Forgetting,
-
     /// The forgetting factor `μ`, `0 < μ ≤ 1`; `1` disables forgetting.
     forgetting: T,
 
@@ -231,8 +245,8 @@ pub struct RecursiveLeastSquares<const N: usize, T, Theta, P, TempF, TempK> {
     /// The NIS of the last update, also of a gated one.
     nis: T,
 
-    /// Binds the element type.
-    _phantom: PhantomData<T>,
+    /// Binds the element type and the [`Forgetting`] mode.
+    _phantom: PhantomData<(T, F)>,
 }
 
 impl<const N: usize, T, Theta, P, TempF, TempK> RecursiveLeastSquares<N, T, Theta, P, TempF, TempK>
@@ -249,7 +263,8 @@ where
     /// Starts with the [`Factored`](CovarianceForm::Factored) form, no forgetting (`μ = 1`),
     /// `r = 1`, no gate and the windup guard at `c = tr(P₀) = N·p0`. A large `p0` (e.g.
     /// `1000` for parameters of order one) means little prior knowledge. Set a known initial
-    /// guess with [`parameters_mut`](Self::parameters_mut).
+    /// guess with [`parameters_mut`](Self::parameters_mut). Forgets [`Exponential`]ly; see
+    /// [`with_forgetting`](Self::with_forgetting) for the [`Directional`] mode.
     ///
     /// ## Arguments
     /// * `theta` - The parameter vector `θ` (`N` × `1`).
@@ -264,7 +279,6 @@ where
             temp_f,
             temp_k,
             form: CovarianceForm::Factored,
-            mode: Forgetting::Exponential,
             forgetting: T::one(),
             trace_bound: None,
             r: T::one(),
@@ -276,6 +290,37 @@ where
         rls.reset(p0);
         rls.trace_bound = Some(rls.covariance_trace());
         rls
+    }
+}
+
+impl<const N: usize, T, Theta, P, TempF, TempK, F>
+    RecursiveLeastSquares<N, T, Theta, P, TempF, TempK, F>
+where
+    T: MatrixDataType,
+    Theta: MatrixMut<N, 1, T>,
+    P: MatrixMut<N, N, T>,
+    TempF: MatrixMut<N, 1, T>,
+    TempK: MatrixMut<N, 1, T>,
+    F: Forgetting,
+{
+    /// Returns this estimator with the [`Forgetting`] mode `G`, keeping `θ`, `P` and all
+    /// settings, e.g. `storage.build(p0).with_forgetting::<Directional>()`.
+    pub fn with_forgetting<G: Forgetting>(
+        self,
+    ) -> RecursiveLeastSquares<N, T, Theta, P, TempF, TempK, G> {
+        RecursiveLeastSquares {
+            theta: self.theta,
+            P: self.P,
+            temp_f: self.temp_f,
+            temp_k: self.temp_k,
+            form: self.form,
+            forgetting: self.forgetting,
+            trace_bound: self.trace_bound,
+            r: self.r,
+            gate: self.gate,
+            nis: self.nis,
+            _phantom: PhantomData,
+        }
     }
 
     /// Resets the estimate to `θ = 0` and `P = p0·I`, keeping the form and all settings.
@@ -359,17 +404,6 @@ where
         self.forgetting = mu;
     }
 
-    /// Returns how the estimator forgets.
-    pub fn forgetting_mode(&self) -> Forgetting {
-        self.mode
-    }
-
-    /// Sets how the estimator forgets (default [`Forgetting::Exponential`]). Takes effect with
-    /// the next update and keeps `θ` and `P`.
-    pub fn set_forgetting_mode(&mut self, mode: Forgetting) {
-        self.mode = mode;
-    }
-
     /// Returns the trace bound `c` of the windup guard, or `None` if the guard is off.
     pub fn trace_bound(&self) -> Option<T> {
         self.trace_bound
@@ -379,7 +413,7 @@ where
     ///
     /// Forgetting slows down as `tr(P)` approaches `c` and stops at `c`. A bound below the
     /// current trace stops forgetting until updates have brought the trace below it. Only used
-    /// with [`Forgetting::Exponential`].
+    /// with [`Exponential`] forgetting.
     pub fn set_trace_bound(&mut self, bound: Option<T>) {
         self.trace_bound = bound;
     }
@@ -430,7 +464,7 @@ where
     /// Updates the estimate with the sample `y = φᵀ·θ + v`.
     ///
     #[doc = diagram!("rls-update.mmd", "predict", "innovation", "correct")]
-    /// Forgets with the guarded factor `μₖ` (or along `φ` with [`Forgetting::Directional`]),
+    /// Forgets with the guarded factor `μₖ` (or along `φ` in the [`Directional`] mode),
     /// then applies the scalar Kalman update; see the [type documentation](Self) for the
     /// equations. Costs `O(N²)`.
     ///
@@ -443,9 +477,10 @@ where
             return CorrectionStatus::NotPositiveDefinite;
         }
 
-        let mu = match self.mode {
-            Forgetting::Exponential => self.effective_forgetting(),
-            Forgetting::Directional => self.forgetting,
+        let mu = if F::DIRECTIONAL {
+            self.forgetting
+        } else {
+            self.effective_forgetting()
         };
         let s = self.regressor_variance(phi);
         let alpha = s / mu + self.r;
@@ -459,20 +494,21 @@ where
             return CorrectionStatus::Gated;
         }
 
-        match (self.mode, self.form) {
-            (Forgetting::Exponential, CovarianceForm::Factored) => {
+        // F::DIRECTIONAL is a constant, so each build keeps the arms of its own mode only.
+        match (F::DIRECTIONAL, self.form) {
+            (false, CovarianceForm::Factored) => {
                 self.update_factored(phi, mu, e);
             }
-            (Forgetting::Exponential, CovarianceForm::Covariance) => {
+            (false, CovarianceForm::Covariance) => {
                 self.update_covariance(mu, mu, e, alpha);
             }
-            (Forgetting::Directional, CovarianceForm::Factored) => {
+            (true, CovarianceForm::Factored) => {
                 if let Some(c) = Self::directional_weight(mu, s) {
                     self.forget_along_factored(c);
                 }
                 self.update_factored(phi, T::one(), e);
             }
-            (Forgetting::Directional, CovarianceForm::Covariance) => {
+            (true, CovarianceForm::Covariance) => {
                 if let Some(c) = Self::directional_weight(mu, s) {
                     self.forget_along_covariance(c);
                 }

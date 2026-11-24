@@ -8,7 +8,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Added directional forgetting to `rls::RecursiveLeastSquares`. Select it with
-  `set_forgetting_mode(rls::Forgetting::Directional)`. It forgets only along the current regressor,
+  `storage.build(p0).with_forgetting::<rls::Directional>()`. The mode is a type parameter that
+  defaults to `rls::Exponential`, so a build only contains the code of the mode it uses. It forgets
+  only along the current regressor,
   so the parameters that are still excited keep tracking while another regressor is idle. Variances
   in unexcited directions stay bounded without the windup guard, and an estimate no longer jumps
   when an idle regressor is excited again. Both covariance forms support it. In the factored form,
