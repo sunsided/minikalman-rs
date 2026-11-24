@@ -5,6 +5,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## [0.9.1] - 2026-11-24
+
+[0.9.1]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.9.1
+
 ### Added
 
 - Added directional forgetting to `rls::RecursiveLeastSquares`. Select it with
