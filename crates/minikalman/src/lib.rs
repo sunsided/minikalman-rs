@@ -607,7 +607,9 @@ pub mod ud {
 /// gain of a plant or a battery's internal resistance, from one sample at a time in `O(N²)`.
 /// It is the Kalman filter with `A = I`, `Q = 0` and `H = φₖᵀ`; forgetting with the factor
 /// `μ` is [`RegularKalman::predict_tuned(√μ)`](regular::RegularKalman::predict_tuned) while
-/// the windup guard is off or inactive.
+/// the windup guard is off or inactive. [Directional forgetting](rls::Directional) forgets only
+/// along the excited regressors instead, so an idle input neither winds `P` up nor stalls the
+/// other parameters.
 /// Its estimate can feed a Kalman filter's `A` and `B` each step (dual estimation, see the
 /// `rls-adaptive` example; the `augmented-state` example and
 /// [Estimating Model Parameters](crate#estimating-model-parameters) compare it with joint

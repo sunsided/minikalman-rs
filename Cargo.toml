@@ -5,7 +5,7 @@ default-members = ["crates/minikalman"]
 exclude = ["crates/minikalman/fuzz", "benches/compare", "benches/mcu"]
 
 [workspace.package]
-version = "0.9.0"
+version = "0.9.1"
 description = "Allocation-free Kalman filters (EKF, UKF, UD, square-root, smoothers) for desktop and microcontroller, in floating and fixed point"
 authors = ["Markus Mayer"]
 repository = "https://github.com/sunsided/minikalman-rs"
