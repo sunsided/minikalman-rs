@@ -802,6 +802,49 @@ where
     alpha
 }
 
+/// Applies the rank-one update `U·D·Uᵀ ← U·D·Uᵀ + c·v·vᵀ` with `c ≥ 0` to the factors `UD`
+/// (Agee and Turner, 1972; Bierman 1977, Appendix III.B).
+///
+/// Processes the columns from the last to the first; for column `j` with `d = D[j]`:
+///
+/// ```text
+/// D[j] ← d + c·vⱼ²,   v ← v − vⱼ·uⱼ,   uⱼ ← uⱼ + (c·vⱼ/D[j])·v,   c ← c·d/D[j]
+/// ```
+///
+/// where `uⱼ` is the strictly upper part of column `j`. Since `c ≥ 0`, every pivot only grows
+/// and `D ≥ 0` is kept by construction. Costs about `N²` multiplications and `N` divisions,
+/// and no square root. `v` is used as scratch and holds garbage on return.
+#[allow(non_snake_case)]
+pub(crate) fn rank_one_update<const N: usize, T>(
+    UD: &mut impl MatrixMut<N, N, T>,
+    mut c: T,
+    v: &mut impl MatrixMut<N, 1, T>,
+) where
+    T: MatrixDataType,
+{
+    for j in (0..N).rev() {
+        let vj = v.get(j, 0);
+        let d = UD.get(j, j);
+        let cv = c * vj;
+        let d_new = d + cv * vj;
+        if d_new <= T::zero() {
+            // d = 0 and c·vⱼ² = 0: this column receives nothing, and vⱼ = 0 or c = 0 leaves
+            // v and c as they are.
+            continue;
+        }
+
+        let beta = cv / d_new;
+        c = c * (d / d_new);
+        UD.set(j, j, d_new);
+        for i in 0..j {
+            let u = UD.get(i, j);
+            let vi = v.get(i, 0) - vj * u;
+            v.set(i, 0, vi);
+            UD.set(i, j, u + beta * vi);
+        }
+    }
+}
+
 /// Returns the updated pivot `d·num/α`, where `α = num + part` with `num > 0` and `part ≥ 0`.
 ///
 /// Divides the larger of `num` and `part` by `α` first, so that the ratio is at least `1/2`:
@@ -888,6 +931,53 @@ mod tests {
         assert!(!factorize_ud(&mut ud));
         assert_eq!(ud.get(1, 1), 0.0, "negative pivot must be clamped");
         assert_eq!(ud.get(0, 0), 1.0);
+    }
+
+    /// `rank_one_update` matches `U·D·Uᵀ + c·v·vᵀ` computed densely, and keeps `D ≥ 0`.
+    #[test]
+    fn rank_one_update_matches_dense_sum() {
+        let p = [4.0, 1.0, 0.5, 1.0, 3.0, -0.2, 0.5, -0.2, 2.0];
+        let (c, v) = (0.7, [0.3, -1.2, 2.0]);
+
+        let mut ud = MatrixData::new_array::<3, 3, 9, f64>(p);
+        assert!(factorize_ud(&mut ud));
+        let mut scratch = MatrixData::new_array::<3, 1, 3, f64>(v);
+        rank_one_update(&mut ud, c, &mut scratch);
+
+        let mut back = MatrixData::new_array::<3, 3, 9, f64>([0.0; 9]);
+        reconstruct_ud(&ud, &mut back);
+        for i in 0..3 {
+            assert!(ud.get(i, i) > 0.0);
+            for j in 0..3 {
+                let expected = p[i * 3 + j] + c * v[i] * v[j];
+                let got = back.get(i, j);
+                assert!(
+                    (got - expected).abs() < 1e-12,
+                    "({i}, {j}): {got} != {expected}"
+                );
+            }
+        }
+    }
+
+    /// A rank-deficient `P` gains rank along `v`, and zero pivots that `v` does not reach stay
+    /// zero.
+    #[test]
+    fn rank_one_update_of_singular_factors() {
+        let mut ud = MatrixData::new_array::<2, 2, 4, f64>([0.0; 4]);
+        let mut v = MatrixData::new_array::<2, 1, 2, f64>([2.0, 0.0]);
+        rank_one_update(&mut ud, 0.5, &mut v);
+
+        let mut back = MatrixData::new_array::<2, 2, 4, f64>([0.0; 4]);
+        reconstruct_ud(&ud, &mut back);
+        assert_eq!(
+            (
+                back.get(0, 0),
+                back.get(0, 1),
+                back.get(1, 0),
+                back.get(1, 1)
+            ),
+            (2.0, 0.0, 0.0, 0.0)
+        );
     }
 
     #[test]

@@ -4,7 +4,7 @@ flowchart LR
     %% correct, posterior, rejected and gated (update leaves θ and P unchanged, forgetting
     %% included).
     prior(["parameters<br/>θₖ₋₁, P = U·D·Uᵀ"])
-    predict["forget<br/>μₖ = clamp(tr P/c, μ, 1)<br/>P⁻ = P/μₖ"]
+    predict["forget<br/>μₖ = clamp(tr P/c, μ, 1)<br/>P⁻ = P/μₖ<br/>or along φ:<br/>P⁻ = P + (1−μ)/μ·g·gᵀ/s"]
     sample[/"sample<br/>φₖ, yₖ, r"/]
     innovation["innovation<br/>e = y − φᵀ·θ<br/>α = φᵀ·P⁻·φ + r"]
     gate{{"gate"}}
