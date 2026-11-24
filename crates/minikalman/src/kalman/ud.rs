@@ -988,4 +988,77 @@ mod tests {
         solve_unit_upper(&ud, &mut b, 0);
         assert_eq!((b.get(0, 0), b.get(1, 0)), (-3.0, 2.0));
     }
+
+    proptest::proptest! {
+        /// For any positive semi-definite `P = L·Lᵀ`, any `v` and any `c ≥ 0`,
+        /// `rank_one_update` yields factors of `P + c·v·vᵀ` and keeps `D ≥ 0`.
+        #[test]
+        fn rank_one_update_matches_dense_sum_for_any_input(
+            l in proptest::array::uniform9(-3.0_f64..3.0),
+            v in proptest::array::uniform3(-10.0_f64..10.0),
+            c in 0.0_f64..10.0,
+        ) {
+            // Lower-triangular L; L·Lᵀ is positive semi-definite, possibly singular.
+            let mut p = [0.0; 9];
+            for i in 0..3 {
+                for j in 0..3 {
+                    p[i * 3 + j] = (0..=i.min(j)).map(|k| l[i * 3 + k] * l[j * 3 + k]).sum();
+                }
+            }
+
+            let mut ud = MatrixData::new_array::<3, 3, 9, f64>(p);
+            proptest::prop_assume!(factorize_ud(&mut ud));
+            let mut scratch = MatrixData::new_array::<3, 1, 3, f64>(v);
+            rank_one_update(&mut ud, c, &mut scratch);
+
+            let mut back = MatrixData::new_array::<3, 3, 9, f64>([0.0; 9]);
+            reconstruct_ud(&ud, &mut back);
+            let scale = 1.0 + p.iter().fold(0.0_f64, |m, x| m.max(x.abs())) + c * v.iter().fold(0.0_f64, |m, x| m.max(x * x));
+            for i in 0..3 {
+                proptest::prop_assert!(ud.get(i, i) >= 0.0, "D[{}] = {}", i, ud.get(i, i));
+                for j in 0..3 {
+                    let expected = p[i * 3 + j] + c * v[i] * v[j];
+                    let got = back.get(i, j);
+                    proptest::prop_assert!(
+                        (got - expected).abs() <= 1e-9 * scale,
+                        "({}, {}): {} != {}", i, j, got, expected
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Kani proofs for the fixed-point UD primitives.
+#[cfg(all(kani, feature = "fixed"))]
+mod verification {
+    use super::*;
+    use crate::matrix::MatrixData;
+    use fixed::types::I16F16;
+
+    /// Returns any `I16F16` in `[lo, hi]`.
+    fn any_in(lo: i32, hi: i32) -> I16F16 {
+        let x = I16F16::from_bits(kani::any());
+        kani::assume(x >= I16F16::from_num(lo) && x <= I16F16::from_num(hi));
+        x
+    }
+
+    /// For any 2 × 2 factors with `D ∈ [0, 16]`, `U ∈ [−4, 4]`, any `v ∈ [−4, 4]²` and any
+    /// `c ∈ [0, 4]`, `rank_one_update` neither overflows nor divides by zero, and keeps
+    /// `D ≥ 0`.
+    #[kani::proof]
+    fn rank_one_update_is_safe_in_i16f16() {
+        let mut ud = MatrixData::new_array::<2, 2, 4, I16F16>([
+            any_in(0, 16),
+            any_in(-4, 4),
+            I16F16::ZERO,
+            any_in(0, 16),
+        ]);
+        let mut v = MatrixData::new_array::<2, 1, 2, I16F16>([any_in(-4, 4), any_in(-4, 4)]);
+
+        rank_one_update(&mut ud, any_in(0, 4), &mut v);
+
+        assert!(ud.get(0, 0) >= I16F16::ZERO);
+        assert!(ud.get(1, 1) >= I16F16::ZERO);
+    }
 }
