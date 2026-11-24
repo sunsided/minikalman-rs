@@ -5,7 +5,7 @@
 //! [`RecursiveLeastSquares`] for the math.
 
 use crate::kalman::CorrectionStatus;
-use crate::kalman::ud::{bierman_update, reconstruct_ud};
+use crate::kalman::ud::{bierman_update, rank_one_update, reconstruct_ud};
 use crate::matrix::{MatrixData, MatrixDataType, MatrixMut};
 use core::marker::PhantomData;
 
@@ -23,6 +23,26 @@ pub enum CovarianceForm {
     /// Slightly cheaper, but rounding can make `P` indefinite on long `f32` or fixed-point runs
     /// with poor excitation. Prefer [`Factored`](Self::Factored) there.
     Covariance,
+}
+
+/// How a [`RecursiveLeastSquares`] estimator forgets old samples when `μ < 1`.
+///
+/// Independent of the [`CovarianceForm`]: both modes work with both forms.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Forgetting {
+    /// `P⁻ = P/μₖ` in every direction, with the [windup guard](RecursiveLeastSquares#covariance-windup)
+    /// (the default).
+    ///
+    /// Tracks every parameter at the rate `μ`, but lets `P` wind up in directions that `φ`
+    /// does not excite; the guard bounds that at the cost of stalling forgetting everywhere.
+    #[default]
+    Exponential,
+    /// Forgets only along the current regressor `φ`, so `P` stays bounded in unexcited
+    /// directions; see [directional forgetting](RecursiveLeastSquares#directional-forgetting).
+    ///
+    /// The windup guard is not used. Costs one more rank-one update, about `N²`
+    /// multiplications.
+    Directional,
 }
 
 /// Recursive least squares (RLS): an online estimator of model parameters.
@@ -75,6 +95,10 @@ pub enum CovarianceForm {
 /// (`0.015`) at `μ = 0.999`. Below that, forgetting stops and the estimate freezes; a variance
 /// that rounds to zero stays zero. `P` scales with `r` and settles near `r·(1 − μ)/E[φ²]` per
 /// parameter, so scale `r` up if needed. Keep `α = φᵀ·P⁻·φ + r` and `p0` well below the range.
+/// [Directional forgetting](#directional-forgetting) raises a variance `Pⱼⱼ` by at most
+/// `Pⱼⱼ·(1 − μ)/μ` (since `gⱼ² ≤ Pⱼⱼ·s`), so the same resolution bound applies to the excited
+/// variances, and it cannot overflow where exponential forgetting does not. Its weight
+/// `(1 − μ)/(μ·s)` grows as `s` shrinks; a regressor whose `s` rounds to zero skips the step.
 ///
 /// ## Covariance windup
 ///
@@ -99,8 +123,42 @@ pub enum CovarianceForm {
 /// all directions**: the excited ones no longer track changes (as with `μ = 1`), and the prior
 /// `P₀` fades only as `1/k` instead of `μᵏ`. The default `c = N·p0` with a large `p0` also
 /// lets an unexcited variance climb back to its startup value. Set `c` deliberately, e.g. to
-/// the largest parameter variance you accept times `N`. Directional forgetting (forgetting
-/// only in the excited subspace) avoids the stall at a higher cost and is not implemented.
+/// the largest parameter variance you accept times `N`.
+/// [Directional forgetting](#directional-forgetting) avoids both the windup and the stall.
+///
+/// ## Directional forgetting
+///
+/// With [`Forgetting::Directional`], each step forgets only the information that lies along
+/// the current regressor (Kulhavý and Kárný, "Tracking of Slowly Varying Parameters by
+/// Directional Forgetting", 9th IFAC World Congress, 1984; Bittanti, Bolzern and Campi,
+/// "Convergence and Exponential Convergence of Identification Algorithms with Directional
+/// Forgetting Factor", Automatica 26(5), 1990):
+///
+/// ```text
+/// s  = φᵀ·P·φ,   g = P·φ
+/// P⁻ = P + (1 − μ)/μ · g·gᵀ/s              i.e.   P⁻⁻¹ = P⁻¹ − (1 − μ)·φ·φᵀ/s
+/// ```
+///
+/// The information `P⁻¹` shrinks by the factor `μ` along `φ` and is kept in every direction
+/// that `φ` does not excite, so `P` cannot wind up there and needs no guard: an idle
+/// regressor keeps the variance it had, and its parameter does not jump when excitation
+/// returns. Since `φᵀ·P⁻·φ = s/μ`, the innovation variance, the NIS and the gate are the same
+/// as with exponential forgetting; the correction then runs unchanged. A step with `s = 0`
+/// (e.g. `φ = 0`) forgets nothing. In the [`Factored`](CovarianceForm::Factored) form the
+/// inflation is an Agee–Turner rank-one update of `U` and `D` with a positive weight, so
+/// `D ≥ 0` is kept by construction, without square roots or re-factorization.
+///
+/// **Tracking rate.** A direction forgets only on the samples that excite it. With one
+/// excited direction, this tracks like exponential forgetting at the same `μ`. When `k`
+/// independent directions take turns (or share the excitation), each is forgotten about
+/// `1/k` as often, so tracking is about `k` times slower; `μ ≈ 1 − k·(1 − μₑ)` matches the
+/// memory of an exponential factor `μₑ`.
+///
+/// **Limitation.** Information in a direction that is excited only rarely is still added on
+/// each such sample but forgotten only along `φ`, so its variance can become small and that
+/// parameter slow to follow later changes. Bounding the information matrix as well (e.g.
+/// Cao and Schwartz, "A Directional Forgetting Algorithm Based on the Decomposition of the
+/// Information Matrix", Automatica 36(11), 2000) is not implemented.
 ///
 /// ## Gate and NIS
 ///
@@ -155,6 +213,9 @@ pub struct RecursiveLeastSquares<const N: usize, T, Theta, P, TempF, TempK> {
     /// How [`Self::P`] is stored.
     form: CovarianceForm,
 
+    /// How the estimator forgets.
+    mode: Forgetting,
+
     /// The forgetting factor `μ`, `0 < μ ≤ 1`; `1` disables forgetting.
     forgetting: T,
 
@@ -203,6 +264,7 @@ where
             temp_f,
             temp_k,
             form: CovarianceForm::Factored,
+            mode: Forgetting::Exponential,
             forgetting: T::one(),
             trace_bound: None,
             r: T::one(),
@@ -297,6 +359,17 @@ where
         self.forgetting = mu;
     }
 
+    /// Returns how the estimator forgets.
+    pub fn forgetting_mode(&self) -> Forgetting {
+        self.mode
+    }
+
+    /// Sets how the estimator forgets (default [`Forgetting::Exponential`]). Takes effect with
+    /// the next update and keeps `θ` and `P`.
+    pub fn set_forgetting_mode(&mut self, mode: Forgetting) {
+        self.mode = mode;
+    }
+
     /// Returns the trace bound `c` of the windup guard, or `None` if the guard is off.
     pub fn trace_bound(&self) -> Option<T> {
         self.trace_bound
@@ -305,7 +378,8 @@ where
     /// Sets the trace bound `c` of the windup guard, or turns the guard off with `None`.
     ///
     /// Forgetting slows down as `tr(P)` approaches `c` and stops at `c`. A bound below the
-    /// current trace stops forgetting until updates have brought the trace below it.
+    /// current trace stops forgetting until updates have brought the trace below it. Only used
+    /// with [`Forgetting::Exponential`].
     pub fn set_trace_bound(&mut self, bound: Option<T>) {
         self.trace_bound = bound;
     }
@@ -356,8 +430,9 @@ where
     /// Updates the estimate with the sample `y = φᵀ·θ + v`.
     ///
     #[doc = diagram!("rls-update.mmd", "predict", "innovation", "correct")]
-    /// Forgets with the guarded factor `μₖ`, then applies the scalar Kalman update; see the
-    /// [type documentation](Self) for the equations. Costs `O(N²)`.
+    /// Forgets with the guarded factor `μₖ` (or along `φ` with [`Forgetting::Directional`]),
+    /// then applies the scalar Kalman update; see the [type documentation](Self) for the
+    /// equations. Costs `O(N²)`.
     ///
     /// ## Status
     /// Returns [`CorrectionStatus::NotPositiveDefinite`] if `r ≤ 0` or the innovation
@@ -368,8 +443,12 @@ where
             return CorrectionStatus::NotPositiveDefinite;
         }
 
-        let mu = self.effective_forgetting();
-        let alpha = self.regressor_variance(phi) / mu + self.r;
+        let mu = match self.mode {
+            Forgetting::Exponential => self.effective_forgetting(),
+            Forgetting::Directional => self.forgetting,
+        };
+        let s = self.regressor_variance(phi);
+        let alpha = s / mu + self.r;
         if alpha <= T::zero() {
             return CorrectionStatus::NotPositiveDefinite;
         }
@@ -380,9 +459,26 @@ where
             return CorrectionStatus::Gated;
         }
 
-        match self.form {
-            CovarianceForm::Factored => self.update_factored(phi, mu, e),
-            CovarianceForm::Covariance => self.update_covariance(mu, e, alpha),
+        match (self.mode, self.form) {
+            (Forgetting::Exponential, CovarianceForm::Factored) => {
+                self.update_factored(phi, mu, e);
+            }
+            (Forgetting::Exponential, CovarianceForm::Covariance) => {
+                self.update_covariance(mu, mu, e, alpha);
+            }
+            (Forgetting::Directional, CovarianceForm::Factored) => {
+                if let Some(c) = Self::directional_weight(mu, s) {
+                    self.forget_along_factored(c);
+                }
+                self.update_factored(phi, T::one(), e);
+            }
+            (Forgetting::Directional, CovarianceForm::Covariance) => {
+                if let Some(c) = Self::directional_weight(mu, s) {
+                    self.forget_along_covariance(c);
+                }
+                // P⁻·φ = g + (1 − μ)/μ·g = g/μ, and P⁻ is already in P.
+                self.update_covariance(mu, T::one(), e, alpha);
+            }
         }
 
         CorrectionStatus::Applied
@@ -437,6 +533,43 @@ where
         variance
     }
 
+    /// Returns the weight `(1 − μ)/(μ·s)` of directional forgetting, or `None` if there is
+    /// nothing to forget (`μ ≥ 1` or `s ≤ 0`).
+    fn directional_weight(mu: T, s: T) -> Option<T> {
+        if mu >= T::one() || s <= T::zero() {
+            return None;
+        }
+
+        Some((T::one() - mu) / mu / s)
+    }
+
+    /// Applies `P ← P + c·g·gᵀ` with `g = P·φ = U·(D·f)` to the UD factors, with `f = Uᵀ·φ` in
+    /// [`Self::temp_f`]. Uses [`Self::temp_k`] for `g`.
+    fn forget_along_factored(&mut self, c: T) {
+        for i in 0..N {
+            let mut g = self.P.get(i, i) * self.temp_f.get(i, 0);
+            for k in (i + 1)..N {
+                g += self.P.get(i, k) * (self.P.get(k, k) * self.temp_f.get(k, 0));
+            }
+
+            self.temp_k.set(i, 0, g);
+        }
+
+        rank_one_update(&mut self.P, c, &mut self.temp_k);
+    }
+
+    /// Applies `P ← P + c·g·gᵀ` with `g = P·φ` in [`Self::temp_f`], keeping `P` symmetric.
+    fn forget_along_covariance(&mut self, c: T) {
+        for i in 0..N {
+            let cg = c * self.temp_f.get(i, 0);
+            for j in i..N {
+                let p = self.P.get(i, j) + cg * self.temp_f.get(j, 0);
+                self.P.set(i, j, p);
+                self.P.set(j, i, p);
+            }
+        }
+    }
+
     /// Applies forgetting `D ← D/μₖ` and Bierman's update for the innovation `e`.
     fn update_factored(&mut self, phi: &[T; N], mu: T, e: T) {
         if mu < T::one() {
@@ -458,9 +591,11 @@ where
         );
     }
 
-    /// Applies `P⁻ = P/μₖ` and the textbook update with `P·φ` in [`Self::temp_f`] and the
-    /// innovation variance `alpha`, writing the upper triangle of `P` and mirroring it.
-    fn update_covariance(&mut self, mu: T, e: T, alpha: T) {
+    /// Applies the textbook update with `P⁻·φ = temp_f/mu` and `P⁻ = P/p_divisor`, for `P·φ`
+    /// in [`Self::temp_f`] and the innovation variance `alpha`, writing the upper triangle of
+    /// `P` and mirroring it. Exponential forgetting passes `μₖ` for both; directional
+    /// forgetting has already inflated `P` and passes `p_divisor = 1`.
+    fn update_covariance(&mut self, mu: T, p_divisor: T, e: T, alpha: T) {
         for i in 0..N {
             let g = self.temp_f.get(i, 0) / mu;
             let k = g / alpha;
@@ -471,7 +606,8 @@ where
 
         for i in 0..N {
             for j in i..N {
-                let p = self.P.get(i, j) / mu - self.temp_f.get(i, 0) * self.temp_k.get(j, 0);
+                let p =
+                    self.P.get(i, j) / p_divisor - self.temp_f.get(i, 0) * self.temp_k.get(j, 0);
                 self.P.set(i, j, p);
                 self.P.set(j, i, p);
             }

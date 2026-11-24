@@ -5,6 +5,16 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Added
+
+- Added directional forgetting to `rls::RecursiveLeastSquares`. Select it with
+  `set_forgetting_mode(rls::Forgetting::Directional)`. It forgets only along the current regressor,
+  so the parameters that are still excited keep tracking while another regressor is idle. Variances
+  in unexcited directions stay bounded without the windup guard, and an estimate no longer jumps
+  when an idle regressor is excited again. Both covariance forms support it. In the factored form,
+  an Agee–Turner rank-one update keeps `D ≥ 0`. The default stays exponential forgetting, and its
+  results are unchanged ([#209]).
+
 ## [0.9.0] - 2026-11-22
 
 [0.9.0]: https://github.com/sunsided/minikalman-rs/releases/tag/v0.9.0
@@ -534,6 +544,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The same now holds with `alloc` but no float backend (`--features alloc` and
   `--features alloc,fixed`), and CI runs those as well.
 
+[#209]: https://github.com/sunsided/minikalman-rs/issues/209
 [#185]: https://github.com/sunsided/minikalman-rs/issues/185
 [#186]: https://github.com/sunsided/minikalman-rs/issues/186
 [#177]: https://github.com/sunsided/minikalman-rs/issues/177

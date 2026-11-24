@@ -6,9 +6,9 @@ use crate::kalman::CorrectionStatus;
 use crate::matrix::Matrix;
 #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
 use crate::matrix::MatrixMut;
-#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
-use crate::rls::CovarianceForm;
 use crate::rls::EstimatorStorage;
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+use crate::rls::{CovarianceForm, Forgetting};
 
 /// Both covariance forms, for tests that must hold for each.
 #[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
@@ -490,6 +490,208 @@ fn identifies_parameters_in_i16f16() {
         let gain = if k < 200 { 1.5 } else { 0.5 };
         let y = I16F16::from_num(gain) * u + I16F16::from_num(0.25);
         assert!(rls.update(&[u, I16F16::ONE], y).is_applied());
+        for j in 0..2 {
+            assert!(rls.covariance_buffer().get(j, j) >= I16F16::ZERO);
+        }
+    }
+
+    let theta = rls.parameters();
+    assert!((theta.get(0, 0) - I16F16::from_num(0.5)).abs() < I16F16::from_num(0.02));
+    assert!((theta.get(1, 0) - I16F16::from_num(0.25)).abs() < I16F16::from_num(0.02));
+}
+
+/// The setup of issue #209: `y = θ₀·u + θ₁·w` with `u` always excited, `w` excited for the
+/// first 200 steps (and again from step `reexcite`), and θ₀ stepping from 1 to 2 at step 1000.
+/// Returns the steps until `|θ₀ − 2| < 0.1`, the largest `P₁₁` after step 200, and the
+/// largest per-step change of `θ` from step `reexcite` on.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+fn idle_regressor_run(
+    form: CovarianceForm,
+    mode: Forgetting,
+    guard: Option<f64>,
+    noise: f64,
+    reexcite: usize,
+) -> (Option<usize>, f64, f64) {
+    let mut rng = Lcg(7);
+    let mut storage = EstimatorStorage::<2, f64>::new(0.0);
+    let mut rls = storage.build(100.0);
+    rls.reset_with_form(form, 100.0);
+    rls.set_forgetting_factor(0.98);
+    rls.set_forgetting_mode(mode);
+    rls.set_trace_bound(guard);
+
+    let (mut settled, mut p11, mut jump) = (None, 0.0_f64, 0.0_f64);
+    for k in 0..3000 {
+        let theta0 = if k < 1000 { 1.0 } else { 2.0 };
+        let u = if k % 2 == 0 { 1.0 } else { -1.0 };
+        let excited = k < 200 || k >= reexcite;
+        let w = match (excited, (k / 3) % 2 == 0) {
+            (false, _) => 0.0,
+            (true, true) => 1.0,
+            (true, false) => -1.0,
+        };
+
+        let before = [rls.parameters().get(0, 0), rls.parameters().get(1, 0)];
+        let y = theta0 * u + 0.5 * w + noise * rng.next();
+        assert!(rls.update(&[u, w], y).is_applied());
+
+        if k >= 200 {
+            p11 = p11.max(covariance_of(&rls)[1][1]);
+        }
+        if k >= reexcite {
+            for (i, b) in before.iter().enumerate() {
+                jump = jump.max((rls.parameters().get(i, 0) - b).abs());
+            }
+        }
+        if k >= 1000 && settled.is_none() && (rls.parameters().get(0, 0) - 2.0).abs() < 0.1 {
+            settled = Some(k - 1000);
+        }
+    }
+
+    (settled, p11, jump)
+}
+
+/// Issue #209: with one regressor idle, directional forgetting keeps tracking the excited
+/// parameter (as fast as unguarded exponential forgetting) and keeps the idle variance
+/// bounded, while the guarded exponential default stalls.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+#[test]
+fn directional_forgetting_tracks_while_a_regressor_is_idle() {
+    for form in FORMS {
+        let (settled, p11, _) =
+            idle_regressor_run(form, Forgetting::Directional, Some(200.0), 0.0, usize::MAX);
+        let settled = settled.expect("directional forgetting settles");
+        assert!(settled <= 130, "{form:?}: settled after {settled} steps");
+        assert!(p11 < 1.0, "{form:?}: idle variance {p11}");
+
+        let (stalled, ..) =
+            idle_regressor_run(form, Forgetting::Exponential, Some(200.0), 0.0, usize::MAX);
+        assert_eq!(stalled, None, "{form:?}: the guarded default stalls");
+
+        let (unguarded, wound_up, _) =
+            idle_regressor_run(form, Forgetting::Exponential, None, 0.0, usize::MAX);
+        assert!(unguarded.is_some_and(|s| s <= 130), "{form:?}");
+        assert!(wound_up > 1e5, "{form:?}: windup {wound_up}");
+    }
+}
+
+/// When the idle regressor is excited again, directional forgetting moves `θ` smoothly,
+/// while unguarded exponential forgetting jumps on its wound-up variance.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+#[test]
+fn directional_forgetting_does_not_jump_on_re_excitation() {
+    for form in FORMS {
+        let (.., smooth) = idle_regressor_run(form, Forgetting::Directional, None, 0.1, 2000);
+        let (.., jump) = idle_regressor_run(form, Forgetting::Exponential, None, 0.1, 2000);
+        assert!(smooth < 0.02, "{form:?}: directional step {smooth}");
+        assert!(jump > 0.1, "{form:?}: exponential step {jump}");
+    }
+}
+
+/// Both forms agree under directional forgetting, also with a regressor that goes idle, and
+/// the factored form in `f32` stays definite and close to `f64`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+#[test]
+#[allow(clippy::needless_range_loop, clippy::cast_possible_truncation)]
+fn directional_forms_agree() {
+    let mut samples = dataset::<200>([1.0, 2.0, 3.0], 0.1, 13);
+    for (phi, _) in samples.iter_mut().skip(50) {
+        phi[1] = 0.0;
+    }
+
+    let mut factored_storage = EstimatorStorage::<3, f64>::new(0.0);
+    let mut covariance_storage = EstimatorStorage::<3, f64>::new(0.0);
+    let mut single_storage = EstimatorStorage::<3, f32>::new(0.0);
+    let mut factored = factored_storage.build(5.0);
+    let mut covariance = covariance_storage.build(5.0);
+    let mut single = single_storage.build(5.0);
+    covariance.reset_with_form(CovarianceForm::Covariance, 5.0);
+    for rls in [&mut factored, &mut covariance] {
+        rls.set_forgetting_factor(0.95);
+        rls.set_forgetting_mode(Forgetting::Directional);
+        assert_eq!(rls.forgetting_mode(), Forgetting::Directional);
+    }
+    single.set_forgetting_factor(0.95);
+    single.set_forgetting_mode(Forgetting::Directional);
+
+    for (phi, y) in &samples {
+        assert!(factored.update(phi, *y).is_applied());
+        assert!(covariance.update(phi, *y).is_applied());
+        let phi32 = [phi[0] as f32, phi[1] as f32, phi[2] as f32];
+        assert!(single.update(&phi32, *y as f32).is_applied());
+        for j in 0..3 {
+            assert!(single.covariance_buffer().get(j, j) >= 0.0);
+        }
+    }
+
+    let (pf, pc) = (covariance_of(&factored), covariance_of(&covariance));
+    for i in 0..3 {
+        let (a, b) = (
+            factored.parameters().get(i, 0),
+            covariance.parameters().get(i, 0),
+        );
+        assert!((a - b).abs() < 1e-9, "θ[{i}]: {a} vs {b}");
+        assert!((f64::from(single.parameters().get(i, 0)) - a).abs() < 1e-3);
+        for j in 0..3 {
+            assert!((pf[i][j] - pc[i][j]).abs() < 1e-9, "P[{i}][{j}]");
+        }
+    }
+
+    // The variance of the idle parameter has not wound up.
+    assert!(pf[1][1] < 5.0, "idle variance {}", pf[1][1]);
+}
+
+/// A zero regressor carries no information along any direction, so directional forgetting
+/// leaves `θ` and `P` bit-identical. The default mode is exponential.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+#[test]
+fn directional_skips_zero_regressor() {
+    for form in FORMS {
+        let mut storage = EstimatorStorage::<2, f64>::new(0.0);
+        let mut rls = storage.build(10.0);
+        rls.reset_with_form(form, 10.0);
+        assert_eq!(rls.forgetting_mode(), Forgetting::Exponential);
+        rls.set_forgetting_factor(0.9);
+        rls.set_forgetting_mode(Forgetting::Directional);
+        assert!(rls.update(&[1.0, 0.5], 2.0).is_applied());
+
+        let theta = [rls.parameters().get(0, 0), rls.parameters().get(1, 0)];
+        let p = covariance_of(&rls);
+        for _ in 0..100 {
+            assert!(rls.update(&[0.0, 0.0], 0.0).is_applied());
+        }
+
+        assert_eq!(covariance_of(&rls), p, "{form:?}");
+        assert_eq!(rls.parameters().get(0, 0), theta[0]);
+        assert_eq!(rls.parameters().get(1, 0), theta[1]);
+    }
+}
+
+/// In `I16F16`, directional forgetting tracks a gain step while the offset regressor is idle
+/// for a stretch, and keeps `D ≥ 0`.
+#[cfg(feature = "fixed")]
+#[test]
+fn directional_forgetting_in_i16f16() {
+    use crate::rls::Forgetting;
+    use fixed::types::I16F16;
+
+    let mut storage = EstimatorStorage::<2, I16F16>::new(I16F16::ZERO);
+    let mut rls = storage.build(I16F16::from_num(10));
+    rls.set_forgetting_factor(I16F16::from_num(0.98));
+    rls.set_forgetting_mode(Forgetting::Directional);
+    rls.set_measurement_variance(I16F16::ONE);
+
+    for k in 0..600 {
+        let u = I16F16::from_num(k % 9) / I16F16::from_num(4) - I16F16::ONE;
+        let gain = if k < 300 { 1.5 } else { 0.5 };
+        // The offset regressor is idle between steps 150 and 450.
+        let one = if (150..450).contains(&k) {
+            I16F16::ZERO
+        } else {
+            I16F16::ONE
+        };
+        let y = I16F16::from_num(gain) * u + I16F16::from_num(0.25) * one;
+        assert!(rls.update(&[u, one], y).is_applied());
         for j in 0..2 {
             assert!(rls.covariance_buffer().get(j, j) >= I16F16::ZERO);
         }
