@@ -644,7 +644,10 @@ inversion. It is the Kalman filter with `A = I`, `Q = 0` and `H = φᵀ`, and it
 [`predict_tuned(λ)`](https://docs.rs/minikalman/latest/minikalman/regular/struct.RegularKalman.html#method.predict_tuned)
 with `μ = λ²` (while the windup guard is inactive). By default it keeps `P = U·D·Uᵀ`
 (Bierman's update, positive semi-definite in `f32` and `I16F16`) and bounds `tr(P)` against
-covariance windup when the input stops exciting the system:
+covariance windup when the input stops exciting the system. With
+`storage.build(p0).with_forgetting::<rls::Directional>()` it forgets only along the regressors
+that are excited, so an idle input neither winds `P` up nor stops the other parameters from
+tracking:
 
 ```rust
 use minikalman::prelude::*;
