@@ -10,12 +10,28 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added directional forgetting to `rls::RecursiveLeastSquares`. Select it with
   `storage.build(p0).with_forgetting::<rls::Directional>()`. The mode is a type parameter that
   defaults to `rls::Exponential`, so a build only contains the code of the mode it uses. It forgets
-  only along the current regressor,
-  so the parameters that are still excited keep tracking while another regressor is idle. Variances
-  in unexcited directions stay bounded without the windup guard, and an estimate no longer jumps
-  when an idle regressor is excited again. Both covariance forms support it. In the factored form,
-  an Agee–Turner rank-one update keeps `D ≥ 0`. The default stays exponential forgetting, and its
-  results are unchanged ([#209]).
+  only along the current regressor, so the parameters that are still excited keep tracking while
+  another regressor is idle. Variances in unexcited directions stay bounded without the windup
+  guard, and an estimate no longer jumps when an idle regressor is excited again. Both covariance
+  forms support it. In the factored form, an Agee–Turner rank-one update keeps `D ≥ 0`. The
+  default stays exponential forgetting ([#209]).
+
+### Fixed
+
+- Fixed an `I16F16` overflow in `rls::RecursiveLeastSquares` (factored form, both forgetting
+  modes). After a precise sample, `φᵀ·P·φ` squared the large entries of `Uᵀ·φ` before scaling them
+  by the small `D`, which panicked in debug builds and wrapped in release builds. In `f32`/`f64`,
+  the last bit of `φᵀ·P·φ` can now differ.
+
+### Internal
+
+- Added property tests for recursive least squares (`tests/proptest_rls.rs`) and for the UD
+  rank-one update. Among them: both covariance forms agree under directional forgetting, the
+  information along an idle direction is kept exactly, rejected and empty updates change nothing,
+  and short `I16F16` runs of the factored form neither overflow nor make `D` negative.
+- Added Kani proofs that `rank_one_update` and one directional RLS update (both forms) in `I16F16`
+  cannot overflow, divide by zero or index out of bounds within stated input ranges, and a `Kani`
+  workflow that runs them.
 
 ## [0.9.0] - 2026-11-22
 

@@ -704,3 +704,80 @@ fn directional_forgetting_in_i16f16() {
     assert!((theta.get(0, 0) - I16F16::from_num(0.5)).abs() < I16F16::from_num(0.02));
     assert!((theta.get(1, 0) - I16F16::from_num(0.25)).abs() < I16F16::from_num(0.02));
 }
+
+/// A directional step that forgets nothing, here because `μ > 1` lies outside `0 < μ ≤ 1`,
+/// is the plain update with `μ = 1` in both forms: the same `θ`, `P` and NIS as exponential
+/// forgetting with `μ = 1`.
+#[cfg(any(feature = "std", feature = "libm", feature = "micromath"))]
+#[test]
+fn directional_step_without_forgetting_is_a_plain_update() {
+    for form in FORMS {
+        let mut plain_storage = EstimatorStorage::<1, f64>::new(0.0);
+        let mut plain = plain_storage.build(1.0);
+        plain.reset_with_form(form, 1.0);
+        assert!(plain.update(&[1.0], 1.0).is_applied());
+
+        let mut storage = EstimatorStorage::<1, f64>::new(0.0);
+        let mut rls = storage.build(1.0).with_forgetting::<Directional>();
+        rls.reset_with_form(form, 1.0);
+        rls.set_forgetting_factor(1.5);
+        assert!(rls.update(&[1.0], 1.0).is_applied());
+
+        // P = 1, r = 1, e = 1: α = 2, K = 0.5, P ← 0.5.
+        assert_eq!(rls.parameters().get(0, 0), 0.5, "{form:?}");
+        assert_eq!(covariance_of(&rls), [[0.5]], "{form:?}");
+        assert_eq!(rls.nis(), 0.5, "{form:?}");
+        assert_eq!(rls.parameters().get(0, 0), plain.parameters().get(0, 0));
+        assert_eq!(covariance_of(&rls), covariance_of(&plain));
+        assert_eq!(rls.nis(), plain.nis());
+    }
+}
+
+/// Regression: in `I16F16`, the weight `(1 − μ)/(μ·s)` alone resolves to about two steps for
+/// `s ≈ 800`, which made one directional step in the covariance form leave `P` indefinite
+/// (`P₁₁ ≈ −0.01`). Evaluated as `(1 − μ)/μ · gᵢ·(gⱼ/s)`, `P` stays definite.
+#[cfg(feature = "fixed")]
+#[test]
+fn directional_covariance_form_stays_definite_in_i16f16() {
+    use crate::matrix::MatrixData;
+    use crate::rls::{CovarianceForm, Directional};
+    use fixed::types::I16F16;
+
+    let f = I16F16::from_num::<f64>;
+    let mut storage = EstimatorStorage::<2, I16F16>::new(I16F16::ZERO);
+    let mut rls = storage.build(f(50.03119)).with_forgetting::<Directional>();
+    rls.reset_with_form(CovarianceForm::Covariance, f(50.03119));
+    rls.set_forgetting_factor(f(0.9758));
+    rls.set_measurement_variance(f(0.0625));
+    assert!(rls.update(&[f(-0.00046), f(-4.0)], f(8.0)).is_applied());
+
+    let mut p = [I16F16::ZERO; 4];
+    rls.covariance(&mut MatrixData::new_mut::<2, 2, I16F16>(&mut p));
+    assert!(p[3] > I16F16::ZERO, "P₁₁ = {}", p[3]);
+    assert!(p[0] * p[3] - p[1] * p[2] > I16F16::ZERO, "P = {p:?}");
+    // The second sample of the case that overflowed the NIS before.
+    let _ = rls.update(&[f(-0.00087), f(2.49408)], f(8.0));
+}
+
+/// Regression: after a precise sample (`r = 1/16`), `U` is large and `D` small, so
+/// `f = Uᵀ·φ` reaches the hundreds and `f²` alone overflowed `I16F16` in `φᵀ·P·φ`, although
+/// every term `D·f²` stays below `φᵀ·P·φ`. Found by a random search of the Kani ranges.
+#[cfg(feature = "fixed")]
+#[test]
+fn regressor_variance_does_not_overflow_in_i16f16() {
+    use crate::rls::{Directional, Exponential, Forgetting};
+    use fixed::types::I16F16;
+
+    fn run<F: Forgetting>() {
+        let f = I16F16::from_num::<f64>;
+        let mut storage = EstimatorStorage::<2, I16F16>::new(I16F16::ZERO);
+        let mut rls = storage.build(f(50.0252)).with_forgetting::<F>();
+        rls.set_forgetting_factor(f(0.97382));
+        rls.set_measurement_variance(f(0.0625));
+        assert!(rls.update(&[f(0.02962), f(-4.0)], f(-8.0)).is_applied());
+        assert!(rls.update(&[f(-3.93355), f(4.0)], f(-0.00046)).is_applied());
+    }
+
+    run::<Exponential>();
+    run::<Directional>();
+}

@@ -125,6 +125,10 @@ required-features = ["std"]
 name = "proptest_filter"
 required-features = ["std"]
 
+[[test]]
+name = "proptest_rls"
+required-features = ["std"]
+
 [features]
 default = ["libm", "alloc"]
 std = ["num-traits/std", "alloc"]
@@ -156,6 +160,10 @@ proptest = "1.5"
 rand = "0.8.5"
 rand_distr = "0.4.3"
 static_cell = "2.1.1"
+
+[lints.rust]
+# `cfg(kani)` is set by `cargo kani` for the proofs in `verification` modules.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)"] }
 
 [package.metadata.docs.rs]
 all-features = true

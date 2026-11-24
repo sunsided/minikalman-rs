@@ -21,7 +21,9 @@ pub enum CovarianceForm {
     /// `P` itself, updated with the textbook `P ← P⁻ − K·φᵀ·P⁻` (symmetrized).
     ///
     /// Slightly cheaper, but rounding can make `P` indefinite on long `f32` or fixed-point runs
-    /// with poor excitation. Prefer [`Factored`](Self::Factored) there.
+    /// with poor excitation. Prefer [`Factored`](Self::Factored) there. In `I16F16` with a
+    /// precise `r`, a few steps suffice, sooner with [`Directional`] forgetting, and an
+    /// indefinite `P` can drive `α` towards zero and overflow the NIS.
     Covariance,
 }
 
@@ -111,10 +113,10 @@ impl Forgetting for Directional {
 /// parameter, so scale `r` up if needed. Keep `α = φᵀ·P⁻·φ + r` and `p0` well below the range.
 /// [Directional forgetting](#directional-forgetting) raises a variance `Pⱼⱼ` by at most
 /// `Pⱼⱼ·(1 − μ)/μ` (since `gⱼ² ≤ Pⱼⱼ·s`), so the same resolution bound applies to the excited
-/// variances. Its weight `(1 − μ)/(μ·s)` is computed on its own and grows as `s` shrinks: a
-/// regressor whose `s` rounds to zero skips the step, but in floating point an `s` near the
-/// smallest normal number (e.g. `φ ≈ 10⁻²⁰` in `f32`) overflows it to infinity, so scale `φ`
-/// to well within the range.
+/// variances. The inflation is evaluated as `(1 − μ)/μ · gᵢ·(gⱼ/s)`, never forming the small
+/// weight `(1 − μ)/(μ·s)` on its own (which a fixed-point type resolves to a few steps only):
+/// `|gⱼ/s| ≤ √(Pⱼⱼ/s)` and `|gᵢ·gⱼ/s| ≤ √(Pᵢᵢ·Pⱼⱼ)`, so a regressor whose `s` rounds to zero
+/// skips the step and no intermediate leaves the range that `P` itself needs.
 ///
 /// ## Covariance windup
 ///
@@ -157,8 +159,9 @@ impl Forgetting for Directional {
 /// ```
 ///
 /// The information `P⁻¹` shrinks by the factor `μ` along `φ` and is kept in every direction
-/// that `φ` does not excite, so `P` cannot wind up there and needs no guard: an idle
-/// regressor keeps the variance it had, and its parameter does not jump when excitation
+/// that `φ` does not excite, so `P` cannot wind up there and needs no guard: the information
+/// about an idle regressor stays exactly as it was (its variance changes only through its
+/// correlation with the excited parameters), and its parameter does not jump when excitation
 /// returns. Since `φᵀ·P⁻·φ = s/μ`, the innovation variance, the NIS and the gate are the same
 /// as with exponential forgetting; the correction then runs unchanged. A step with `s = 0`
 /// (e.g. `φ = 0`) forgets nothing. In the [`Factored`](CovarianceForm::Factored) form the
@@ -477,12 +480,21 @@ where
             return CorrectionStatus::NotPositiveDefinite;
         }
 
-        let mu = if F::DIRECTIONAL {
+        let s = self.regressor_variance(phi);
+        // A directional step that forgets nothing (`μ ≥ 1` or `s ≤ 0`) is a plain update with
+        // `μ = 1`, so that `α`, the NIS and the gain describe the `P` that is corrected.
+        let weight = if F::DIRECTIONAL {
+            Self::directional_weight(self.forgetting, s)
+        } else {
+            None
+        };
+        let mu = if !F::DIRECTIONAL {
+            self.effective_forgetting()
+        } else if weight.is_some() {
             self.forgetting
         } else {
-            self.effective_forgetting()
+            T::one()
         };
-        let s = self.regressor_variance(phi);
         let alpha = s / mu + self.r;
         if alpha <= T::zero() {
             return CorrectionStatus::NotPositiveDefinite;
@@ -503,14 +515,14 @@ where
                 self.update_covariance(mu, mu, e, alpha);
             }
             (true, CovarianceForm::Factored) => {
-                if let Some(c) = Self::directional_weight(mu, s) {
-                    self.forget_along_factored(c);
+                if let Some(k) = weight {
+                    self.forget_along_factored(k, s);
                 }
                 self.update_factored(phi, T::one(), e);
             }
             (true, CovarianceForm::Covariance) => {
-                if let Some(c) = Self::directional_weight(mu, s) {
-                    self.forget_along_covariance(c);
+                if let Some(k) = weight {
+                    self.forget_along_covariance(k, s);
                 }
                 // P⁻·φ = g + (1 − μ)/μ·g = g/μ, and P⁻ is already in P.
                 self.update_covariance(mu, T::one(), e, alpha);
@@ -550,7 +562,9 @@ where
                     }
 
                     self.temp_f.set(j, 0, f);
-                    variance += self.P.get(j, j) * (f * f);
+                    // (D·f)·f, not D·(f·f): each term is at most φᵀ·P·φ, while f² alone can
+                    // leave the range of a fixed-point type when U is large and D small.
+                    variance += (self.P.get(j, j) * f) * f;
                 }
             }
             CovarianceForm::Covariance => {
@@ -569,37 +583,43 @@ where
         variance
     }
 
-    /// Returns the weight `(1 − μ)/(μ·s)` of directional forgetting, or `None` if there is
-    /// nothing to forget (`μ ≥ 1` or `s ≤ 0`).
+    /// Returns the factor `(1 − μ)/μ` of directional forgetting, or `None` if there is nothing
+    /// to forget (`μ ≥ 1` or `s ≤ 0`).
     fn directional_weight(mu: T, s: T) -> Option<T> {
         if mu >= T::one() || s <= T::zero() {
             return None;
         }
 
-        Some((T::one() - mu) / mu / s)
+        Some((T::one() - mu) / mu)
     }
 
-    /// Applies `P ← P + c·g·gᵀ` with `g = P·φ = U·(D·f)` to the UD factors, with `f = Uᵀ·φ` in
-    /// [`Self::temp_f`]. Uses [`Self::temp_k`] for `g`.
-    fn forget_along_factored(&mut self, c: T) {
+    /// Applies `P ← P + k·g·gᵀ/s` with `k = (1 − μ)/μ` and `g = P·φ = U·(D·f)` to the UD
+    /// factors, with `f = Uᵀ·φ` in [`Self::temp_f`], as the rank-one update with the vector
+    /// `g/s` (in [`Self::temp_k`]) and the weight `k·s`.
+    fn forget_along_factored(&mut self, k: T, s: T) {
         for i in 0..N {
             let mut g = self.P.get(i, i) * self.temp_f.get(i, 0);
-            for k in (i + 1)..N {
-                g += self.P.get(i, k) * (self.P.get(k, k) * self.temp_f.get(k, 0));
+            for j in (i + 1)..N {
+                g += self.P.get(i, j) * (self.P.get(j, j) * self.temp_f.get(j, 0));
             }
 
-            self.temp_k.set(i, 0, g);
+            self.temp_k.set(i, 0, g / s);
         }
 
-        rank_one_update(&mut self.P, c, &mut self.temp_k);
+        rank_one_update(&mut self.P, k * s, &mut self.temp_k);
     }
 
-    /// Applies `P ← P + c·g·gᵀ` with `g = P·φ` in [`Self::temp_f`], keeping `P` symmetric.
-    fn forget_along_covariance(&mut self, c: T) {
+    /// Applies `P ← P + k·gᵢ·(gⱼ/s)` with `k = (1 − μ)/μ` and `g = P·φ` in [`Self::temp_f`],
+    /// keeping `P` symmetric. Uses [`Self::temp_k`] for `g/s`.
+    fn forget_along_covariance(&mut self, k: T, s: T) {
+        for j in 0..N {
+            self.temp_k.set(j, 0, self.temp_f.get(j, 0) / s);
+        }
+
         for i in 0..N {
-            let cg = c * self.temp_f.get(i, 0);
+            let kg = k * self.temp_f.get(i, 0);
             for j in i..N {
-                let p = self.P.get(i, j) + cg * self.temp_f.get(j, 0);
+                let p = self.P.get(i, j) + kg * self.temp_k.get(j, 0);
                 self.P.set(i, j, p);
                 self.P.set(j, i, p);
             }
@@ -653,3 +673,52 @@ where
 
 #[cfg(test)]
 mod tests;
+
+/// Kani proofs for directional forgetting in fixed point.
+#[cfg(all(kani, feature = "fixed"))]
+mod verification {
+    use super::*;
+    use crate::matrix::Matrix;
+    use crate::rls::EstimatorStorage;
+    use fixed::types::I16F16;
+
+    /// Returns any `I16F16` in `[lo, hi]`.
+    fn any_in(lo: I16F16, hi: I16F16) -> I16F16 {
+        let x = I16F16::from_bits(kani::any());
+        kani::assume(x >= lo && x <= hi);
+        x
+    }
+
+    /// A directional update from `P = p0·I` with any `p0 ∈ [1/16, 100]`,
+    /// `μ ∈ [0.9, 1]`, `r ∈ [1/16, 16]`, `φ ∈ [−4, 4]²` and `y ∈ [−8, 8]` neither overflow
+    /// nor divide by zero, and keep `D ≥ 0`.
+    fn one_directional_update(form: CovarianceForm) {
+        let int = |v: i32| I16F16::from_num(v);
+        let p0 = any_in(int(1) / int(16), int(100));
+        let mut storage = EstimatorStorage::<2, I16F16>::new(I16F16::ZERO);
+        let mut rls = storage.build(p0).with_forgetting::<Directional>();
+        rls.reset_with_form(form, p0);
+        rls.set_forgetting_factor(any_in(int(9) / int(10), int(1)));
+        rls.set_measurement_variance(any_in(int(1) / int(16), int(16)));
+
+        let phi = [any_in(int(-4), int(4)), any_in(int(-4), int(4))];
+        let _ = rls.update(&phi, any_in(int(-8), int(8)));
+
+        if form == CovarianceForm::Factored {
+            assert!(rls.covariance_buffer().get(0, 0) >= I16F16::ZERO);
+            assert!(rls.covariance_buffer().get(1, 1) >= I16F16::ZERO);
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(3)]
+    fn directional_update_is_safe_in_i16f16_factored() {
+        one_directional_update(CovarianceForm::Factored);
+    }
+
+    #[kani::proof]
+    #[kani::unwind(3)]
+    fn directional_update_is_safe_in_i16f16_covariance() {
+        one_directional_update(CovarianceForm::Covariance);
+    }
+}
